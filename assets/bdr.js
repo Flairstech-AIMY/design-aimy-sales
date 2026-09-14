@@ -2885,17 +2885,28 @@
        run" is one recommendation given two reasons and drawn as two. */
     const fitLine = (skip) => {
       if (!fit || fit.next === skip) return null;
-      return '<b>' + esc(SELL[fit.next].name) + '</b> is what goes with what they run — ' +
+      return line('<b>' + esc(SELL[fit.next].name) + '</b> is what goes with what they run — ' +
         esc(fit.why) + '.' +
         /* Ninety days from signature before we go back, and the rule says
            so out loud rather than hiding the row until the clock runs out.
            A manager who can see it is early can decide to be early. */
-        (fit.ripe ? '' : ' They signed ' + esc(plural(fit.days, 'day')) + ' ago, so it is early.');
+        (fit.ripe ? '' : ' They signed ' + esc(plural(fit.days, 'day')) + ' ago, so it is early.'),
+        fit.next);
     };
-    const pack = (plain, bold, thens, from) => ({
-      text: bold + (thens[0] ? ' ' + thens[0] : ''),
-      what: plain, thens: thens.filter(Boolean), from: from,
-    });
+    /* ══ A CONCLUSION CARRIES THE THING IT SAYS TO SELL ════════════════
+       The control under the card used to read "Put somebody on it", which
+       named neither the product nor the outcome — and once there are two
+       conclusions, "it" is ambiguous on top of being vague. The key rides
+       with the sentence rather than being read off the account a second
+       time, so the verb cannot end up naming something the line above it
+       did not. `offer` is null where a conclusion names no sale: the hold
+       case names a thing we already run, and "nothing fits" names nothing. */
+    const line = (html, offer) => ({ html: html, offer: offer || null });
+    const pack = (plain, bold, thens, from) => {
+      const list = thens.filter(Boolean);
+      return { text: bold + (list[0] ? ' ' + list[0].html : ''),
+        what: plain, thens: list, from: from };
+    };
 
     /* ══ 1. A DATE SOMEBODY ELSE SET ═══════════════════════════════════ */
     if (rn && rn.days <= RENEW_SOON) {
@@ -2909,9 +2920,11 @@
         /* The renewal conversation is the one meeting of the year where
            more is on the table than less, so what goes with what they run
            is the thing to walk in with rather than a separate errand. */
-        [fitLine(null)
-          ? 'Go into it asking for more. ' + fitLine(null)
-          : 'Nothing else in the range fits them, so this one is about keeping it.'],
+        [(function () {
+          const f = fitLine(null);
+          return f ? line('Go into it asking for more. ' + f.html, f.offer)
+            : line('Nothing else in the range fits them, so this one is about keeping it.');
+        })()],
         'their contract, counted from the day they signed');
     }
 
@@ -2922,8 +2935,8 @@
       const from = n.src + ', against what they hold';
       if (o.kind === 'open') {
         return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
-          ['They already run <b>' + esc(joinAnd(hold)) + '</b>, and <b>' +
-            esc(SELL[o.offer].name) + '</b> is the one that answers it.',
+          [line('They already run <b>' + esc(joinAnd(hold)) + '</b>, and <b>' +
+            esc(SELL[o.offer].name) + '</b> is the one that answers it.', o.offer),
             fitLine(o.offer)], from);
       }
       if (o.kind === 'hold') {
@@ -2931,12 +2944,12 @@
            just changed is a thing we are already paid to do, which makes
            this the week somebody there starts asking whether it works. */
         return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
-          ['That is <b>' + esc(SELL[o.offer].name) + '</b>, which is ours already — so ' +
-            'this is a call to make before somebody there makes it about us.',
+          [line('That is <b>' + esc(SELL[o.offer].name) + '</b>, which is ours already — so ' +
+            'this is a call to make before somebody there makes it about us.'),
             fitLine(o.offer)], from);
       }
       return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
-        ['Nothing in the range answers it, so this is a call about them rather than about us.',
+        [line('Nothing in the range answers it, so this is a call about them rather than about us.'),
           fitLine(null)], from);
     }
 
@@ -11487,21 +11500,42 @@
              follow. */
           '<div class="b-lead-thens">' +
             said.thens.map((t) =>
-              '<p class="b-lead-then">' + chIcon('sell') + '<span>' + t + '</span></p>').join('') +
+              '<p class="b-lead-then">' + chIcon('sell') + '<span>' + t.html + '</span></p>').join('') +
           '</div>'
         : '<p class="s-lead-deck">' +
             (thin ? why : said.text + (why ? ' ' + why : '')) + '</p>') +
-      /* ══ AND THE VERB THAT USED TO LIVE UNDER THE SECOND BLOCK ═════════
-         "Put somebody on it" was the way out of `fitBlock`: it fills the
-         composer with `Add a lead: , at <company>`, cursor between the
-         comma and the name, which is the one action a standing fit has. The
-         block is folded into this one, so the verb comes with it rather
-         than being lost with the heading it sat under. */
+      /* ══ THE VERB SAYS WHAT IT DOES, AND TO WHICH OF THEM ══════════════
+         `fitBlock` ended in "Put somebody on it", and the phrase came across
+         with the block when it was folded in here. It was weak where it
+         stood — it names the mechanism, adding a lead, rather than the
+         outcome — and once this block carries two conclusions it is also
+         ambiguous: there is no "it" any more, there are two of them.
+
+         One control per conclusion that names a sale, labelled with the
+         thing it sells. The key comes off the conclusion itself, so the
+         verb cannot name a product the line above it did not, and a
+         conclusion that names no sale gets no control: the hold case is
+         about something we already run and "nothing fits" is about nothing.
+
+         AND IT HAD TO BE MADE TRUE FIRST. The sentence it hands over could
+         not say what the lead was for — `addLead` set `camps: []`, `sellOf`
+         found no campaign and fell back to `'qa'` — so a button reading
+         "Offer AiMY QA" would have put a deal on the board that the board
+         then called something else. `for <service>` is read and stored now,
+         which is what earns the label. */
       (function () {
-        const fit = isMgr() && isCust(a) ? expansionsOf(a.id)[0] : null;
-        const put = fit
-          ? '<button class="s-inline-btn" type="button" data-fill="' +
-            esc('Add a lead: , at ' + a.name) + '">Put somebody on it</button>' : '';
+        const PRE = 'Add a lead: ';
+        const offers = [];
+        ((said && said.thens) || []).forEach((t) => {
+          if (t.offer && SELL[t.offer] && offers.indexOf(t.offer) < 0) offers.push(t.offer);
+        });
+        const put = offers.map((k) =>
+          '<button class="s-inline-btn" type="button" data-fill="' +
+          esc(PRE + ', at ' + a.name + ', for ' + SELL[k].name) + '" ' +
+          /* The hole is the name, and the name goes second. Without this the
+             cursor lands after the service and the first thing anybody does
+             is travel back through the sentence they were just handed. */
+          'data-fillat="' + PRE.length + '">Offer ' + esc(SELL[k].name) + '</button>').join('');
         return (door || put) ? '<div class="s-lead-acts">' + door + put + '</div>' : '';
       })() +
     '</section>';
@@ -12408,6 +12442,14 @@
      a board that prices the drift at the old number is a forecast built on
      what somebody meant to sell. */
   function sellOf(c) {
+    /* ══ SOMEBODY SAID WHAT THIS ONE IS FOR ═════════════════════════════
+       Everything below this line is inference — the campaign's first
+       offering, corrected for a drift this file models because a quarter of
+       deals wander onto something else. A lead that was ADDED for a named
+       service is not an inference and must not be overruled by one: the
+       drift exists to admit the product does not always know, and here it
+       does. */
+    if (c.sell && SELL[c.sell]) return c.sell;
     const k = dealCamp(c);
     const opened = k && k.sells && k.sells.length ? k.sells[0] : 'qa';
     const a = accOf(c);
@@ -15992,15 +16034,37 @@
      Everything but the name is optional, because at the moment you type this
      you are standing outside a restaurant. */
   const ADD_RE = /^\s*(?:add|new)\s+(?:a\s+)?(?:lead|contact|person)\b\s*[:,-]?\s*(.*)$/i;
+  /* ══ AND WHAT THE LEAD IS FOR ══════════════════════════════════════════
+     A lead added by hand landed with `camps: []`, which means `sellOf` finds
+     no campaign, falls back to `'qa'`, and the board prices it as a QA deal.
+     That was survivable while the only way in was typing a name into the
+     bar. It is not survivable now: the reading on a customer's page names
+     the service to offer them, and the control under it starts exactly this
+     sentence — so a button reading "Offer AiMY QA" would produce a lead the
+     board immediately calls something else.
+
+     `for <thing>` at the end, matched against `SELLS` by name. It is read
+     and stripped BEFORE the company is parsed, because the company match is
+     anchored to the end of the string and a trailing clause would otherwise
+     be swallowed into the company name. Nothing recognised, nothing
+     stripped: "for the renewal" stays part of whatever the sentence was
+     already saying rather than silently vanishing. */
   function readLead(rest) {
     let t = String(rest || '').trim().replace(/[.\s]+$/, '');
     if (!t) return null;
+    let sell = null;
+    const want = t.match(/^(.*?)\s*,?\s+for\s+(.+)$/i);
+    if (want) {
+      const said = want[2].trim().toLowerCase().replace(/[.\s]+$/, '');
+      const hit = SELLS.filter((s) => s.name.toLowerCase() === said)[0];
+      if (hit) { sell = hit.k; t = want[1].trim().replace(/,\s*$/, ''); }
+    }
     let co = null;
     const at = t.match(/^(.*?)\s+(?:at|from|@)\s+([^,]+)$/i);
     if (at) { t = at[1].trim(); co = at[2].trim(); }
     const parts = t.split(',').map((x) => x.trim()).filter(Boolean);
     if (!parts.length || !/[a-z]/i.test(parts[0])) return null;
-    return { name: parts[0], title: parts[1] || null, co: co };
+    return { name: parts[0], title: parts[1] || null, co: co, sell: sell };
   }
 
   /* The company is looked up before it is minted, so naming one already in
@@ -16028,6 +16092,12 @@
       checkpoint: 'handed-over', checkpointAt: now,
       attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
       fate: SCENARIOS[0].k, enrichedAt: null, manager: me().id,
+      /* What it is for, when the sentence said. It is the only field on a
+         lead that a campaign would otherwise have supplied, and a lead
+         added by hand has no campaign — so without it the board prices
+         every one of them as QA and the reading that produced it is lost
+         between the button and the record. */
+      sell: f.sell || null,
     };
     const t = {
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
@@ -18334,7 +18404,10 @@
     if (per) { go({ period: per.getAttribute('data-period') }); return; }
 
     const fill = t.closest('[data-fill]');
-    if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
+    if (fill) {
+      fillBar(fill.getAttribute('data-fill'), fill.getAttribute('data-fillat'));
+      return;
+    }
 
     /* ══ THE CLASS THE STYLESHEET WAS WAITING FOR ══════════════════════
        The button toggled `rail-open` on the body; the shell opens the drawer
@@ -18647,13 +18720,26 @@
   /* Whichever composer the reader is looking at. The canvas is open when it
      carries the class that opens it — it is never marked hidden, so testing
      for that put the sentence into the box nobody was looking at. */
-  function fillBar(text) {
+  /* ══ AND SOMETIMES THE HOLE IS NOT AT THE END ══════════════════════════
+     The end of the line is right for every row that hands over an opening
+     clause — "Had a demo with Ava Hall, " wants the cursor after the comma
+     and nothing else. It is wrong for the one sentence that is handed over
+     COMPLETE except for a word in the middle: "Add a lead: , at Wolvercroft
+     Diagnostics, for AiMY QA" is missing only the name, and the name goes
+     second. The cursor landed after "AiMY QA" and the first thing anybody
+     did was travel back through the sentence they had just been given.
+
+     `caret` is where the hole is. Clamped, because a caller computing it
+     off a prefix length is one edit away from pointing past the end. */
+  function fillBar(text, caret) {
     const over = byId('aimyOverlay');
     const el = (over && over.classList.contains('open') && byId('overlayInput')) || byId('floatInput');
     if (!el) return;
     el.value = text;
     el.focus();
-    try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
+    const at = caret == null ? el.value.length
+      : Math.max(0, Math.min(el.value.length, Number(caret) || 0));
+    try { el.setSelectionRange(at, at); } catch (x) { /* not a text input */ }
   }
 
   /* ══ THE BAR BECOMES THE RECORDER ══════════════════════════════════════

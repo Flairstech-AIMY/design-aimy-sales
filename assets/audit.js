@@ -58,6 +58,7 @@ const MARKERS = {
   'verb': 'what the chooser\u2019s confirm says before a count is added to it',
   'work-state': 'the canonical value the design system reads off a work-state chip',
   'tocamp': 'the second half of data-addlist, read off the same element by its handler',
+  'fillat': 'where the hole is in the sentence data-fill hands over, read off the same element by its handler',
   'card': 'which person a queue card is about, read by the keyboard cursor, not by a click',
   'auto': 'the derived list name, compared against by the name field so it knows when you disagreed',
   'ntf-id': 'the task id AiMY QA\'s panel writes on each row for its own bookkeeping',
