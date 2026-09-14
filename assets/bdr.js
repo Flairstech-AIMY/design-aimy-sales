@@ -7055,19 +7055,6 @@
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
   }
 
-  /* ══ A MULTIPLE IS READ, NOT COMPUTED ═══════════════════════
-     207.46× is a number a machine produced. Above ten the decimal is noise
-     — nobody acts differently on 207× and 208× — and under two it is the
-     whole of the difference between paying for itself and not. So the
-     precision follows the size, which is what every other figure on this
-     page does with `fmtMoney`. */
-  function ratioSay(x) {
-    if (!isFinite(x) || x <= 0) return '0×';
-    if (x >= 10) return Math.round(x) + '×';
-    if (x >= 2) return x.toFixed(1).replace(/\.0$/, '') + '×';
-    return x.toFixed(2) + '×';
-  }
-
   function moneyPage() {
     /* ══ A SURFACE WITH NO DOOR ON THIS DESK STILL HAS A URL ═══════════════
        Financials is reached from the rail, and the rail draws its doors only
@@ -7201,15 +7188,23 @@
          from, Resources names what you bought — which is what a list headed
          "what you spent it on" is answering. */
       { k: 'people', say: 'Salaries', v: un.payroll,
-        /* PLURAL, BECAUSE THE SINGULAR INVITED A QUESTION IT CANNOT ANSWER.
-           "€3,936 of it on a campaign" reads as one campaign somebody could
-           name; the figure is the sum across every campaign these hours were
-           logged against. What the line says is how much of the payroll
-           landed on named work AT ALL, which is the finding underneath it. */
+        /* ══ "OF IT" POINTED AT SOMETHING 444 PIXELS TO THE RIGHT ═══════
+           The row read "BDRs · €3,313 of it on campaigns … €176k". The
+           pronoun's antecedent is the figure at the END of the line, so the
+           reader met "of it" with nothing yet to attach it to and had to
+           reverse. Two money figures on one row, fifty-three times apart,
+           with the small one in the middle and four hundred pixels of
+           nothing between them.
+
+           No wording fixes that, because the fault is that the line is doing
+           two jobs. A row in a cost breakdown says what the thing cost. The
+           attribution is a different fact and it is already on the group row
+           above and in AiMY's reading below — this was its third telling, in
+           the least readable of the three places. The children say what a
+           role cost, which is what they are for. */
         sub: plural(un.people.length, 'person') + ' · ' +
-          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' of it on campaigns',
-        rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
-          note: fmtMoney(r.onCost) + ' of it on campaigns',
+          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' logged on campaigns',
+        rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''), note: '',
           v: r.cost })) },
       { k: 'supp', say: 'Resources', v: now.spend.src + now.spend.enrich,
         sub: 'every attempt, not only the ones that answered',
@@ -7519,7 +7514,7 @@
             (g.rows.length ? '<div class="s-cost-kids">' +
               g.rows.map((r) => '<div class="s-cost-kid">' +
                 '<span class="s-cost-say">' + esc(r.say) +
-                  ' <span class="s-cost-note">' + esc(r.note) + '</span></span>' +
+                  (r.note ? ' <span class="s-cost-note">' + esc(r.note) + '</span>' : '') + '</span>' +
                 '<span class="s-cost-v">' + esc(fmtMoney(r.v)) + '</span>' +
               '</div>').join('') +
             '</div>' : '') +
@@ -7603,42 +7598,32 @@
                 esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
                 '<span class="s-pan-unit">gained</span></span>' +
             '</div>' +
-            /* ══ THE SECTION IS "BY WHAT THEY RETURNED" AND NOTHING SAID IT ══
-               The heading ranks these by return; the eyebrow promises "what
-               each one has signed, against what it cost". Both numbers were
-               on the panel — €139k in the corner, €670 as the fourth of four
-               facts in a row of inputs — and the RETURN, which is the one
-               thing the section is about, was left for the reader to work
-               out by dividing a headline by a footnote.
+            /* ══ THE MULTIPLE GOES, AND THE REASON IS IN THIS FILE ═══════
+               "208× the €670 it cost" was mine, added earlier today on the
+               argument that a section ranking campaigns by return never
+               stated the return. The gap was real; the multiple was the
+               wrong answer to it, for two reasons.
 
-               Conclusion first: the multiple leads, the cost it is a
-               multiple OF sits beside it, and the three inputs that produced
-               them drop to the line below. Value, baseline, comparison, in
-               that order, which is the shape every figure on this page
-               already uses — this panel was the one that had the parts and
-               never assembled them.
+               IT CANNOT DISCRIMINATE. Across fifteen panels it reads 208×,
+               143×, 83× — or nothing at all. A figure whose only states are
+               "enormous" and "absent" carries one bit, and the €139k or
+               "Nothing" in the corner already carries that bit.
 
-               UNDER ONE IS A LOSS AND SAYS SO. Not a scale of warm and cold
-               above that: a campaign returning 4× and one returning 200× are
-               both working, and tinting them differently would invent a bar
-               this page has never set. Below 1× it cost more than it
-               brought, which is a fact and not a judgement. */
-            (c.arr && c.total ? '<p class="s-pan-ret">' +
-              '<b class="s-pan-x' + (c.arr < c.total ? ' tone-err' : '') + '">' +
-                esc(ratioSay(c.arr / c.total)) + '</b>' +
-              /* ONE CLAUSE. It read "208× what it cost · €670 spent" — the
-                 same fact twice, in two runs set identically, which is the
-                 flat pair this whole pass exists to remove. The multiple and
-                 the sum it is a multiple of belong in one sentence. */
-              /* ONE CLAUSE, BOTH NUMBERS. "back on €670 spent" left the
-                 multiple with nothing to multiply: 208× WHAT sat in the
-                 reader's head for the length of a line. Naming the sum the
-                 multiple is OF closes it, and ties the panel's two figures
-                 together — 208 × €670 is the €139k in the corner. */
-              '<span class="s-pan-base">the ' + esc(fmtMoney(c.total)) + ' it cost</span></p>'
-              : c.total ? '<p class="s-pan-ret">' +
-                '<span class="s-pan-base">cost ' + esc(fmtMoney(c.total)) + ', nothing gained yet</span></p>'
-              : '') +
+               AND ITS DENOMINATOR IS ADMITTEDLY INCOMPLETE. `campaignCost`
+               is built from LOGGED hours, and `unlogged` says so directly a
+               few hundred lines up: "hours logged against a campaign are a
+               fraction of hours paid for, and the two must never be added or
+               confused". Two percent of the payroll is attributed. Dividing
+               a full year of revenue by two percent of a quarter's cost and
+               setting the result at eighteen pixels bold is exactly the
+               confusion that comment forbids.
+
+               So the line says the cost, which is a figure this page has,
+               and the reader compares it to the one above it themselves —
+               which is a comparison of two real numbers rather than a ratio
+               the corpus cannot support. */
+            (c.total ? '<p class="s-pan-ret">Cost ' + esc(fmtMoney(c.total)) +
+              (c.arr ? '' : ', nothing gained yet') + '</p>' : '') +
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + Math.round(c.hours) + '</b> ' +

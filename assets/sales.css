@@ -8319,6 +8319,24 @@ body.is-figures .filter-tray { display: none; }
   text-align: right; margin-top: 4px;
 }
 
+/* The cost, between the head and the inputs — the second half of "which
+   campaigns paid off", where the section's own question puts it. Set at the
+   body step: the amount gained is still the panel's one loud figure, and a
+   second shouting number beside it would make the panel argue with itself
+   about which is the headline. */
+.s-pan-ret {
+  margin: 12px 0 0; font-size: var(--fs-xs); color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.s-pan-facts { display: flex; }
+/* The unit under the count, so "6" reads as six of something without the
+   word competing with the figure for the same line. */
+.s-pan-unit {
+  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em;
+  text-align: right; margin-top: 4px;
+}
+
 /* ══ WHAT IT RETURNED, WHICH IS WHAT THE SECTION RANKS BY ═════════
    Between the head and the inputs, because that is the reading order the
    section's own eyebrow promises: what it signed, against what it cost.
