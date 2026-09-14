@@ -618,9 +618,36 @@
      between. Every draw below stays a draw whatever the length of what it
      draws from — the generator is a single cursor, and a call skipped here
      moves every account, contact and touchpoint after it. */
+  /* ══ TWO PEOPLE IS NOT A SALES FLOOR ═══════════════════════════════════
+     The roster held a caller and a manager, which is the smallest set that
+     proves the two desks are different — and it is why a campaign's team
+     block has never had anything to draw. Every campaign's crew was Engy,
+     every team read "Lina, Engy", and the crew picker the builder has
+     carried since it was written listed exactly one tickable name.
+
+     Eight callers now. They are the only thing on this floor there is more
+     than one of, which is true of a real one: a sales manager runs a room
+     of BDRs, and the ratio is the whole reason a team block needs a way to
+     hold more names than it can show.
+
+     ONE MANAGER STILL. `owner: pick(r, MANAGERS)` sets who a campaign
+     belongs to, and `mine()` on that desk is `owner === me().id` — so a
+     second manager would silently take half of Lina's campaigns off her own
+     page. That is a change to a desk rather than to a roster, and it is not
+     this one. The multi-manager branch in the hand-over control stays where
+     it is, guarded and unused, exactly as it was.
+
+     The faces come off the id, so nobody here needed drawing. */
   const REPS = [
     { id: 'engy',   name: 'Engy Saleh',    initials: 'ES', fn: 'bdr' },
     { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
+    { id: 'omar',   name: 'Omar Fathy',    initials: 'OF', fn: 'bdr' },
+    { id: 'mariam', name: 'Mariam Zaki',   initials: 'MZ', fn: 'bdr' },
+    { id: 'youssef', name: 'Youssef Kamal', initials: 'YK', fn: 'bdr' },
+    { id: 'salma',  name: 'Salma Nabil',   initials: 'SN', fn: 'bdr' },
+    { id: 'karim',  name: 'Karim Doss',    initials: 'KD', fn: 'bdr' },
+    { id: 'rana',   name: 'Rana Ibrahim',  initials: 'RI', fn: 'bdr' },
+    { id: 'tarek',  name: 'Tarek Halim',   initials: 'TH', fn: 'bdr' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -2036,6 +2063,36 @@
         });
       }
     }
+
+    /* ══ AND HOW MANY OF THEM WORK EACH CAMPAIGN ═══════════════════════
+       `extra` up the page draws one to three off the shared PRNG, which is
+       the right size for a campaign and the wrong size for the question the
+       team block has to answer: a room of eight is where a list of faces
+       stops fitting on a line, and a control that only ever has four names
+       to hold has never been tested against the case it exists for.
+
+       Nought to five more, off the campaign's own hash rather than the
+       stream — the same reason the signals and the book are drawn that way.
+       A draw taken here would move every draw after it, and the note beside
+       `extra` says exactly that about the last person who was tempted.
+
+       AFTER THE LEADS ARE OWNED, which is the whole reason this is at the
+       foot of `seed` and not beside the crew it extends. `p.owner` picks
+       from `c.crew`, so growing the crew earlier would redistribute six
+       hundred leads across eight callers and empty the one desk this build
+       is mostly read from. Crewing somebody onto a campaign does not
+       reassign the people already on it — that is true of the product and
+       it is true here. The new names log no hours and appear nowhere in
+       Financials, because Financials counts touchpoints and they have made
+       none, which is the honest answer for somebody who has just joined. */
+    camp.forEach((c) => {
+      const h = Math.abs(hash(c.id + ':crew'));
+      const want = h % 6;
+      for (let j = 0; j < want; j++) {
+        const b = pool[(h >> (3 * (j + 1))) % pool.length];
+        if (b && c.crew.indexOf(b.id) < 0 && b.id !== c.owner) c.crew.push(b.id);
+      }
+    });
 
     /* ══ LAST, BECAUSE IT HAS TO SEE EVERY CONTACT ═══════════════════
        This ran beside the signals, two thirds of the way up, and the
