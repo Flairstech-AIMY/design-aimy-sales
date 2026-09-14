@@ -10152,10 +10152,13 @@
      what the hidden remainder is. It is the shape every product that has
      ever had assignees converges on, for that reason.
 
-     WHERE THE LINE FALLS. Five fit. Six is where the row breaks on the
-     narrowest column this block is drawn in, so five is the last size that
-     is better shown whole than summarised — a stack hiding one person is a
-     press to learn something you had room to read.
+     WHERE THE LINE FALLS, and it is a judgement rather than a measurement.
+     Five is the last size worth showing whole: a stack hiding one person is
+     a press to learn something the block had room to say. It is not the
+     width at which the row stops wrapping — measured at the narrow end of
+     this pane, five already runs to two lines and 110px, against 65 for the
+     stacked seven. Two rows of named colleagues is a team you can read; the
+     three the stack leaves are the point at which it stops being one.
 
      AND IT ONLY SHOWS. The first cut made the stack the way to change the
      crew as well, on the argument that the trigger was already the answer
@@ -10183,8 +10186,19 @@
     const rest = over ? ids.slice(TEAM_SHOW) : [];
     /* The stack's faces are whoever is not on the line; its MENU is the
        whole team, because that menu is the roster and the roster is where
-       taking somebody off happens. */
-    return shown.map(row).join('') + (rest.length ? teamStack(rest, ids, sub, k) : '');
+       taking somebody off happens.
+
+       ══ AND UNDER SIX THE LINE IS THE ROSTER ══════════════════════════
+       There is no stack at that size — every name is already on the page —
+       so a menu to take somebody off would be a list of the people standing
+       six pixels above it. The cross goes back on the row, which is where
+       it started and where it is right when the row is all there is.
+
+       Exactly one place at any size, which is the whole rule: over five it
+       is in the roster and the line is clean, under six it is on the line
+       and there is no roster. The two never draw together. */
+    return shown.map((id) => row(id, over ? '' : crewOff(k, id))).join('') +
+      (rest.length ? teamStack(rest, ids, sub, k) : '');
   }
   /* The faces of whoever is not on the line, and the menu that names them.
      Its rows are not controls: a colleague has no page in this build to
@@ -10317,13 +10331,14 @@
        write path. What it adds is the same control on a campaign that IS
        running, which is when a manager actually moves somebody. */
     const mine = isMgr() && k.owner === me().id;
-    const row = (id) => {
+    const row = (id, off) => {
       const you = id === me().id;
       return '<div class="b-mate">' + faceOf(id, 32) +
         '<span class="b-mate-t">' +
           '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
           '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the team') + '</span>' +
         '</span>' +
+        (off || '') +
       '</div>';
     };
     return '<div class="b-team">' +
