@@ -2550,8 +2550,12 @@
      same reason every other narrowing is: a quarter somebody is reading is
      a page somebody can send. It is the one control on that surface, and it
      moves WHEN rather than which records, so it is not a filter. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period'];
-  const DEFAULTS = { q: 'all', on: 'calls', period: 'q' };
+  /* `by` is which way the money is cut on the Financials page — by the
+     campaigns that spent it or the services that earned it. In the URL for
+     the reason every other narrowing on this build is: a cut somebody is
+     reading is a cut somebody can send. */
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by'];
+  const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
   function parse() {
@@ -5461,7 +5465,7 @@
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Financials</span>' +
         '<span class="b-door-fig">' + esc(euro(worth)) +
-          '<span class="b-door-of">signed</span></span>' +
+          '<span class="b-door-of">gained</span></span>' +
         bookBar() +
         '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
         doorGo('Open the report') +
@@ -6557,11 +6561,22 @@
       const k = dealCamp(c);
       const lk = (k && k.sells && k.sells.length ? k.sells[0] : null);
       if (lk) {
-        const lr = byLine[lk] || (byLine[lk] = { k: lk, arr: 0, meetings: 0, spend: 0, pipeline: 0 });
+        const lr = byLine[lk] || (byLine[lk] =
+          { k: lk, arr: 0, meetings: 0, wins: 0, spend: 0, pipeline: 0, open: 0 });
         lr.spend += s.total;
         if (met) lr.meetings += 1;
-        if (won) lr.arr += acvOf(c).value;
-        else if (isDeal(c) && dealLive(c)) lr.pipeline += acvOf(c).value;
+        /* HOW MANY, not just how much. The card used to divide `arr` by
+           `meetings` and print the quotient, which is an average over a
+           group where a few signed and most did not — a figure describing
+           nobody. The count is the fact that average was standing in for. */
+        if (won) { lr.arr += acvOf(c).value; lr.wins += 1; }
+        /* The COUNT as well as the value. "€128k still open" named no noun
+           and no number: open what, how many? And unlike the amount gained
+           beside it, this one is not read off anything — `acvOf` returns a
+           comparable or a modelled figure for every deal that has not been
+           won. Saying how many deals it is across gives the reader the one
+           concrete thing in it. */
+        else if (isDeal(c) && dealLive(c)) { lr.pipeline += acvOf(c).value; lr.open += 1; }
       }
     });
 
@@ -6646,8 +6661,49 @@
 
     const crew = Object.keys(by).map((k) => by[k]).sort((a, b) => b.cost - a.cost);
     const people = crew.reduce((n, r) => n + r.cost, 0);
-    const won = mem.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); });
+    /* ══ A DEAL HAS ONE HOME, AND THIS COUNTED IT IN EVERY HOUSE ══════
+       People sit on several campaigns — `camps: ['c3','c5','c7']` is ordinary
+       in this corpus — and this credited a win to EVERY campaign the person
+       belonged to. The campaigns cut summed to €316k against a €273k
+       headline, €43k over, and no surface could show it: the services cut
+       keys on `dealCamp` and reconciled exactly, but the two were in
+       different sections and nobody ever added them up.
+
+       Putting both behind one switcher is what surfaced it — AiMY Knowledge
+       read "Nothing gained" over a campaign row claiming €43k, on one card,
+       which is the same deal counted under two owners.
+
+       `dealCamp` is the build's existing answer to "whose deal is this": the
+       first campaign on the record. The same rule here, so one deal has one
+       home and both cuts reconcile against the figure at the top of the
+       page. `met` is deliberately left on membership — it answers "how many
+       people on this campaign have been met", which is a fact about the
+       roster rather than about attribution, and it contradicts no stated
+       total. */
+    const won = mem.filter((c) => {
+      const w = wonAt(c);
+      if (!w || !inPeriod(w, p)) return false;
+      const home = dealCamp(c);
+      return !!home && home.id === camp.id;
+    });
+    /* ══ AND WHAT IS STILL IN THE FUNNEL ═════════════════════════
+       The service card carries its potential and the campaign card did not,
+       which left the two halves of one switcher answering different
+       questions: a service said what might still come, a campaign stopped at
+       what already had. A campaign with nothing signed and six live deals is
+       not the campaign it looks like without them.
+
+       Homed the same way as the win above — a deal that sits on three
+       campaigns belongs to one — so the campaigns cut sums to the same
+       pipeline as the services cut and as the Potential tile. */
+    const live = mem.filter((c) => {
+      if (!isDeal(c) || !dealLive(c)) return false;
+      const home = dealCamp(c);
+      return !!home && home.id === camp.id;
+    });
     return {
+      open: live.length,
+      pipeline: live.reduce((n, c) => n + acvOf(c).value, 0),
       camp: camp, members: mem.length, crew: crew, people: people, aimy: aimy,
       suppliers: suppliers, hours: hours, total: people + aimy + suppliers,
       arr: won.reduce((n, c) => n + acvOf(c).value, 0),
@@ -6879,6 +6935,33 @@
   '</div>';
 
   /* Four fixed options, no calendar, no range. */
+  /* ══ ONE MONEY, TWO CUTS, AND STACKING THEM HID THE SEAM ═══════════
+     These were two sections, one under the other, both rendering `.s-pan` —
+     same card, same slots, same type. Ten campaign panels and then, without
+     anything saying so, five panels of a different taxonomy carrying
+     different columns: a campaign shows people, hours and what it cost, a
+     service shows meetings, what one is worth and what is still open. A
+     reader found out the dimension had changed by reading it, three and a
+     half thousand pixels in.
+
+     They are the same money asked two ways — what SPENT it, what EARNED it —
+     which is a dimension switch, and a dimension switch is what a segmented
+     control is for. The same `.s-tabcuts` the period chips above it use, so
+     the page teaches the control once. */
+  /* The nouns, not the preposition. "By campaign" reads as an instruction to
+     the page; the chips name the two things you can look at, and the heading
+     above them already says what is being asked of each. */
+  const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services & Products' }];
+  function cutBy() {
+    return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
+  }
+  function cutChips() {
+    return '<div class="s-tabcuts s-cut-by" role="group" aria-label="Cut the money by">' +
+      CUTS.map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
+        '" type="button" data-by="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
+    '</div>';
+  }
+
   function periodChips() {
     return '<div class="s-tabcuts" role="group" aria-label="Period">' +
       PERIODS.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
@@ -6972,7 +7055,7 @@
        revenue at a sensible price. A sales manager is not asked that. He is
        asked whether he is going to make the number, so the number leads and
        the spend becomes a clause about it. */
-    const money = 'You signed <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
+    const money = 'You gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
       esc(fmtMoney(a.target)) + '</b>';
     /* Three tenses, and the paragraph has to be in the right one. A window
        still running is judged on pace; a finished one is judged on what it
@@ -7055,19 +7138,6 @@
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
   }
 
-  /* ══ A MULTIPLE IS READ, NOT COMPUTED ═══════════════════════
-     207.46× is a number a machine produced. Above ten the decimal is noise
-     — nobody acts differently on 207× and 208× — and under two it is the
-     whole of the difference between paying for itself and not. So the
-     precision follows the size, which is what every other figure on this
-     page does with `fmtMoney`. */
-  function ratioSay(x) {
-    if (!isFinite(x) || x <= 0) return '0×';
-    if (x >= 10) return Math.round(x) + '×';
-    if (x >= 2) return x.toFixed(1).replace(/\.0$/, '') + '×';
-    return x.toFixed(2) + '×';
-  }
-
   function moneyPage() {
     /* ══ A SURFACE WITH NO DOOR ON THIS DESK STILL HAS A URL ═══════════════
        Financials is reached from the rail, and the rail draws its doors only
@@ -7086,7 +7156,7 @@
         '<h2 class="s-rec-cap">Financials</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">This is the book a sales manager carries — what has been ' +
-          'signed against the quarter’s target, and what the campaigns behind it cost. Your ' +
+          'gained against the quarter’s target, and what the campaigns behind it cost. Your ' +
           'desk has neither, so every figure on it would be somebody else’s. What you have ' +
           'done is on your campaigns and in your calls.</p>' +
           backBtn('data-home', 'Back to the briefing') +
@@ -7103,6 +7173,18 @@
 
     const a = attainment(now, pipe, p);
     const camps = campaignCosts(p);
+    /* ══ A SERVICE IS SOLD BY CAMPAIGNS, AND THAT IS ITS BREAKDOWN ═════
+       The campaign card opens into the resources it consumed. The symmetric
+       question one level down from a service line is not "which people" —
+       nobody works on a product, they work on a campaign that sells one —
+       it is WHICH CAMPAIGNS. `byLine` is already keyed on the selling
+       campaign's first product, so the same key groups the costed campaigns
+       back the other way. */
+    const bySell = Object.create(null);
+    camps.forEach((r) => {
+      const k = r.camp.sells && r.camp.sells[0];
+      if (k) (bySell[k] || (bySell[k] = [])).push(r);
+    });
     const un = unlogged(p, heads);
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
     const age = dealAge(deals);
@@ -7146,8 +7228,10 @@
        groups by, never by the number of things in it. */
     const byRole = Object.create(null);
     un.people.forEach((r) => {
-      const g = byRole[r.fn] || (byRole[r.fn] = { fn: r.fn, n: 0, rate: r.rate, cost: 0, hours: 0, on: 0 });
-      g.n += 1; g.cost += r.cost; g.hours += r.hours; g.on += r.onCamp.hours;
+      const g = byRole[r.fn] || (byRole[r.fn] =
+        { fn: r.fn, n: 0, rate: r.rate, cost: 0, hours: 0, on: 0, onCost: 0 });
+      g.n += 1; g.cost += r.cost; g.hours += r.hours;
+      g.on += r.onCamp.hours; g.onCost += r.onCamp.cost;
     });
     const roles = Object.keys(byRole).map((k) => byRole[k]).sort((x, y) => y.cost - x.cost);
     const cost = [
@@ -7165,21 +7249,65 @@
          page is read against — cost per deal, what came back for every euro,
          how long a customer takes to pay for itself — and a section that
          shows two of the three costs cannot carry any of them. */
-      { k: 'people', say: 'The desk', v: un.payroll,
+      /* ══ THE ATTRIBUTION IS IN THE COLUMN'S OWN UNIT ════════════════
+         It read "60 of 3196 hours on a campaign" beside €176k, and three
+         things were wrong with that at once.
+
+         THE UNITS DID NOT MATCH, so the two halves of the row looked
+         unrelated and then related wrongly. €176k is what all 3196 hours
+         cost; 60 is how many of them landed on named work. Read together —
+         and a figure and the line beside it are always read together — the
+         row says €176k bought sixty hours of campaign work. It is out by a
+         factor of fifty-three.
+
+         THE GRAMMAR WAS AMBIGUOUS. "60 of 3196 hours on a campaign" parses
+         just as easily as "60 of [the 3196 hours that were] on a campaign",
+         which inverts the whole point.
+
+         AND IT DID NOT ADD UP. Each child rounded its own hours, and the
+         parent rounded the true sum — 60 and 7 under a heading that said 68.
+         A reader who checks the one piece of arithmetic a breakdown invites
+         finds it wrong.
+
+         All three go away by saying it in money: €3,446 of €176k is the same
+         ratio as 60 of 3196, in the unit the column is already in, where the
+         part and the whole cannot be mistaken for different things. The
+         parent sums the children it prints rather than re-deriving, so the
+         list reconciles by construction. */
+      /* ══ THE WORDS A COST LINE IS CALLED BY ════════════════════
+         "The desk" is sales-floor slang for the room, and as the heading of a
+         payroll total it names a place rather than a cost. `payrollRows`
+         multiplies a role's rate by its hours, so the figure is salaries and
+         the word is Salaries. "Resources" for the other, at Nour's direction,
+         and it is the better half of the pair: Suppliers names who you bought
+         from, Resources names what you bought — which is what a list headed
+         "what you spent it on" is answering. */
+      { k: 'people', say: 'Salaries', v: un.payroll,
+        /* ══ "OF IT" POINTED AT SOMETHING 444 PIXELS TO THE RIGHT ═══════
+           The row read "BDRs · €3,313 of it on campaigns … €176k". The
+           pronoun's antecedent is the figure at the END of the line, so the
+           reader met "of it" with nothing yet to attach it to and had to
+           reverse. Two money figures on one row, fifty-three times apart,
+           with the small one in the middle and four hundred pixels of
+           nothing between them.
+
+           No wording fixes that, because the fault is that the line is doing
+           two jobs. A row in a cost breakdown says what the thing cost. The
+           attribution is a different fact and it is already on the group row
+           above and in AiMY's reading below — this was its third telling, in
+           the least readable of the three places. The children say what a
+           role cost, which is what they are for. */
         sub: plural(un.people.length, 'person') + ' · ' +
-          Math.round(roles.reduce((n, r) => n + r.on, 0)) + ' of ' +
-          Math.round(roles.reduce((n, r) => n + r.hours, 0)) + ' hours went on a campaign',
-        rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
-          note: Math.round(r.on) + ' of ' + Math.round(r.hours) + ' hours on a campaign',
+          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' logged on campaigns',
+        rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''), note: '',
           v: r.cost })) },
-      { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
+      { k: 'supp', say: 'Resources', v: now.spend.src + now.spend.enrich,
         sub: 'every attempt, not only the ones that answered',
         rows: [{ say: 'Finding people', note: 'LinkedIn, the brokers and the crawl', v: now.spend.src },
           { say: 'Filling in details', note: 'a number and an address', v: now.spend.enrich }] },
       { k: 'aimy', say: 'AiMY', v: now.spend.aimy,
         sub: 'the calls it made itself, at compute cost', rows: [] },
     ].filter((r) => r.v > 0);
-    const costTop = now.spend.total || 1;
 
     return '<div class="s-home">' +
       '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the briefing') + '</div>' +
@@ -7206,10 +7334,22 @@
              desk runs and the deals on its book, and a page that overstates
              its own scope is a page whose every figure is wrong by an
              unknown amount. */
-          '<div class="s-exec-eyebrow">Your book &middot; ' +
+          /* THE HEADING GOES FIRST. This was a kicker: twelve-pixel tracked
+             capitals ABOVE the page name, which is the one arrangement that
+             makes a heading look like it needs introducing. It also inverted
+             the document outline — the page title was an `h2` while a block
+             inside it held the `h1`, so a screen reader met the summary
+             before the page it summarises.
+
+             The line itself is not a kicker's label, it is the page's SCOPE,
+             and the note above says why that matters: a page which overstates
+             what it counts is a page whose every figure is wrong by an
+             unknown amount. So it stays, under the heading, as a sentence
+             rather than as capitals. */
+          '<h1 class="s-exec-h">Financials</h1>' +
+          '<p class="s-exec-scope">Your book &middot; ' +
             esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
-            esc(plural(deals.length, 'deal')) + '</div>' +
-          '<h2 class="s-exec-h">Financials</h2>' +
+            esc(plural(deals.length, 'deal')) + '</p>' +
         '</div>' +
         periodChips() +
       '</header>' +
@@ -7217,7 +7357,7 @@
       '<section class="slv" aria-label="What AiMY makes of it">' +
         '<div class="slv-head">' +
           '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<h1 class="slv-title">Where the money went</h1>' +
+          '<h2 class="slv-title">How the quarter is going</h2>' +
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
@@ -7230,7 +7370,7 @@
           '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
             ' <span class="s-att-of">of ' + esc(fmtMoney(a.target)) + '</span></span>' +
           '<span class="s-att-pc' + (a.pc >= 1 ? ' tone-ok' : '') + '">' +
-            esc(Math.round(a.pc * 100)) + '% to target</span>' +
+            esc(Math.round(a.pc * 100)) + '% of target</span>' +
         '</div>' +
         /* ══ THE MARKS LIVED INSIDE THE THING THAT CLIPS THEM ═══════════
             Both are drawn to overhang the track by four pixels top and
@@ -7244,7 +7384,7 @@
 
             The fills keep their clip; the marks go over it. */
         '<div class="s-att-bar" role="img" aria-label="' +
-          esc(fmtMoney(a.booked) + ' signed of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
+          esc(fmtMoney(a.booked) + ' gained of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
             'another ' + fmtMoney(Math.max(0, a.forecast - a.booked)) + ' by the end, reaching ' +
             fmtMoney(a.forecast) + '.') + '">' +
           '<div class="s-att-track">' +
@@ -7256,7 +7396,29 @@
             : '<span class="s-att-pace" style="left:' + pacePc.toFixed(1) + '%"></span>') +
         '</div>' +
         '<div class="s-att-keys">' +
-          '<span class="s-att-key is-booked">' + (done ? 'Signed' : 'Signed so far') + '</span>' +
+          /* ══ AND "SO FAR" NAMED NO WINDOW ═══════════════════════
+             The other three keys each say what their band or mark IS, in
+             full. This one said "Signed so far", which leaves the boundary
+             open — so far this quarter, or so far ever? The bar is bounded
+             by the chip above it, and the key was the only thing on the row
+             implying otherwise.
+
+             It does NOT take the figure. Its sibling carries €86k because a
+             delta cannot be read off a stacked band; this band's amount is
+             the headline four lines up, and repeating it would restate the
+             loudest number on the page in order to label the colour beneath
+             it. "Already signed" against "expects another €86k before it
+             closes" is the pair: what is in, and what is still coming. A
+             closed window keeps the plain word, because nothing more is. */
+          /* ══ THE MONEY WORDS, AND NOTHING ELSE ════════════════════
+             This key read "Signed so far", then "Already signed", then
+             "Already won", and it was asked what it meant every time — three
+             rewrites of a label that was never the hard part. A bar on a
+             money page shows three things and they have three ordinary
+             names: what you got, what you need, what might still come. Say
+             those. A key that needs a sentence under it is not a key, and
+             the sentence that was under this one has gone with it. */
+          '<span class="s-att-key is-booked">Gained</span>' +
           /* ══ A KEY DESCRIBES THE BAND IT IS A KEY FOR ══════════════════
              This read "AiMY expects €225k by the end" beside a hatched band
              that is not €225k of anything — €225k is where the band ENDS,
@@ -7269,9 +7431,9 @@
              shuts. Where that leaves the total is then visible without
              being stated — it is the right-hand end of the hatch, read
              against the target mark. */
-          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'AiMY expects another ' +
-            esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + ' before it closes</span>') +
-          '<span class="s-att-key is-target">The target</span>' +
+          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'Could still come · ' +
+            esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + '</span>') +
+          '<span class="s-att-key is-target">Target</span>' +
           (done || pacePc == null ? ''
             : '<span class="s-att-key is-pace">Where you should be today</span>') +
         '</div>' +
@@ -7283,9 +7445,9 @@
            two numbers, named the same way twice. It said "Still to sell" for
            a while, which is an action with no object on the one tile whose
            whole job is to say what is left of the figure directly above. */
-        attFig('Left to hit target', a.gap ? fmtMoney(a.gap) : 'Nothing',
+        attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
           a.gap ? (done ? 'the window is closed'
-            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' to do it')
+            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
             : 'the target is already met',
           a.gap ? null : 'ok') +
         /* ══ A WEIGHTED FIGURE NEEDS ITS DENOMINATOR ═════════════════════
@@ -7311,17 +7473,25 @@
            Coverage is a claim about a gap somebody can still close, so on a
            finished window it is not stated, and the line says which clock
            the figure is on instead. */
-        attFig('Expected from open deals', fmtMoney(pipe.weighted),
-          done ? 'of ' + fmtMoney(pipe.all) + ' open today, after this window closed'
-            /* THE BAR IS A PARENTHESIS, NOT A SENTENCE. It read "20.7× the
-               €27k needed, and three times is the bar" — a clause of teaching
-               tacked onto a figure, on a tile whose three neighbours say
-               their piece in six words. The bar is the baseline for the
-               ratio and it stays, at the size of the thing it is: an aside
-               that qualifies a number, not a lesson. */
-            : a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
-              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed (bar 3×)')
-              : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
+        /* NOT "Could still come" — the bar's key already owns that phrase for
+           a different number. That one is what AiMY expects before THIS
+           window shuts; this is every open deal at the odds its stage
+           closes, on no window at all. Two labels, two figures, and the one
+           thing they must not do is share a name. */
+        attFig('Potential', fmtMoney(pipe.weighted),
+          /* ══ THE COVERAGE MULTIPLE GOES, AND "OF" WAS WRONG ANYWAY ═════
+             "21× what you still need" compares two figures a centimetre apart
+             on the same row — €560k here, €27k on the tile immediately left.
+             The eye does that without being told, and at twenty-one times
+             the multiple carries no decision: the answer is "plenty", which
+             two adjacent numbers already say. It survived three rewrites as
+             a parenthesis because the parenthesis was never the problem.
+
+             And €560k is not a slice OF €1.6m. It is €1.6m discounted by how
+             often each stage actually closes. "From" is what that is. */
+          done ? 'from ' + fmtMoney(pipe.all) + ' still open, after this window closed'
+            : a.gap ? 'from ' + fmtMoney(pipe.all) + ' of open deals'
+              : 'from ' + fmtMoney(pipe.all) + ' of open deals, and the target is already met',
           /* ══ COLOUR THE FIGURE ONLY WHEN THE FIGURE IS THE VERDICT ══════
              This tinted the figure amber whenever coverage fell under three
              times — so €395k, which is straightforwardly good news, wore
@@ -7344,13 +7514,13 @@
            "behind" has its referent directly underneath it. A closed window
            has no pace left to be behind, and its shortfall is the tile at
            the front of this row, so it reports where it finished instead. */
-        attFig('Against the clock',
+        attFig('Ahead or behind',
           done ? Math.round(a.pc * 100) + '% of target'
             : a.paceMoney == null ? '—'
             : fmtMoney(Math.abs(a.paceMoney)) + ' ' + (ahead ? 'ahead' : 'behind'),
           done ? 'the window has closed'
-            : Math.round(a.pc * 100) + '% of the target sold, ' +
-              Math.round(a.elapsed * 100) + '% of the time used',
+            : Math.round(a.pc * 100) + '% of target, ' +
+              Math.round(a.elapsed * 100) + '% of the time gone',
           /* ══ THE TWO POLES, AND BEHIND IS THE NEGATIVE ONE ══════════════
              "€96k behind" is a shortfall written as a positive number with
              its sign in a word, and it was tinted `warn` — the amber this
@@ -7372,15 +7542,28 @@
            from recorded in "Paid off", inherited by the phrase that replaced
            it. What it is, is what went out; the line underneath says what
            came back. */
-        attFig('What you spent', fmtMoney(now.spend.total),
-          now.payback == null ? 'nothing has closed against it yet'
-            : '€' + now.ros.toFixed(2) + ' back for every €1 · ' +
-              now.payback.toFixed(1) + ' months to break even') +
+        /* ══ TWO CLAUSES, AND THE SECOND WAS ABOUT SOMETHING ELSE ══════
+           "12.8 months to break even" under a tile reading SPENT €210k says
+           the €210k breaks even in 12.8 months. It does not: `payback` is
+           spend-per-win divided by one customer's monthly gross profit — how
+           long ONE CUSTOMER takes to repay what it cost to win them. The
+           figure keeps the one place it is already said correctly, in the
+           ask below: "It takes 12.8 months for a customer to repay what they
+           cost." Here it was a true number under a false subject.
+
+           AND THE RATIO NAMES ITS UNIT. `ros` is this window's won ARR over
+           this window's spend — a YEAR of revenue against a QUARTER of cost.
+           That is the standard efficiency ratio and it is fine, as long as it
+           says so; "€1.30 back for every €1" claims cash returned. One word
+           fixes it, and it is the same word the rest of the page needed. */
+        attFig('Spent', fmtMoney(now.spend.total),
+          now.ros == null ? 'nothing spent in this window'
+            : '€' + now.ros.toFixed(2) + ' a year for every €1 spent') +
       '</div>' +
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What the money went on</div>' +
+          '<h2 class="s-exec-eyebrow">What you spent it on</h2>' +
           secAsk('Where could I spend less', 'My people cost ' + fmtMoney(un.payroll) +
             ' this window and only ' + Math.round((un.pc || 0) * 100) + '% of it is logged ' +
             'against a campaign. Show me where the money is going that is not producing anything.') +
@@ -7400,22 +7583,33 @@
            is a quantity somebody reads; this one is a number everything
            else is divided BY, so it is stated exactly and each rounded
            group reconciles against it. */
+        /* ══ AND IT NO LONGER PROMISES A COLUMN THAT IS NOT THERE ═════
+           "every share below is of that" was the caption for a column of
+           percentages down the right of this list, and the column is gone.
+           The total stays, unrounded: it is the figure the two amounts are
+           read against and the one every other reading on this page divides
+           by. */
         '<p class="s-exec-note"><b>€' +
           esc(Math.round(now.spend.total).toLocaleString('en-GB')) + '</b> across ' +
-          esc(when) + ', and every share below is of that.</p>' +
+          esc(when) + ', and this is where it went.</p>' +
         '<div class="s-cost">' +
           cost.map((g) => '<div class="s-cost-g">' +
             '<div class="s-cost-row">' +
               '<span class="s-cost-say">' + esc(g.say) +
                 '<span class="s-cost-sub">' + esc(g.sub) + '</span></span>' +
+              /* ══ NO SHARE COLUMN ═══════════════════════════════
+                 It was unlabelled, it rounded to something untrue — the desk
+                 is 99.86% and suppliers 0.14%, which printed as "100%" and
+                 "<1%" and read as summing past a hundred — and with two rows
+                 it said nothing €210k beside €304 does not already say. A
+                 share is worth a column when the split is the finding; here
+                 the amounts ARE the split. */
               '<span class="s-cost-v">' + esc(fmtMoney(g.v)) + '</span>' +
-              '<span class="s-cost-pc">' + esc(g.v / costTop >= 0.005
-                ? Math.round((g.v / costTop) * 100) + '%' : '<1%') + '</span>' +
             '</div>' +
             (g.rows.length ? '<div class="s-cost-kids">' +
               g.rows.map((r) => '<div class="s-cost-kid">' +
                 '<span class="s-cost-say">' + esc(r.say) +
-                  ' <span class="s-cost-note">' + esc(r.note) + '</span></span>' +
+                  (r.note ? ' <span class="s-cost-note">' + esc(r.note) + '</span>' : '') + '</span>' +
                 '<span class="s-cost-v">' + esc(fmtMoney(r.v)) + '</span>' +
               '</div>').join('') +
             '</div>' : '') +
@@ -7429,22 +7623,66 @@
           '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg>' +
           '<span class="s-insight-txt">Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what ' +
-            'you pay for is logged against a named campaign &mdash; <b>' + esc(fmtMoney(un.logged)) +
-            '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody attributed ' +
-            'to one, so it cannot be judged against what it produced.</span>' +
+            'you pay for lands on campaigns &mdash; <b>' + esc(fmtMoney(un.logged)) +
+            '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody logged, ' +
+            'so you cannot tell what it bought.</span>' +
         '</div>') +
       '</section>' +
 
+      /* ══ ONE SECTION, TWO CUTS ════════════════════════════════
+         THE HEADING FOLLOWS THE TAB, and so does the ask beside it. They are
+         different questions — "which campaigns paid off" is about cost
+         against return, "what sells and what does not" is a verdict on a
+         product line — and a heading that stayed put while the answer
+         underneath changed would be the same fault one layer up: a label
+         that does not say which of two things it is naming.
+
+         A heading asks the question the section answers; the note says what
+         is counted, which is why the note went and the heading stayed. */
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">Campaigns, by what they returned</div>' +
-          secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
-            'against what they have returned, and tell me which one I should stop and what I ' +
-            'would lose by stopping it.') +
+          '<h2 class="s-exec-eyebrow">' +
+            (cutBy() === 'svc' ? 'What sells and what does not' : 'Which campaigns paid off') +
+          '</h2>' +
+          (cutBy() === 'svc'
+            ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
+              'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
+              'the ones they reach.')
+            : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
+              'against what they have returned, and tell me which one I should stop and what I ' +
+              'would lose by stopping it.')) +
         '</div>' +
-        '<p class="s-exec-note">What each one has signed, against what it cost — every minute ' +
-          'logged against it, the calls AiMY made itself, and what the suppliers charged to find ' +
-          'and fill in the people on it.</p>' +
+        /* ══ THE SWITCHER GETS ITS OWN ROW ══════════════════════════
+           It sat between the heading and the ask on one baseline row, and
+           both of those change with the cut — "Which campaigns paid off" is
+           eleven characters shorter than "What sells and what does not". The
+           heading is left-aligned so it holds its edge and the ask is pushed
+           right so it holds its own, which left the chips in the middle
+           absorbing the whole difference: press one and the control you just
+           pressed moves out from under the cursor.
+
+           A control that rewrites the words around it cannot be positioned
+           by them. Its own row, at the left edge, where neither heading is
+           able to move it. */
+        cutChips() +
+        (cutBy() === 'svc' ? '' :
+        /* ══ AND THIS IS WHERE THE THREE COST LINES ARE DEFINED ════════
+           Each row inside a panel carried its own definition — "finding the
+           people and filling them in" under Suppliers, "the calls it made
+           itself, at compute cost" under AiMY — which is a sentence about
+           what the LINE IS, not about this campaign, repeated once per panel
+           down a page of fifteen. Ten of them rendered, word for word
+           identical, restating a note already standing above the list.
+
+           A definition is stated once, where the thing is introduced. Only
+           the crew rows keep a second line, because theirs is the one that
+           changes: a job, hours and a rate, different on every row. */
+        /* NO NOTE. "Which campaigns paid off" is the question and the panels
+           are the answer; a paragraph between them defining what counts as
+           cost is a legend for a table nobody asked for a legend to. What it
+           listed — hours, AiMY's calls, resources — is the crew block inside
+           every panel, itemised, a few lines below. Said twice is said once
+           too often, and the heading is the half that carries. */
         (camps.length ? '<div class="s-pans">' +
           camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
             '<div class="s-pan-head">' +
@@ -7475,46 +7713,58 @@
                  than the only thing keeping the reader right. Cost drops to
                  the facts line, where it is one of the four things you check
                  a campaign against rather than the headline it is ranked by. */
-              '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
-                esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
-                '<span class="s-pan-unit">signed</span></span>' +
+              /* ══ WHAT IT COST GOES UNDER WHAT IT GAINED ════════════════
+                 The section asks which campaigns paid off, which is one
+                 question about two figures — and they were in different
+                 places: the gain in the corner at twenty-four pixels, the
+                 cost on its own line below the head, at the body step, left
+                 aligned, where it read as an aside. Stacked in one column
+                 they are a comparison the eye makes without moving. */
+              /* ══ TWO MONEY FIGURES, BUILT THE SAME WAY ══════════════════
+                 They were stacked in one column and made of different parts:
+                 €134k with its label UNDER it, then "cost €934" with its
+                 label BEFORE it, in a third size, in a sentence. One corner,
+                 two grammars, three type treatments, sixty-seven pixels
+                 wide.
+
+                 Both are money and the section compares them, so both are a
+                 figure over a label, side by side, where the comparison is
+                 one glance across rather than three lines down. The gain
+                 stays the larger of the two — it is what the panels are
+                 ranked by — but it is now louder than its neighbour rather
+                 than shaped unlike it. */
+              '<span class="s-pan-figs">' +
+                '<span class="s-pan-fig">' +
+                  '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
+                    esc(c.arr ? fmtMoney(c.arr) : 'Nothing') + '</span>' +
+                  '<span class="s-pan-unit">gained</span>' +
+                '</span>' +
+                (c.total ? '<span class="s-pan-fig">' +
+                  '<span class="s-pan-spent">' + esc(fmtMoney(c.total)) + '</span>' +
+                  '<span class="s-pan-unit">cost</span>' +
+                '</span>' : '') +
+              '</span>' +
             '</div>' +
-            /* ══ THE SECTION IS "BY WHAT THEY RETURNED" AND NOTHING SAID IT ══
-               The heading ranks these by return; the eyebrow promises "what
-               each one has signed, against what it cost". Both numbers were
-               on the panel — €139k in the corner, €670 as the fourth of four
-               facts in a row of inputs — and the RETURN, which is the one
-               thing the section is about, was left for the reader to work
-               out by dividing a headline by a footnote.
-
-               Conclusion first: the multiple leads, the cost it is a
-               multiple OF sits beside it, and the three inputs that produced
-               them drop to the line below. Value, baseline, comparison, in
-               that order, which is the shape every figure on this page
-               already uses — this panel was the one that had the parts and
-               never assembled them.
-
-               UNDER ONE IS A LOSS AND SAYS SO. Not a scale of warm and cold
-               above that: a campaign returning 4× and one returning 200× are
-               both working, and tinting them differently would invent a bar
-               this page has never set. Below 1× it cost more than it
-               brought, which is a fact and not a judgement. */
-            (c.arr && c.total ? '<p class="s-pan-ret">' +
-              '<b class="s-pan-x' + (c.arr < c.total ? ' tone-err' : '') + '">' +
-                esc(ratioSay(c.arr / c.total)) + '</b>' +
-              /* ONE CLAUSE. It read "208× what it cost · €670 spent" — the
-                 same fact twice, in two runs set identically, which is the
-                 flat pair this whole pass exists to remove. The multiple and
-                 the sum it is a multiple of belong in one sentence. */
-              '<span class="s-pan-base">back on ' + esc(fmtMoney(c.total)) + ' spent</span></p>'
-              : c.total ? '<p class="s-pan-ret">' +
-                '<span class="s-pan-base">' + esc(fmtMoney(c.total)) + ' spent, nothing back yet</span></p>'
-              : '') +
+            /* ══ "10 MET" IS A FRAGMENT, NOT A FACT ═════════════════════
+               Met by whom, met out of what? `metIn` is true for a person who
+               had a meeting in the window or reached `meeting-set` in it —
+               once per PERSON, however many times they were seen. So the
+               number is ten of the forty-six on this campaign, and saying so
+               costs two words and removes the question. The subset sits
+               beside the whole it is a subset of, rather than at the end of
+               the row behind an unrelated count of hours. */
+            /* THE SAME THREE STEPS, AND THE HOURS WERE A REPEAT. People on
+               it, people met, deals signed — a funnel, each term countable.
+               The hours left this row because they are already stated, with
+               their rate, on the People line of the Resources block twelve
+               pixels below it. */
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
-              '<span><b>' + Math.round(c.hours) + '</b> ' +
-                (Math.round(c.hours) === 1 ? 'hour' : 'hours') + '</span>' +
-              '<span><b>' + c.met + '</b> met</span>' +
+              '<span><b>' + c.met + '</b> of them met</span>' +
+              '<span><b>' + c.wins + '</b> ' +
+                plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+              (c.open ? '<span><b>' + c.open + '</b> potential, ' +
+                esc(fmtMoney(c.pipeline)) + ' if they land</span>' : '') +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
@@ -7536,11 +7786,33 @@
                  navigated. Open at three people or fewer, because an
                  accordion around two names costs
                  more than it saves. */
+              /* ══ PEOPLE ARE A RESOURCE, NOT A SEPARATE KIND OF THING ═════
+                 This block was the CREW — who worked on the campaign — with
+                 the bought-in costs hanging off the bottom of it as bare
+                 words beside figures, reading as colleagues with no job
+                 title. I removed one of them for exactly that reason an hour
+                 ago, which treated the symptom: the fault was the taxonomy,
+                 not the row.
+
+                 A campaign's cost is people, plus what AiMY's own calls
+                 cost, plus what was paid to find and fill in the people to
+                 call — `campaignCost` adds those three and nothing else. All
+                 three are resources the campaign consumed. So the block is
+                 Resources, the three are siblings inside it, and People is
+                 the one that happens to fold to names. More kinds can join
+                 the list without anything here changing shape.
+
+                 NO SECOND TOTAL. Every item under this heading sums to the
+                 `cost` in the panel's corner, because those three ARE the
+                 cost — printing it again under the heading would be the same
+                 figure twice, eighty pixels apart. */
+              '<div class="s-pan-restitle">Resources</div>' +
               (c.crew.length ? '<details class="s-crew"' + (c.crew.length <= 3 ? ' open' : '') + '>' +
                 '<summary class="s-crew-sum">' +
                   '<span class="s-crew-who">' +
-                    '<b>' + esc(plural(c.crew.length, 'person')) + '</b>' +
-                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours at ' +
+                    '<b>People</b>' +
+                    '<span class="s-pan-meta">' + esc(plural(c.crew.length, 'person')) +
+                      ' &middot; ' + esc(c.hours.toFixed(1)) + ' hours at ' +
                       esc(fmtMoney(c.hours ? c.people / c.hours : 0)) + ' an hour on average</span>' +
                   '</span>' +
                   '<span class="s-pan-cost">' + esc(fmtMoney(c.people)) + '</span>' +
@@ -7578,56 +7850,196 @@
                   '</span>').join('') +
                 '</div>' +
               '</details>' : '') +
+              /* One line each, and each says what it is rather than what it
+                 is called. "Lead generators" is the brokers, the crawl and
+                 the enrichment — what was paid to produce somebody to call,
+                 which is the name the reader uses for that spend. */
               (c.aimy ? '<span class="s-pan-p is-ai">' +
-                '<span class="s-pan-who">' +
-                  '<b>' + aiMark() + 'AiMY</b>' +
-                  '<span class="s-pan-meta">the calls it made itself, at compute cost</span>' +
-                '</span>' +
+                '<span class="s-pan-who"><b>' + aiMark() + 'AiMY</b>' +
+                  '<span class="s-pan-meta">the calls it made itself</span></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.aimy)) + '</span>' +
               '</span>' : '') +
               (c.suppliers ? '<span class="s-pan-p">' +
-                '<span class="s-pan-who">' +
-                  '<b>Suppliers</b>' +
-                  '<span class="s-pan-meta">finding the people and filling them in</span>' +
-                '</span>' +
+                '<span class="s-pan-who"><b>Lead generators</b>' +
+                  '<span class="s-pan-meta">finding the people and filling them in</span></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.suppliers)) + '</span>' +
               '</span>' : '') +
             '</div>' : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>') +
           '</div>').join('') +
-        '</div>' : '<p class="s-none">Nothing has cost anything in this window.</p>') +
-      '</section>' +
+        '</div>' : '<p class="s-none">Nothing has cost anything in this window.</p>')) +
 
-      '<section class="s-exec-sec">' +
-        '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What is working, and what is not</div>' +
-          secAsk('Why are these not landing', 'Some of my product lines have taken meetings and ' +
-            'closed nothing. Show me whether they are reaching the wrong people or losing the ' +
-            'ones they reach.') +
-        '</div>' +
+        (cutBy() !== 'svc' ? '' :
         (now.byLine.length ? '<div class="s-pans">' +
           now.byLine.map((r, i) => {
             const v = lineVerdict(r, bestArr);
+            /* ══ THE SAME CARD, BECAUSE IT IS THE SAME QUESTION ══════════
+               This card carried a name, a verdict, one figure and three
+               facts, against a campaign card carrying two figures and a
+               breakdown. Under a switcher that is a reader learning the
+               component twice.
+
+               THE COST WAS ALREADY IN THE DATA. `byLine` has summed `spend`
+               per line since it was written and nothing has ever rendered
+               it — so the one thing this page exists to compare, what a
+               thing gained against what it cost, was computed and thrown
+               away on half the surface. Both figures, same slot, same
+               shapes.
+
+               WHAT DOES NOT CARRY ACROSS, and should not: people and hours.
+               Nobody works on a product. They work on a campaign that sells
+               one, which is why the facts row differs — meetings, what a
+               meeting was worth, and what is still open are the three a
+               product line is judged on. The cards match in structure and
+               differ in content, which is what a dimension switch is. */
+            const sold = bySell[r.k] || [];
+            /* ══ AND THE COST IS WHAT THE CAMPAIGNS UNDER IT COST ═════════
+               `byLine.spend` sums `spendOn` per CONTACT; a campaign's total
+               is its touchpoint hours plus what it bought. Two different
+               arithmetics for one idea, and the card put them one above the
+               other: €793 in the head over a single row reading €670, €123
+               short with nothing to explain it.
+
+               A breakdown that does not add up to its own heading is the
+               defect this page keeps finding. The heading is the sum of the
+               rows printed under it, the way the campaign card's cost is the
+               sum of its resources. */
+            const soldCost = sold.reduce((n, s) => n + s.total, 0);
             return '<div class="s-pan" style="--i:' + i + '">' +
               '<div class="s-pan-head">' +
                 '<span class="s-pan-name">' + esc(sellSay(r.k)) +
                   '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
-                '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
-                  esc(r.arr ? fmtMoney(r.arr) : 'Nothing') +
-                  '<span class="s-pan-unit">signed</span></span>' +
+                '<span class="s-pan-figs">' +
+                  '<span class="s-pan-fig">' +
+                    '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
+                      esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
+                    '<span class="s-pan-unit">gained</span>' +
+                  '</span>' +
+                  (soldCost ? '<span class="s-pan-fig">' +
+                    '<span class="s-pan-spent">' + esc(fmtMoney(soldCost)) + '</span>' +
+                    '<span class="s-pan-unit">cost</span>' +
+                  '</span>' : '') +
+                '</span>' +
               '</div>' +
+              /* ══ AND IT WAS NEVER A MEETING ═════════════════════════
+                 `lr.meetings` increments once per contact that `metIn`
+                 returns true for — a PERSON, not an occasion. Somebody seen
+                 three times counts once. So "€14k a meeting" priced an event
+                 the corpus does not count, and the figure it printed was
+                 what each person met was worth. The field keeps its name
+                 because twenty call sites read it; the label says what it
+                 holds. */
+              /* THE CAMPAIGNS LEAD, because they are what produced the rest
+                 of the row. The campaign card opens on its roster — "46
+                 people" — for the same reason: the input first, then what it
+                 turned into. The list below names them; this says how many
+                 before the reader gets there. */
               '<div class="s-pan-facts">' +
-                '<span><b>' + r.meetings + '</b> met</span>' +
-                '<span><b>' + esc(r.arr && r.meetings ? fmtMoney(r.arr / r.meetings) : '—') +
-                  '</b> a meeting</span>' +
-                '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
+                (sold.length ? '<span><b>' + sold.length + '</b> ' +
+                  (sold.length === 1 ? 'campaign' : 'campaigns') + '</span>' : '') +
+                '<span><b>' + r.meetings + '</b> ' +
+                  (r.meetings === 1 ? 'person met' : 'people met') + '</span>' +
+                /* ══ A DASH MEANS CANNOT BE SAID, NOT NOTHING CAME BACK ════
+                   `r.arr && r.meetings` hid the figure whenever a line had
+                   signed nothing — on the section headed "what is working,
+                   and what is not", where three of the five lines are the
+                   `not`. Six meetings and nothing signed is not an unknown
+                   rate, it is a rate of zero, and it is the finding. Only a
+                   line with no meetings at all has nothing to divide by, and
+                   that one keeps the dash. */
+                /* ══ SIGNED, AT NOUR'S DIRECTION ═══════════════════════
+                   I made the case for "won" off `DEAL_STAGES`, which argues
+                   in its own margin that "'Signed' is what the MONEY did — a
+                   column is a state, and the state opposite Lost is Won."
+                   That rule is about a COLUMN HEADING on the deals board.
+                   This is a sentence on a card, where a manager says a deal
+                   was signed, and the call was made after hearing the
+                   argument. Written down so it does not get quietly reverted
+                   to "won" by somebody rediscovering that comment.
+
+                   NOT CUSTOMERS, though — `FUNNEL` does label its last stage
+                   that, but `wins` counts CONTACTS and a company can hold
+                   several: seven of the thirty accounts in the book carry
+                   two subscriptions. Calling deals customers would turn two
+                   deals at one company into two companies, on the surface
+                   whose whole job is counting correctly. */
+                '<span><b>' + r.wins + '</b> ' +
+                  plural(r.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+                /* ══ THE COUNT IS A FACT, THE MONEY IS A GUESS ════════════
+                   Two open deals is counted. The €128k is not: for anything
+                   not yet won, `acvOf` returns the mean of comparable won
+                   deals in the same industry and size cell, or the price
+                   book if there are no comparables. Nobody quoted that
+                   number.
+
+                   AND IT ASSUMES THEY ALL CLOSE. `pipeline` is unweighted,
+                   unlike the Potential tile above, which discounts the same
+                   deals by how often each stage actually closes — €560k of
+                   €1.6m. So the figure is what the line is worth IF every
+                   open deal lands, and the sentence says so.
+
+                   The bold carries the counted half and the plain text the
+                   modelled half, which is the same rank this page gives a
+                   figure and its qualifier everywhere else.
+
+                   IT EARNS ITS PLACE. Three of the five lines have signed
+                   nothing and every one of them has real pipeline behind it.
+                   Without this, "not landing" reads as nothing there, which
+                   argues for stopping them; with it, it reads as meetings
+                   that are not converting yet, which is a different
+                   decision. That difference is what the cut is for. */
+                /* "OPEN" CARRIED THREE EXCLUSIONS SILENTLY. `isDeal` is
+                   handed over to the manager; `dealLive` is not won, not
+                   lost and not parked — the four stages the odds block names
+                   further down as Not met, Scoped, Shown and Priced. None of
+                   that is in the word, which is why it had to be asked.
+
+                   And it broke the row's parallel: "met" and "signed" say
+                   what HAPPENED, "open" says what state a thing is in. "Still
+                   deciding" is the same grammar as its neighbours and the
+                   same subject — they met, they signed, they are still
+                   deciding — and a deal somebody parked is not deciding
+                   anything, which is the exclusion the word needed to
+                   carry. */
+                /* AND THE REST ARE POTENTIAL, which is this page's own
+                   umbrella for them — the tile four sections up is headed
+                   exactly that. "Still deciding" was a phrase I invented
+                   outside the taxonomy; a deal here is Won, Lost, parked, or
+                   one of the four live stages the odds block names, and the
+                   collective noun for those four already existed. */
+                '<span><b>' + r.open + '</b> potential, ' +
+                  esc(fmtMoney(r.pipeline)) + ' if they land</span>' +
               '</div>' +
+              /* What the line is made of, the way Resources says what a
+                 campaign is made of. The figure on the right is what each
+                 campaign gained, matching the headline it adds up to; its
+                 state and its cost are the qualifier underneath. */
+              (sold.length ? '<div class="s-pan-crew">' +
+                '<div class="s-pan-restitle">Campaigns</div>' +
+                sold.map((s) => '<span class="s-pan-p">' +
+                  '<span class="s-pan-who"><b>' + esc(s.camp.name) + '</b>' +
+                    '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
+                      (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
+                    '</span></span>' +
+                  /* ══ A DASH SAYS "CANNOT BE SAID". THIS IS A KNOWN ZERO ════
+                     The campaign is real, it cost €454, and it has signed
+                     nothing — which is a fact, not an absence of one. The
+                     panel corner already has this build's word and its
+                     treatment for exactly this: `.s-pan-total.is-none`, whose
+                     own note says "Nothing is not a figure … it is the
+                     absence of a figure, so it is set like the absence of
+                     one." The same word and the same step down here, rather
+                     than a mark the reader has to guess at. */
+                  '<span class="s-pan-cost' + (s.arr ? '' : ' is-none') + '">' +
+                    esc(s.arr ? fmtMoney(s.arr) : 'Nothing') + '</span>' +
+                '</span>').join('') +
+              '</div>' : '') +
             '</div>';
           }).join('') +
-        '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>') +
+        '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>')) +
       '</section>' +
 
       '<div class="s-odds">' +
-        '<span class="s-odds-cap">' + aiMark() + 'How many close, by how far they have got</span>' +
+        '<span class="s-odds-cap">' + aiMark() + 'How often deals close</span>' +
         '<div class="s-odds-rows">' +
           pipe.steps.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
             '<span class="s-odds-p">' + esc((r.p * 100).toFixed(1)) + '%</span>' +
@@ -7642,13 +8054,11 @@
            page dropped. It belongs here rather than in a tile: a rate is
            how many close, an age is how long that takes, and the two are
            halves of the same reading. */
-        '<p class="s-odds-note">Each rate is what this desk has actually closed from that ' +
-          'stage, not an industry average' +
-          (age == null ? '' : ', and a deal on this book runs ' +
-            '<b>' + esc(age.toFixed(1)) + ' months</b> on average') + '. ' +
-          (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
-            ' closed in this window' : 'Nothing closed in this window') + ', so each rate is ' +
-          'smoothed &mdash; one deal cannot swing it.</p>' +
+        '<p class="s-odds-note">Your own rates, not industry averages' +
+          (age == null ? '' : '. A deal here takes <b>' + esc(age.toFixed(1)) + ' months</b>') +
+          '. ' + (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
+            ' closed this window' : 'Nothing closed this window') +
+          ', so the rates are smoothed — one deal cannot swing them.</p>' +
       '</div>' +
 
       askRow(execAsks(now, pipe)) +
@@ -19814,6 +20224,9 @@
        and the page repaints from it. */
     const per = t.closest('[data-period]');
     if (per) { go({ period: per.getAttribute('data-period') }); return; }
+
+    const cutBtn = t.closest('[data-by]');
+    if (cutBtn) { go({ by: cutBtn.getAttribute('data-by') }); return; }
 
     const fill = t.closest('[data-fill]');
     if (fill) {

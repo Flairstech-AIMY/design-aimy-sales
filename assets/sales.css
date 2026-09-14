@@ -7861,7 +7861,15 @@ body.is-figures .filter-tray { display: none; }
 .s-exec-h {
   font-family: var(--font-display); font-size: var(--fs-2xl);
   font-weight: var(--fw-extrabold); letter-spacing: -0.02em;
-  line-height: var(--lh-tight); margin: 4px 0 0;
+  line-height: var(--lh-tight); margin: 0;
+}
+/* What the page counts, under the name of the page. Sentence case at the
+   meta step: it is a line of data, not a label, and the capitals it used to
+   wear were the whole of what made it read as a kicker. Declared at the ink
+   floor rather than under it, so what this rule says is what renders. */
+.s-exec-scope {
+  margin: 6px 0 0; font-size: var(--fs-xs); color: var(--ink-muted);
+  line-height: var(--lh-base);
 }
 /* ══ ONE FAMILY, AND THE MONO WAS NEVER LOADED ═════════════════════════
 
@@ -7888,13 +7896,26 @@ body.is-figures .filter-tray { display: none; }
    minimal-component step: a tag, a state, a timestamp, a caption over a
    figure. Never a sentence. Every caption on this surface is one of the
    first four. */
+/* ══ IT IS THE SECTION'S HEADING, SO IT IS A HEADING ══════════════
+   Three `<section>` elements on this page named their subject in a `<div>`,
+   so the outline held two headings for a page with four parts and none of
+   the sections had an accessible name. They are `<h2>` now. The treatment
+   does not change: small tracked capitals is a section label, and a section
+   label is exactly what these are — what made the one at the top of the page
+   a kicker was that it sat ABOVE a heading, not how it was set. */
 .s-exec-eyebrow {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--ink-faint);
+  color: var(--ink-faint); margin: 0;
 }
 .s-exec-top .s-tabcuts { margin-bottom: 0; }
+/* On its own row under the section head, hard against the left edge. Inside
+   the head it was placed BY the heading, and the heading is one of the two
+   things it rewrites — so the chips moved whenever the cut changed, which
+   means the control moved out from under the finger that pressed it. Nothing
+   on this row changes with the cut, so nothing on it moves. */
+.s-cut-by { margin: 12px 0 0; }
 
 /* ══ ATTAINMENT — THE ONE THING ON THE PAGE THAT ANSWERS THE QUESTION ═══
 
@@ -8044,7 +8065,18 @@ body.is-figures .filter-tray { display: none; }
 }
 /* `pretty` rather than `balance`: this is a description, and the thing worth
    preventing is one word alone on the last line. */
-.s-odds-note { font-size: var(--fs-xs); color: var(--ink-faint); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
+/* ══ AND IT IS NOT A FIFTH ROW ══════════════════════════════
+   Twelve pixels under the last row, which is the gap BETWEEN rows — and set
+   in the rank the rows' own counts use. So a sentence about all four rates
+   read as the sub-line of the fourth. The ink floor means it cannot be
+   separated by dimming it, and shrinking a line that explains what every
+   figure above it means would be the wrong axis. It is separated by being
+   somewhere else: a hairline and the air a section break takes. */
+.s-odds-note {
+  font-size: var(--fs-xs); color: var(--ink-faint); line-height: var(--lh-base);
+  margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--card-border);
+  max-width: 72ch; text-wrap: pretty;
+}
 
 
 @media (prefers-reduced-motion: no-preference) {
@@ -8108,7 +8140,7 @@ body.is-figures .filter-tray { display: none; }
   column-gap: 0; row-gap: 32px; margin-top: 12px;
 }
 .s-cost-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline; gap: 16px;
   padding: 8px 0; border-top: 1px solid var(--card-border);
 }
@@ -8149,14 +8181,6 @@ body.is-figures .filter-tray { display: none; }
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
   text-align: right; min-width: 96px;
 }
-/* A SHARE IS THE COMPARISON, NOT THE DATA. At semibold it collided exactly
-   — same size, same weight, same ink — with the child label immediately
-   under it, so "100%" and "BDRs" read as two items in one list. The amount
-   beside it is what was spent; this says how much of the whole that was. */
-.s-cost-pc {
-  font-size: var(--fs-xs); font-weight: var(--fw-regular); color: var(--ink-quiet);
-  font-variant-numeric: tabular-nums; text-align: right; min-width: 44px;
-}
 /* THE GROUP IS THE ROW; THE CHILDREN ARE THE ANSWER TO "OF WHAT". Indented
    and one step down, so a reader can stop at three lines or read nine — the
    thing a flat list of nine equal rows never let them do. */
@@ -8185,9 +8209,17 @@ body.is-figures .filter-tray { display: none; }
    of three at the foot of the page could only ever be about the page; these
    are about the thing directly above them. */
 .s-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+/* ══ ONE JOB, ONE FACE ═════════════════════════════════════
+   This and the chips in `.s-asks` are the same thing — a question you can put
+   to AiMY — and they were set at two weights, 400 here against 600 there. At
+   400 it also landed in exactly the rank of the section note directly under
+   it: same size, same weight, same ink, one line apart, so a control you can
+   press and a paragraph you cannot were indistinguishable until the cursor
+   crossed one. Semibold, which is what the other half of the pair has always
+   been. */
 .s-sec-ask {
   display: inline-flex; align-items: center; gap: 8px;
-  font-size: var(--fs-xs); color: var(--ink-muted);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-muted);
   background: rgba(var(--accent-rgb), 0.08);
   border: 1px solid rgba(var(--accent-rgb), 0.16);
   border-radius: var(--r-pill); padding: 4px 12px;
@@ -8242,7 +8274,18 @@ body.is-figures .filter-tray { display: none; }
   background: var(--card-bg); border-radius: var(--r-lg); padding: 20px;
 }
 .s-pan-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-.s-pan-name { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
+/* ══ THE PANEL CLIMBS ONE STEP OF ITS OWN SCALE ══════════════════
+   It ran 24 / 16 / 14 / 12 with FIVE roles sharing the 14 — the cost, the
+   inputs row, every crew name, every crew rate and every crew figure — which
+   is a card with one step doing most of its work. The scale has a rung
+   between 16 and 24 that this page never used, and a body step above meta
+   that these rows should have been on.
+
+   So: the campaign name to --ty-deck, and everything that is a NAME or a
+   FIGURE in the crew to --ty-body, leaving --ty-meta for the lines that
+   qualify them and --ty-micro for the two capitalised labels. Five ranks on
+   five rungs, none invented. */
+.s-pan-name { font-size: var(--ty-deck); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
 .s-pan-state {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
   color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
@@ -8293,28 +8336,26 @@ body.is-figures .filter-tray { display: none; }
   text-align: right; margin-top: 4px;
 }
 
-/* ══ WHAT IT RETURNED, WHICH IS WHAT THE SECTION RANKS BY ═════════
-   Between the head and the inputs, because that is the reading order the
-   section's own eyebrow promises: what it signed, against what it cost.
-   The multiple is set at the body step rather than the figure step — the
-   signed amount is still the panel's one loud number, and a second 24px
-   figure beside it would make the panel argue with itself about which is
-   the headline. */
-.s-pan-ret {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
-  margin: 12px 0 0; font-size: var(--fs-xs); color: var(--ink-secondary);
+/* The second figure in the head's own column, under the first. Set at the
+   meta step and not at the figure step: what a campaign gained is still the
+   panel's one loud number, and two shouting figures in one corner is a card
+   arguing with itself about which is the headline. Tabular, because it is
+   read down a column of fifteen panels against the amounts above it. */
+/* The pair, and the pair is the point: what it gained beside what it cost,
+   compared across rather than read down. Baseline-aligned so the two figures
+   sit on one line however different their sizes, with their labels hanging
+   under each. */
+.s-pan-figs { display: flex; align-items: baseline; gap: 24px; flex-shrink: 0; }
+.s-pan-fig { display: flex; flex-direction: column; }
+/* One step down from the gain, not one grammar away from it. The panels are
+   ranked by what they gained, so that figure stays the loudest thing in the
+   corner — but a cost is the same kind of fact and gets the same kind of
+   treatment. */
+.s-pan-spent {
+  font-size: var(--ty-deck); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight); color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right;
 }
-.s-pan-x {
-  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
-  letter-spacing: var(--ls-tight); font-variant-numeric: tabular-nums;
-}
-/* Under one it cost more than it brought back. Not a scale above that: 4×
-   and 200× are both working, and tinting between them would invent a bar
-   this page has never set. */
-.s-pan-x.tone-err { color: var(--err-text); }
-/* The baseline the multiple is a multiple OF, pushed to the end of the line
-   so the comparison reads before the thing compared. */
-.s-pan-base { margin-left: auto; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;
   font-size: var(--fs-xs); color: var(--ink-quiet); margin-top: 12px;
@@ -8331,9 +8372,18 @@ body.is-figures .filter-tray { display: none; }
   display: flex; flex-direction: column; gap: 12px;
   margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);
 }
+/* The block's own name. At the micro step in capitals, which is what this
+   page uses for a label over a list — the same treatment the section
+   headings and the unit under a figure wear, so it reads as the heading of
+   the three rows under it and not as a fourth row. */
+.s-pan-restitle {
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-faint); margin-bottom: -2px;
+}
 .s-pan-p {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  font-size: var(--fs-xs); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-body); font-variant-numeric: tabular-nums;
 }
 .s-pan-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .s-pan-who b { color: var(--d50); font-weight: var(--fw-semibold); }
@@ -8350,7 +8400,7 @@ body.is-figures .filter-tray { display: none; }
    EUR55 an hour, next to EUR497. A caption repeating what is already visible
    is the definition of the ambient step, and at the attribution step it wore
    the same face as the row above it. */
-.s-pan-meta { color: var(--ink-faint); }
+.s-pan-meta { font-size: var(--ty-meta); color: var(--ink-faint); }
 
 /* ══ THE CREW FOLDS, AND THE MARKER SAYS WHICH WAY ═════════════════════
    Native `<details>`, the same component the design system ships and the
@@ -8362,7 +8412,7 @@ body.is-figures .filter-tray { display: none; }
 .s-crew-sum {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   list-style: none; cursor: pointer; padding: 0;
-  font-size: var(--fs-xs); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-body); font-variant-numeric: tabular-nums;
   transition: color var(--t-fast);
 }
 .s-crew-sum::-webkit-details-marker { display: none; }
@@ -8405,6 +8455,10 @@ body.is-figures .filter-tray { display: none; }
 .s-pan-p.is-ai .s-pan-who b { color: var(--ai-text); }
 .s-pan-p svg { color: var(--ai-text); vertical-align: -1px; margin-right: 4px; }
 .s-pan-cost { color: var(--d100); white-space: nowrap; }
+/* The absence of a figure, set like one: the row's weight without its
+   brightness, so a column of them reads as a column of nothings rather than
+   as a column of amounts. Above the ink floor, because it is still content. */
+.s-pan-cost.is-none { font-weight: var(--fw-regular); color: var(--ink-secondary); }
 .s-pan-none {
   font-size: var(--fs-xs); color: var(--ink-muted);
   margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--card-border);
