@@ -3323,6 +3323,32 @@
     }
     if (c.dnc || c.checkpoint === 'do-not-call') return null;
 
+    /* ══ AND A WAY IN OUTRANKS BOTH ═════════════════════════════════════
+       Everything below this line is about how to open a call. This is about
+       whether it has to be a call at all — the rungs beneath it tell you
+       what to say to a stranger, and a stranger you already know is not the
+       same conversation. It is also the one reading on this card that is
+       about YOU rather than about them, which is why it cannot be worked
+       out from the record and why nothing else here could ever have said
+       it.
+
+       Not on the manager's cards: `dealSays` draws those and it is about a
+       deal that has already been handed over, where the introduction has
+       happened and the question is what the last meeting left owed. The
+       message in the canvas is where a manager meets this. */
+    const reach = reachOf(c);
+    if (reach) {
+      const sell = reachSell(c);
+      return reach.k === 'first'
+        ? { text: 'You are connected to them. ' + esc(sell.name) +
+            ' is what fits, and this does not have to start as a cold call.',
+            from: 'your LinkedIn network' }
+        : { text: '<b>' + esc(plural(reach.n, 'connection')) + '</b> in common, the closest ' +
+            esc(reach.via.name) + ' at ' + esc(reach.via.co) +
+            '. An introduction is one ask away.',
+            from: 'their LinkedIn, against your network' };
+    }
+
     /* ══ SOMETHING CHANGED AT THE COMPANY ═══════════════════════════════
        Fresh news outranks the last call: it is the one thing that can
        turn a no into a different conversation, and it is paired with
@@ -5654,9 +5680,7 @@
     SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; TIER_CACHE = null;    /* The book reads won deals too — a deal signed in this session makes a
        customer, and one undone unmakes it. */
     CUST_CACHE = null;
-    /* And the pool a bridge is drawn from is everybody this desk has
-       reached, which a call made in this session adds to. */
-    REACHED = null;
+
 
   };
   const srcOf = (c) => srcIndex()[c.id] || null;
@@ -8449,33 +8473,35 @@
      no draw from the shared stream, and the same answer on every machine. */
   const REACH_FIRST = 31;   /* one lead in thirty-one you already know */
   const REACH_SECOND = 11;  /* of the rest, one in eleven shares somebody */
-  /* Everybody this desk has actually got through to, which is the pool a
-     bridge is drawn from: a mutual connection you cannot name is a number,
-     and a number is not an introduction you can ask for. */
-  let REACHED = null;
-  function reachedPool() {
-    if (REACHED) return REACHED;
-    const seen = Object.create(null);
-    const out = [];
-    DB.touch.forEach((t) => {
-      if (t.outcome !== 'reached' || seen[t.con]) return;
-      seen[t.con] = 1;
-      const c = DB.byCon[t.con];
-      if (c) out.push(c);
-    });
-    REACHED = out;
-    return out;
-  }
+  /* ══ AND THE CONNECTION IS OUT THERE, NOT IN THE BOOK ══════════════════
+     A bridge was drawn first from people this desk had already reached. It
+     reads well and it is the wrong model: AiMY is looking at the person's
+     LinkedIn, and what comes back is THEIR network — people we have mostly
+     never called, at companies mostly not in the book. Constraining the
+     bridge to our own contacts would have made this answer a much smaller
+     question, who do we both know inside our own pipeline, and thrown away
+     the reason for asking an outside source at all.
+
+     `DB.net` is that outside world and the build already carries twelve
+     thousand of them, each with a name, a title and a company: it is the
+     index a list search runs against, which is to say it is the population
+     LinkedIn returns from. A handful are marked `known` because they mirror
+     somebody in the book, and where a bridge happens to be one of those it
+     is said — a colleague of somebody we already talk to is a warmer ask
+     than a stranger doing a favour. */
   function reachOf(c) {
     if (!c) return null;
     const h = Math.abs(hash(me().id + ':' + c.id + ':reach'));
     if (h % REACH_FIRST === 0) return { k: 'first', via: null, n: 0 };
     if (h % REACH_SECOND !== 0) return null;
+    const pool = DB.net;
+    if (!pool || !pool.length) return null;
+    const via = pool[(h >> 9) % pool.length];
     /* Never somebody at the same company: "you both know their colleague"
        is not a bridge, it is the account we are already standing on. */
-    const pool = reachedPool().filter((x) => x.acc !== c.acc);
-    if (!pool.length) return null;
-    return { k: 'second', via: pool[(h >> 9) % pool.length], n: 2 + ((h >> 5) % 8) };
+    const a = accOf(c);
+    if (a && via.co === a.name) return null;
+    return { k: 'second', via: via, n: 2 + ((h >> 5) % 8) };
   }
   /* What the connection is FOR. A path to somebody is worth a sentence only
      if there is something to say when you get there, and the campaign they
@@ -8522,9 +8548,13 @@
     }
     return 'You and <b>' + esc(c.name) + '</b> — ' + esc(c.title) + ' at <b>' +
       esc(where) + '</b> — share <b>' + esc(plural(r.n, 'connection')) + '</b>. ' +
-      'The closest is <b>' + esc(r.via.name) + '</b> at ' +
-      esc((accOf(r.via) || {}).name || 'a company in your book') +
-      ', who we have spoken to. Want me to write the ask?';
+      'The closest is <b>' + esc(r.via.name) + '</b>, ' + esc(r.via.title) + ' at ' +
+      esc(r.via.co) +
+      /* Almost never, and worth a clause when it happens: a bridge who
+         works somewhere we already talk to is a warmer ask than a
+         stranger doing a favour. */
+      (r.via.known ? ', which is already in your book' : '') +
+      '. Want me to write the ask?';
   }
   /* The draft itself. Authored per degree, because the two are different
      letters: one is a note to somebody you know, the other is a favour
@@ -8548,7 +8578,7 @@
           esc(sell.blurb) + '. ' + esc(cap1(WHY_NOW[sellOf(c)] || '')) +
           ' — if that is anywhere near true for you, is it worth twenty minutes?</p>'
       : '<p class="s-callp"><b>To</b> ' + esc(r.via.name) + ' · ' + esc(r.via.title) +
-          ' at ' + esc((accOf(r.via) || {}).name || '') + '</p>' +
+          ' at ' + esc(r.via.co) + '</p>' +
         '<p class="s-callp">' + esc(r.via.name.split(' ')[0]) + ' — you are connected to ' +
           esc(c.name) + ' at ' + esc(a ? a.name : '') + '. We do ' +
           esc(sell.name) + ' and I think it is relevant to what ' +
@@ -8558,7 +8588,7 @@
     return answerBlock(r.k === 'first' ? 'A message to ' + c.name
       : 'An ask for ' + r.via.name,
       '<div class="s-brief-call">' + body + '</div>',
-      r.k === 'first' ? 'your own connection' : 'a mutual connection in your book');
+      r.k === 'first' ? 'your own network' : 'a connection you share, off their LinkedIn');
   }
   const cap1 = (s) => String(s || '').replace(/^./, (x) => x.toUpperCase());
   /* ══ WHO IS ACTUALLY CALLING IT ════════════════════════════════════════
@@ -15666,10 +15696,26 @@
     if (!hit) return;
     REACH_SAID = true;
     REACH_HIT = hit;
-    TURNS.push({ who: 'aimy', html: reachSay(hit), step: 'reach', opts: [
-      { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
-      { k: 'open', label: 'Open ' + hit.c.name.split(' ')[0], quiet: true },
-    ] });
+    /* ══ AND IT SAYS WHERE IT LOOKED ═══════════════════════════════════
+       Every reading on a record signs itself with what it read, and a turn
+       in this thread had no way to. It does: `hint` is already rendered
+       under the sentence and above the options, which is exactly where a
+       provenance goes.
+
+       It matters more here than anywhere else in the build. Every other
+       claim is read off the corpus — calls we made, deals we own, contracts
+       we hold — and a reader who doubts one can go and look. This one is
+       read off somebody ELSE'S profile on a service we do not own, and a
+       sentence about a stranger's connections that does not say where it
+       came from is the product asking to be taken on faith. */
+    TURNS.push({ who: 'aimy', html: reachSay(hit), step: 'reach',
+      hint: hit.r.k === 'first'
+        ? 'Read off your LinkedIn network. Nothing has been sent.'
+        : 'Read off their LinkedIn, against your network. Nothing has been sent.',
+      opts: [
+        { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
+        { k: 'open', label: 'Open ' + hit.c.name.split(' ')[0], quiet: true },
+      ] });
     paintThread();
     markUnread();
   }
