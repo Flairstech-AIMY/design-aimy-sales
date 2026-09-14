@@ -6562,7 +6562,7 @@
       const lk = (k && k.sells && k.sells.length ? k.sells[0] : null);
       if (lk) {
         const lr = byLine[lk] || (byLine[lk] =
-          { k: lk, arr: 0, meetings: 0, wins: 0, spend: 0, pipeline: 0 });
+          { k: lk, arr: 0, meetings: 0, wins: 0, spend: 0, pipeline: 0, open: 0 });
         lr.spend += s.total;
         if (met) lr.meetings += 1;
         /* HOW MANY, not just how much. The card used to divide `arr` by
@@ -6570,7 +6570,13 @@
            group where a few signed and most did not — a figure describing
            nobody. The count is the fact that average was standing in for. */
         if (won) { lr.arr += acvOf(c).value; lr.wins += 1; }
-        else if (isDeal(c) && dealLive(c)) lr.pipeline += acvOf(c).value;
+        /* The COUNT as well as the value. "€128k still open" named no noun
+           and no number: open what, how many? And unlike the amount gained
+           beside it, this one is not read off anything — `acvOf` returns a
+           comparable or a modelled figure for every deal that has not been
+           won. Saying how many deals it is across gives the reader the one
+           concrete thing in it. */
+        else if (isDeal(c) && dealLive(c)) { lr.pipeline += acvOf(c).value; lr.open += 1; }
       }
     });
 
@@ -7915,7 +7921,8 @@
                    that one keeps the dash. */
                 '<span><b>' + r.wins + '</b> ' +
                   (r.wins === 1 ? 'signed' : 'signed') + '</span>' +
-                '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
+                '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> in ' +
+                  esc(plural(r.open, 'open deal')) + '</span>' +
               '</div>' +
               /* What the line is made of, the way Resources says what a
                  campaign is made of. The figure on the right is what each
