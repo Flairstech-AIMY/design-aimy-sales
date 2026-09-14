@@ -10378,9 +10378,13 @@
        search is for here. It is not the search box `campMenu` refuses —
        that one sat over a multiple choice and a confirm, and this list
        still writes on the press it is given. */
+    /* "Find a caller" under a button reading Add to the team is the block's
+       own noun and then a different one, two lines apart. The builder's
+       assign menu keeps it, and should: its caption says Who is calling
+       them, so caller is the word that menu is about. */
     return draftMenu('teamPick', 'Add to the team', '',
       '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
-        'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
+        'placeholder="Find someone" aria-label="Find someone" spellcheck="false" />' +
       off.map((r) => draftItem('crew', r.id, r.name, false, JOB[r.fn], faceOf(r.id, 26))).join(''),
       's-inline-btn');
   }
