@@ -7745,7 +7745,7 @@
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + c.met + '</b> of them met</span>' +
               '<span><b>' + c.wins + '</b> ' +
-                plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' won</span>' +
+                plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
@@ -7920,22 +7920,24 @@
                    rate, it is a rate of zero, and it is the finding. Only a
                    line with no meetings at all has nothing to divide by, and
                    that one keeps the dash. */
-                /* ══ THE FUNNEL ALREADY HAS THESE WORDS ══════════════════
-                   WON, NOT SIGNED, and `DEAL_STAGES` says why in its own
-                   margin: "'Signed' is what the MONEY did — a column is a
-                   state, and the state opposite Lost is Won." This row
-                   counts states. The money keeps `signed` where the money
-                   is.
+                /* ══ SIGNED, AT NOUR'S DIRECTION ═══════════════════════
+                   I made the case for "won" off `DEAL_STAGES`, which argues
+                   in its own margin that "'Signed' is what the MONEY did — a
+                   column is a state, and the state opposite Lost is Won."
+                   That rule is about a COLUMN HEADING on the deals board.
+                   This is a sentence on a card, where a manager says a deal
+                   was signed, and the call was made after hearing the
+                   argument. Written down so it does not get quietly reverted
+                   to "won" by somebody rediscovering that comment.
 
-                   NOT CUSTOMERS EITHER, tempting as it is — `FUNNEL` does
-                   label its last stage that, but `wins` counts CONTACTS and
-                   a company can hold several: seven of the thirty accounts
-                   in the book carry two subscriptions. Calling deals
-                   customers would turn two deals at one company into two
-                   companies, on the surface whose whole job is counting
-                   correctly. */
+                   NOT CUSTOMERS, though — `FUNNEL` does label its last stage
+                   that, but `wins` counts CONTACTS and a company can hold
+                   several: seven of the thirty accounts in the book carry
+                   two subscriptions. Calling deals customers would turn two
+                   deals at one company into two companies, on the surface
+                   whose whole job is counting correctly. */
                 '<span><b>' + r.wins + '</b> ' +
-                  plural(r.wins, 'deal').replace(/^\d+\s/, '') + ' won</span>' +
+                  plural(r.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
                 /* ══ THE COUNT IS A FACT, THE MONEY IS A GUESS ════════════
                    Two open deals is counted. The €128k is not: for anything
                    not yet won, `acvOf` returns the mean of comparable won
