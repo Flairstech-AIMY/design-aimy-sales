@@ -8335,11 +8335,20 @@ body.is-figures .filter-tray { display: none; }
    panel's one loud number, and two shouting figures in one corner is a card
    arguing with itself about which is the headline. Tabular, because it is
    read down a column of fifteen panels against the amounts above it. */
+/* The pair, and the pair is the point: what it gained beside what it cost,
+   compared across rather than read down. Baseline-aligned so the two figures
+   sit on one line however different their sizes, with their labels hanging
+   under each. */
+.s-pan-figs { display: flex; align-items: baseline; gap: 24px; flex-shrink: 0; }
+.s-pan-fig { display: flex; flex-direction: column; }
+/* One step down from the gain, not one grammar away from it. The panels are
+   ranked by what they gained, so that figure stays the loudest thing in the
+   corner — but a cost is the same kind of fact and gets the same kind of
+   treatment. */
 .s-pan-spent {
-  display: block; margin-top: 6px;
-  font-size: var(--ty-body); font-weight: var(--fw-regular);
-  letter-spacing: 0; color: var(--ink-secondary);
-  font-variant-numeric: tabular-nums; text-align: right;
+  font-size: var(--ty-deck); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight); color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right;
 }
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;

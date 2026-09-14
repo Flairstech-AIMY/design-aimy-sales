@@ -7601,11 +7601,29 @@
                  cost on its own line below the head, at the body step, left
                  aligned, where it read as an aside. Stacked in one column
                  they are a comparison the eye makes without moving. */
-              '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
-                esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
-                '<span class="s-pan-unit">gained</span>' +
-                (c.total ? '<span class="s-pan-spent">cost ' +
-                  esc(fmtMoney(c.total)) + '</span>' : '') +
+              /* ══ TWO MONEY FIGURES, BUILT THE SAME WAY ══════════════════
+                 They were stacked in one column and made of different parts:
+                 €134k with its label UNDER it, then "cost €934" with its
+                 label BEFORE it, in a third size, in a sentence. One corner,
+                 two grammars, three type treatments, sixty-seven pixels
+                 wide.
+
+                 Both are money and the section compares them, so both are a
+                 figure over a label, side by side, where the comparison is
+                 one glance across rather than three lines down. The gain
+                 stays the larger of the two — it is what the panels are
+                 ranked by — but it is now louder than its neighbour rather
+                 than shaped unlike it. */
+              '<span class="s-pan-figs">' +
+                '<span class="s-pan-fig">' +
+                  '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
+                    esc(c.arr ? fmtMoney(c.arr) : 'Nothing') + '</span>' +
+                  '<span class="s-pan-unit">gained</span>' +
+                '</span>' +
+                (c.total ? '<span class="s-pan-fig">' +
+                  '<span class="s-pan-spent">' + esc(fmtMoney(c.total)) + '</span>' +
+                  '<span class="s-pan-unit">cost</span>' +
+                '</span>' : '') +
               '</span>' +
             '</div>' +
             '<div class="s-pan-facts">' +
