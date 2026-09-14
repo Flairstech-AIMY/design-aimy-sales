@@ -7029,6 +7029,19 @@
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
   }
 
+  /* ══ A MULTIPLE IS READ, NOT COMPUTED ═══════════════════════
+     207.46× is a number a machine produced. Above ten the decimal is noise
+     — nobody acts differently on 207× and 208× — and under two it is the
+     whole of the difference between paying for itself and not. So the
+     precision follows the size, which is what every other figure on this
+     page does with `fmtMoney`. */
+  function ratioSay(x) {
+    if (!isFinite(x) || x <= 0) return '0×';
+    if (x >= 10) return Math.round(x) + '×';
+    if (x >= 2) return x.toFixed(1).replace(/\.0$/, '') + '×';
+    return x.toFixed(2) + '×';
+  }
+
   function moneyPage() {
     /* ══ A SURFACE WITH NO DOOR ON THIS DESK STILL HAS A URL ═══════════════
        Financials is reached from the rail, and the rail draws its doors only
@@ -7274,9 +7287,14 @@
            the figure is on instead. */
         attFig('Expected from open deals', fmtMoney(pipe.weighted),
           done ? 'of ' + fmtMoney(pipe.all) + ' open today, after this window closed'
+            /* THE BAR IS A PARENTHESIS, NOT A SENTENCE. It read "20.7× the
+               €27k needed, and three times is the bar" — a clause of teaching
+               tacked onto a figure, on a tile whose three neighbours say
+               their piece in six words. The bar is the baseline for the
+               ratio and it stays, at the size of the thing it is: an aside
+               that qualifies a number, not a lesson. */
             : a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
-              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed' +
-                (a.coverage >= 3 ? ', and three times is the bar' : ', against a bar of three'))
+              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed (bar 3×)')
               : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
           /* ══ COLOUR THE FIGURE ONLY WHEN THE FIGURE IS THE VERDICT ══════
              This tinted the figure amber whenever coverage fell under three
@@ -7435,12 +7453,42 @@
                 esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
                 '<span class="s-pan-unit">signed</span></span>' +
             '</div>' +
+            /* ══ THE SECTION IS "BY WHAT THEY RETURNED" AND NOTHING SAID IT ══
+               The heading ranks these by return; the eyebrow promises "what
+               each one has signed, against what it cost". Both numbers were
+               on the panel — €139k in the corner, €670 as the fourth of four
+               facts in a row of inputs — and the RETURN, which is the one
+               thing the section is about, was left for the reader to work
+               out by dividing a headline by a footnote.
+
+               Conclusion first: the multiple leads, the cost it is a
+               multiple OF sits beside it, and the three inputs that produced
+               them drop to the line below. Value, baseline, comparison, in
+               that order, which is the shape every figure on this page
+               already uses — this panel was the one that had the parts and
+               never assembled them.
+
+               UNDER ONE IS A LOSS AND SAYS SO. Not a scale of warm and cold
+               above that: a campaign returning 4× and one returning 200× are
+               both working, and tinting them differently would invent a bar
+               this page has never set. Below 1× it cost more than it
+               brought, which is a fact and not a judgement. */
+            (c.arr && c.total ? '<p class="s-pan-ret">' +
+              '<b class="s-pan-x' + (c.arr < c.total ? ' tone-err' : '') + '">' +
+                esc(ratioSay(c.arr / c.total)) + '</b>' +
+              /* ONE CLAUSE. It read "208× what it cost · €670 spent" — the
+                 same fact twice, in two runs set identically, which is the
+                 flat pair this whole pass exists to remove. The multiple and
+                 the sum it is a multiple of belong in one sentence. */
+              '<span class="s-pan-base">back on ' + esc(fmtMoney(c.total)) + ' spent</span></p>'
+              : c.total ? '<p class="s-pan-ret">' +
+                '<span class="s-pan-base">' + esc(fmtMoney(c.total)) + ' spent, nothing back yet</span></p>'
+              : '') +
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + Math.round(c.hours) + '</b> ' +
                 (Math.round(c.hours) === 1 ? 'hour' : 'hours') + '</span>' +
               '<span><b>' + c.met + '</b> met</span>' +
-              '<span><b>' + esc(fmtMoney(c.total)) + '</b> cost</span>' +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
