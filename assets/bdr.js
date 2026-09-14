@@ -12694,14 +12694,35 @@
          and its §74 are gone with it. */
       accMap(a, people) +
 
-      '<section class="s-block s-block-wide" aria-label="Who is here">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
-          '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · who has picked up first, then by called</span></div>' +
-        qgrid(paged(people).rows, 'Nobody on the record at this company.') +
-        pager(paged(people), 'person') +
-        chips +
-      '</section>' +
+      /* ══ AND THE THIRD ACQUISITION BLOCK GOES THE SAME WAY ══════════════
+         Measured on a customer paying us for years: five cards, 799px, and
+         every one of them tagged "Not met" — sorted by "who has picked up
+         first, then by called", footed by "Put everybody here on a campaign"
+         offering four prospecting campaigns. A cold-calling worklist at a
+         company that has already bought.
+
+         IT IS ALSO THE SAME NAMES AGAIN. The Lead map two hundred pixels up
+         draws three of the five as nodes and a "2 more" stack whose menu
+         lists all five, each opening the record — so nothing here is
+         reachable only from the grid. What the grid held that the map did
+         not was one fact, said five times, and that fact is now the count on
+         the People limb. The rest of a card at a customer is the company's
+         own location and headcount repeated under every name, already in the
+         masthead, and the tier shield repeated beside them.
+
+         `isMgr()` for the same reason the two blocks below it carry it, in
+         that margin's own words: a caller at this company is not looking at
+         a customer, she is prospecting the departments we have not sold to,
+         and a queue of them ranked by who picks up is exactly her page. */
+      (isMgr() && isCust(a) ? '' :
+        '<section class="s-block s-block-wide" aria-label="Who is here">' +
+          '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
+            '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
+            ' · who has picked up first, then by called</span></div>' +
+          qgrid(paged(people).rows, 'Nobody on the record at this company.') +
+          pager(paged(people), 'person') +
+          chips +
+        '</section>') +
 
       /* ══ AND NEITHER OF THESE IS ABOUT A CUSTOMER ══════════════════════
          Both are the ACQUISITION record, and on this page they are the
@@ -14159,6 +14180,7 @@
        and the cap goes with it: the stack says how many more there are,
        which the silent slice never did. */
     const camps = ids.slice(0, 8);
+    const met = people.filter(everMet).length;
     /* The head above already counts both, so a caption repeats it or says
        nothing. It says the thing the head cannot: which of these are mine. */
     const cap = (name, n) =>
@@ -14175,7 +14197,12 @@
          to stop being a phrase, and it is this one — a map labels its
          branches, it does not narrate them. The nouns are the build's own,
          off the chips in the switcher: People, Campaigns. */
-      cap('People', '') +
+      /* THE COUNT THE CARDS WERE FOR. `cap` takes a second line and the
+         Campaigns limb uses it — "1 of them yours" — while this one passed
+         nothing. How many of these we have actually met is the fact the
+         grid below spent eight hundred pixels saying with a repeated tag,
+         and it fits here in four words, beside the names it is about. */
+      cap('People', met ? commas(met) + ' of them met' : 'none of them met') +
       /* ══ THE SAME STACK, WITHOUT THE FACES ═════════════════════════════
          The campaign's team and this row have the same defect and the same
          answer: three on the line and the rest behind one press. What does
