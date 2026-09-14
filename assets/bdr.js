@@ -14137,7 +14137,7 @@
     });
   }
 
-  /* From a company: who we hold here, and what they are being worked on.
+  /* From a company: the people, and the campaigns they are on.
      One limb per kind of join, because a company joins two different things
      and a caller asks about them separately. A limb per campaign instead —
      which is what this drew first — printed the same seven names nine times
@@ -14167,7 +14167,15 @@
         (n ? '<span class="b-branch-n">' + esc(n) + '</span>' : '') +
       '</span>';
     const limbs = [
-      cap('Who we hold here', '') +
+      /* A LIMB LABEL NAMES A KIND OF THING, NOT A SENTENCE ABOUT IT.
+         "Who we hold here" and "What they are being worked on" were a
+         question and a clause over two rows of nodes, and the first of them
+         is said again eighty pixels down as the heading of the section that
+         draws the same names as full cards: "Who is here". One of the two had
+         to stop being a phrase, and it is this one — a map labels its
+         branches, it does not narrate them. The nouns are the build's own,
+         off the chips in the switcher: People, Campaigns. */
+      cap('People', '') +
       /* ══ THE SAME STACK, WITHOUT THE FACES ═════════════════════════════
          The campaign's team and this row have the same defect and the same
          answer: three on the line and the rest behind one press. What does
@@ -14188,7 +14196,7 @@
           '</button>';
         }, {
           faces: false,
-          cap: 'Everybody we hold here',
+          cap: 'Everybody here',
           name: (id) => DB.byCon[id].name,
           sub: (id) => DB.byCon[id].title,
           mark: (id) => dotOf(DB.byCon[id]),
@@ -14198,7 +14206,7 @@
     ];
     if (camps.length) {
       limbs.push(
-        cap('What they are being worked on',
+        cap('Campaigns',
           mineN ? commas(mineN) + ' of them yours' : 'none of them yours') +
         '<div class="b-map-row">' + camps.map((id) => {
           const k = DB.byCamp[id];
