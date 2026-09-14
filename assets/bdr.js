@@ -654,6 +654,21 @@
   const BDRS = REPS.filter((r) => r.fn === 'bdr');
   const MANAGERS = REPS.filter((r) => r.fn === 'sales-manager');
   const DEFAULT_ME = 'engy';
+  /* ══ TWO DESKS, NINE PEOPLE ════════════════════════════════
+     The control in the bar is a PERSONA switcher and it was listing a
+     roster. Nine names in it claimed the product has nine points of view; it
+     has two — a caller working a queue, and a manager working the book that
+     queue produces — and `isMgr` is the only predicate any surface reads.
+     Omar's desk and Mariam's are the same desk as Engy's, rendered with a
+     different face, so seven of the nine rows were a promise of variety the
+     build cannot keep and the eighth press proved it.
+
+     THE OTHER SEVEN DO NOT GO ANYWHERE. They own campaigns, they fill the
+     team stacks, their hours are priced in the Financials cost list, their
+     names are on the calls in every history. `BDRS`, `MANAGERS`,
+     `workingHeads` and the seed all still read the whole roster. What is
+     removed is the claim that you can BE one of them. */
+  const DESKS = ['engy', 'lina'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -2557,6 +2572,17 @@
        Financials earns a refusal because a caller has no book. This tab she
        has — it is the first thing on her screen — so the key resolves to her
        reading of it instead of explaining that it cannot. */
+    /* ══ AND `as` NAMES A DESK, NOT A PERSON ═══════════════════
+       `?as=omar` was a working link for as long as the switcher offered it,
+       and somewhere there is a bookmark holding one. It resolves to the desk
+       that person's JOB is read from rather than falling to the default: a
+       caller's link opens at the caller's desk, which is what it was for.
+       Normalised HERE rather than inside `me()`, so the URL and the state
+       agree — a key that silently means something other than what it says is
+       the thing this whole scheme exists to avoid. */
+    if (S.as && DESKS.indexOf(S.as) < 0) {
+      S.as = (REP[S.as] || {}).fn === 'sales-manager' ? 'lina' : '';
+    }
     if (S.on === 'deals' && !isMgr()) S.on = 'calls';
   }
   function qs(over) {
@@ -4484,7 +4510,7 @@
          time — you are either at it or you are not — so the row you are on
          is lit the way the switcher's current tab is lit, and nothing on it
          suggests you could be two people at once. */
-      REPS.map((r) =>
+      DESKS.map((id) => REP[id]).map((r) =>
         '<button class="b-menu-item' + (r.id === p.id ? ' is-on' : '') + '" type="button" ' +
         'role="menuitemradio" aria-checked="' + (r.id === p.id) + '" ' +
         'data-as="' + esc(r.id) + '">' +
@@ -14377,7 +14403,7 @@
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Looking as</div>' +
-        REPS.map((x) =>
+        DESKS.map((id) => REP[id]).map((x) =>
           '<button class="proto-link" type="button" data-as="' + esc(x.id) + '">' +
           esc(x.name) + ' · ' + esc(JOB[x.fn]) +
           (x.id === me().id ? ' — you' : '') + '</button>').join('') +
