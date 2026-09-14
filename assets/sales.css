@@ -7861,7 +7861,15 @@ body.is-figures .filter-tray { display: none; }
 .s-exec-h {
   font-family: var(--font-display); font-size: var(--fs-2xl);
   font-weight: var(--fw-extrabold); letter-spacing: -0.02em;
-  line-height: var(--lh-tight); margin: 4px 0 0;
+  line-height: var(--lh-tight); margin: 0;
+}
+/* What the page counts, under the name of the page. Sentence case at the
+   meta step: it is a line of data, not a label, and the capitals it used to
+   wear were the whole of what made it read as a kicker. Declared at the ink
+   floor rather than under it, so what this rule says is what renders. */
+.s-exec-scope {
+  margin: 6px 0 0; font-size: var(--fs-xs); color: var(--ink-muted);
+  line-height: var(--lh-base);
 }
 /* ══ ONE FAMILY, AND THE MONO WAS NEVER LOADED ═════════════════════════
 
@@ -7888,11 +7896,18 @@ body.is-figures .filter-tray { display: none; }
    minimal-component step: a tag, a state, a timestamp, a caption over a
    figure. Never a sentence. Every caption on this surface is one of the
    first four. */
+/* ══ IT IS THE SECTION'S HEADING, SO IT IS A HEADING ══════════════
+   Three `<section>` elements on this page named their subject in a `<div>`,
+   so the outline held two headings for a page with four parts and none of
+   the sections had an accessible name. They are `<h2>` now. The treatment
+   does not change: small tracked capitals is a section label, and a section
+   label is exactly what these are — what made the one at the top of the page
+   a kicker was that it sat ABOVE a heading, not how it was set. */
 .s-exec-eyebrow {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--ink-faint);
+  color: var(--ink-faint); margin: 0;
 }
 .s-exec-top .s-tabcuts { margin-bottom: 0; }
 

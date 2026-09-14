@@ -7231,10 +7231,22 @@
              desk runs and the deals on its book, and a page that overstates
              its own scope is a page whose every figure is wrong by an
              unknown amount. */
-          '<div class="s-exec-eyebrow">Your book &middot; ' +
+          /* THE HEADING GOES FIRST. This was a kicker: twelve-pixel tracked
+             capitals ABOVE the page name, which is the one arrangement that
+             makes a heading look like it needs introducing. It also inverted
+             the document outline — the page title was an `h2` while a block
+             inside it held the `h1`, so a screen reader met the summary
+             before the page it summarises.
+
+             The line itself is not a kicker's label, it is the page's SCOPE,
+             and the note above says why that matters: a page which overstates
+             what it counts is a page whose every figure is wrong by an
+             unknown amount. So it stays, under the heading, as a sentence
+             rather than as capitals. */
+          '<h1 class="s-exec-h">Financials</h1>' +
+          '<p class="s-exec-scope">Your book &middot; ' +
             esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
-            esc(plural(deals.length, 'deal')) + '</div>' +
-          '<h2 class="s-exec-h">Financials</h2>' +
+            esc(plural(deals.length, 'deal')) + '</p>' +
         '</div>' +
         periodChips() +
       '</header>' +
@@ -7242,7 +7254,7 @@
       '<section class="slv" aria-label="What AiMY makes of it">' +
         '<div class="slv-head">' +
           '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<h1 class="slv-title">How the quarter is going</h1>' +
+          '<h2 class="slv-title">How the quarter is going</h2>' +
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
@@ -7432,7 +7444,7 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What you spent it on</div>' +
+          '<h2 class="s-exec-eyebrow">What you spent it on</h2>' +
           secAsk('Where could I spend less', 'My people cost ' + fmtMoney(un.payroll) +
             ' this window and only ' + Math.round((un.pc || 0) * 100) + '% of it is logged ' +
             'against a campaign. Show me where the money is going that is not producing anything.') +
@@ -7500,7 +7512,7 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What each campaign gained</div>' +
+          '<h2 class="s-exec-eyebrow">What each campaign gained</h2>' +
           secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
             'against what they have returned, and tell me which one I should stop and what I ' +
             'would lose by stopping it.') +
@@ -7668,7 +7680,7 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What sells and what does not</div>' +
+          '<h2 class="s-exec-eyebrow">What sells and what does not</h2>' +
           secAsk('Why are these not landing', 'Some of my product lines have taken meetings and ' +
             'closed nothing. Show me whether they are reaching the wrong people or losing the ' +
             'ones they reach.') +
