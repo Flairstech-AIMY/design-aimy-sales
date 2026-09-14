@@ -7442,9 +7442,20 @@
             'against what they have returned, and tell me which one I should stop and what I ' +
             'would lose by stopping it.') +
         '</div>' +
+        /* ══ AND THIS IS WHERE THE THREE COST LINES ARE DEFINED ════════
+           Each row inside a panel carried its own definition — "finding the
+           people and filling them in" under Suppliers, "the calls it made
+           itself, at compute cost" under AiMY — which is a sentence about
+           what the LINE IS, not about this campaign, repeated once per panel
+           down a page of fifteen. Ten of them rendered, word for word
+           identical, restating a note already standing above the list.
+
+           A definition is stated once, where the thing is introduced. Only
+           the crew rows keep a second line, because theirs is the one that
+           changes: a job, hours and a rate, different on every row. */
         '<p class="s-exec-note">What each one has signed, against what it cost — every minute ' +
-          'logged against it, the calls AiMY made itself, and what the suppliers charged to find ' +
-          'and fill in the people on it.</p>' +
+          'logged against it, the calls AiMY made itself at compute cost, and what the suppliers ' +
+          'charged to find and fill in the people on it.</p>' +
         (camps.length ? '<div class="s-pans">' +
           camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
             '<div class="s-pan-head">' +
@@ -7578,18 +7589,14 @@
                   '</span>').join('') +
                 '</div>' +
               '</details>' : '') +
+              /* One line each, and the word is the whole of what they are.
+                 Both are defined in the note above the section — see there. */
               (c.aimy ? '<span class="s-pan-p is-ai">' +
-                '<span class="s-pan-who">' +
-                  '<b>' + aiMark() + 'AiMY</b>' +
-                  '<span class="s-pan-meta">the calls it made itself, at compute cost</span>' +
-                '</span>' +
+                '<span class="s-pan-who"><b>' + aiMark() + 'AiMY</b></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.aimy)) + '</span>' +
               '</span>' : '') +
               (c.suppliers ? '<span class="s-pan-p">' +
-                '<span class="s-pan-who">' +
-                  '<b>Suppliers</b>' +
-                  '<span class="s-pan-meta">finding the people and filling them in</span>' +
-                '</span>' +
+                '<span class="s-pan-who"><b>Suppliers</b></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.suppliers)) + '</span>' +
               '</span>' : '') +
             '</div>' : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>') +
