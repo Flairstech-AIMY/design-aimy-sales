@@ -5654,6 +5654,9 @@
     SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; TIER_CACHE = null;    /* The book reads won deals too — a deal signed in this session makes a
        customer, and one undone unmakes it. */
     CUST_CACHE = null;
+    /* And the pool a bridge is drawn from is everybody this desk has
+       reached, which a call made in this session adds to. */
+    REACHED = null;
 
   };
   const srcOf = (c) => srcIndex()[c.id] || null;
@@ -8422,6 +8425,142 @@
      the people never-called first, where they all stand, and what has been
      said to them. */
 
+
+  /* ══ THE ONE QUESTION LINKEDIN CAN ANSWER AND NOBODY ASKED IT ══════════
+     LinkedIn is already all over this build and always as a DATABASE: a
+     supplier in the list builder with its own hit rates, the source behind
+     the hiring and new-leadership signals, a cost line in Financials at
+     €0.45 a contact to find and €0.30 to enrich, a profile address on every
+     record. Rows, every time. Never the graph.
+
+     A signal says why NOW. A connection says why YOU, and it changes the
+     first move rather than the pitch: the ladder in this build starts at
+     not-called, and somebody you already know is not a cold call, it is an
+     ask. That is a different opening and it is the one thing this desk has
+     never been able to see.
+
+     WHOSE NETWORK. Each person's own, which is what makes it worth having
+     on the manager's desk as well as the caller's: the same lead is warm
+     for Omar and cold for Lina, so it is not only a better opener, it is a
+     reason to hand somebody a lead. `me()` is in the hash for that reason,
+     and it is why this is drawn per desk rather than per company.
+
+     Off the hash like the signals, the book and the news — no stored graph,
+     no draw from the shared stream, and the same answer on every machine. */
+  const REACH_FIRST = 31;   /* one lead in thirty-one you already know */
+  const REACH_SECOND = 11;  /* of the rest, one in eleven shares somebody */
+  /* Everybody this desk has actually got through to, which is the pool a
+     bridge is drawn from: a mutual connection you cannot name is a number,
+     and a number is not an introduction you can ask for. */
+  let REACHED = null;
+  function reachedPool() {
+    if (REACHED) return REACHED;
+    const seen = Object.create(null);
+    const out = [];
+    DB.touch.forEach((t) => {
+      if (t.outcome !== 'reached' || seen[t.con]) return;
+      seen[t.con] = 1;
+      const c = DB.byCon[t.con];
+      if (c) out.push(c);
+    });
+    REACHED = out;
+    return out;
+  }
+  function reachOf(c) {
+    if (!c) return null;
+    const h = Math.abs(hash(me().id + ':' + c.id + ':reach'));
+    if (h % REACH_FIRST === 0) return { k: 'first', via: null, n: 0 };
+    if (h % REACH_SECOND !== 0) return null;
+    /* Never somebody at the same company: "you both know their colleague"
+       is not a bridge, it is the account we are already standing on. */
+    const pool = reachedPool().filter((x) => x.acc !== c.acc);
+    if (!pool.length) return null;
+    return { k: 'second', via: pool[(h >> 9) % pool.length], n: 2 + ((h >> 5) % 8) };
+  }
+  /* What the connection is FOR. A path to somebody is worth a sentence only
+     if there is something to say when you get there, and the campaign they
+     are on already knows what we would be selling them. */
+  const reachSell = (c) => SELL[sellOf(c)] || SELL.qa;
+
+  /* ══ AND AiMY SAYS IT RATHER THAN FILING IT ════════════════════════════
+     The bell holds what is OWED — a meeting unwritten, a deal past its
+     date, a contract renewing. Every row in it is a thing you already have
+     to do. This is not that. Nobody owes anybody an introduction, and a
+     path to a stranger is not late; it is AiMY having noticed something and
+     wanting to say so, which is a message rather than a task.
+
+     So it goes in the canvas, as a turn, with the offer in it — and the
+     mark on the composer carries the count. That badge has been in the
+     markup since the shell was written, with a comment saying it "already
+     carries the unread count, so it is already the thing on screen that
+     means AiMY has something for you". Nothing has ever set it. It does
+     now, and this is the first thing it counts. */
+  function reachTop() {
+    const pool = (isMgr() ? queue(null, 'all') : queue(null, 'all'))
+      .map((c) => ({ c: c, r: reachOf(c) }))
+      .filter((x) => x.r);
+    /* Somebody you know outranks somebody you can be introduced to, and
+       among equals the bigger account — this is one message a day, so it
+       had better be about the best of them rather than the first. */
+    pool.sort((a, b) =>
+      ((a.r.k === 'first' ? 0 : 1) - (b.r.k === 'first' ? 0 : 1)) ||
+      (ceilingOf(accOf(b.c)) - ceilingOf(accOf(a.c))));
+    return pool[0] || null;
+  }
+  function reachSay(hit) {
+    const c = hit.c;
+    const r = hit.r;
+    const a = accOf(c);
+    const sell = reachSell(c);
+    const where = a ? a.name : 'their company';
+    if (r.k === 'first') {
+      return '<b>' + esc(c.name) + '</b> is a connection of yours — ' +
+        esc(c.title) + ' at <b>' + esc(where) + '</b>, ' +
+        esc(indLabel(a).toLowerCase()) + ' at ' + esc(headLabel(a)) + '. ' +
+        '<b>' + esc(sell.name) + '</b> is what we would be selling them, and ' +
+        'nobody here has called them yet. Want me to write the message?';
+    }
+    return 'You and <b>' + esc(c.name) + '</b> — ' + esc(c.title) + ' at <b>' +
+      esc(where) + '</b> — share <b>' + esc(plural(r.n, 'connection')) + '</b>. ' +
+      'The closest is <b>' + esc(r.via.name) + '</b> at ' +
+      esc((accOf(r.via) || {}).name || 'a company in your book') +
+      ', who we have spoken to. Want me to write the ask?';
+  }
+  /* The draft itself. Authored per degree, because the two are different
+     letters: one is a note to somebody you know, the other is a favour
+     asked of a third party, and the second one has to give them a reason
+     to say yes that is about THEM rather than about us. */
+  function reachDraft(hit) {
+    const c = hit.c;
+    const r = hit.r;
+    const a = accOf(c);
+    const sell = reachSell(c);
+    const first = c.name.split(' ')[0];
+    const body = r.k === 'first'
+      ? '<p class="s-callp"><b>To</b> ' + esc(c.name) + ' · ' + esc(c.title) +
+          ' at ' + esc(a ? a.name : '') + '</p>' +
+        '<p class="s-callp">' + esc(first) + ' — we have not spoken in a while. ' +
+          /* The name as it is written. `toLowerCase` made "QA and test
+             automation" into "qa and test automation", and would have made
+             "AiMY Voice" into "aimy voice" — a product name is a proper
+             noun and does not bend to fit a sentence. */
+          'We run ' + esc(sell.name) + ' for companies your size: ' +
+          esc(sell.blurb) + '. ' + esc(cap1(WHY_NOW[sellOf(c)] || '')) +
+          ' — if that is anywhere near true for you, is it worth twenty minutes?</p>'
+      : '<p class="s-callp"><b>To</b> ' + esc(r.via.name) + ' · ' + esc(r.via.title) +
+          ' at ' + esc((accOf(r.via) || {}).name || '') + '</p>' +
+        '<p class="s-callp">' + esc(r.via.name.split(' ')[0]) + ' — you are connected to ' +
+          esc(c.name) + ' at ' + esc(a ? a.name : '') + '. We do ' +
+          esc(sell.name) + ' and I think it is relevant to what ' +
+          'they are dealing with. Would you be willing to introduce us, or tell me ' +
+          'whether it is worth asking?</p>' +
+        '<p class="s-callp"><b>Why them</b> ' + esc(cap1(WHY_NOW[sellOf(c)] || '')) + '.</p>';
+    return answerBlock(r.k === 'first' ? 'A message to ' + c.name
+      : 'An ask for ' + r.via.name,
+      '<div class="s-brief-call">' + body + '</div>',
+      r.k === 'first' ? 'your own connection' : 'a mutual connection in your book');
+  }
+  const cap1 = (s) => String(s || '').replace(/^./, (x) => x.toUpperCase());
   /* ══ WHO IS ACTUALLY CALLING IT ════════════════════════════════════════
      A list of thirty-eight people split across six callers, and the record
      named none of them. It said how many were on it, how many were
@@ -15471,9 +15610,75 @@
      so whatever the card still owed is in the thread by the time the thread
      draws. A question gets the card; a document — a brief, a sheet, a
      resource — is not a peek's worth of anything and goes straight here. */
+
+  /* ══ THE BADGE THAT HAS BEEN IN THE MARKUP AND NEVER COUNTED ═══════════
+     `.float-badge` sits on the composer's AiMY mark with a comment beside
+     it in `index.html` saying it "already carries the unread count, so it
+     is already the thing on screen that means AiMY has something for you".
+     Nothing has ever set it. The comment described a behaviour the build
+     did not have.
+
+     It has one now, and the distinction it draws is the one the bell could
+     not: the bell holds what is OWED and every row in it is a thing you
+     already have to do. A path to somebody is not owed and not late. It is
+     AiMY having noticed and wanting to say so — a message, not a task — so
+     it arrives as a turn in the canvas and this counts the turns you have
+     not opened yet. */
+  let UNREAD = 0;
+  function syncUnread() {
+    const b = document.querySelector('.float-badge');
+    if (!b) return;
+    b.textContent = commas(UNREAD);
+    b.hidden = UNREAD === 0;
+    const o = byId('canvasOpen');
+    if (o) {
+      o.setAttribute('aria-label', UNREAD
+        ? 'Open the AiMY canvas, ' + plural(UNREAD, 'message') + ' waiting'
+        : 'Open the AiMY canvas');
+    }
+  }
+  const markRead = () => { UNREAD = 0; syncUnread(); };
+  const markUnread = () => {
+    /* Only while it is shut. A turn that lands in a thread you are reading
+       has been read, and a badge that counts it makes the reader dismiss a
+       number for something they are looking at. */
+    if (byId('aimyOverlay').classList.contains('open')) return;
+    UNREAD += 1;
+    syncUnread();
+  };
+
+  /* ══ AiMY SPEAKS FIRST, ONCE ═══════════════════════════════════════════
+     Every other turn in this thread answers something somebody typed. This
+     one does not, which is the whole point of it: the finding is that you
+     have a way in to somebody nobody has called, and there is no question
+     a reader would have known to ask.
+
+     Once a session, and about the BEST of them rather than the first —
+     `reachTop` ranks a connection above an introduction and a big account
+     above a small one, because one message that is worth opening is worth
+     more than a queue of them. The thread does not persist, so a reload is
+     a new morning and she says it again. */
+  let REACH_SAID = false;
+  let REACH_HIT = null;
+  function reachGreet() {
+    if (REACH_SAID) return;
+    const hit = reachTop();
+    if (!hit) return;
+    REACH_SAID = true;
+    REACH_HIT = hit;
+    TURNS.push({ who: 'aimy', html: reachSay(hit), step: 'reach', opts: [
+      { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
+      { k: 'open', label: 'Open ' + hit.c.name.split(' ')[0], quiet: true },
+    ] });
+    paintThread();
+    markUnread();
+  }
   function openCanvas() {
     peekAll();
     peekHide();
+    /* Reading it is what makes it read. The mark on the composer stops
+       counting the moment the thread is on screen. */
+    markRead();
     byId('aimyOverlay').classList.add('open');
     paintBasis();
     paintChats();
@@ -15542,6 +15747,7 @@
                 : t.step === 'cbuild' ? 'data-cb="' + esc(o.k) + '"'
                 : t.step === 'meetlog' ? 'data-meetlog="' + esc(o.k) + '"'
                 : t.step === 'calllog' ? 'data-calllog="' + esc(o.k) + '"'
+                : t.step === 'reach' ? 'data-reach="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
               esc(o.label) + '</button>').join('') + '</div>'
           : '') +
@@ -18760,6 +18966,25 @@
     const en = t.closest('[data-enrichcon]');
     if (en) { enrichCon(en.getAttribute('data-enrichcon')); return; }
 
+    /* ══ WHAT AiMY OFFERED, TAKEN UP ═══════════════════════════════════
+       Two answers to one message. Open goes to the record, which is the
+       ordinary door and leaves the offer standing. Write spends it — the
+       chips grey out, the way every other step in this thread spends its
+       options — and the draft arrives as the next turn, in the canvas,
+       where it can be read and copied rather than fired off. */
+    const rch = t.closest('[data-reach]');
+    if (rch) {
+      if (!REACH_HIT) return;
+      if (rch.getAttribute('data-reach') === 'open') {
+        hideCanvas();
+        go({ con: REACH_HIT.c.id, p: '' });
+        return;
+      }
+      TURNS.forEach((x) => { if (x.step === 'reach') x.spent = true; });
+      say('aimy', reachDraft(REACH_HIT));
+      return;
+    }
+
     /* ══ THE CHOOSER ═══════════════════════════════════════════════════════
        Opening, choosing and filtering all happen in the DOM: a repaint
        between two presses would close the panel under the hand using it.
@@ -19395,6 +19620,9 @@
   load();
   parse();
   paint();
+  /* After the first paint, because she is talking about the board and the
+     board has to exist to be talked about. */
+  reachGreet();
 
   /* A handle for checking counts from the console, and for the audit. Not
      product surface: nothing in the app reads it. */
@@ -19436,6 +19664,7 @@
     meetings: meetings, unrecorded: unrecorded,
     tierOf: tierOf, ceilingOf: ceilingOf,
     customers: customers, subsAt: subsAt, openingAt: openingAt,
+    reachOf: reachOf, reachTop: reachTop,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,
