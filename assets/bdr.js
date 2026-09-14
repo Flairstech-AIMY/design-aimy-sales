@@ -7928,7 +7928,14 @@
                  what each person met was worth. The field keeps its name
                  because twenty call sites read it; the label says what it
                  holds. */
+              /* THE CAMPAIGNS LEAD, because they are what produced the rest
+                 of the row. The campaign card opens on its roster — "46
+                 people" — for the same reason: the input first, then what it
+                 turned into. The list below names them; this says how many
+                 before the reader gets there. */
               '<div class="s-pan-facts">' +
+                (sold.length ? '<span><b>' + sold.length + '</b> ' +
+                  (sold.length === 1 ? 'campaign' : 'campaigns') + '</span>' : '') +
                 '<span><b>' + r.meetings + '</b> ' +
                   (r.meetings === 1 ? 'person met' : 'people met') + '</span>' +
                 /* ══ A DASH MEANS CANNOT BE SAID, NOT NOTHING CAME BACK ════
