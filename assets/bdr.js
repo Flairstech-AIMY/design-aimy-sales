@@ -15989,8 +15989,17 @@
                   chIcon('pin', 10) + '</span>' : '') +
                 esc(r.title || 'New conversation') + '</span>' +
               (r.on ? '<span class="ov-chat-agent">' + esc(r.on) + '</span>' : '') +
+              /* AND NOT THE TURN COUNT. Knowledge's row ends in one and this
+                 one does not: it is the only figure in the column, so it is
+                 the only thing on a row that reads as data, and what it
+                 counts is not something anybody chooses a conversation by.
+                 Six turns is not a longer answer or a better one — it is how
+                 many times the two of you went back and forth, which is a
+                 fact about the shape of a talk and not about its subject.
+                 The rule goes with it; a stylesheet that keeps the rule for
+                 what the markup stopped drawing is how sales.css collected
+                 the rest of its dead families. */
             '</span>' +
-            (r.turns.length ? '<span class="ov-chat-n">' + commas(r.turns.length) + '</span>' : '') +
           '</button>') +
       (CHAT_EDIT === r.id ? ''
         : '<button class="ov-chat-more" type="button" data-chat-menu="' + esc(r.id) + '" ' +

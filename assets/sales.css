@@ -1344,11 +1344,16 @@ body {
    component lifted whole keeps its own bytes and says where they came
    from.
 
-   ONE LINE DIVERGES, and it is named here rather than left to be found:
-   `.ov-chat-input::placeholder` keeps `--ink-placeholder` where Knowledge
-   has `--d600`. The ink block below names --d600 NON-TEXT, and this
-   build's floor for anything read is above it; --ink-placeholder is the
-   one documented exception and it is what a placeholder is for.
+   TWO THINGS DIVERGE, and both are named here rather than left to be
+   found. `.ov-chat-input::placeholder` keeps `--ink-placeholder` where
+   Knowledge has `--d600`: the ink block below names --d600 NON-TEXT, and
+   this build's floor for anything read is above it; --ink-placeholder is
+   the one documented exception and it is what a placeholder is for.
+
+   And `.ov-chat-n` is not here at all. Knowledge's row ends in a turn
+   count; this one does not, so the rule that drew it went with the markup
+   rather than being left behind for a later sweep to find and wonder about.
+   bdr.js says why at the point where the row is built.
 
    TOKENS: everything these rules ask for is already declared in this file
    or in aimy-ds.css except `--ink-action`, which is accent-as-text —
@@ -1499,10 +1504,6 @@ body {
   line-height: var(--lh-snug); letter-spacing: var(--ls-wide);
 }
 .ov-chat.is-here .ov-chat-agent { color: var(--d400); }
-.ov-chat-n {
-  margin-left: auto; flex-shrink: 0;
-  font-size: var(--ty-micro); color: var(--d500); font-variant-numeric: tabular-nums;
-}
 .ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 0.5rem; }
 
 /* Below this the column and a readable thread cannot both fit, and the
