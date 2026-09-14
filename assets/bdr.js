@@ -7921,8 +7921,31 @@
                    that one keeps the dash. */
                 '<span><b>' + r.wins + '</b> ' +
                   (r.wins === 1 ? 'signed' : 'signed') + '</span>' +
-                '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> in ' +
-                  esc(plural(r.open, 'open deal')) + '</span>' +
+                /* ══ THE COUNT IS A FACT, THE MONEY IS A GUESS ════════════
+                   Two open deals is counted. The €128k is not: for anything
+                   not yet won, `acvOf` returns the mean of comparable won
+                   deals in the same industry and size cell, or the price
+                   book if there are no comparables. Nobody quoted that
+                   number.
+
+                   AND IT ASSUMES THEY ALL CLOSE. `pipeline` is unweighted,
+                   unlike the Potential tile above, which discounts the same
+                   deals by how often each stage actually closes — €560k of
+                   €1.6m. So the figure is what the line is worth IF every
+                   open deal lands, and the sentence says so.
+
+                   The bold carries the counted half and the plain text the
+                   modelled half, which is the same rank this page gives a
+                   figure and its qualifier everywhere else.
+
+                   IT EARNS ITS PLACE. Three of the five lines have signed
+                   nothing and every one of them has real pipeline behind it.
+                   Without this, "not landing" reads as nothing there, which
+                   argues for stopping them; with it, it reads as meetings
+                   that are not converting yet, which is a different
+                   decision. That difference is what the cut is for. */
+                '<span><b>' + r.open + '</b> open, ' +
+                  esc(fmtMoney(r.pipeline)) + ' if they land</span>' +
               '</div>' +
               /* What the line is made of, the way Resources says what a
                  campaign is made of. The figure on the right is what each
