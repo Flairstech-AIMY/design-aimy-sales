@@ -13118,50 +13118,33 @@
       '<div class="b-team b-team-rec">' +
         (function () {
           const say = (id) => {
-            const you = id === me().id;
             const theirs = hist.filter((t) => t.by === id);
             const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
-            /* ══ ZERO IS A COUNT, AND A CALLER IS JUDGED ON IT ════════════
-               "Never called them" was a sentence where a figure belonged.
-               Nought calls beside a colleague's fourteen is the same fact in
-               the same unit, it lines up as a column, and it does not need
-               reading — which was the whole complaint about the phrase it
-               replaced two commits ago and about "on the team" before that.
+            /* ══ EACH OF THEM COUNTED IN THEIR OWN UNIT, AND NOTHING ELSE ═══
+               Nour: what does "theirs to call" add? Nothing. Engy is named
+               twelve times on this page and carries ten calls against this
+               lead; whose it is was never in question, and the phrase sat in
+               a slot the rest of which is a figure.
 
-               ONLY FOR A CALLER. The manager does not ring leads; "0 calls"
-               under Sales manager would be an accusation the job does not
-               support, so a non-caller with nothing logged still falls to
-               what they are here for. `fn` is the test, not the label. */
+               "Takes it at Interested" is worse, because the page says it
+               properly two blocks up, in its own: "Your part ends at
+               Interested — Lina Haddad takes it from there." That is the
+               sentence. This was the same thing compressed until it stopped
+               being one, and it reads identically on every lead in the book,
+               which is the "on the team" fault wearing a process rule.
+
+               So both go, and the rule is the one Nour has been pointing at
+               all along: a colleague is counted, in the unit their job is
+               counted in. A caller has calls. A manager has meetings — he
+               takes the lead over at Interested, so meetings are what he
+               does here. Each always shows their own; the other joins it
+               only when it is not nought, because a BDR who set two meetings
+               did something the call count does not say. */
             const rings = !!(REP[id] && REP[id].fn === 'bdr');
             const bits = [];
-            if (calls || rings) bits.push(plural(calls, 'call'));
-            if (mets) bits.push(plural(mets, 'meeting'));
-            /* ══ "ON THE TEAM" UNDER A HEADING READING THE TEAM ═══════════
-               Nothing done yet is not nothing to say — that part of the old
-               note holds — but the sentence it reached for said nothing at
-               all. Every row in this block is on the team; that is what the
-               block IS. The other three fallbacks each name a relation to
-               THIS record: whose it is to call, who takes it at Interested,
-               who holds it now. The fourth named membership, and it is the
-               one that fires most, because a lead's team is everyone crewed
-               on its campaigns and most of them have never touched this one.
-
-               So say that. "Never called them" is a fact about this person
-               and this lead, it is the build's own phrase for it — the queue
-               filters on `not-called` and the briefing offers "Show the 2
-               never called" — and beside a colleague reading "7 calls" it
-               draws the line the block exists to draw. */
-            /* WHOSE IT IS SURVIVES THE COUNT. A caller now always carries
-               a figure, so these would never render again if they stayed a
-               fallback — and "0 calls" on a lead somebody OWNS is a sharper
-               reading than the count alone. Ownership joins the count;
-               everything else still only speaks when nothing else does. */
-            const rel = id === c.owner ? (you ? 'yours to call' : 'theirs to call')
-              : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
-                ? 'has it now' : 'takes it at Interested')
-              : '';
-            if (rel && (!bits.length || id === c.owner)) bits.push(rel);
+            if (rings || calls) bits.push(plural(calls, 'call'));
+            if (!rings || mets) bits.push(plural(mets, 'meeting'));
             return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
           return teamFaces(ids, (id) => mateRow(id, say(id)), { sub: say });
