@@ -6805,14 +6805,37 @@
     { k: 'discovery',  was: 'we have been through what they need' },
     { k: 'qual',       was: 'handed over, nobody has met them' },
   ];
-  ODDS_STEPS.forEach((r) => { r.say = DEAL_STAGE[r.k].label + ' — ' + r.was; });
+  /* ══ THE LABEL WAS STANDING IN FRONT OF THE PLAIN ENGLISH ═══════════════
+     "Priced — the price is on the table" puts a one-word participle where
+     the eye lands and the sentence that actually says the thing second. The
+     reader hits the jargon, bounces, reads the gloss, and the label has
+     earned nothing: everything it meant was already in the clause behind it.
+
+     Nour read the row titles as vague, and they are — HERE. On the deals
+     board they are column heads over deals and they work, which is the whole
+     argument in `DEAL_STAGES`: Qualification, Discovery, Proof and Commercial
+     were renamed because a stage has to stand alone ON A CARD, and the four
+     replacements must not collide with `PHASES` — Discovery meeting, Proof
+     meeting, Commercial meeting — or with the diary's Demo tag. That
+     constraint rules out almost every alternative, and it survived a reader
+     on this desk asking what "Proof" meant. It is not being reopened for a
+     block that had the plain sentence sitting right there all along.
+
+     So the clause leads and the stage name drops to the basis line, where it
+     is the reference it should have been: a reader who wants the board's word
+     finds it, and a reader who wants the meaning reads it first. The note
+     under the rows still says "Only Priced", and Priced is still on screen. */
+  ODDS_STEPS.forEach((r) => {
+    r.tag = DEAL_STAGE[r.k].label;
+    r.say = r.was.charAt(0).toUpperCase() + r.was.slice(1);
+  });
   const ODDS_PRIOR = { commercial: 0.55, proof: 0.32, discovery: 0.16, qual: 0.06 };
   const SMOOTH = 2;
   let ODDS_CACHE = null;
   function oddsLadder() {
     if (ODDS_CACHE) return ODDS_CACHE;
     const by = Object.create(null);
-    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, n: 0, won: 0 }));
+    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, tag: r.tag, n: 0, won: 0 }));
     /* Learned off every deal that has finished, at the furthest stage it
        reached before it did — a deal that closed from Commercial is
        evidence about Commercial, and it is no longer standing there. */
@@ -6858,7 +6881,7 @@
          say whether a rate is measured or assumed, which is the whole
          difference between the four numbers it prints. Carried under names
          that cannot be confused with the open count. */
-      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, p: o.p,
+      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, tag: o.tag, p: o.p,
         seen: o.n || 0, signed: o.won || 0, n: 0, value: 0 });
       r.n += 1; r.value += v.value;
     });
@@ -8124,7 +8147,7 @@
             '<span class="s-odds-say">' + esc(r.say) +
               /* WHAT THIS ONE RATE IS BUILT ON, on the row making the claim,
                  so a measured rate and an assumed one stop looking alike. */
-              '<span class="s-odds-basis">' + esc(r.seen
+              '<span class="s-odds-basis">' + esc(r.tag) + ' &middot; ' + esc(r.seen
                 ? r.signed + ' of ' + r.seen + ' signed'
                 : 'estimate, nothing finished here yet') + '</span>' +
             '</span>' +
