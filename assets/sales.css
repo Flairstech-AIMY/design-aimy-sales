@@ -8044,7 +8044,18 @@ body.is-figures .filter-tray { display: none; }
 }
 /* `pretty` rather than `balance`: this is a description, and the thing worth
    preventing is one word alone on the last line. */
-.s-odds-note { font-size: var(--fs-xs); color: var(--ink-faint); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
+/* ══ AND IT IS NOT A FIFTH ROW ══════════════════════════════
+   Twelve pixels under the last row, which is the gap BETWEEN rows — and set
+   in the rank the rows' own counts use. So a sentence about all four rates
+   read as the sub-line of the fourth. The ink floor means it cannot be
+   separated by dimming it, and shrinking a line that explains what every
+   figure above it means would be the wrong axis. It is separated by being
+   somewhere else: a hairline and the air a section break takes. */
+.s-odds-note {
+  font-size: var(--fs-xs); color: var(--ink-faint); line-height: var(--lh-base);
+  margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--card-border);
+  max-width: 72ch; text-wrap: pretty;
+}
 
 
 @media (prefers-reduced-motion: no-preference) {
@@ -8185,9 +8196,17 @@ body.is-figures .filter-tray { display: none; }
    of three at the foot of the page could only ever be about the page; these
    are about the thing directly above them. */
 .s-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+/* ══ ONE JOB, ONE FACE ═════════════════════════════════════
+   This and the chips in `.s-asks` are the same thing — a question you can put
+   to AiMY — and they were set at two weights, 400 here against 600 there. At
+   400 it also landed in exactly the rank of the section note directly under
+   it: same size, same weight, same ink, one line apart, so a control you can
+   press and a paragraph you cannot were indistinguishable until the cursor
+   crossed one. Semibold, which is what the other half of the pair has always
+   been. */
 .s-sec-ask {
   display: inline-flex; align-items: center; gap: 8px;
-  font-size: var(--fs-xs); color: var(--ink-muted);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-muted);
   background: rgba(var(--accent-rgb), 0.08);
   border: 1px solid rgba(var(--accent-rgb), 0.16);
   border-radius: var(--r-pill); padding: 4px 12px;

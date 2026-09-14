@@ -7617,7 +7617,15 @@
               '</div>' +
               '<div class="s-pan-facts">' +
                 '<span><b>' + r.meetings + '</b> met</span>' +
-                '<span><b>' + esc(r.arr && r.meetings ? fmtMoney(r.arr / r.meetings) : '—') +
+                /* ══ A DASH MEANS CANNOT BE SAID, NOT NOTHING CAME BACK ════
+                   `r.arr && r.meetings` hid the figure whenever a line had
+                   signed nothing — on the section headed "what is working,
+                   and what is not", where three of the five lines are the
+                   `not`. Six meetings and nothing signed is not an unknown
+                   rate, it is a rate of zero, and it is the finding. Only a
+                   line with no meetings at all has nothing to divide by, and
+                   that one keeps the dash. */
+                '<span><b>' + esc(r.meetings ? fmtMoney(r.arr / r.meetings) : '—') +
                   '</b> a meeting</span>' +
                 '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
               '</div>' +
