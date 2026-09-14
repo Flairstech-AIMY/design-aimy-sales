@@ -6896,7 +6896,10 @@
      which is a dimension switch, and a dimension switch is what a segmented
      control is for. The same `.s-tabcuts` the period chips above it use, so
      the page teaches the control once. */
-  const CUTS = [{ k: 'camp', label: 'By campaign' }, { k: 'svc', label: 'By service' }];
+  /* The nouns, not the preposition. "By campaign" reads as an instruction to
+     the page; the chips name the two things you can look at, and the heading
+     above them already says what is being asked of each. */
+  const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services/Products' }];
   function cutBy() {
     return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
@@ -7577,7 +7580,6 @@
           '<h2 class="s-exec-eyebrow">' +
             (cutBy() === 'svc' ? 'What sells and what does not' : 'Which campaigns paid off') +
           '</h2>' +
-          cutChips() +
           (cutBy() === 'svc'
             ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
@@ -7586,6 +7588,19 @@
               'against what they have returned, and tell me which one I should stop and what I ' +
               'would lose by stopping it.')) +
         '</div>' +
+        /* ══ THE SWITCHER GETS ITS OWN ROW ══════════════════════════
+           It sat between the heading and the ask on one baseline row, and
+           both of those change with the cut — "Which campaigns paid off" is
+           eleven characters shorter than "What sells and what does not". The
+           heading is left-aligned so it holds its edge and the ask is pushed
+           right so it holds its own, which left the chips in the middle
+           absorbing the whole difference: press one and the control you just
+           pressed moves out from under the cursor.
+
+           A control that rewrites the words around it cannot be positioned
+           by them. Its own row, at the left edge, where neither heading is
+           able to move it. */
+        cutChips() +
         (cutBy() === 'svc' ? '' :
         /* ══ AND THIS IS WHERE THE THREE COST LINES ARE DEFINED ════════
            Each row inside a panel carried its own definition — "finding the

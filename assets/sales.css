@@ -7910,12 +7910,12 @@ body.is-figures .filter-tray { display: none; }
   color: var(--ink-faint); margin: 0;
 }
 .s-exec-top .s-tabcuts { margin-bottom: 0; }
-/* The cut switcher sits INSIDE a section head, between the heading it
-   changes and the question it changes with — so it takes no bottom margin
-   of its own and lets the head's baseline row place it. `margin-right: auto`
-   keeps it beside the heading rather than drifting to the ask at the far
-   end: the control belongs to the words it rewrites. */
-.s-sec-head .s-cut-by { margin-bottom: 0; margin-right: auto; }
+/* On its own row under the section head, hard against the left edge. Inside
+   the head it was placed BY the heading, and the heading is one of the two
+   things it rewrites — so the chips moved whenever the cut changed, which
+   means the control moved out from under the finger that pressed it. Nothing
+   on this row changes with the cut, so nothing on it moves. */
+.s-cut-by { margin: 12px 0 0; }
 
 /* ══ ATTAINMENT — THE ONE THING ON THE PAGE THAT ANSWERS THE QUESTION ═══
 
