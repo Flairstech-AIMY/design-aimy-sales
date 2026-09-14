@@ -6686,7 +6686,24 @@
       const home = dealCamp(c);
       return !!home && home.id === camp.id;
     });
+    /* ══ AND WHAT IS STILL IN THE FUNNEL ═════════════════════════
+       The service card carries its potential and the campaign card did not,
+       which left the two halves of one switcher answering different
+       questions: a service said what might still come, a campaign stopped at
+       what already had. A campaign with nothing signed and six live deals is
+       not the campaign it looks like without them.
+
+       Homed the same way as the win above — a deal that sits on three
+       campaigns belongs to one — so the campaigns cut sums to the same
+       pipeline as the services cut and as the Potential tile. */
+    const live = mem.filter((c) => {
+      if (!isDeal(c) || !dealLive(c)) return false;
+      const home = dealCamp(c);
+      return !!home && home.id === camp.id;
+    });
     return {
+      open: live.length,
+      pipeline: live.reduce((n, c) => n + acvOf(c).value, 0),
       camp: camp, members: mem.length, crew: crew, people: people, aimy: aimy,
       suppliers: suppliers, hours: hours, total: people + aimy + suppliers,
       arr: won.reduce((n, c) => n + acvOf(c).value, 0),
@@ -7746,6 +7763,8 @@
               '<span><b>' + c.met + '</b> of them met</span>' +
               '<span><b>' + c.wins + '</b> ' +
                 plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+              (c.open ? '<span><b>' + c.open + '</b> potential, ' +
+                esc(fmtMoney(c.pipeline)) + ' if they land</span>' : '') +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
