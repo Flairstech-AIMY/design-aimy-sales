@@ -200,7 +200,7 @@ between two desks that both render in full:
 | desk | `?as=` | what it opens |
 |---|---|---|
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
-| Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, Financials |
+| Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are all live behind `isMgr()`. A caller reaching one of
@@ -209,6 +209,53 @@ says a caller has no book and points back, and `?on=deals` resolves to the
 caller's own reading of the same tab.
 
 Two desks means every question about a figure has two answers. Check both.
+
+## The customer book
+
+`?on=deals&q=won`. A deal that closed used to fall out of the product — the
+Won chip held the three that happened to close inside this quarter, every
+card in it read "Signed. Nothing else in the range fits them yet", and it was
+the one chip in the row that led nowhere.
+
+**A subscription is a fact on the account, not a deal.** A deal is something
+you are trying to close and a subscription is something already running, and
+filing the second as the first makes the forecast count money it banked two
+years ago. Nothing in Financials reads them and attainment does not move. One
+account in six carries one, fitted to sector off `IND_FIT`, dated up to three
+years back, priced off the rate card the pipeline uses — 31 customers, €1.9m
+a year, a quarter of them already on a second thing. `subsAt` unions those
+with the won deals at the same company, so nothing downstream has to ask
+which kind of customer it got.
+
+**The cut is not windowed.** It showed this quarter because won deals were
+all the product remembered. A company that signed three years ago is exactly
+as much a customer as one that signed in March.
+
+**Every event carries its own consequence, and the offer falls out of it.**
+`a.signal` — "raised a Series B" — argues for nothing in particular, which is
+why the thing beside it had to be a ninety-day clock: a calendar reminder
+wearing the costume of an insight. The twenty-four events in `NEWS` each say
+what happened, what that means for them, and which of the eight it therefore
+makes a case for. €40m to open in Germany and Poland means a second language
+and a second time zone on a desk they staff themselves, which means managed
+support. `openingAt` joins that against the book and has three answers, two
+of which are not a sale: if the news points at something we already run for
+them it says so, and if nothing fits it says that too.
+
+The book is ranked by what moved rather than by what it pays — a list ranked
+by revenue has a top that never changes.
+
+**The chip is not one of the six.** The other cuts narrow the 48 deals and
+sum to All; this one is 31 companies that are not among the 48 at all, so it
+sits past the run button behind a rule, carries the company glyph, and is a
+step up in ink and weight. Its badge is how many customers moved, and it
+draws only when there are any. On a campaign the seventh chip is still Won
+and still means the deals that campaign closed.
+
+A row on it is a **company**, because three people at one customer do not
+have three contracts. That is the only thing that differs: the switcher, the
+search box, the chips and the pager are the same components in the same
+places, and only the body swaps.
 
 ## Known, and not this build's
 
