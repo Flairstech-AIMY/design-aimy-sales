@@ -8421,6 +8421,44 @@
      AiMY makes of the list with a door, the action row decided by state,
      the people never-called first, where they all stand, and what has been
      said to them. */
+
+  /* ══ WHO IS ACTUALLY CALLING IT ════════════════════════════════════════
+     A list of thirty-eight people split across six callers, and the record
+     named none of them. It said how many were on it, how many were
+     callable, which campaigns held them and how many more matched — every
+     fact about the list except the one about the people working it.
+
+     DERIVED, NEVER STORED. A list has no assignee field and should not:
+     ownership is a fact about each lead, set from whoever the builder
+     assigned when the list was saved and moved by every hand-over after
+     that. Deriving it means the block cannot disagree with the records
+     under it, and it is also why there is no cross on a row — you change
+     who is calling somebody on their own record, not on a list they happen
+     to be in.
+
+     The second line is how much of the list each of them holds. A name with
+     no share beside it is the half of the fact that decides nothing: six
+     callers where one holds thirty and five hold two is a different list
+     from six holding six each, and the count is what tells them apart. */
+  function listTeam(people) {
+    const by = Object.create(null);
+    people.forEach((c) => { if (c.owner) by[c.owner] = (by[c.owner] || 0) + 1; });
+    const ids = Object.keys(by).sort((x, y) => by[y] - by[x]);
+    if (!ids.length) return '';
+    const say = (id) => commas(by[id]) + ' of ' + commas(people.length);
+    return '<div class="b-team">' +
+      '<div class="b-team-head">' +
+        '<span class="b-cmeta-cap b-team-cap">Who is calling it</span>' +
+      '</div>' +
+      teamFaces(ids, (id) =>
+        '<div class="b-mate">' + faceOf(id, 32) +
+          '<span class="b-mate-t">' +
+            '<span class="b-mate-name">' + esc(id === me().id ? 'You' : actor(id).name) + '</span>' +
+            '<span class="b-mate-role">' + esc(say(id)) + '</span>' +
+          '</span>' +
+        '</div>', { sub: say, cap: 'Who is calling it' }) +
+    '</div>';
+  }
   function listPage(l) {
     const camp = campsOn(l);
     /* NEVER-called FIRST. A list exists to bring new people in; the ones
@@ -8519,6 +8557,7 @@
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' + actions + '</div>' +
+        listTeam(people) +
       '</section>' +
 
       listLead(l, people, call, camp.length > 0) +
