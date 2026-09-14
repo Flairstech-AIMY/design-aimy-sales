@@ -16782,10 +16782,26 @@
     const host = byId('overlayThread');
     if (!TURNS.length) {
       THREAD_SEEN = 0;
-      host.innerHTML = ['How many are left to call?', 'Who is due today?',
+      /* ══ AND THEY ARE A ROW, WHICH IS WHAT THE WRAPPER IS FOR ═════════
+         The chips were written straight into the thread, and the thread is a
+         COLUMN — `flex-direction: column` with a 16px gap — so four pills
+         meant to sit beside each other each stretched the full 720 and
+         stacked. A chip that fills the line it is on is not a chip; four of
+         them down the middle of an empty canvas read as a menu of the only
+         four things AiMY can do, which is the opposite of what an opener is
+         for.
+
+         `.overlay-suggestions` is the library's own wrapper for exactly this
+         and this build had never drawn it: flex, wrapping, 7px gap, centred,
+         with its own air above. The V3 build used it, AiMY Knowledge uses
+         it, and the design system's note on the rule says it is visible only
+         while the thread is empty — which is the only place it is asked
+         for. */
+      host.innerHTML = '<div class="overlay-suggestions">' +
+        ['How many are left to call?', 'Who is due today?',
         'What happened yesterday?', 'When do people actually answer?'].map((q) =>
         '<button class="overlay-sugg-chip" type="button" data-ask="' + esc(q) + '">' +
-        esc(q) + '</button>').join('');
+        esc(q) + '</button>').join('') + '</div>';
       return;
     }
     host.innerHTML = TURNS.map(turnHtml).join('');
