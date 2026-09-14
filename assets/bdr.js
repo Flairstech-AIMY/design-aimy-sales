@@ -7717,11 +7717,19 @@
                 '</span>' : '') +
               '</span>' +
             '</div>' +
+            /* ══ "10 MET" IS A FRAGMENT, NOT A FACT ═════════════════════
+               Met by whom, met out of what? `metIn` is true for a person who
+               had a meeting in the window or reached `meeting-set` in it —
+               once per PERSON, however many times they were seen. So the
+               number is ten of the forty-six on this campaign, and saying so
+               costs two words and removes the question. The subset sits
+               beside the whole it is a subset of, rather than at the end of
+               the row behind an unrelated count of hours. */
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
+              '<span><b>' + c.met + '</b> of them met</span>' +
               '<span><b>' + Math.round(c.hours) + '</b> ' +
                 (Math.round(c.hours) === 1 ? 'hour' : 'hours') + '</span>' +
-              '<span><b>' + c.met + '</b> met</span>' +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
@@ -7877,8 +7885,17 @@
                   '</span>' : '') +
                 '</span>' +
               '</div>' +
+              /* ══ AND IT WAS NEVER A MEETING ═════════════════════════
+                 `lr.meetings` increments once per contact that `metIn`
+                 returns true for — a PERSON, not an occasion. Somebody seen
+                 three times counts once. So "€14k a meeting" priced an event
+                 the corpus does not count, and the figure it printed was
+                 what each person met was worth. The field keeps its name
+                 because twenty call sites read it; the label says what it
+                 holds. */
               '<div class="s-pan-facts">' +
-                '<span><b>' + r.meetings + '</b> met</span>' +
+                '<span><b>' + r.meetings + '</b> ' +
+                  (r.meetings === 1 ? 'person met' : 'people met') + '</span>' +
                 /* ══ A DASH MEANS CANNOT BE SAID, NOT NOTHING CAME BACK ════
                    `r.arr && r.meetings` hid the figure whenever a line had
                    signed nothing — on the section headed "what is working,
@@ -7888,7 +7905,7 @@
                    line with no meetings at all has nothing to divide by, and
                    that one keeps the dash. */
                 '<span><b>' + esc(r.meetings ? fmtMoney(r.arr / r.meetings) : '—') +
-                  '</b> a meeting</span>' +
+                  '</b> each</span>' +
                 '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
               '</div>' +
               /* What the line is made of, the way Resources says what a
