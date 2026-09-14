@@ -8047,6 +8047,11 @@ body.is-figures .filter-tray { display: none; }
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
 }
 .s-odds-cap svg { color: var(--ai-text); }
+/* The caption and the name of the column under its right end, on one line.
+   Baseline, so the two micro-caps labels sit on the same rule; `.s-pan-unit`
+   drops the top margin it needs when it hangs under a figure instead. */
+.s-odds-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.s-odds-top .s-pan-unit { margin-top: 0; }
 .s-odds-rows { display: flex; flex-direction: column; margin-top: 12px; }
 /* ══ THE ROWS ARE `.s-pan-p`, THE ROW THIS PAGE ALREADY DRAWS TWICE ═════
    Its own five rules went with the three-column layout they served — a

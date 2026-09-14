@@ -8201,7 +8201,20 @@
          front of it — and the line under each says the same thing longer for
          a reader who wants it. */
       '<div class="s-odds">' +
-        '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
+        /* ══ ONE LABEL OVER A COLUMN, NOT ONE DOWN EVERY ROW ══════════════
+           A unit under a figure is right when there is one figure, which is
+           why the panel heads wear it: two numbers in a corner, each saying
+           its own name. Down a list every figure means the same thing, so
+           the word stops being a label and becomes a column of itself —
+           four SPENTs teaching nothing after the first.
+
+           The caption row already spans the block, and the right end of it
+           sits directly over the figures. One `.s-pan-unit` there is the
+           column heading this wanted to be, in the same treatment, once. */
+        '<div class="s-odds-top">' +
+          '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
+          (loss.rows.length ? '<span class="s-pan-unit">spent</span>' : '') +
+        '</div>' +
         /* ══ THE COUNT BELONGS TO THE REASON, NOT TO A COLUMN ═════════════
            A bold "2 deals" in a right-aligned figure slot made a count look
            like the row's subject and pushed the reason — the only thing on
