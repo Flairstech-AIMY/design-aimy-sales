@@ -7035,7 +7035,7 @@
      What makes it a reading rather than a caption is that every clause names
      something the figures below do NOT say on their face — the campaign
      whose cost and return are furthest apart, the one that has taken hours
-     and closed nothing, the share of payroll that lands on a campaign at
+     and closed nothing, the share of payroll that lands on campaigns at
      all. Ranked, and the loudest three are said. */
   function execBrief(now, a, camps, un, deals) {
     const bits = [];
@@ -7120,9 +7120,16 @@
       esc(fmtMoney(worst.total)) + ' across ' + esc(plural(Math.round(worst.hours), 'hour')) +
       ' and closed nothing.');
 
+    /* PLURAL, LIKE THE TWO PLACES THIS FINDING IS ALSO SAID. The payroll
+       row and the note under the breakdown were both moved off "a campaign"
+       because the singular reads as one campaign somebody could name; the
+       figure is the sum across all of them. This clause was written before
+       that pass and the sweep never reached the paragraph. "At all" stays: it
+       is the emphasis, and it is the one word that keeps this from being a
+       verbatim prefix of the note below. */
     if (un.pc != null && un.pc < 0.5) {
       bits.push('Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what you pay for lands ' +
-        'on a campaign at all.');
+        'on campaigns at all.');
     }
     return bits.join(' ');
   }
