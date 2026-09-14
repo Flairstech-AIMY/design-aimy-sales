@@ -7910,6 +7910,12 @@ body.is-figures .filter-tray { display: none; }
   color: var(--ink-faint); margin: 0;
 }
 .s-exec-top .s-tabcuts { margin-bottom: 0; }
+/* The cut switcher sits INSIDE a section head, between the heading it
+   changes and the question it changes with — so it takes no bottom margin
+   of its own and lets the head's baseline row place it. `margin-right: auto`
+   keeps it beside the heading rather than drifting to the ask at the far
+   end: the control belongs to the words it rewrites. */
+.s-sec-head .s-cut-by { margin-bottom: 0; margin-right: auto; }
 
 /* ══ ATTAINMENT — THE ONE THING ON THE PAGE THAT ANSWERS THE QUESTION ═══
 

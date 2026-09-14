@@ -2550,8 +2550,12 @@
      same reason every other narrowing is: a quarter somebody is reading is
      a page somebody can send. It is the one control on that surface, and it
      moves WHEN rather than which records, so it is not a filter. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period'];
-  const DEFAULTS = { q: 'all', on: 'calls', period: 'q' };
+  /* `by` is which way the money is cut on the Financials page — by the
+     campaigns that spent it or the services that earned it. In the URL for
+     the reason every other narrowing on this build is: a cut somebody is
+     reading is a cut somebody can send. */
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by'];
+  const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
   function parse() {
@@ -6879,6 +6883,30 @@
   '</div>';
 
   /* Four fixed options, no calendar, no range. */
+  /* ══ ONE MONEY, TWO CUTS, AND STACKING THEM HID THE SEAM ═══════════
+     These were two sections, one under the other, both rendering `.s-pan` —
+     same card, same slots, same type. Ten campaign panels and then, without
+     anything saying so, five panels of a different taxonomy carrying
+     different columns: a campaign shows people, hours and what it cost, a
+     service shows meetings, what one is worth and what is still open. A
+     reader found out the dimension had changed by reading it, three and a
+     half thousand pixels in.
+
+     They are the same money asked two ways — what SPENT it, what EARNED it —
+     which is a dimension switch, and a dimension switch is what a segmented
+     control is for. The same `.s-tabcuts` the period chips above it use, so
+     the page teaches the control once. */
+  const CUTS = [{ k: 'camp', label: 'By campaign' }, { k: 'svc', label: 'By service' }];
+  function cutBy() {
+    return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
+  }
+  function cutChips() {
+    return '<div class="s-tabcuts s-cut-by" role="group" aria-label="Cut the money by">' +
+      CUTS.map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
+        '" type="button" data-by="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
+    '</div>';
+  }
+
   function periodChips() {
     return '<div class="s-tabcuts" role="group" aria-label="Period">' +
       PERIODS.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
@@ -7534,19 +7562,31 @@
         '</div>') +
       '</section>' +
 
+      /* ══ ONE SECTION, TWO CUTS ════════════════════════════════
+         THE HEADING FOLLOWS THE TAB, and so does the ask beside it. They are
+         different questions — "which campaigns paid off" is about cost
+         against return, "what sells and what does not" is a verdict on a
+         product line — and a heading that stayed put while the answer
+         underneath changed would be the same fault one layer up: a label
+         that does not say which of two things it is naming.
+
+         A heading asks the question the section answers; the note says what
+         is counted, which is why the note went and the heading stayed. */
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          /* THE HEADING AND ITS NOTE WERE ONE SENTENCE TWICE. "What each
-             campaign gained" over "What each one gained, against what it
-             cost" is the heading read out again with a clause added. A
-             heading asks the question the section answers; the note says
-             what is counted. Split that way neither repeats the other, and
-             the heading is the same question as the ask beside it. */
-          '<h2 class="s-exec-eyebrow">Which campaigns paid off</h2>' +
-          secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
-            'against what they have returned, and tell me which one I should stop and what I ' +
-            'would lose by stopping it.') +
+          '<h2 class="s-exec-eyebrow">' +
+            (cutBy() === 'svc' ? 'What sells and what does not' : 'Which campaigns paid off') +
+          '</h2>' +
+          cutChips() +
+          (cutBy() === 'svc'
+            ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
+              'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
+              'the ones they reach.')
+            : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
+              'against what they have returned, and tell me which one I should stop and what I ' +
+              'would lose by stopping it.')) +
         '</div>' +
+        (cutBy() === 'svc' ? '' :
         /* ══ AND THIS IS WHERE THE THREE COST LINES ARE DEFINED ════════
            Each row inside a panel carried its own definition — "finding the
            people and filling them in" under Suppliers, "the calls it made
@@ -7732,16 +7772,9 @@
               '</span>' : '') +
             '</div>' : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>') +
           '</div>').join('') +
-        '</div>' : '<p class="s-none">Nothing has cost anything in this window.</p>') +
-      '</section>' +
+        '</div>' : '<p class="s-none">Nothing has cost anything in this window.</p>')) +
 
-      '<section class="s-exec-sec">' +
-        '<div class="s-sec-head">' +
-          '<h2 class="s-exec-eyebrow">What sells and what does not</h2>' +
-          secAsk('Why are these not landing', 'Some of my product lines have taken meetings and ' +
-            'closed nothing. Show me whether they are reaching the wrong people or losing the ' +
-            'ones they reach.') +
-        '</div>' +
+        (cutBy() !== 'svc' ? '' :
         (now.byLine.length ? '<div class="s-pans">' +
           now.byLine.map((r, i) => {
             const v = lineVerdict(r, bestArr);
@@ -7769,7 +7802,7 @@
               '</div>' +
             '</div>';
           }).join('') +
-        '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>') +
+        '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>')) +
       '</section>' +
 
       '<div class="s-odds">' +
@@ -19958,6 +19991,9 @@
        and the page repaints from it. */
     const per = t.closest('[data-period]');
     if (per) { go({ period: per.getAttribute('data-period') }); return; }
+
+    const cutBtn = t.closest('[data-by]');
+    if (cutBtn) { go({ by: cutBtn.getAttribute('data-by') }); return; }
 
     const fill = t.closest('[data-fill]');
     if (fill) {
