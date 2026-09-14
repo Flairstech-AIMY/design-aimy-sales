@@ -14300,7 +14300,22 @@
               (mine(k) ? '<span class="b-node-mark">yours</span>' : '') +
             '</span>' +
             '<span class="b-node-sub">' + commas(by[id].length) + ' of ' + commas(people.length) +
-              (mine(k) ? '' : ' · ' + actor(k.owner).name + '’s') +
+              /* ══ WHOSE CAMPAIGN IT IS, ON A DESK THAT IS NOT THE OWNER ═══
+                 `mine` means two different things here and the node was
+                 written for one of them. On the manager's desk it is
+                 OWNERSHIP, so hiding the name on his own campaign is right —
+                 it would be his own name four times. On a caller's it is
+                 CREW, and Engy is crewed on every campaign in the book, so
+                 the test passed on all of them and the owner was never drawn
+                 once. An account worked by two managers looked like an
+                 account worked by nobody.
+
+                 Which matters now that the hand-over is a choice again: the
+                 manager a lead goes to is the one who owns the campaign it
+                 came from, and this is the only place on the page that could
+                 say which. A caller always sees the name; a manager still
+                 sees it only when the campaign is somebody else's. */
+              ((isMgr() && mine(k)) ? '' : ' · ' + actor(k.owner).name + '’s') +
               (campOpen(k) ? '' : ' · closed') + '</span>' +
           '</button>';
         }).join('') + '</div>');
