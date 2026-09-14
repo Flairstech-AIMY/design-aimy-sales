@@ -469,13 +469,13 @@
      and everything they can promise. The page never said which was which.
      A client brings its own offer; the AiMY-branded products are our book. */
   const CLIENTS = [
-    { k: 'norvant', name: 'Norvant Data', sells: ['data'],
+    { k: 'norvant', name: 'Redlake Data', sells: ['data'],
       what: 'training-data operations. We find the teams still labelling by hand' },
     { k: 'harlow', name: 'Harlow Delivery', sells: ['back'],
       what: 'back-office delivery. Their offer, our callers, their diary' },
-    { k: 'peregrin', name: 'Peregrin Labs', sells: ['test', 'eng'],
+    { k: 'peregrin', name: 'Kestrel Labs', sells: ['test', 'eng'],
       what: 'engineering and test capacity. We source and qualify; they take it from the meeting' },
-    { k: 'ostend', name: 'Ostend Care', sells: ['support'],
+    { k: 'ostend', name: 'Lambourne Care', sells: ['support'],
       what: 'outsourced customer support. We open the market and hand every meeting over' },
   ];
   const CLIENT = Object.create(null);
@@ -536,25 +536,25 @@
      figure in it is worse than no case study, and this is the one place in
      the product where somebody is going to repeat the sentence out loud. */
   const STORIES = [
-    { ind: 'software', sell: 'test', who: 'Vanteq',
+    { ind: 'software', sell: 'test', who: 'Ashby Systems',
       say: 'We took over their regression suite and kept it green through four releases; the release that used to take a week now takes a day.' },
-    { ind: 'banking', sell: 'qa', who: 'Meridiaan Group',
+    { ind: 'banking', sell: 'qa', who: 'Radcliffe Group',
       say: 'Every advisory call is scored now instead of a sample of twelve a week, and the complaints that used to surface at audit surface the same day.' },
-    { ind: 'logistics', sell: 'voice', who: 'Kernhaven',
+    { ind: 'logistics', sell: 'voice', who: 'Barrow Freight',
       say: 'The out-of-hours line is answered by AiMY Voice and books the callback itself; nothing sat in a voicemail box over a weekend again.' },
-    { ind: 'health', sell: 'support', who: 'Sint-Aurelius',
+    { ind: 'health', sell: 'support', who: 'Wexham Health',
       say: 'We run their first line in Dutch and French; first response went from nine hours to under one, with the same headcount.' },
     { ind: 'retail', sell: 'support', who: 'Halbert & Co',
       say: 'We carried their peak — November through January — without them hiring a single seasonal agent.' },
-    { ind: 'energy', sell: 'know', who: 'Nordwerk',
+    { ind: 'energy', sell: 'know', who: 'Pennine Energy',
       say: 'Field engineers stopped calling the office to ask what the procedure was; the answer is one search and it is the same answer every time.' },
-    { ind: 'public', sell: 'know', who: 'Gemeente Aalsdijk',
+    { ind: 'public', sell: 'know', who: 'Ellesmere Council',
       say: 'The same question was getting three different answers from three desks. One answer surface, and the escalations halved.' },
     { ind: 'telecom', sell: 'voice', who: 'Brennan Telecom',
       say: 'AiMY Voice qualifies and books before anybody picks up, and the team it feeds now spends its day on calls that were already worth having.' },
-    { ind: 'industry', sell: 'eng', who: 'Rijnstaal',
+    { ind: 'industry', sell: 'eng', who: 'Redmond Steel',
       say: 'Four engineers embedded on EU hours for eighteen months; they shipped the line-monitoring rebuild they had deferred twice.' },
-    { ind: 'hospitality', sell: 'support', who: 'Norbury Hospitality',
+    { ind: 'hospitality', sell: 'support', who: 'Calverton Hotels',
       say: 'We ran guest support across four properties through a season; first-response time fell by a third and the front desks stopped taking it.' },
   ];
   /* Their sector first, because that is the claim being made; what we sell
@@ -1049,11 +1049,36 @@
   const CC_REGION = Object.create(null);
   REGIONS.forEach((r) => r.cc.forEach((c) => (CC_REGION[c] = r.k)));
 
-  const STEM_A = ['Nor', 'Vel', 'Kir', 'Mar', 'Ald', 'Bry', 'Cas', 'Del', 'Elm', 'Fen',
-    'Gild', 'Hav', 'Ivo', 'Jorn', 'Kel', 'Lun', 'Mor', 'Nel', 'Ost', 'Per',
-    'Quin', 'Ras', 'Sten', 'Tal', 'Ulv', 'Vard', 'Wes', 'Yrs', 'Zen', 'Brek'];
-  const STEM_B = ['dal', 'mark', 'stad', 'borg', 'vik', 'haven', 'field', 'ridge',
-    'gate', 'port', 'lund', 'berg', 'holt', 'wold', 'bury', 'crest'];
+  /* ══ A COMPANY NAME THAT NOBODY BELIEVES COSTS THE PAGE AROUND IT ══════
+     These were Nordic-flavoured invented stems — Ulvwold, Zenbury, Velfield,
+     Aldhaven — and they did the one thing a fixture must not: they announced
+     themselves as fixtures. Every sentence on a card is a claim the product
+     is making about a real company, and a reader who does not believe the
+     name has already started discounting the sentence. "Zenbury Diagnostics
+     was acquired, and the parent has told it to consolidate operations" is a
+     specific, checkable assertion wearing a name from a fantasy map.
+
+     English, and composed the same way English place names are: a first
+     element off a tree, a colour, a compass point or a family, and a second
+     off the landscape — ford, field, bridge, gate, wood, ton, worth, dale.
+     Thornton, Fairhaven, Alderbrook, Wentworth, Winfield. Nothing here is a
+     real company; every one of them is a name a real company could have.
+
+     THE TWO POOLS ARE CHOSEN SO THAT EVERY PAIR COMPOSES. The second
+     elements begin with f, b, g, w, t, d, s, h, m and c, so no first element
+     ends in one of those — "Brightton" and "Ashhaven" are what happens when
+     that is not checked, and there are four hundred and eighty pairs here,
+     which is far too many to read afterwards. Every first element ends in a
+     vowel or in l, m, n or r.
+
+     Same 30 x 16, so the corpus has exactly the variety it had. Ids are
+     indices and never names, so nothing downstream moves. */
+  const STEM_A = ['Aber', 'Alder', 'Amber', 'Bram', 'Brier', 'Carl', 'Dun', 'Elder',
+    'Ember', 'Ever', 'Fair', 'Glen', 'Hollin', 'Iver', 'Kel', 'Lyn',
+    'Mar', 'Nor', 'Orm', 'Pen', 'Quin', 'Ran', 'Sel', 'Thorn',
+    'Tyn', 'Val', 'Wen', 'Win', 'Wolver', 'Yar'];
+  const STEM_B = ['ford', 'field', 'bridge', 'gate', 'wood', 'ton', 'worth', 'dale',
+    'wick', 'stone', 'hill', 'brook', 'haven', 'bury', 'croft', 'side'];
   const SUFFIX = {
     software: ['Systems', 'Labs', 'Digital', 'Technologies', 'Software'],
     banking: ['Capital', 'Financial', 'Trust', 'Partners', 'Bank'],
@@ -1143,7 +1168,7 @@
       const ind = pick(r, INDUSTRIES);
       const reg = pick(r, REGIONS);
       /* Two in five are run for a client, and those sell the client's offer
-         rather than ours — a campaign cannot be for Norvant and pitch AiMY
+         rather than ours — a campaign cannot be for Redlake and pitch AiMY
          Voice, which is what a free draw from the whole catalogue produced. */
       const forClient = chance(r, 0.4) ? pick(r, CLIENTS) : null;
       const sells = [forClient ? SELL[pick(r, forClient.sells)] : pick(r, SELLS)];
