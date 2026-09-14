@@ -607,10 +607,58 @@ button {
 
    90ms is deliberately below the motion scale's smallest step (--t-fast,
    150ms). Press-release is the one interaction where 150ms is perceptible
-   as lag: the finger is already up before the surface answers. The scale
-   has no press step; noted in ../GAPS.md.
+   as lag: the finger is already up before the surface answers.
 ═══════════════════════════════════════════════ */
-:root { --t-press: 90ms; }
+
+/* ═══════════════════════════════════════════════
+   THE MOTION SCALE, AND THE FIVE RUNGS IT DID NOT HAVE
+
+   The library gives four steps — press 90, fast 150, base 200, slow 300 —
+   and the note above ends "the scale has no press step". It had more holes
+   than that. Every value a motion audit asked for above 300ms was written
+   as a literal, and five of them were written more than once: 420 in two
+   places, 520 in two, 700, 90 as a stagger offset, 45 as another. A scale
+   with holes is a scale that gets worked around, and a worked-around scale
+   is a stylesheet where the same intent has four numbers.
+
+   So the holes are filled, HERE rather than in aimy-ds.css, because that
+   file is Knowledge's and QA's too and none of this is theirs to inherit.
+   Named for what they are FOR, the way --ty-masthead and --ty-deck are, and
+   not for how fast they are: "quick" and "fast" as neighbours on one ramp is
+   a scale nobody can recall the order of.
+
+   They are the transitions.dev motion scale, whose 150ms `quick` --t-fast
+   already IS, to the millisecond. So these are the rest of one scale rather
+   than a second one laid beside it.
+
+   THE CURVE IS THE ONE PLACE THE TWO DISAGREE, and the disagreement stands.
+   That scale's `smooth-out` is cubic-bezier(0.22, 1, 0.36, 1); the library
+   declares exactly that and bdr.css §22 overrides it to (0.23, 1, 0.32, 1),
+   with its reason — a press seen two hundred times a day settles and gets
+   out of the way. Four hundredths on the third control point is not a thing
+   anybody can see, and overturning an argued decision to win a diff is how a
+   scale stops being believed. Named here so the next reader finds it as a
+   choice rather than as drift. Equivalences:
+
+     --t-stagger  40ms  = duration-stagger   per-item offset
+     --t-beat     80ms  = duration-micro     a path drawing, an intent delay
+     --t-open    250ms  = duration-fast      a menu opening, a tab bar sliding
+     --t-panel   400ms  = duration-slow      a panel arriving
+     --t-emphasis 500ms = duration-very-slow the one reveal a page is about
+
+   THE RULE THAT IS NOT A NUMBER: a stagger's TOTAL is offset × count, and it
+   has to stay under about 300ms or the last item is not late by a rhythm, it
+   is just late. Every stagger in this build caps its index for that reason;
+   two of them had forgotten to.
+═══════════════════════════════════════════════ */
+:root {
+  --t-press: 90ms;
+  --t-stagger: 40ms;
+  --t-beat: 80ms;
+  --t-open: 250ms;
+  --t-panel: 400ms;
+  --t-emphasis: 500ms;
+}
 
 /* THE ACCENT IS THE LIBRARY'S, AND STAYS THE LIBRARY'S.
 
@@ -1179,6 +1227,11 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
+  /* The conversation column came over from AiMY Knowledge with its rules and
+     without this, because Knowledge has no guard on them either. Every other
+     transition in this build answers the preference; a component being
+     lifted whole is not a reason for one to stop. */
+  .ov-chat, .ov-chat-more, .ov-chat-mi { transition: none; }
 }
 
 /* ── Theme toggle ──────────────────────────────────────────────────
@@ -1312,6 +1365,10 @@ body {
    Fixed column, flexible thread: the list of conversations does not get
    wider on a wider screen, because a title is a title. */
 .overlay-chats {
+  /* Accent AS TEXT, which this build calls --accent-text and Knowledge
+     calls --ink-action. The only token the lifted column asks for that is
+     not already declared, bridged here rather than renamed in the rules. */
+  --ink-action: var(--accent-text);
   width: 240px; flex-shrink: 0;
   display: flex; flex-direction: column; gap: 20px;
   padding: 20px 12px;
@@ -1329,55 +1386,178 @@ body {
   padding: 0 0 24px;
 }
 
+/* ══ THE CHAT COLUMN IS AiMY KNOWLEDGE'S, LIFTED WHOLE ═════════════════
+   What stood here was an earlier cut of the same component — same class
+   names, px where Knowledge now has rem, and none of the parts it grew
+   since: the wrapper that lets a row carry a menu, the menu itself, the
+   rename box, the pin, the two-line block. So this is not a port and not
+   an adaptation. Every rule below is knowledge.css's, character for
+   character, comments included — which is why they speak in Knowledge's
+   voice about Knowledge's history. The §28 precedent, and its rule: a
+   component lifted whole keeps its own bytes and says where they came
+   from.
+
+   TWO THINGS DIVERGE, and both are named here rather than left to be
+   found. `.ov-chat-input::placeholder` keeps `--ink-placeholder` where
+   Knowledge has `--d600`: the ink block below names --d600 NON-TEXT, and
+   this build's floor for anything read is above it; --ink-placeholder is
+   the one documented exception and it is what a placeholder is for.
+
+   And `.ov-chat-n` is not here at all. Knowledge's row ends in a turn
+   count; this one does not, so the rule that drew it went with the markup
+   rather than being left behind for a later sweep to find and wonder about.
+   bdr.js says why at the point where the row is built.
+
+   TOKENS: everything these rules ask for is already declared in this file
+   or in aimy-ds.css except `--ink-action`, which is accent-as-text —
+   bridged onto `.overlay-chats` above, the way §28 bridges --qa-accent
+   onto `.ntf-anchor`. */
+
+/* ── THE COLUMN SITS ON THE DENSITY SCALE, NOT UNDER IT ──
+
+   This list was set in raw --fs-xs/--fs-2xs: an 11px title over 10px meta, in
+   a 255px column. THE DENSITY TYPE SCALE above says what is wrong with that in
+   its own words -- "--fs-2xs will hand you 10px without comment, and 10px in a
+   320px column is decoration wearing the clothes of information" -- and names
+   --ty-micro the floor precisely so a narrow column cannot fall through it.
+
+   The column was already half on the scale and did not agree with itself: the
+   menu that hangs off a row (.ov-chat-mi) and the box that REPLACES a title
+   when you rename it (.ov-chat-rename) are both --ty-meta, so the menu read
+   larger than the row it belonged to and a title grew 2px the moment it became
+   editable. Everything here is --ty-meta over --ty-micro now, which is one
+   step up for the titles and the search box, and lands the rest on the floor.
+
+   Hierarchy is unchanged and still carried the way the scale says -- step AND
+   weight AND ink -- because every rung moved together. */
+
 /* Starting one, then finding one. The column's only filled control, because
    starting is the verb and everything under it is the qualifier. */
-.ov-chat-new { width: 100%; justify-content: center; margin-bottom: 8px; }
-.ov-chat-new svg { width: 14px; height: 14px; }
+.ov-chat-new { width: 100%; justify-content: center; margin-bottom: 0.5rem; }
+.ov-chat-new svg { width: 0.875rem; height: 0.875rem; }
 /* Find a conversation. Second in the column, because a list you scroll to
    search is a list you have already failed to search. */
-.ov-chat-find { display: block; margin-bottom: 20px; }
+.ov-chat-find { display: block; margin-bottom: 1.25rem; }
 .ov-chat-input {
-  width: 100%; min-height: 24px; padding: 8px;
+  width: 100%; min-height: 1.5rem; padding: 0.5rem;
   border-radius: var(--r-sm);
-  border: 1px solid var(--glass-border); background: transparent;
-  font-family: inherit; font-size: var(--fs-xs); color: var(--d100);
+  border: 0.0625rem solid var(--glass-border); background: transparent;
+  font-family: inherit; font-size: var(--ty-meta); color: var(--d100);
 }
-/* `--d600` is the rule-and-hairline step, which the ink block names as
-   NON-TEXT — quieter than a placeholder is allowed to be. */
 .ov-chat-input::placeholder { color: var(--ink-placeholder); }
-.ov-chat-input:focus-visible { outline: 2px solid var(--brand); outline-offset: -1px; }
+.ov-chat-input:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -1px; }
 
-.ov-chat-group { display: flex; flex-direction: column; gap: 2px; }
-/* 8 under the label, 20 between groups — the ratio rule, and it is what
-   makes two groups read as two rather than as one list with headings in it. */
+.ov-chat-group { display: flex; flex-direction: column; gap: 0.125rem; }
+/* 8 under the label, 20 between groups — the ratio rule, and it is what makes
+   a group read as a group rather than as a list with a heading in it. */
 .ov-chat-cap {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d500); padding: 0 8px; margin-bottom: 8px;
+  color: var(--d500); padding: 0 0.5rem; margin-bottom: 0.5rem;
 }
 .ov-chat {
-  /* `flex-start`, now the title can run to two lines: centred would float
-     the turn count against the middle of a wrapped question. */
-  display: flex; align-items: flex-start; gap: 8px;
-  min-height: 24px; padding: 8px; border-radius: var(--r-sm);
-  font-size: var(--fs-xs); color: var(--ink-muted);
+  /* `flex-start`, so a title can run to two lines: centred would float the
+     turn count against the middle of a wrapped question. */
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  min-height: 1.5rem; padding: 0.5rem; border-radius: var(--r-sm);
+  font-size: var(--ty-meta); color: var(--ink-muted);
   cursor: pointer; text-align: left; width: 100%;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
 .ov-chat:hover { background: var(--accent-dim); color: var(--d50); }
-.ov-chat:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ov-chat:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
 .ov-chat.is-here { background: var(--accent-dim); color: var(--d50); font-weight: var(--fw-semibold); }
-/* Wraps rather than ellipsises, like everything else that was truncating.
-   A session's title IS the question that was asked, and "What would make Q3
-   Netherlands wor…" is the half of it that does not say which question. The
-   rows in this column are what you are choosing between; a list you cannot
+
+/* ══ THE ROW IS A WRAPPER NOW ══════════════════════════════════════════
+   The row itself is still a <button>; the menu control is its SIBLING, not
+   its child, because a button inside a button is markup browsers silently
+   reparent — the control would end up outside the row it belongs to.
+
+   `position: relative` so the menu hangs off the row without widening the
+   column, the same anchoring idiom the bell and the account pill use. */
+.ov-chat-row { position: relative; display: flex; align-items: stretch; }
+.ov-chat-row .ov-chat { flex: 1 1 auto; min-width: 0; }
+
+/* Quiet until wanted. Visible on hover, on keyboard focus anywhere in the
+   row, and while its own menu is open — without that last one the control
+   vanishes under the menu it just opened. */
+.ov-chat-more {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 1.5rem; margin-left: 0.125rem;
+  border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--ink-faint); cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--t-fast), background-color var(--t-fast), color var(--t-fast);
+}
+.ov-chat-row:hover .ov-chat-more,
+.ov-chat-row:focus-within .ov-chat-more,
+.ov-chat-row.is-menu .ov-chat-more { opacity: 1; }
+.ov-chat-more:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.ov-chat-more:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+
+.ov-chat-menu {
+  position: absolute; top: 100%; right: 0; z-index: 20;
+  min-width: 11rem; padding: 0.25rem;
+  border: 0.0625rem solid var(--card-border-hover);
+  border-radius: var(--r-md);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-lg);
+}
+.ov-chat-mi {
+  display: flex; align-items: center; gap: 0.5rem;
+  width: 100%; padding: 0.375rem 0.5rem;
+  border: 0; border-radius: var(--r-sm);
+  background: none; cursor: pointer; text-align: left;
+  color: var(--ink-secondary);
+  font-family: inherit; font-size: var(--ty-meta);
+}
+.ov-chat-mi:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.ov-chat-mi:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -0.125rem; }
+.ov-chat-mi.is-danger { color: var(--err); }
+.ov-chat-mi.is-danger:hover { background: var(--err-bg); color: var(--err); }
+/* The question above the two answers, so Delete is never the first thing
+   under the pointer when the confirm opens. */
+.ov-chat-mq {
+  padding: 0.375rem 0.5rem 0.25rem;
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+}
+
+/* Renaming happens in place. A modal for a title is a ceremony, and the row
+   is where the name is read. */
+.ov-chat-rename {
+  flex: 1 1 auto; min-width: 0;
+  padding: 0.5rem;
+  border: 0.0625rem solid var(--card-border-focus);
+  border-radius: var(--r-sm);
+  background: var(--card-bg-raised);
+  color: var(--ink-primary);
+  font-family: inherit; font-size: var(--ty-meta);
+}
+.ov-chat-rename:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+
+/* The pin reads as part of the title, not as a badge beside it. */
+.ov-chat-pin { display: inline-flex; margin-right: 0.25rem; color: var(--ink-action); vertical-align: baseline; }
+
+/* TWO LINES IN ONE ROW. The wrapper is what the turn count aligns against —
+   without it `margin-left: auto` on the count would measure from the agent
+   label rather than from the block, and a two-line row would push its own
+   badge out of line with every one-line row above it. */
+.ov-chat-lines { min-width: 0; display: flex; flex-direction: column; gap: 0.0625rem; }
+/* Wraps rather than ellipsises, like everything else here that was truncating.
+   A session's title IS the question that was asked, and "What does the corpus
+   say about data resi…" is the half of it that does not say which question.
+   The rows in this column are what you are choosing between; a list you cannot
    read is a list you cannot choose from. */
 .ov-chat-name { min-width: 0; line-height: var(--lh-snug); }
-.ov-chat-n {
-  margin-left: auto; flex-shrink: 0;
-  font-size: var(--fs-2xs); color: var(--d500); font-variant-numeric: tabular-nums;
+/* Who answered. One rung quieter than the title and one step smaller, which is
+   the whole hierarchy — it is read after the title or not at all. */
+.ov-chat-agent {
+  font-size: var(--ty-micro); color: var(--d500);
+  line-height: var(--lh-snug); letter-spacing: var(--ls-wide);
 }
-.ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 8px; }
+.ov-chat.is-here .ov-chat-agent { color: var(--d400); }
+.ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 0.5rem; }
 
 /* Below this the column and a readable thread cannot both fit, and the
    thread is what you came for. */
@@ -1477,7 +1657,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
   white-space: nowrap; max-width: calc(100% - 140px);
   overflow: hidden; pointer-events: none;
   opacity: 0;
-  transition: opacity var(--t-base) 150ms ease;
+  /* `ease` is the browser's default curve and the only place in this file
+     that used it. Surface motion takes --ease-out like everything else. */
+  transition: opacity var(--t-base) var(--t-fast) var(--ease-out);
 }
 .aimy-overlay.open .overlay-context-bar { opacity: 1; }
 /* .overlay-thread's top padding clears the badge alone. With the basis bar
@@ -7851,9 +8033,15 @@ body.is-figures .filter-tray { display: none; }
 
 
 @media (prefers-reduced-motion: no-preference) {
-  .s-att-booked, .s-att-fcast { transform-origin: left; animation: s-att-wipe 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+  /* ══ THE ONE REVEAL A PAGE IS ABOUT, AND THE CEILING ON IT ════════
+     700 and 520, on the same hand-rolled curve the peek card was using —
+     three literals for one intent. --t-emphasis is the top of the scale and
+     it is 500: past that a reveal stops reading as the page arriving and
+     starts reading as the page being slow, and this is the surface where
+     somebody is looking for a number. */
+  .s-att-booked, .s-att-fcast { transform-origin: left; animation: s-att-wipe var(--t-emphasis) var(--ease-out) backwards; }
   .s-att-fcast { animation-delay: 220ms; }
-  .s-exec .s-af { animation: s-exec-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+  .s-exec .s-af { animation: s-exec-rise var(--t-emphasis) var(--ease-out) backwards; }
 }
 @keyframes s-att-wipe { from { transform: scaleX(0); } }
 
@@ -8177,8 +8365,10 @@ body.is-figures .filter-tray { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
   .s-exec .s-pan {
-    animation: s-exec-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: calc(var(--i, 0) * 45ms);
+    animation: s-exec-rise var(--t-emphasis) var(--ease-out) backwards;
+    /* The second stagger with no `min()`. 45ms was also the one offset in
+       the build that was not 40. */
+    animation-delay: calc(min(var(--i, 0), 6) * var(--t-stagger));
   }
 }
 

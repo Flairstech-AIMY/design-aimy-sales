@@ -990,8 +990,9 @@
 .s-home .s-rec-name { font-size: var(--t-title); line-height: 1.1; letter-spacing: -0.02em; }
 .slv-head .slv-title, .slv-title { font-size: var(--t-title); }
 .s-home .s-lead-n { font-size: var(--t-figure); line-height: 1; }
+/* The weight moved to §87, where the argument for it is. */
 .s-home .s-lead-deck, .b-lead-slim .s-lead-deck {
-  font-size: var(--t-deck); font-weight: var(--fw-bold); line-height: 1.3;
+  font-size: var(--t-deck); font-weight: var(--fw-regular); line-height: 1.3;
   margin-bottom: 16px;
 }
 .s-home .s-lead-say { font-size: var(--t-lead); }
@@ -1345,11 +1346,21 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 @keyframes pipe-spin { to { transform: rotate(360deg); } }
 @keyframes pipe-draw { to { stroke-dashoffset: 0; } }
 .pipe-pop { animation: pipe-pop 200ms var(--ease-out) both; }
-.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) 60ms forwards; }
+/* The mark lands, then the tick draws inside it. 80ms is the beat between
+   two things that are one event — short enough to read as sequence, long
+   enough not to read as simultaneity gone wrong. */
+.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) var(--t-beat) forwards; }
 .pipe-spin { animation: pipe-spin 850ms linear infinite; }
 /* text that changes state goes through a blur — swapText() */
-.b-swap { transition: opacity 90ms var(--ease-out), filter 90ms var(--ease-out); }
-.b-swap.is-swapping { opacity: 0; filter: blur(4px); }
+/* ══ A NUMBER CHANGING IS NOT A BUTTON BEING PRESSED ══════════════
+   90ms is --t-press, and it was here by proximity rather than by argument:
+   a press is short because the finger is already up, and nothing about that
+   applies to a figure being replaced. Four pixels of blur crossed in 90ms is
+   not a softening, it is a flash of something unreadable. The swap step is
+   --t-fast over --blur-small's two pixels — a shorter distance to travel,
+   held long enough to read as one value becoming another. */
+.b-swap { transition: opacity var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out); }
+.b-swap.is-swapping { opacity: 0; filter: blur(2px); }
 @media (prefers-reduced-motion: reduce) {
   .pipe-pop, .pipe-pop path, .pipe-spin { animation: none !important; }
   .pipe-pop path { stroke-dashoffset: 0; }
@@ -1419,11 +1430,20 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-switch { position: relative; }
 .b-switch-bar {
   position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--d50);
-  transform-origin: left center; transition: transform 160ms cubic-bezier(0.77, 0, 0.175, 1);
+  /* SURFACE MOTION TAKES THE SURFACE CURVE. This was
+     `cubic-bezier(0.77, 0, 0.175, 1)` — a symmetrical ease-IN-out, which on
+     a bar that slides between tabs means it spends its first frames barely
+     moving. A thing changing position should leave at once and arrive
+     gently, which is what --ease-out is and why every other moving surface
+     in this build already uses it. */
+  transform-origin: left center; transition: transform 160ms var(--ease-out);
   pointer-events: none;
 }
 .b-tick { display: inline-block; animation: b-tick 220ms var(--ease-out) both; }
-@keyframes b-tick { from { opacity: 0; transform: translateY(5px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+/* 4px and 2px: a mark appearing in place travels the swap distance, not the
+   slide distance, and softens by the swap's blur. 5 and 4 were off every
+   step of both scales. */
+@keyframes b-tick { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }
 
 /* ══ 33. A NEW TURN ARRIVES ════════════════════════════════════════════════
@@ -1561,22 +1581,14 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    On the After-meeting cut a card ends in two answers instead of one verb. */
 .b-qcard-decide { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* ══ 38. THE CHAT COLUMN ═══════════════════════════════════════════════════
-   On screen and Recent, in the column the markup reserved for them. */
-.b-chat-group { display: flex; flex-direction: column; gap: 4px; }
-.b-chat-cap {
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--d300); padding: 0 8px 4px;
-}
-.b-chat-item {
-  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d100);
-  text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px;
-  padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.b-chat-item.is-on { background: var(--card-bg-raised); border-color: var(--card-border); color: var(--d50); }
-button.b-chat-item { cursor: pointer; transition: border-color var(--t-fast), color var(--t-fast); }
-button.b-chat-item:hover { border-color: var(--card-border); color: var(--d50); }
-button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* §38 styled the old column — a caption, a row, and an `is-on` state for the
+   one row that could not be pressed — and defined two of its three rules a
+   second time further down the file, which is the shape a redesign leaves
+   behind when the old rules are kept "just in case". None of it is here and
+   none of it is in §91 either: the column is AiMY Knowledge's now, styled
+   in sales.css under Knowledge's own names. The ellipsis went with it, for
+   the reason that file gives — a title that truncates is a question you
+   cannot tell from another question. */
 
 
 /* ══ 40. THE CHOOSER ═══════════════════════════════════════════════════════
@@ -1886,9 +1898,16 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   background: var(--card-bg-raised); border: 1px solid var(--card-border-hover); border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 0 0 1px rgba(255,255,255,0.03);
   transform-origin: top left;
-  animation: b-menu-in 140ms var(--ease-out) both;
+  /* ══ IT OPENED FASTER THAN A MENU IS SUPPOSED TO CLOSE ══════════
+     140ms, which is under the 150 a DISMISSAL gets. Opening and closing are
+     not the same event: a close should get out of the way, an open is an
+     invitation and has to be legible while it happens, or the menu is simply
+     there and the eye has to find out where from. --t-open, and the 0.97 a
+     menu starts from rather than the 0.96 that belongs to something the size
+     of a modal. */
+  animation: b-menu-in var(--t-open) var(--ease-out) both;
 }
-@keyframes b-menu-in { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes b-menu-in { from { opacity: 0; transform: scale(0.97) translateY(-4px); } to { opacity: 1; transform: none; } }
 .b-menu[hidden] { display: none; }
 .b-menu-cap {
   padding: 4px 10px 6px;
@@ -2118,7 +2137,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Overshoot rather than ease-out. The card is arriving, not fading in, and
      a thing that arrives settles. */
-  animation: b-peek-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* A panel arriving: --t-panel, and the build's own curve rather than a
+     hand-rolled one that was within a rounding error of it anyway. */
+  animation: b-peek-in var(--t-panel) var(--ease-out);
 }
 /* The shell's own light values for the same two shadows, and no inner
    hairline: on white there is no light for an edge to catch. */
@@ -2191,8 +2212,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    a time behind it. */
 .b-peek-acts .s-insight-lnk {
   opacity: 0;
-  animation: b-chip-in 420ms var(--ease-out) forwards;
-  animation-delay: calc(var(--i, 0) * 90ms);
+  /* ══ AND THE LAST CHIP WAS NOT WAITING A RHYTHM, IT WAS JUST WAITING ══
+     90ms apart with NO CAP on the index — the one stagger in this file that
+     forgot the `min()` every other one has. Five chips put the last one at
+     450ms before it starts and 870ms before it settles, on a row of controls
+     beside an answer you have already read. 40ms, capped at the sixth, is
+     240ms end to end: the same total the queue cards were tuned to, reached
+     the same way. */
+  animation: b-chip-in var(--t-panel) var(--ease-out) forwards;
+  animation-delay: calc(min(var(--i, 0), 6) * var(--t-stagger));
 }
 @keyframes b-chip-in {
   from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
@@ -2794,6 +2822,18 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-menu > .b-menu-cap:first-child { top: 0; }
 .b-menu > .b-menu-find { top: 22px; }
+/* ══ AND 22px IS THE HEIGHT OF A CAPTION THAT MAY NOT BE THERE ════════════
+   The offset above is the caption's, because every menu with a search had
+   one over it. The crew menu does not — the button that opens it and the
+   box's own placeholder already say what the list is — so the box stuck 22
+   pixels down from the top of a menu it was the first thing in, with a dead
+   strip above it for rows to scroll into and the first name pressed hard
+   against its underside.
+
+   First child, no phantom. The margin goes with it: `2px 0 6px` was spacing
+   against the caption's own 6px of padding-bottom, and with nothing above it
+   the box wants the menu's padding and no more. */
+.b-menu > .b-menu-find:first-child { top: 0; margin-top: 0; margin-bottom: 8px; }
 
 /* ══ 62. EVERY PRESSABLE ANSWERS THE HAND ══════════════════════════════════
    Twenty kinds of control here pressed down under the cursor and seven did
@@ -2801,12 +2841,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    criterion chip, a filter chip's call. A button that does not move under a
    press is a button that might not have heard you, and the second press is
    the one that runs twice. Same 160ms and the same curve as the rest; 0.97
-   for a button, 0.985 for a card, because a card is a bigger thing to move. */
-.s-way, .s-start, .s-finding-go, .b-chat-item, .chip {
+   for a button, 0.985 for a card, because a card is a bigger thing to move.
+
+   THE CHAT'S OPENER IS NO LONGER ONE OF THEM. It was `.b-chat-item`, and the
+   column that held it is now AiMY Knowledge's, lifted whole — where the row
+   transitions its ground and its ink and does not press. Listing it here
+   would override that transition from a later file and put a transform on a
+   control whose own stylesheet says it has none, which is exactly the kind
+   of quiet divergence a whole-component lift exists to refuse. */
+.s-way, .s-start, .s-finding-go, .chip {
   transition: transform 160ms var(--ease-out), border-color var(--t-fast),
     background-color var(--t-fast), color var(--t-fast);
 }
-.s-finding-go:active, .b-chat-item:active, .chip:active { transform: scale(0.97); }
+.s-finding-go:active, .chip:active { transform: scale(0.97); }
 .s-way:active, .s-start:active { transform: scale(0.985); }
 .chip:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* The find box focuses the way the menus' search does — a call, not only a
@@ -2817,8 +2864,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .s-call { transition: border-color var(--t-fast); }
 .s-call:hover { border-color: var(--card-border-hover); }
 @media (prefers-reduced-motion: reduce) {
-  .s-way, .s-start, .s-finding-go, .b-chat-item, .chip { transition: none; }
-  .s-finding-go:active, .b-chat-item:active, .chip:active, .s-way:active, .s-start:active { transform: none; }
+  .s-way, .s-start, .s-finding-go, .chip { transition: none; }
+  .s-finding-go:active, .chip:active, .s-way:active, .s-start:active { transform: none; }
 }
 
 /* ══ 63. ONE SHADOW FOR WHAT FLOATS ════════════════════════════════════════
@@ -3394,27 +3441,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   line-height: var(--lh-base); text-wrap: pretty;
 }
 
-/* ══ 74. WHAT ELSE FITS ════════════════════════════════════════════════════
-   The reason is the point, so it gets the body size and the room; the
-   service is a label over it and the timing is a chip, because "ready in
-   nineteen days" is a fact about the row rather than a thing to read. */
-.b-exp { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-.b-exp-row {
-  padding: 13px 15px; border-radius: var(--r-md);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  animation: b-surface-in 220ms var(--ease-out) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
-}
-.b-exp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-.b-exp-next {
-  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50);
-}
-.b-exp-why {
-  margin: 0; font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); text-wrap: pretty; max-width: 62ch;
-}
-.b-exp-go { margin-top: 8px; }
-@media (prefers-reduced-motion: reduce) { .b-exp-row { animation: none; } }
+/* §74 styled "What else fits" — a block of its own under the reading on a
+   customer's page, naming the service that goes with what they run. It
+   answered the same question the reading answers, from the other end, with
+   its own heading and its own verb; the two named different products often
+   enough that a caption had to sit between them explaining the difference.
+   Two reasons for one decision are two lines of one reading. Folded into
+   `.b-lead-then` at §88, and the six rules go with the block. */
 
 /* ══ 75. A MARK PER KIND OF FACT ═══════════════════════════════════════════
    The mark sits with the fact rather than in a column of its own, so a row
@@ -3897,4 +3930,451 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
     border-left: 0; border-top: 1px solid var(--card-border);
   }
   .b-diary .b-cal-day { height: 60px; }
+}
+
+/* ══ 85. THE NUMBER THAT IS NEWS ═══════════════════════════════════════════
+   `.b-cut-n` is how many are in a cut. It is a size, it is the same next
+   week, and it is set quiet on purpose. This is the other kind of number a
+   chip can carry: how many of them something happened to since you last
+   looked — which is the only figure in that row worth crossing a room for.
+
+   It is the bell's badge, rule for rule. A reader who has learnt what an
+   accent pill at the top of the screen means has already learnt this, and
+   a second treatment for the same idea would be a second thing to learn.
+   Only the weight differs: `.ntf-count` sits in a panel head with room
+   around it, and this one rides inside a 30px chip beside a dimmer number,
+   so it takes the tighter padding a pill needs at that size.
+
+   NOT DIMMED, which is the whole of it. The count beside it is at 0.65 and
+   should be; a badge at 0.65 is a badge nobody sees, and one nobody sees
+   is worse than none — it takes the room and pays nothing back. */
+/* ══ AND A BORROWED TOKEN IS ONLY DECLARED WHERE IT WAS BORROWED ═════════
+   Written first as `var(--qa-accent)` over `rgba(var(--qa-accent-rgb), .16)`,
+   copying §28 — the bell's own count, which is what this badge is meant to
+   look like. §28 is AiMY QA's CSS taken verbatim, and it works because the
+   bridge at the top of it maps QA's token names onto this shell's. That
+   bridge is declared on `.ntf-anchor`. A chip in the page is not inside it.
+
+   So the two names resolved to NOTHING here, and a custom property with no
+   value does not fall back to anything sensible: `color` went invalid at
+   computed-value time and INHERITED, taking the chip's own ink, while
+   `background` was simply dropped. The rule applied. The class was defined
+   and used, so the audit passed. And the badge rendered as a bare number in
+   the same colour as the count beside it.
+
+   The bell is untouched — it is correct where it stands, and §28 says in
+   its own first line that the rules in it are not to be edited. What was
+   wrong was borrowing its names outside the scope that defines them. This
+   uses the shell's own, and they were read out of the browser rather than
+   out of the file, because the failure mode of a missing token is a rule
+   that looks exactly like one that worked. */
+.b-cut-new {
+  margin-left: 6px; padding: 1px 6px; border-radius: 9999px;
+  font-size: var(--t-micro); font-weight: 700; font-variant-numeric: tabular-nums;
+  /* ══ FILLED, IN BOTH STATES ═════════════════════════════════════════
+     The first cut of this gave the badge a tinted ground and took the
+     ground away on the active chip, reasoning that an accent pill inside
+     an accent-tinted chip would dissolve. On screen it did worse than
+     dissolve: with no ground it is a number in accent ink sitting beside a
+     number in the same accent ink at 0.65, and "Customers 31 9" reads as
+     one figure somebody typed twice.
+
+     Solid, always. A filled pill against a 15% ground is a different
+     OBJECT rather than a different shade, which is the distinction that
+     survives being glanced at — and it is what a badge is everywhere
+     else, including the bell forty pixels above it. */
+  background: var(--accent); color: #fff;
+  /* The chip's own text sets the line box; without this the pill grows the
+     chip by two pixels and the one chip carrying news sits taller than the
+     six beside it. */
+  line-height: 1.35;
+}
+
+/* ══ 86. THE CHIP THAT IS NOT A FILTER ═════════════════════════════════════
+   Six chips narrow the forty-eight deals and sum to All. This one is
+   thirty-one companies that are not among the forty-eight at all — it does
+   not narrow the row's set, it replaces it — and drawn identically it was
+   the row telling a reader that a customer is a place a deal stands.
+
+   A GROUND WAS THE FIRST IDEA AND IT WAS ALREADY TAKEN. Written as "the
+   chips are outlined and empty until you stand on one, so a fill says this
+   one is different" — measured, `.filter-chip` at rest is a 5% white wash
+   with a 10% edge. It has a fill. The ghost's own note beside it says as
+   much, calling that fill the reason a ghost cannot sit in this row.
+
+   So the difference is the one the doctrine actually ranks with: weight and
+   ink. The six sit at `--d200` at the row's own weight; this sits at `--d50`
+   at bold — a step of ink and a step of weight, which reads before any of
+   the seven words do and survives being glanced at. Plus a mark, which is
+   the glyph this build puts against a company on every other surface, and
+   a rule that says where the arithmetic stops. */
+/* `--card-border` was the first value and it is a 7% white: measured, a
+   0.9px line at 7% beside a chip with a 10% edge of its own is not a rule,
+   it is nothing. `currentColor` takes the page's ink — light on the dark
+   theme, dark on the light one — so one value reads in both, and 0.18 of it
+   is the weight of a divider rather than of a border. */
+.b-cut-split {
+  width: 1px; align-self: stretch; margin: 0 6px;
+  background: currentColor; opacity: 0.18;
+}
+.b-cut-book { gap: 6px; color: var(--d50); font-weight: var(--fw-bold); }
+/* The mark takes the row's own size rather than the 24 it is drawn in: an
+   `<svg>` with no width and no rule reaching it fills its container, which
+   on a chip is the whole chip. */
+.b-cut-book svg { width: 14px; height: 14px; flex-shrink: 0; }
+/* Standing on it, the library's active state owns the ink — two classes
+   against one — and should: a selected chip is a selected chip whatever
+   else it is. The weight and the mark carry the difference from there. */
+
+/* ══ 87. EVERYTHING BOLD IS NOTHING BOLD ═══════════════════════════════════
+   The deck under every AiMY figure on this desk was set at 700 — 800 in
+   `sales.css`, pulled to 700 by §26b — for the whole paragraph. Every
+   sentence that lands in it is written with the figures marked up:
+
+     <b>€710k</b> of it sits in 14 deals with the price already on the
+     table, <b>5</b> are past the date they should have landed and
+     <b>2</b> have been handed to you and never warm-called.
+
+   Three `<b>` in that one, and not one of them did anything, because bold
+   inside bold is bold. The markup has been there since the sentence was
+   written; the rule was quietly cancelling it on every surface — the deals
+   take, the customer book, a campaign, a company, a person, the unsaved-list
+   gate. A reader gets a wall at one weight and has to read all of it to find
+   the two numbers it is about.
+
+   The deck is not loud because it is heavy. It is loud because it is 18px in
+   a page set at 14 and 15, and that is untouched. Dropping the prose to 400
+   leaves the size doing the ranking it was always doing and gives the
+   figures three hundred units of contrast to be found in — which is what
+   `<b>` is for, and the only thing it can be for in a block that has already
+   spent size on the heading above it.
+
+   400 rather than 500: measured at 18px, a 500-to-700 step reads as a
+   slightly firmer word, and the point of these marks is that somebody
+   glancing at the block sees the numbers without reading the sentence. */
+.s-lead-deck { font-weight: var(--fw-regular); }
+/* Reaching the child directly, so §26b and the shell's own rule on the
+   paragraph cannot inherit over it. No colour: the ink is already at the
+   top of the ramp, and a mark that changes two things at once is a second
+   rank nobody asked for. */
+.s-lead-deck b, .s-lead-deck strong { font-weight: var(--fw-bold); }
+
+/* ══ 88. THE DECK WAS BALANCING ITSELF INTO A COLUMN ═══════════════════════
+   `text-wrap: balance` on the deck, from the shell. It is a HEADING rule:
+   the browser evens out the line lengths of a short block so the last line
+   is not a stub, and the way it does that is by pulling the whole block in
+   from its own max-width.
+
+   Measured on a customer's reading — six lines at 18px, `max-width` 557px,
+   rendering at 474. Eighty-three pixels of measure given back to nothing,
+   inside a section 642px wide, so the paragraph sat as a narrow even-edged
+   column with a quarter of the block empty beside it. That is the "max
+   width" complaint, and the max-width was never the cause.
+
+   `pretty` is the body-copy one: it fixes orphans and leaves the measure
+   alone. And 58ch rather than 52, because at 18px in a 642px block the
+   shorter measure was leaving a gutter wide enough to read as a mistake.
+
+   THE LEADING WITH IT. 1.3 at 18px is a heading's leading, and it is what
+   the multi-line decks were set in — six lines of 18px at 1.3 is the
+   "cramped" half of the same complaint. `--lh-base` is 1.45 and is what
+   every other paragraph in the build reads at. */
+.s-lead-deck { text-wrap: pretty; }
+.s-home .s-lead-deck, .b-lead-slim .s-lead-deck { max-width: 58ch; line-height: var(--lh-base); }
+
+/* ══ THE CONCLUSION IS NOT THE SETUP ═══════════════════════════════════════
+   A customer's reading is a finding — what happened and what it means — and
+   then what of ours follows from it, sometimes two things. As one paragraph
+   the conclusion arrived as the fifth line of six in the same ink at the
+   same weight as the setup, and the only part that says what to DO was the
+   hardest part to find.
+
+   FIRST ATTEMPT RANKED ON ONE AXIS AND IT WAS NOT ENOUGH. Deck at 400,
+   conclusion at 500, both at 18px: a hundred units of weight at one size,
+   which at a glance is three slabs of the same text separated by rules. The
+   doctrine ranks on size, weight and case, and only one of the three was
+   doing anything.
+
+   The build already has this exact relationship and it ranks on three.
+   `.b-nm-say` is the instruction in the relationship block — 16px, semibold,
+   `--d50` — and `.b-nm-then` is what follows it: `--t-ui`, `--d200`, with
+   `b` at `--d50` and bold. Four points of size, a step of ink, and three
+   hundred units of weight between the prose and the names in it.
+
+   So this follows that, which is also why it needs no new argument: a
+   reader who has met one of these has met both. The finding keeps the deck
+   at 18. What follows drops to 14 and one step down the ink ramp — not
+   below it: `--d200` is the floor for type and this sits on it. The product
+   names are the thing to come away with, so they take the bold AND the
+   brightest ink, which makes them the only marked thing in the lower half
+   of the card and findable without reading a word around them.
+
+   NOT COLOUR, on any of it. An offer is not a verdict, and this build
+   spends its two hues on things that went well or badly. */
+.b-lead-thens {
+  margin: 0 0 16px; padding-top: 13px;
+  border-top: 1px solid var(--card-border);
+  display: flex; flex-direction: column; gap: 9px;
+}
+.b-lead-then {
+  display: flex; align-items: flex-start; gap: 9px;
+  max-width: 74ch; margin: 0;
+  font-size: var(--t-ui); font-weight: var(--fw-regular);
+  line-height: var(--lh-base); color: var(--d200); text-wrap: pretty;
+}
+/* 74ch rather than the deck's 58: a measure is a count of characters and
+   these are four points smaller, so the same 58 would have set them in a
+   column two thirds the width of the paragraph above and reintroduced the
+   ragged gutter §88 exists to remove. */
+.b-lead-then b { font-weight: var(--fw-bold); color: var(--d50); }
+/* The glyph is drawn on a 24 grid and has no size of its own; without this
+   it fills the flex item, which is the width of the line. It follows the
+   text down a size, and `margin-top` optically centres it on the first line
+   rather than on the box. */
+.b-lead-then svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 3px; }
+
+/* ══ 89. THE CLOCK IN A ROW OF FACTS, WHICH HAS NEVER BEEN DRAWN ═══════════
+   `.b-due` is written onto the check-in on an account's masthead and onto
+   the renewal beside it, and no sheet has ever defined it. Measured on a
+   prospect: the element renders at the ink and weight of the row it sits
+   in, which is to say it renders as the row it sits in. "Check-in overdue
+   by 9 days" has never once been amber.
+
+   The audit could not see it, and the reason is its own documented blind
+   spot one rung along: the only usage was inside a CONCATENATED attribute —
+   `class="b-due' + (late ? ' is-late' : '') + '"` — which the scan cannot
+   read as a class list. Writing a second, static one exposed the first. A
+   class assembled at runtime is invisible to a check that reads source.
+
+   Quieter than `.b-nm-due`, which is the same idea as a chip inside the
+   relationship block: this one sits in a row of plain facts separated by
+   middots, so a pill here would be the only boxed thing on the line and
+   would read as a control. The word carries it — weight at rest, and the
+   warn ink when the date has gone. `--warn-text` rather than `--warn`,
+   which is the token the build uses for a warn hue set as TYPE. */
+.b-due { font-weight: var(--fw-semibold); }
+.b-due.is-late { color: var(--warn-text); }
+
+/* ══ 90. THE REST OF THE TEAM, AS ONE THING ════════════════════════════════
+   `.b-team` lays a face, a name and a job flat and wraps. Measured on a crew
+   of seven it is three rows deep and 108px tall, and the block saying who
+   works this campaign became the tallest thing on the page after the
+   reading. Three, then the rest as a stack.
+
+   THE OVERLAP IS THE ARGUMENT, not the decoration. Faces set apart are a
+   list of people; faces set over each other are one object, a group — which
+   is exactly what the hidden remainder is, and why every product that has
+   ever had assignees arrives at this shape. `margin-left` negative by a
+   third of the face, and each one carries a ring in the ground colour so
+   the edges stay separate where they cross. `direction: rtl` on the row
+   with `ltr` back on each face: it makes the FIRST face sit on top without
+   a z-index per child, which is what stacking order should look like when
+   the eye reads left to right.
+
+   IT IS A CONTROL AT REST, so it takes the chip's hairline and ground —
+   `.filter-chip` is the shape this build uses for a small pressable thing,
+   and a bare stack of faces beside three named colleagues reads as more
+   colleagues rather than as a way in. */
+.b-stack-wrap { display: inline-flex; }
+.b-stack {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 3px 8px 3px 5px; border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+  cursor: pointer; color: var(--d200);
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+:root[data-theme="light"] .b-stack { background: rgba(16, 24, 40, 0.05); }
+.b-stack:hover { color: var(--d50); border-color: rgba(var(--accent-rgb), 0.4); }
+.b-stack:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-stack-faces { display: inline-flex; align-items: center; direction: rtl; }
+.b-stack-face {
+  direction: ltr; display: inline-grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  /* The ring is the page behind the stack rather than a colour of its own,
+     so a face overlapping another is cut out of it cleanly in both themes.
+     `--page-bg` was the name it was written with and this build has no such
+     token, so every ring fell to the hard-coded dark and stayed dark on the
+     light theme — a black edge round each face on a white ground. Read out
+     of the browser: `--body-bg`, #171a1c against #f4f6f9. */
+  box-shadow: 0 0 0 2px var(--body-bg);
+  overflow: hidden; flex-shrink: 0;
+}
+.b-stack-face + .b-stack-face { margin-right: -9px; }
+.b-stack-face svg, .b-stack-face img { display: block; width: 100%; height: 100%; }
+/* The count and the plus are the two faces this stack does not have: same
+   circle, same ring, a ground and a figure instead of a person. */
+/* The count is the one face this stack does not have: same circle, same
+   ring, a ground and a figure instead of a person. There was a plus here
+   too, for the case where the stack hid nobody and was still the way to
+   change the crew — the stack does not do that any more, so a stack with
+   nothing in it is not drawn at all. */
+.b-stack-n {
+  background: var(--card-bg-raised, rgba(255, 255, 255, 0.09));
+  border: 1px solid var(--card-border);
+  font-size: var(--t-micro); font-weight: var(--fw-bold); color: var(--d100);
+  font-variant-numeric: tabular-nums;
+}
+.b-stack-chev { flex-shrink: 0; opacity: 0.7; }
+
+/* ══ AND WHERE THERE ARE NO FACES IT IS A NODE ═════════════════════════════
+   The lozenge above is right among `.b-mate` — a face and two lines, no box
+   around them. The account draws this in a row of `.b-node`, which are
+   cards, and a flex row stretches its children: measured, the pill came out
+   61 wide by 64 tall at a 9999px radius, which is not a pill. It is a blob
+   with a small circle and a chevron rattling inside it.
+
+   So it is a node. The node's radius, ground, border and padding, hovering
+   the way a node hovers, with the count as its whole content — one more
+   door in a row of doors, which is what it is. Stretching is right here and
+   was only ever wrong at a pill radius: the row sets every node to the
+   height of the tallest, and this one joins them. */
+.b-stack.is-count {
+  gap: 7px; padding: 10px 14px; border-radius: 12px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  color: var(--d100); font-size: var(--t-ui); font-weight: var(--fw-semibold);
+}
+.b-stack.is-count:hover {
+  border-color: var(--accent); background: var(--card-bg-raised); color: var(--d50);
+}
+.b-stack.is-count:active { transform: scale(0.985); }
+.b-stack-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ══ AND THE ONE THAT TAKES SOMEBODY OFF ══════════════════════════════════
+   Beside the name rather than in a list of its own, which is the whole
+   argument: the team is already drawn, so a second list of who is on it
+   exists only to hang a verb from. Quiet until the row is under the hand —
+   a cross per colleague, lit, on a block whose job is to say who works
+   this, would read as a row of things to dismiss.
+
+   It is not hidden, which is the other half of that. `opacity: 0` on a
+   control is a control a reader cannot find and a keyboard cannot skip
+   sensibly; this one sits one step down the ink ramp and comes up on
+   hover, on focus, and whenever the row it is on is hovered. */
+.b-crew-x {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  /* ══ AND THEY LINE UP ══════════════════════════════════════════════════
+     `margin-left: 2px` put each cross immediately after the name block, so
+     seven of them landed at seven different x positions — one per name
+     length — and the column that should have read as a single edge read as
+     a ragged one. `auto` takes the rest of the row, which is what makes
+     them a column: the rows are all the same width, so the end of every row
+     is the same place. */
+  width: 20px; height: 20px; margin-left: auto; border-radius: 6px;
+  border: 0; padding: 0; background: none; cursor: pointer;
+  color: var(--d300);
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-crew-x svg { width: 13px; height: 13px; }
+.b-mate:hover .b-crew-x, .b-menu-row:hover .b-crew-x { color: var(--d100); }
+.b-crew-x:hover { color: var(--err-text); background: var(--err-bg); }
+.b-crew-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+/* The row it sits in is a `div` of two text lines; the cross has to sit
+   with them rather than under them. */
+.b-mate { position: relative; }
+
+/* ══ THE CAPTION AND THE VERB SHARE A ROW ══════════════════════════════════
+   `.b-team` is a wrapping flex row and the caption takes the whole first
+   line of it. The verb that changes the crew belongs beside the caption
+   rather than out among the faces, where it would read as a colleague — so
+   the two share a line of their own and the faces start under it. */
+.b-team-head {
+  flex-basis: 100%; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 12px; margin-bottom: 2px;
+}
+.b-team-head .b-team-cap { margin-bottom: 0; }
+/* The verb is two words and it broke across them: `.b-team-head` inherits
+   the shrink a flex child has by default, so at `space-between` across the
+   block's full width the button was the thing that gave. A control never
+   wraps — the row it is on can. */
+.b-team-head .b-menu-wrap { flex-shrink: 0; }
+.b-team-head .b-menu-open { white-space: nowrap; }
+
+/* A row in a menu that is a disclosure rather than a chooser. `.b-menu-item`
+   carries the hover and the cursor because everything else in a menu here
+   does something; these name the people the stack could not fit, and this
+   build has no page for a colleague to open. */
+.b-menu-row { cursor: default; }
+.b-menu-row:hover { background: transparent; color: var(--d100); }
+/* The face in a menu row, at the size the stack draws it. */
+.b-team-menu .b-menu-item > svg, .b-team-menu .b-menu-item > img,
+.b-menu-row > svg, .b-menu-row > img {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ══ 91. THE CHAT COLUMN IS NOT HERE ═════════════════════════════
+   It was, briefly, and under this build’s own prefix — a second
+   implementation of a component sales.css already carried under the names
+   AiMY Knowledge gives it, one cut behind. Two families styling one column
+   is how a stylesheet ends up with a winner nobody chose.
+
+   So the column went back to where it lives, beside the region that sets
+   its width, and came up to Knowledge’s current cut while it was there:
+   sales.css, THE CHAT COLUMN IS AiMY KNOWLEDGE’S, LIFTED WHOLE. Nothing
+   about it is this build’s to override, so this file has no rule for it.
+   §38 was the caption-and-row pair that stood before either. */
+
+/* ══ 92. THINKING HAS NO FRAME, FROM AiMY KNOWLEDGE ═══════════════════
+   The canvas had no wait at all: asking inside it skipped the card, and what
+   stood in for it was 720ms of nothing. It has one now, as a turn, and these
+   are Knowledge's four rules for it — character for character, comments and
+   all, the way §28 and the chat column take theirs. Everything they hang on
+   is the shell's: `.chat-msg`, `.msg-bubble`, `.msg-avatar`, `.ai-thinking`
+   and its label are in aimy-ds.css, and `.think-mark` is §47 above.
+
+   Not taken: `.chat-msg.aimy:has(.ai-thinking) .msg-acts`. A turn here has no
+   actions row to hide. */
+
+/* ══ THINKING HAS NO FRAME ═════════════════════════════════
+   No bubble and no avatar while there is nothing to put in them. The classes
+   stay on the same elements throughout — only this rule comes off — so the
+   frame appears around an answer that is already streaming rather than the
+   message being rebuilt to gain one. */
+.chat-msg.is-thinking .msg-avatar { display: none; }
+/* ══ UNDRESSING THE BUBBLE TAKES TWO SELECTORS ═════════════════
+   The bubble is dressed TWICE in the library: once as `.chat-msg.aimy
+   .msg-bubble` for the default dark theme, and again as `:root[data-theme=
+   "light"] .chat-msg.aimy .msg-bubble` for light, which is five class-level
+   selectors deep.
+
+   The single rule here was three deep, so it beat the dark one and lost to
+   the light one — and lost only PARTLY, which is why this was easy to miss.
+   Padding and shadow are not set by the light rule, so those cleared; the
+   background and border are, so a white pill with a hairline survived on a
+   state that is meant to have no container at all. Dark mode was correct the
+   whole time and light mode was not, from one rule that half-applied.
+
+   So the light theme is answered on its own terms. Not `!important`, which
+   would win here and then have to be fought later, and not a bare `:root`
+   prefix to pad the count — the second selector says which rule it exists to
+   override, which is the thing a reader needs to know. */
+.chat-msg.is-thinking .msg-bubble,
+:root[data-theme="light"] .chat-msg.aimy.is-thinking .msg-bubble {
+  background: none;
+  border-color: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+/* The frame fades up rather than snapping on, so the first words are not
+   interrupted by a box drawing itself around them.
+
+   `:not(.is-thinking)` is doing real work here. A transition belongs to the
+   state being entered, so declaring it on both states animates the frame OUT
+   as well as in — and since `push` reads layout before the class is applied,
+   the browser resolves the framed style first and then fades it away. The
+   frame appeared for an instant and dissolved, which is the opposite of the
+   intent. Declared only on the resting state, entering the thinking state is
+   instant and leaving it fades in. */
+.chat-msg.aimy:not(.is-thinking) .msg-bubble,
+.chat-msg.aimy:not(.is-thinking) .msg-avatar {
+  transition: background-color var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              opacity var(--t-base) var(--ease-out);
+}
+.chat-msg.is-thinking .msg-avatar { opacity: 0; }
+/* Same lift, same omission. The frame still appears and the avatar still
+   comes back — only the fading does not, which is the whole of what the
+   preference asks for. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-msg.aimy:not(.is-thinking) .msg-bubble,
+  .chat-msg.aimy:not(.is-thinking) .msg-avatar { transition: none; }
 }

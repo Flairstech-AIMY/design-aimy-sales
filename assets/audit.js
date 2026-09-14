@@ -58,11 +58,13 @@ const MARKERS = {
   'verb': 'what the chooser\u2019s confirm says before a count is added to it',
   'work-state': 'the canonical value the design system reads off a work-state chip',
   'tocamp': 'the second half of data-addlist, read off the same element by its handler',
+  'fillat': 'where the hole is in the sentence data-fill hands over, read off the same element by its handler',
   'card': 'which person a queue card is about, read by the keyboard cursor, not by a click',
   'auto': 'the derived list name, compared against by the name field so it knows when you disagreed',
   'ntf-id': 'the task id AiMY QA\'s panel writes on each row for its own bookkeeping',
   'state': 'the pipeline row mark remembers which glyph it holds, so a frame that changes nothing redraws nothing',
   'done': 'the pipeline footer remembers whether it has flipped to its finished verbs',
+  'chat-rename-in': 'which conversation the rename box is renaming, read by the keydown and focusout listeners that commit it',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */
