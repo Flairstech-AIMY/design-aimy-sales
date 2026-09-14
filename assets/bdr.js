@@ -5461,7 +5461,7 @@
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Financials</span>' +
         '<span class="b-door-fig">' + esc(euro(worth)) +
-          '<span class="b-door-of">signed</span></span>' +
+          '<span class="b-door-of">won</span></span>' +
         bookBar() +
         '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
         doorGo('Open the report') +
@@ -6972,7 +6972,7 @@
        revenue at a sensible price. A sales manager is not asked that. He is
        asked whether he is going to make the number, so the number leads and
        the spend becomes a clause about it. */
-    const money = 'You signed <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
+    const money = 'You won <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
       esc(fmtMoney(a.target)) + '</b>';
     /* Three tenses, and the paragraph has to be in the right one. A window
        still running is judged on pace; a finished one is judged on what it
@@ -7086,7 +7086,7 @@
         '<h2 class="s-rec-cap">Financials</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">This is the book a sales manager carries — what has been ' +
-          'signed against the quarter’s target, and what the campaigns behind it cost. Your ' +
+          'won against the quarter’s target, and what the campaigns behind it cost. Your ' +
           'desk has neither, so every figure on it would be somebody else’s. What you have ' +
           'done is on your campaigns and in your calls.</p>' +
           backBtn('data-home', 'Back to the briefing') +
@@ -7257,6 +7257,26 @@
           '<span class="s-att-pc' + (a.pc >= 1 ? ' tone-ok' : '') + '">' +
             esc(Math.round(a.pc * 100)) + '% to target</span>' +
         '</div>' +
+        /* ══ TWO TIME BASES IN ONE COMPARISON, AND NEITHER WAS STATED ════
+           The window is a quarter — the chip above says so — and the figure
+           is ANNUAL: every won deal counted at `acvOf`, which reads the price
+           book, and the price book is a year of a service. €273k is not what
+           came in this quarter; it is what a quarter's worth of new business
+           is worth over the twelve months it runs for. Against a €300k
+           quarterly quota that is the standard shape and the arithmetic is
+           right — the year target is four times it — but a reader who does
+           not already know the convention is out by a factor of four and has
+           nothing on the page to correct them.
+
+           "Signed" said neither half. It named no stage that the data model
+           recognises — `stageOf(c) === 'won'` is the actual test — and read
+           as somebody putting a pen to a document, which is an event, not an
+           amount. The stage is now its own word everywhere the figure is
+           labelled, and the unit is stated HERE and only here: under the one
+           number it qualifies, where the rest of the page inherits it
+           without any other figure having to repeat it. */
+        '<p class="s-att-what">New business won, counted at what it is worth ' +
+          'over a year.</p>' +
         /* ══ THE MARKS LIVED INSIDE THE THING THAT CLIPS THEM ═══════════
             Both are drawn to overhang the track by four pixels top and
             bottom — that overhang is what makes a mark read as crossing the
@@ -7269,7 +7289,7 @@
 
             The fills keep their clip; the marks go over it. */
         '<div class="s-att-bar" role="img" aria-label="' +
-          esc(fmtMoney(a.booked) + ' signed of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
+          esc(fmtMoney(a.booked) + ' won of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
             'another ' + fmtMoney(Math.max(0, a.forecast - a.booked)) + ' by the end, reaching ' +
             fmtMoney(a.forecast) + '.') + '">' +
           '<div class="s-att-track">' +
@@ -7295,7 +7315,7 @@
              it. "Already signed" against "expects another €86k before it
              closes" is the pair: what is in, and what is still coming. A
              closed window keeps the plain word, because nothing more is. */
-          '<span class="s-att-key is-booked">' + (done ? 'Signed' : 'Already signed') + '</span>' +
+          '<span class="s-att-key is-booked">' + (done ? 'Won' : 'Already won') + '</span>' +
           /* ══ A KEY DESCRIBES THE BAND IT IS A KEY FOR ══════════════════
              This read "AiMY expects €225k by the end" beside a hatched band
              that is not €225k of anything — €225k is where the band ENDS,
@@ -7503,7 +7523,7 @@
            A definition is stated once, where the thing is introduced. Only
            the crew rows keep a second line, because theirs is the one that
            changes: a job, hours and a rate, different on every row. */
-        '<p class="s-exec-note">What each one has signed, against what it cost — every minute ' +
+        '<p class="s-exec-note">What each one has won, against what it cost — every minute ' +
           'logged against it, the calls AiMY made itself at compute cost, and what the suppliers ' +
           'charged to find and fill in the people on it.</p>' +
         (camps.length ? '<div class="s-pans">' +
@@ -7538,7 +7558,7 @@
                  a campaign against rather than the headline it is ranked by. */
               '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
                 esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
-                '<span class="s-pan-unit">signed</span></span>' +
+                '<span class="s-pan-unit">won</span></span>' +
             '</div>' +
             /* ══ THE SECTION IS "BY WHAT THEY RETURNED" AND NOTHING SAID IT ══
                The heading ranks these by return; the eyebrow promises "what
@@ -7670,7 +7690,7 @@
                   '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
                 '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
                   esc(r.arr ? fmtMoney(r.arr) : 'Nothing') +
-                  '<span class="s-pan-unit">signed</span></span>' +
+                  '<span class="s-pan-unit">won</span></span>' +
               '</div>' +
               '<div class="s-pan-facts">' +
                 '<span><b>' + r.meetings + '</b> met</span>' +

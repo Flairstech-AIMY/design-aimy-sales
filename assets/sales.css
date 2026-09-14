@@ -7905,7 +7905,15 @@ body.is-figures .filter-tray { display: none; }
    target — a bar whose track IS the target cannot draw a projection that
    beats it, and this quarter's does. */
 .s-att { margin-bottom: 32px; }
-.s-att-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.s-att-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+/* What the figure IS, under the figure, where a qualifier belongs. Bound
+   tight to the headline above it and set back from the bar below — the same
+   proximity rule the four tiles use, for the same reason: at one gap it
+   would read as a caption for the bar rather than for the number. */
+.s-att-what {
+  margin: 0 0 16px; font-size: var(--fs-xs); color: var(--ink-quiet);
+  line-height: var(--lh-base); max-width: 60ch; text-wrap: pretty;
+}
 .s-att-lead {
   font-family: var(--font-sans); font-size: var(--fs-3xl);
   font-weight: var(--fw-extrabold); letter-spacing: -0.03em;
