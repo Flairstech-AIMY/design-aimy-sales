@@ -13125,13 +13125,26 @@
             const bits = [];
             if (calls) bits.push(plural(calls, 'call'));
             if (mets) bits.push(plural(mets, 'meeting'));
-            /* Nothing done yet is not nothing to say: it is what they are
-               here for, which is the more useful half on a cold lead. */
+            /* ══ "ON THE TEAM" UNDER A HEADING READING THE TEAM ═══════════
+               Nothing done yet is not nothing to say — that part of the old
+               note holds — but the sentence it reached for said nothing at
+               all. Every row in this block is on the team; that is what the
+               block IS. The other three fallbacks each name a relation to
+               THIS record: whose it is to call, who takes it at Interested,
+               who holds it now. The fourth named membership, and it is the
+               one that fires most, because a lead's team is everyone crewed
+               on its campaigns and most of them have never touched this one.
+
+               So say that. "Never called them" is a fact about this person
+               and this lead, it is the build's own phrase for it — the queue
+               filters on `not-called` and the briefing offers "Show the 2
+               never called" — and beside a colleague reading "7 calls" it
+               draws the line the block exists to draw. */
             if (!bits.length) {
               bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
                 : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
                   ? 'has it now' : 'takes it at Interested')
-                : 'on the team');
+                : 'never called them');
             }
             return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
