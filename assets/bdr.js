@@ -7744,7 +7744,8 @@
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + c.met + '</b> of them met</span>' +
-              '<span><b>' + c.wins + '</b> signed</span>' +
+              '<span><b>' + c.wins + '</b> ' +
+                plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' won</span>' +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
@@ -7919,8 +7920,22 @@
                    rate, it is a rate of zero, and it is the finding. Only a
                    line with no meetings at all has nothing to divide by, and
                    that one keeps the dash. */
+                /* ══ THE FUNNEL ALREADY HAS THESE WORDS ══════════════════
+                   WON, NOT SIGNED, and `DEAL_STAGES` says why in its own
+                   margin: "'Signed' is what the MONEY did — a column is a
+                   state, and the state opposite Lost is Won." This row
+                   counts states. The money keeps `signed` where the money
+                   is.
+
+                   NOT CUSTOMERS EITHER, tempting as it is — `FUNNEL` does
+                   label its last stage that, but `wins` counts CONTACTS and
+                   a company can hold several: seven of the thirty accounts
+                   in the book carry two subscriptions. Calling deals
+                   customers would turn two deals at one company into two
+                   companies, on the surface whose whole job is counting
+                   correctly. */
                 '<span><b>' + r.wins + '</b> ' +
-                  (r.wins === 1 ? 'signed' : 'signed') + '</span>' +
+                  plural(r.wins, 'deal').replace(/^\d+\s/, '') + ' won</span>' +
                 /* ══ THE COUNT IS A FACT, THE MONEY IS A GUESS ════════════
                    Two open deals is counted. The €128k is not: for anything
                    not yet won, `acvOf` returns the mean of comparable won
@@ -7957,7 +7972,13 @@
                    deciding — and a deal somebody parked is not deciding
                    anything, which is the exclusion the word needed to
                    carry. */
-                '<span><b>' + r.open + '</b> still deciding, ' +
+                /* AND THE REST ARE POTENTIAL, which is this page's own
+                   umbrella for them — the tile four sections up is headed
+                   exactly that. "Still deciding" was a phrase I invented
+                   outside the taxonomy; a deal here is Won, Lost, parked, or
+                   one of the four live stages the odds block names, and the
+                   collective noun for those four already existed. */
+                '<span><b>' + r.open + '</b> potential, ' +
                   esc(fmtMoney(r.pipeline)) + ' if they land</span>' +
               '</div>' +
               /* What the line is made of, the way Resources says what a
