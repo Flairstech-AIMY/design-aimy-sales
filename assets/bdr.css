@@ -1927,6 +1927,13 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-menu-open[aria-expanded] { color: var(--d50); }
 .b-menu-wrap:has(.b-menu:not([hidden])) .b-menu-open { color: var(--d50); border-color: var(--accent); }
 .b-menu.is-right { left: auto; right: 0; transform-origin: top right; }
+/* Hung above its button when there is no room beneath it. The origin and the
+   4px the open animation travels both turn over with it, or the menu would
+   grow downwards out of a corner it is not in. */
+.b-menu.is-up { top: auto; bottom: calc(100% + 8px); transform-origin: bottom left; }
+.b-menu.is-up.is-right { transform-origin: bottom right; }
+.b-menu.is-up { animation-name: b-menu-up-in; }
+@keyframes b-menu-up-in { from { opacity: 0; transform: scale(0.97) translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ══ 46. THE THING TO DO, AND THE NOTE SOMEBODY LEFT ═══════════════════════
    Two captioned rows of prose was a wireframe of this. They are different

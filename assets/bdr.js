@@ -12694,14 +12694,35 @@
          and its §74 are gone with it. */
       accMap(a, people) +
 
-      '<section class="s-block s-block-wide" aria-label="Who is here">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
-          '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · who has picked up first, then by called</span></div>' +
-        qgrid(paged(people).rows, 'Nobody on the record at this company.') +
-        pager(paged(people), 'person') +
-        chips +
-      '</section>' +
+      /* ══ AND THE THIRD ACQUISITION BLOCK GOES THE SAME WAY ══════════════
+         Measured on a customer paying us for years: five cards, 799px, and
+         every one of them tagged "Not met" — sorted by "who has picked up
+         first, then by called", footed by "Put everybody here on a campaign"
+         offering four prospecting campaigns. A cold-calling worklist at a
+         company that has already bought.
+
+         IT IS ALSO THE SAME NAMES AGAIN. The Lead map two hundred pixels up
+         draws three of the five as nodes and a "2 more" stack whose menu
+         lists all five, each opening the record — so nothing here is
+         reachable only from the grid. What the grid held that the map did
+         not was one fact, said five times, and that fact is now the count on
+         the People limb. The rest of a card at a customer is the company's
+         own location and headcount repeated under every name, already in the
+         masthead, and the tier shield repeated beside them.
+
+         `isMgr()` for the same reason the two blocks below it carry it, in
+         that margin's own words: a caller at this company is not looking at
+         a customer, she is prospecting the departments we have not sold to,
+         and a queue of them ranked by who picks up is exactly her page. */
+      (isMgr() && isCust(a) ? '' :
+        '<section class="s-block s-block-wide" aria-label="Who is here">' +
+          '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
+            '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
+            ' · who has picked up first, then by called</span></div>' +
+          qgrid(paged(people).rows, 'Nobody on the record at this company.') +
+          pager(paged(people), 'person') +
+          chips +
+        '</section>') +
 
       /* ══ AND NEITHER OF THESE IS ABOUT A CUSTOMER ══════════════════════
          Both are the ACQUISITION record, and on this page they are the
@@ -12891,14 +12912,28 @@
         ((said && said.thens) || []).forEach((t) => {
           if (t.offer && SELL[t.offer] && offers.indexOf(t.offer) < 0) offers.push(t.offer);
         });
-        const put = offers.map((k) =>
-          '<button class="s-inline-btn" type="button" data-fill="' +
+        /* ══ THE OFFER IS THE POINT; THE CALL IS HOW YOU MAKE IT ══════════
+           The reading above ends "Go into it asking for more. AiMY QA is what
+           goes with what they run" — and under it the offer was a text link,
+           second, behind an outlined Call. The button that does the thing the
+           paragraph just argued for was the quieter of the two.
+
+           `.s-insight-lnk.primary` is this build's filled action and it was
+           never used here. The offer takes it and goes first; Call keeps the
+           outlined pill, which is what a second action wears next to a filled
+           one. Two ranks, both already in the stylesheet, and the order now
+           matches the sentence.
+
+           ONLY THE FIRST OFFER IS FILLED. Two brand-filled buttons side by
+           side is two main actions, which is none. */
+        const put = offers.map((k, i) =>
+          '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-fill="' +
           esc(PRE + ', at ' + a.name + ', for ' + SELL[k].name) + '" ' +
           /* The hole is the name, and the name goes second. Without this the
              cursor lands after the service and the first thing anybody does
              is travel back through the sentence they were just handed. */
           'data-fillat="' + PRE.length + '">Offer ' + esc(SELL[k].name) + '</button>').join('');
-        return (door || put) ? '<div class="s-lead-acts">' + door + put + '</div>' : '';
+        return (door || put) ? '<div class="s-lead-acts">' + put + door + '</div>' : '';
       })() +
     '</section>';
   }
@@ -14137,7 +14172,7 @@
     });
   }
 
-  /* From a company: who we hold here, and what they are being worked on.
+  /* From a company: the people, and the campaigns they are on.
      One limb per kind of join, because a company joins two different things
      and a caller asks about them separately. A limb per campaign instead —
      which is what this drew first — printed the same seven names nine times
@@ -14159,6 +14194,7 @@
        and the cap goes with it: the stack says how many more there are,
        which the silent slice never did. */
     const camps = ids.slice(0, 8);
+    const met = people.filter(everMet).length;
     /* The head above already counts both, so a caption repeats it or says
        nothing. It says the thing the head cannot: which of these are mine. */
     const cap = (name, n) =>
@@ -14167,7 +14203,20 @@
         (n ? '<span class="b-branch-n">' + esc(n) + '</span>' : '') +
       '</span>';
     const limbs = [
-      cap('Who we hold here', '') +
+      /* A LIMB LABEL NAMES A KIND OF THING, NOT A SENTENCE ABOUT IT.
+         "Who we hold here" and "What they are being worked on" were a
+         question and a clause over two rows of nodes, and the first of them
+         is said again eighty pixels down as the heading of the section that
+         draws the same names as full cards: "Who is here". One of the two had
+         to stop being a phrase, and it is this one — a map labels its
+         branches, it does not narrate them. The nouns are the build's own,
+         off the chips in the switcher: People, Campaigns. */
+      /* THE COUNT THE CARDS WERE FOR. `cap` takes a second line and the
+         Campaigns limb uses it — "1 of them yours" — while this one passed
+         nothing. How many of these we have actually met is the fact the
+         grid below spent eight hundred pixels saying with a repeated tag,
+         and it fits here in four words, beside the names it is about. */
+      cap('People', met ? commas(met) + ' of them met' : 'none of them met') +
       /* ══ THE SAME STACK, WITHOUT THE FACES ═════════════════════════════
          The campaign's team and this row have the same defect and the same
          answer: three on the line and the rest behind one press. What does
@@ -14188,7 +14237,7 @@
           '</button>';
         }, {
           faces: false,
-          cap: 'Everybody we hold here',
+          cap: 'Everybody here',
           name: (id) => DB.byCon[id].name,
           sub: (id) => DB.byCon[id].title,
           mark: (id) => dotOf(DB.byCon[id]),
@@ -14198,7 +14247,7 @@
     ];
     if (camps.length) {
       limbs.push(
-        cap('What they are being worked on',
+        cap('Campaigns',
           mineN ? commas(mineN) + ' of them yours' : 'none of them yours') +
         '<div class="b-map-row">' + camps.map((id) => {
           const k = DB.byCamp[id];
@@ -20290,8 +20339,35 @@
       /* A MENU THAT WOULD RUN OFF THE EDGE HANGS THE OTHER WAY. Measured
          after it is shown, because a hidden element has no width. */
       if (!panel.hidden && panel.classList.contains('b-menu')) {
-        panel.classList.remove('is-right');
+        panel.classList.remove('is-right', 'is-up');
+        panel.style.maxHeight = '';
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
+        /* ══ AND THE SAME AGAIN DOWNWARDS ════════════════════════════════════════
+           The horizontal case has been handled since this menu was written
+           and the vertical one never was, so a menu opened low on the page
+           ran past the bottom of the window and under the composer — which
+           is fixed at z-index 200 against this menu's 40, so the last items
+           were behind it rather than merely off-screen. Nour hit it on the
+           "2 more" stack in a Lead map, five names deep.
+
+           THE FLOOR IS THE COMPOSER, not the viewport. Anything that ends
+           beneath that bar is unreachable even when the window says there is
+           room, so the bar's own top is what the space is measured against
+           and the fallback is the window only when no bar is up.
+
+           FLIP, THEN CAP, in that order. Hanging the menu above the button
+           is the better answer whenever the space up there is bigger — the
+           list stays whole and nothing scrolls. The cap is what is left when
+           neither side can hold it, and it never exceeds the 328px the
+           stylesheet already chose, so a menu that fits today is untouched. */
+        const bar = document.querySelector('.aimy-float-wrap');
+        const floor = bar ? bar.getBoundingClientRect().top - 12 : window.innerHeight - 16;
+        const seat = po.getBoundingClientRect();
+        const under = floor - seat.bottom - 8;
+        const over = seat.top - 8 - 16;
+        if (panel.getBoundingClientRect().bottom > floor && over > under) panel.classList.add('is-up');
+        const room = panel.classList.contains('is-up') ? over : under;
+        panel.style.maxHeight = Math.max(160, Math.min(328, Math.round(room))) + 'px';
       }
       return;
     }
