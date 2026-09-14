@@ -8063,6 +8063,13 @@ body.is-figures .filter-tray { display: none; }
   font-size: var(--fs-xs); color: var(--ink-quiet); white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+/* What the rate on this row was learned from. The treatment `.s-pan-meta`
+   gives a qualifier under a name, because that is exactly what it is — and
+   block, so the stage keeps the row's first baseline and this hangs below. */
+.s-odds-basis {
+  display: block; margin-top: 3px;
+  font-size: var(--ty-meta); font-weight: var(--fw-regular); color: var(--ink-faint);
+}
 /* `pretty` rather than `balance`: this is a description, and the thing worth
    preventing is one word alone on the last line. */
 /* ══ AND IT IS NOT A FIFTH ROW ══════════════════════════════

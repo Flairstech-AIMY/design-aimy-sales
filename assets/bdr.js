@@ -6850,7 +6850,16 @@
       tier[v.basis] = (tier[v.basis] || 0) + v.value;
       all += v.value;
       weighted += v.value * o.p;
-      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
+      /* ══ TWO POPULATIONS, AND ONLY ONE REACHED THE PAGE ═════════════════
+         `n` on this step is how many deals are standing at this stage now.
+         `n` on the LADDER row is how many have FINISHED here, which is what
+         the rate was learned from — the same letter for two different counts,
+         and the second never left `oddsLadder`. Without it the page cannot
+         say whether a rate is measured or assumed, which is the whole
+         difference between the four numbers it prints. Carried under names
+         that cannot be confused with the open count. */
+      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, p: o.p,
+        seen: o.n || 0, signed: o.won || 0, n: 0, value: 0 });
       r.n += 1; r.value += v.value;
     });
     return { open: open.length, all: all, weighted: weighted, tier: tier,
@@ -7194,6 +7203,27 @@
     const un = unlogged(p, heads);
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
     const age = dealAge(deals);
+    /* ══ "YOUR OWN RATES" WAS FALSE THREE TIMES IN FOUR ═══════════════════
+       `p = (won + SMOOTH) / (n + SMOOTH / prior)` returns the prior EXACTLY
+       when a stage has nothing finished behind it, and three of the four have
+       nothing: 32.0, 16.0 and 6.0 were `ODDS_PRIOR` printed to a tenth of a
+       point under a sentence swearing they were measured on this desk. A
+       stage holding one lost deal would read 14.8, not 16.0 — the roundness
+       was the tell.
+
+       So the note names which stages have evidence and which are still the
+       starting estimate, and it reads that off the ladder instead of
+       asserting it, so it stays true as deals resolve. */
+    const oddsSolid = pipe.steps.filter((r) => r.seen);
+    const oddsThin = pipe.steps.filter((r) => !r.seen);
+    const oddsBasis = !oddsSolid.length
+      ? 'Nothing has finished at any stage yet, so every rate here is a starting estimate.'
+      : !oddsThin.length
+        ? 'Built on every deal this desk has finished.'
+        : 'Only <b>' + esc(joinAnd(oddsSolid.map((r) => DEAL_STAGE[r.k].label))) + '</b> ' +
+          (oddsSolid.length === 1 ? 'has' : 'have') + ' finished deals behind ' +
+          (oddsSolid.length === 1 ? 'it' : 'them') +
+          '; the rest are starting estimates until deals resolve there.';
 
     /* ══ THE SCALE HAS TO MEAN THE SAME THING TWICE ═════════════════════
        It was the largest of the three figures, which makes the bar's own
@@ -8054,11 +8084,29 @@
       '</section>' +
 
       '<div class="s-odds">' +
-        '<span class="s-odds-cap">' + aiMark() + 'How often deals close</span>' +
+        /* ══ A RATE IS CONDITIONAL; THE HEADING DROPPED THAT ══════════════
+           "How often deals close" over four descending percentages that sum
+           to 101.8 is read as a breakdown of a whole, and the near-hundred
+           confirms the wrong reading before anybody checks. Each of these is
+           its own rate: of the deals that get THIS far, this share signs.
+           "From here" carries the condition into every row without spending
+           a sentence teaching it. */
+        '<span class="s-odds-cap">' + aiMark() + 'How often a deal closes from here</span>' +
         '<div class="s-odds-rows">' +
           pipe.steps.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
-            '<span class="s-odds-p">' + esc((r.p * 100).toFixed(1)) + '%</span>' +
-            '<span class="s-odds-say">' + esc(r.say) + '</span>' +
+            /* WHOLE PERCENTS. A tenth of a point off eleven finished deals is
+               precision the number does not have; off ZERO finished deals it
+               is precision invented. `dealAge` records the same rule one unit
+               along — a mean in days "invites a precision the number does not
+               have" — and this is that rule at a decimal place. */
+            '<span class="s-odds-p">' + esc(String(Math.round(r.p * 100))) + '%</span>' +
+            '<span class="s-odds-say">' + esc(r.say) +
+              /* WHAT THIS ONE RATE IS BUILT ON, on the row making the claim,
+                 so a measured rate and an assumed one stop looking alike. */
+              '<span class="s-odds-basis">' + esc(r.seen
+                ? r.signed + ' of ' + r.seen + ' signed'
+                : 'estimate, nothing finished here yet') + '</span>' +
+            '</span>' +
             '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + ' &middot; ' +
               esc(fmtMoney(r.value)) + ' open</span>' +
           '</div>').join('') +
@@ -8066,14 +8114,35 @@
         /* ══ AND HOW LONG THEY HAVE BEEN THERE ══════════════════════════
            Every CRM this desk has worked in puts average deal age on the
            board's masthead, and it is the one headline figure of theirs this
-           page dropped. It belongs here rather than in a tile: a rate is
-           how many close, an age is how long that takes, and the two are
-           halves of the same reading. */
-        '<p class="s-odds-note">Your own rates, not industry averages' +
-          (age == null ? '' : '. A deal here takes <b>' + esc(age.toFixed(1)) + ' months</b>') +
-          '. ' + (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
-            ' closed this window' : 'Nothing closed this window') +
-          ', so the rates are smoothed — one deal cannot swing them.</p>' +
+           page dropped. It belongs here rather than in a tile: a rate is how
+           many close, an age is how long, and the two are halves of one
+           reading. */
+        /* ══ WHAT THE NOTE OWES THE READER ════════════════════════════════
+           THE BASIS FIRST, because three of these four rates are the prior
+           and the old note swore every one of them was measured here.
+
+           THEN WHERE THEY GO. This block IS the Potential tile: each stage's
+           open value times its rate sums to €560k, and the stage values sum
+           to the €1.6m that tile's own line quotes. The most useful thing on
+           the block was the one thing it never said, fifteen hundred pixels
+           from the figure it explains.
+
+           THEN THE AGE, AND ITS VERB HAD TO CHANGE. `dealAge` averages
+           hand-over to decision, or to TODAY for a deal still running, and
+           its own margin says this book's hand-overs cluster recent so
+           "almost nothing has resolved". A mean over lives-so-far is a FLOOR,
+           not a duration — "a deal here takes 1.6 months" claimed the second
+           when the number is the first. How old they are is what it measures.
+
+           WHAT WENT: "one deal cannot swing them", when one more win at
+           Priced moves it from 48 to 51; and "only 5 deals closed this
+           window", which the Spent tile and the Priced row each now say
+           better than a disclaimer can. */
+        '<p class="s-odds-note">' + oddsBasis +
+          ' Applied to the <b>' + esc(fmtMoney(pipe.all)) + '</b> still open, they are the <b>' +
+          esc(fmtMoney(pipe.weighted)) + '</b> on Potential above.' +
+          (age == null ? '' : ' Deals here are <b>' + esc(age.toFixed(1)) +
+            ' months</b> old on average.') + '</p>' +
       '</div>' +
 
       askRow(execAsks(now, pipe)) +
