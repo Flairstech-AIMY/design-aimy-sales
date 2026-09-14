@@ -8455,6 +8455,10 @@ body.is-figures .filter-tray { display: none; }
 .s-pan-p.is-ai .s-pan-who b { color: var(--ai-text); }
 .s-pan-p svg { color: var(--ai-text); vertical-align: -1px; margin-right: 4px; }
 .s-pan-cost { color: var(--d100); white-space: nowrap; }
+/* The absence of a figure, set like one: the row's weight without its
+   brightness, so a column of them reads as a column of nothings rather than
+   as a column of amounts. Above the ink floor, because it is still content. */
+.s-pan-cost.is-none { font-weight: var(--fw-regular); color: var(--ink-secondary); }
 .s-pan-none {
   font-size: var(--fs-xs); color: var(--ink-muted);
   margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--card-border);

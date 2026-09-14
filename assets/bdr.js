@@ -8013,7 +8013,17 @@
                     '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
                       (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
                     '</span></span>' +
-                  '<span class="s-pan-cost">' + esc(s.arr ? fmtMoney(s.arr) : '—') + '</span>' +
+                  /* ══ A DASH SAYS "CANNOT BE SAID". THIS IS A KNOWN ZERO ════
+                     The campaign is real, it cost €454, and it has signed
+                     nothing — which is a fact, not an absence of one. The
+                     panel corner already has this build's word and its
+                     treatment for exactly this: `.s-pan-total.is-none`, whose
+                     own note says "Nothing is not a figure … it is the
+                     absence of a figure, so it is set like the absence of
+                     one." The same word and the same step down here, rather
+                     than a mark the reader has to guess at. */
+                  '<span class="s-pan-cost' + (s.arr ? '' : ' is-none') + '">' +
+                    esc(s.arr ? fmtMoney(s.arr) : 'Nothing') + '</span>' +
                 '</span>').join('') +
               '</div>' : '') +
             '</div>';
