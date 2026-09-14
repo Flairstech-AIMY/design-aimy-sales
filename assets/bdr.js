@@ -6854,9 +6854,9 @@
      facts a count cannot give on its own: WHERE the deal was when it died,
      and whether `LOST_WHY` marks the reason a not-yet rather than a no.
 
-     `parked` travels with it because the two are the same event wearing
-     different labels — `LOST_WHY`'s own margin says the parked column exists
-     for deals a manager parks deliberately, and flags "the losses that should
+     Follow-up travels with it because the two are the same event wearing
+     different labels — `LOST_WHY`'s own margin says that column exists for
+     deals a manager sets down deliberately, and flags "the losses that should
      have gone there". A reader counting what slipped away wants both. */
   /* ══ WHAT THEY COST, NOT WHAT THEY WOULD HAVE BEEN WORTH ════════════════
      This block ranked by `acvOf`, and `acvOf` on a LOST deal never returns a
@@ -6895,7 +6895,7 @@
     });
     return { n: gone.length, spend: spend, late: late, back: back,
       age: dealAge(gone),
-      parked: deals.filter((c) => stageOf(c) === 'later').length,
+      followUp: deals.filter((c) => stageOf(c) === 'later').length,
       rows: Object.keys(by).map((k) => by[k])
         .sort((a, b) => (b.n - a.n) || (b.spend - a.spend)) };
   }
@@ -7259,8 +7259,9 @@
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
     const loss = lossesOf(deals);
     /* Three short sentences, each a fact and none of them a lesson: where
-       they died, how long they took to die, and what is not finished with
-       yet. Every clause is conditional on the data saying it. */
+       they died, what they took to die, and what is not finished with yet.
+       Every clause is conditional on the data saying it. Parked is not in
+       here any more — the door underneath says it and the count with it. */
     const lossBits = [];
     if (loss.n) {
       lossBits.push(loss.late === loss.n
@@ -7269,21 +7270,44 @@
           ? '<b>' + loss.late + '</b> of the ' + loss.n +
             ' had the price on the table before they died.'
           : 'None of them got as far as a price.');
+      const lossFacts = [];
       if (loss.age != null) {
-        lossBits.push('They ran <b>' + esc(loss.age.toFixed(1)) + ' months</b> on average.');
+        lossFacts.push('ran <b>' + esc(loss.age.toFixed(1)) + ' months</b> on average');
       }
-      const lossTail = [];
+      if (loss.spend) lossFacts.push('cost <b>' + esc(fmtMoney(loss.spend)) + '</b> in all');
+      if (lossFacts.length) lossBits.push('They ' + joinAnd(lossFacts) + '.');
       if (loss.back) {
-        lossTail.push('<b>' + loss.back + '</b> ' + verbFor(loss.back, 'is') +
-          ' worth another run');
+        lossBits.push('<b>' + loss.back + '</b> ' + verbFor(loss.back, 'is') +
+          ' worth another run.');
       }
-      if (loss.parked) {
-        lossTail.push('<b>' + loss.parked + '</b> more ' + verbFor(loss.parked, 'is') +
-          ' parked rather than lost');
-      }
-      if (lossTail.length) lossBits.push(joinAnd(lossTail) + '.');
     }
     const lossNote = lossBits.join(' ');
+    /* ══ A READING THAT ENDS IN A FACT ENDS NOWHERE ═══════════════════════
+       `custTake` states this build's rule against itself: "Every other
+       reading on this desk ends in two buttons that narrow the list under
+       it." This one said three deals were worth another run and gave the
+       reader no way to reach them, which is the defect that margin was
+       written about.
+
+       BOTH DOORS GO TO CUTS THAT EXIST. `cutOf` is `stageOf` for a manager,
+       so Lost and Follow-up are real columns on his board and land on six
+       cards and four. A dedicated "worth another run" cut would be a seventh
+       chip overlapping Lost, and the chip row's own margin forbids exactly
+       that — the six narrow the forty-eight and sum to All. Landing on Lost
+       is enough: each card there already prints "Worth another run at it"
+       under the reason, so the three name themselves on arrival. */
+    const lossDoor = (over, label) => '<button class="s-insight-lnk" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), over))) + '">' + esc(label) + '</button>';
+    const lossActs = !loss.n ? '' :
+      lossDoor({ on: 'deals', q: 'lost' }, 'Show the ' + commas(loss.n) + ' lost') +
+      /* NOT "PARKED". That is my word for it; the board's word is Follow-up,
+         which is what `DEAL_STAGES` labels the stage and what the chip this
+         door presses says on it. A door whose label is not the name of the
+         place it opens is the reader learning two words for one column. */
+      (loss.followUp
+        ? lossDoor({ on: 'deals', q: 'later' },
+          'Show the ' + commas(loss.followUp) + ' on follow-up')
+        : '');
     /* ══ "YOUR OWN RATES" WAS FALSE THREE TIMES IN FOUR ═══════════════════
        `p = (won + SMOOTH) / (n + SMOOTH / prior)` returns the prior EXACTLY
        when a stage has nothing finished behind it, and three of the four have
@@ -8178,17 +8202,34 @@
          a reader who wants it. */
       '<div class="s-odds">' +
         '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
+        /* ══ THE COUNT BELONGS TO THE REASON, NOT TO A COLUMN ═════════════
+           A bold "2 deals" in a right-aligned figure slot made a count look
+           like the row's subject and pushed the reason — the only thing on
+           the row anybody reads — a hundred and twenty pixels off the left
+           edge. The count is not a measure of anything; it is how many times
+           that reason happened, so it belongs beside the reason.
+
+           WHICH IS A COMPONENT THIS PAGE ALREADY DRAWS TWICE. `.s-pan-p` is
+           the Resources row and the Campaigns row directly above: a name, a
+           qualifier under it, a figure on the right. Same shape, same
+           treatment, nothing new to learn and four dead rules deleted. */
         (loss.rows.length ? '<div class="s-odds-rows">' +
-          loss.rows.map((r) => '<div class="s-odds-row">' +
-            '<span class="s-odds-p">' + esc(plural(r.n, 'deal')) + '</span>' +
-            '<span class="s-odds-say">' + esc(r.why ? r.why.label : 'Nobody said why') +
-              '<span class="s-odds-basis">' +
+          loss.rows.map((r) => '<span class="s-pan-p">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(r.why ? r.why.label : 'Nobody said why') + '</b>' +
+              /* THE COUNT CARRIES THE RANKING, so it cannot be set like the
+                 clause beside it. `.s-pan-who b` is already this build's
+                 second rank — the name's colour and weight, one step down in
+                 size — which puts the count above the gloss and below the
+                 reason without inventing a treatment for it. */
+              '<span class="s-pan-meta"><b>' + esc(plural(r.n, 'deal')) + '</b> &middot; ' +
                 esc(r.why ? r.why.say : 'the record does not say') + '</span>' +
             '</span>' +
-            '<span class="s-odds-n">' + esc(fmtMoney(r.spend)) + ' spent</span>' +
-          '</div>').join('') +
+            '<span class="s-pan-cost">' + esc(fmtMoney(r.spend)) + '</span>' +
+          '</span>').join('') +
         '</div>' +
-        '<p class="s-odds-note">' + lossNote + '</p>'
+        '<p class="s-odds-note">' + lossNote + '</p>' +
+        (lossActs ? '<div class="s-lead-acts">' + lossActs + '</div>' : '')
           : '<p class="s-odds-note">Nothing has been lost.</p>') +
       '</div>' +
 
