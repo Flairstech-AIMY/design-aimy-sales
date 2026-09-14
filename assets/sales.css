@@ -8268,7 +8268,18 @@ body.is-figures .filter-tray { display: none; }
   background: var(--card-bg); border-radius: var(--r-lg); padding: 20px;
 }
 .s-pan-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-.s-pan-name { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
+/* ══ THE PANEL CLIMBS ONE STEP OF ITS OWN SCALE ══════════════════
+   It ran 24 / 16 / 14 / 12 with FIVE roles sharing the 14 — the cost, the
+   inputs row, every crew name, every crew rate and every crew figure — which
+   is a card with one step doing most of its work. The scale has a rung
+   between 16 and 24 that this page never used, and a body step above meta
+   that these rows should have been on.
+
+   So: the campaign name to --ty-deck, and everything that is a NAME or a
+   FIGURE in the crew to --ty-body, leaving --ty-meta for the lines that
+   qualify them and --ty-micro for the two capitalised labels. Five ranks on
+   five rungs, none invented. */
+.s-pan-name { font-size: var(--ty-deck); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
 .s-pan-state {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
   color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
@@ -8319,49 +8330,17 @@ body.is-figures .filter-tray { display: none; }
   text-align: right; margin-top: 4px;
 }
 
-/* The cost, between the head and the inputs — the second half of "which
-   campaigns paid off", where the section's own question puts it. Set at the
-   body step: the amount gained is still the panel's one loud figure, and a
-   second shouting number beside it would make the panel argue with itself
-   about which is the headline. */
-.s-pan-ret {
-  margin: 12px 0 0; font-size: var(--fs-xs); color: var(--ink-secondary);
-  font-variant-numeric: tabular-nums;
+/* The second figure in the head's own column, under the first. Set at the
+   meta step and not at the figure step: what a campaign gained is still the
+   panel's one loud number, and two shouting figures in one corner is a card
+   arguing with itself about which is the headline. Tabular, because it is
+   read down a column of fifteen panels against the amounts above it. */
+.s-pan-spent {
+  display: block; margin-top: 6px;
+  font-size: var(--ty-body); font-weight: var(--fw-regular);
+  letter-spacing: 0; color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums; text-align: right;
 }
-.s-pan-facts { display: flex; }
-/* The unit under the count, so "6" reads as six of something without the
-   word competing with the figure for the same line. */
-.s-pan-unit {
-  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em;
-  text-align: right; margin-top: 4px;
-}
-
-/* ══ WHAT IT RETURNED, WHICH IS WHAT THE SECTION RANKS BY ═════════
-   Between the head and the inputs, because that is the reading order the
-   section's own eyebrow promises: what it signed, against what it cost.
-   The multiple is set at the body step rather than the figure step — the
-   signed amount is still the panel's one loud number, and a second 24px
-   figure beside it would make the panel argue with itself about which is
-   the headline. */
-.s-pan-ret {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
-  margin: 12px 0 0; font-size: var(--fs-xs); color: var(--ink-secondary);
-}
-.s-pan-x {
-  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
-  letter-spacing: var(--ls-tight); font-variant-numeric: tabular-nums;
-}
-/* Under one it cost more than it brought back. Not a scale above that: 4×
-   and 200× are both working, and tinting between them would invent a bar
-   this page has never set. */
-.s-pan-x.tone-err { color: var(--err-text); }
-/* The sum the multiple is a multiple OF. It used to be pushed to the far end
-   of the row, which was defensible while it was a separate statement
-   ("back on EUR670 spent") and is not now that it finishes the sentence the
-   figure starts. "208x" at one edge and "the EUR670 it cost" at the other is
-   a clause with the panel's whole width wedged into it. */
-.s-pan-base { color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;
   font-size: var(--fs-xs); color: var(--ink-quiet); margin-top: 12px;
@@ -8378,9 +8357,18 @@ body.is-figures .filter-tray { display: none; }
   display: flex; flex-direction: column; gap: 12px;
   margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);
 }
+/* The block's own name. At the micro step in capitals, which is what this
+   page uses for a label over a list — the same treatment the section
+   headings and the unit under a figure wear, so it reads as the heading of
+   the three rows under it and not as a fourth row. */
+.s-pan-restitle {
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-faint); margin-bottom: -2px;
+}
 .s-pan-p {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  font-size: var(--fs-xs); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-body); font-variant-numeric: tabular-nums;
 }
 .s-pan-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .s-pan-who b { color: var(--d50); font-weight: var(--fw-semibold); }
@@ -8397,7 +8385,7 @@ body.is-figures .filter-tray { display: none; }
    EUR55 an hour, next to EUR497. A caption repeating what is already visible
    is the definition of the ambient step, and at the attribution step it wore
    the same face as the row above it. */
-.s-pan-meta { color: var(--ink-faint); }
+.s-pan-meta { font-size: var(--ty-meta); color: var(--ink-faint); }
 
 /* ══ THE CREW FOLDS, AND THE MARKER SAYS WHICH WAY ═════════════════════
    Native `<details>`, the same component the design system ships and the
@@ -8409,7 +8397,7 @@ body.is-figures .filter-tray { display: none; }
 .s-crew-sum {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   list-style: none; cursor: pointer; padding: 0;
-  font-size: var(--fs-xs); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-body); font-variant-numeric: tabular-nums;
   transition: color var(--t-fast);
 }
 .s-crew-sum::-webkit-details-marker { display: none; }

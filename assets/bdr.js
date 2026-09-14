@@ -7594,36 +7594,20 @@
                  than the only thing keeping the reader right. Cost drops to
                  the facts line, where it is one of the four things you check
                  a campaign against rather than the headline it is ranked by. */
+              /* ══ WHAT IT COST GOES UNDER WHAT IT GAINED ════════════════
+                 The section asks which campaigns paid off, which is one
+                 question about two figures — and they were in different
+                 places: the gain in the corner at twenty-four pixels, the
+                 cost on its own line below the head, at the body step, left
+                 aligned, where it read as an aside. Stacked in one column
+                 they are a comparison the eye makes without moving. */
               '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
                 esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
-                '<span class="s-pan-unit">gained</span></span>' +
+                '<span class="s-pan-unit">gained</span>' +
+                (c.total ? '<span class="s-pan-spent">cost ' +
+                  esc(fmtMoney(c.total)) + '</span>' : '') +
+              '</span>' +
             '</div>' +
-            /* ══ THE MULTIPLE GOES, AND THE REASON IS IN THIS FILE ═══════
-               "208× the €670 it cost" was mine, added earlier today on the
-               argument that a section ranking campaigns by return never
-               stated the return. The gap was real; the multiple was the
-               wrong answer to it, for two reasons.
-
-               IT CANNOT DISCRIMINATE. Across fifteen panels it reads 208×,
-               143×, 83× — or nothing at all. A figure whose only states are
-               "enormous" and "absent" carries one bit, and the €139k or
-               "Nothing" in the corner already carries that bit.
-
-               AND ITS DENOMINATOR IS ADMITTEDLY INCOMPLETE. `campaignCost`
-               is built from LOGGED hours, and `unlogged` says so directly a
-               few hundred lines up: "hours logged against a campaign are a
-               fraction of hours paid for, and the two must never be added or
-               confused". Two percent of the payroll is attributed. Dividing
-               a full year of revenue by two percent of a quarter's cost and
-               setting the result at eighteen pixels bold is exactly the
-               confusion that comment forbids.
-
-               So the line says the cost, which is a figure this page has,
-               and the reader compares it to the one above it themselves —
-               which is a comparison of two real numbers rather than a ratio
-               the corpus cannot support. */
-            (c.total ? '<p class="s-pan-ret">Cost ' + esc(fmtMoney(c.total)) +
-              (c.arr ? '' : ', nothing gained yet') + '</p>' : '') +
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + Math.round(c.hours) + '</b> ' +
@@ -7650,11 +7634,33 @@
                  navigated. Open at three people or fewer, because an
                  accordion around two names costs
                  more than it saves. */
+              /* ══ PEOPLE ARE A RESOURCE, NOT A SEPARATE KIND OF THING ═════
+                 This block was the CREW — who worked on the campaign — with
+                 the bought-in costs hanging off the bottom of it as bare
+                 words beside figures, reading as colleagues with no job
+                 title. I removed one of them for exactly that reason an hour
+                 ago, which treated the symptom: the fault was the taxonomy,
+                 not the row.
+
+                 A campaign's cost is people, plus what AiMY's own calls
+                 cost, plus what was paid to find and fill in the people to
+                 call — `campaignCost` adds those three and nothing else. All
+                 three are resources the campaign consumed. So the block is
+                 Resources, the three are siblings inside it, and People is
+                 the one that happens to fold to names. More kinds can join
+                 the list without anything here changing shape.
+
+                 NO SECOND TOTAL. Every item under this heading sums to the
+                 `cost` in the panel's corner, because those three ARE the
+                 cost — printing it again under the heading would be the same
+                 figure twice, eighty pixels apart. */
+              '<div class="s-pan-restitle">Resources</div>' +
               (c.crew.length ? '<details class="s-crew"' + (c.crew.length <= 3 ? ' open' : '') + '>' +
                 '<summary class="s-crew-sum">' +
                   '<span class="s-crew-who">' +
-                    '<b>' + esc(plural(c.crew.length, 'person')) + '</b>' +
-                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours at ' +
+                    '<b>People</b>' +
+                    '<span class="s-pan-meta">' + esc(plural(c.crew.length, 'person')) +
+                      ' &middot; ' + esc(c.hours.toFixed(1)) + ' hours at ' +
                       esc(fmtMoney(c.hours ? c.people / c.hours : 0)) + ' an hour on average</span>' +
                   '</span>' +
                   '<span class="s-pan-cost">' + esc(fmtMoney(c.people)) + '</span>' +
@@ -7692,14 +7698,18 @@
                   '</span>').join('') +
                 '</div>' +
               '</details>' : '') +
-              /* One line each, and the word is the whole of what they are.
-                 Both are defined in the note above the section — see there. */
+              /* One line each, and each says what it is rather than what it
+                 is called. "Lead generators" is the brokers, the crawl and
+                 the enrichment — what was paid to produce somebody to call,
+                 which is the name the reader uses for that spend. */
               (c.aimy ? '<span class="s-pan-p is-ai">' +
-                '<span class="s-pan-who"><b>' + aiMark() + 'AiMY</b></span>' +
+                '<span class="s-pan-who"><b>' + aiMark() + 'AiMY</b>' +
+                  '<span class="s-pan-meta">the calls it made itself</span></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.aimy)) + '</span>' +
               '</span>' : '') +
               (c.suppliers ? '<span class="s-pan-p">' +
-                '<span class="s-pan-who"><b>Resources</b></span>' +
+                '<span class="s-pan-who"><b>Lead generators</b>' +
+                  '<span class="s-pan-meta">finding the people and filling them in</span></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.suppliers)) + '</span>' +
               '</span>' : '') +
             '</div>' : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>') +
