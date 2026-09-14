@@ -6561,10 +6561,15 @@
       const k = dealCamp(c);
       const lk = (k && k.sells && k.sells.length ? k.sells[0] : null);
       if (lk) {
-        const lr = byLine[lk] || (byLine[lk] = { k: lk, arr: 0, meetings: 0, spend: 0, pipeline: 0 });
+        const lr = byLine[lk] || (byLine[lk] =
+          { k: lk, arr: 0, meetings: 0, wins: 0, spend: 0, pipeline: 0 });
         lr.spend += s.total;
         if (met) lr.meetings += 1;
-        if (won) lr.arr += acvOf(c).value;
+        /* HOW MANY, not just how much. The card used to divide `arr` by
+           `meetings` and print the quotient, which is an average over a
+           group where a few signed and most did not — a figure describing
+           nobody. The count is the fact that average was standing in for. */
+        if (won) { lr.arr += acvOf(c).value; lr.wins += 1; }
         else if (isDeal(c) && dealLive(c)) lr.pipeline += acvOf(c).value;
       }
     });
@@ -7725,11 +7730,15 @@
                costs two words and removes the question. The subset sits
                beside the whole it is a subset of, rather than at the end of
                the row behind an unrelated count of hours. */
+            /* THE SAME THREE STEPS, AND THE HOURS WERE A REPEAT. People on
+               it, people met, deals signed — a funnel, each term countable.
+               The hours left this row because they are already stated, with
+               their rate, on the People line of the Resources block twelve
+               pixels below it. */
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + c.met + '</b> of them met</span>' +
-              '<span><b>' + Math.round(c.hours) + '</b> ' +
-                (Math.round(c.hours) === 1 ? 'hour' : 'hours') + '</span>' +
+              '<span><b>' + c.wins + '</b> signed</span>' +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
@@ -7904,8 +7913,8 @@
                    rate, it is a rate of zero, and it is the finding. Only a
                    line with no meetings at all has nothing to divide by, and
                    that one keeps the dash. */
-                '<span><b>' + esc(r.meetings ? fmtMoney(r.arr / r.meetings) : '—') +
-                  '</b> each</span>' +
+                '<span><b>' + r.wins + '</b> ' +
+                  (r.wins === 1 ? 'signed' : 'signed') + '</span>' +
                 '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
               '</div>' +
               /* What the line is made of, the way Resources says what a
