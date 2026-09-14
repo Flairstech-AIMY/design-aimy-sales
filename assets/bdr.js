@@ -8436,27 +8436,25 @@
      who is calling somebody on their own record, not on a list they happen
      to be in.
 
-     The second line is how much of the list each of them holds. A name with
-     no share beside it is the half of the fact that decides nothing: six
-     callers where one holds thirty and five hold two is a different list
-     from six holding six each, and the count is what tells them apart. */
+     AND IT IS THE TEAM BLOCK, not a cousin of it. It was written with its
+     own caption — "Who is calling it" — over a second line reading "8 of
+     42", while the campaign's and the lead's both said "The team" over a
+     job. One component drawn three ways is two of them waiting to be missed
+     by the next change, and a reader meeting the third has to work out
+     whether it is the same thing. It is the same thing.
+
+     The share is not lost, it is where a share belongs: the order. Whoever
+     holds most of the list leads it. */
   function listTeam(people) {
     const by = Object.create(null);
     people.forEach((c) => { if (c.owner) by[c.owner] = (by[c.owner] || 0) + 1; });
     const ids = Object.keys(by).sort((x, y) => by[y] - by[x]);
     if (!ids.length) return '';
-    const say = (id) => commas(by[id]) + ' of ' + commas(people.length);
     return '<div class="b-team">' +
       '<div class="b-team-head">' +
-        '<span class="b-cmeta-cap b-team-cap">Who is calling it</span>' +
+        '<span class="b-cmeta-cap b-team-cap">The team</span>' +
       '</div>' +
-      teamFaces(ids, (id) =>
-        '<div class="b-mate">' + faceOf(id, 32) +
-          '<span class="b-mate-t">' +
-            '<span class="b-mate-name">' + esc(id === me().id ? 'You' : actor(id).name) + '</span>' +
-            '<span class="b-mate-role">' + esc(say(id)) + '</span>' +
-          '</span>' +
-        '</div>', { sub: say, cap: 'Who is calling it' }) +
+      teamFaces(ids, (id) => mateRow(id)) +
     '</div>';
   }
   function listPage(l) {
@@ -10178,7 +10176,26 @@
      campaign — owns it, calling — which is a sentence about the campaign
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
-  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };  /* ══ A TEAM THAT DOES NOT FIT ON A LINE ════════════════════════════════
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };
+  /* ══ ONE ROW, THREE BLOCKS ═════════════════════════════════════════════
+     A campaign's team, a lead's team and a list's were three copies of the
+     same nine lines of markup, and they had already started to drift: the
+     list's said "Who is calling it" over a second line reading "8 of 42"
+     while the other two said "The team" over a job. Three drawings of one
+     thing is three places for the next change to be made in two of.
+
+     `sub` is the only part that differs and it differs for a reason: on a
+     lead a colleague has done something to it — "BDR · 7 calls" — and on a
+     campaign or a list they have not, so the job is all there is to say.
+     `off` is the cross, which only a campaign's owner ever gets. */
+  const jobOf = (id) => (REP[id] && JOB[REP[id].fn]) || 'On the team';
+  const mateRow = (id, sub, off) =>
+    '<div class="b-mate">' + faceOf(id, 32) +
+      '<span class="b-mate-t">' +
+        '<span class="b-mate-name">' + esc(id === me().id ? 'You' : actor(id).name) + '</span>' +
+        '<span class="b-mate-role">' + esc(sub || jobOf(id)) + '</span>' +
+      '</span>' + (off || '') +
+    '</div>';  /* ══ A TEAM THAT DOES NOT FIT ON A LINE ════════════════════════════════
      `.b-team` lays a face, a name and a job flat and wraps. That is the
      right drawing for the four people a campaign used to have; measured on
      a crew of seven it is three rows deep and 108px tall, and the block
@@ -10399,16 +10416,6 @@
        write path. What it adds is the same control on a campaign that IS
        running, which is when a manager actually moves somebody. */
     const mine = isMgr() && k.owner === me().id;
-    const row = (id, off) => {
-      const you = id === me().id;
-      return '<div class="b-mate">' + faceOf(id, 32) +
-        '<span class="b-mate-t">' +
-          '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
-          '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the team') + '</span>' +
-        '</span>' +
-        (off || '') +
-      '</div>';
-    };
     return '<div class="b-team">' +
       /* The caption and the verb share a row, which is where this build
          puts the one thing a section does — the same shape `openLoop` uses
@@ -10419,7 +10426,7 @@
         '<span class="b-cmeta-cap b-team-cap">The team</span>' +
         (mine ? crewPick(k) : '') +
       '</div>' +
-      teamFaces(ids, row, { k: mine ? k : null }) +
+      teamFaces(ids, (id, off) => mateRow(id, null, off), { k: mine ? k : null }) +
     '</div>';
   }
 
@@ -12183,14 +12190,7 @@
             }
             return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
-          return teamFaces(ids, (id) =>
-            '<div class="b-mate">' + faceOf(id, 32) +
-              '<span class="b-mate-t">' +
-                '<span class="b-mate-name">' +
-                esc(id === me().id ? 'You' : actor(id).name) + '</span>' +
-                '<span class="b-mate-role">' + esc(say(id)) + '</span>' +
-              '</span>' +
-            '</div>', { sub: say });
+          return teamFaces(ids, (id) => mateRow(id, say(id)), { sub: say });
         })() +
       '</div>' +
     '</section>';
