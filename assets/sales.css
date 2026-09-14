@@ -7973,7 +7973,22 @@ body.is-figures .filter-tray { display: none; }
 
 /* The supporting four. Divided, never boxed. */
 .s-afs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-bottom: 32px; }
-.s-af { display: flex; flex-direction: column; gap: 4px; padding-top: 16px; border-top: 1px solid var(--card-border); min-width: 0; }
+/* ══ PROXIMITY SAYS WHICH LINE BELONGS TO WHICH ══════════════════
+   Three lines at one gap is a stack, not a tile: the caption floated exactly
+   as far from its own figure as the qualifier below it did, so the eye had
+   to read all three to find out which two were a pair. The caption binds
+   TIGHT to the figure it names and the sub-line sits back from both — the
+   one arrangement that makes a tile read as a thing rather than as three
+   consecutive lines that happen to be near each other.
+
+   And the rule above gets room to be a rule. 16px of padding under a 7%
+   hairline reads as a hairline that has slipped; 20 gives it the air that
+   makes it deliberate. */
+.s-af {
+  display: flex; flex-direction: column; gap: 2px;
+  padding-top: 20px; border-top: 1px solid var(--card-border); min-width: 0;
+}
+.s-af .s-af-sub { margin-top: 6px; }
 .s-af-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
@@ -8102,7 +8117,13 @@ body.is-figures .filter-tray { display: none; }
    "what did I spend it on", which is one of the four questions the page
    exists for — and it was set two steps below the panels underneath it,
    so the most consequential list on the surface read as a footnote. */
-.s-cost-say { font-size: var(--fs-md); color: var(--d100); min-width: 0; }
+/* ══ A LIST'S HEAD OUTRANKS ITS ITEMS, AND THIS ONE DID NOT ═══════
+   "The desk" was 16px REGULAR over children set 14px SEMIBOLD — size said
+   parent and weight said child, and a reader resolving that contradiction
+   settles it on weight every time. The group head is the strongest text in
+   its group after the figure, which is what it is: the thing the nine rows
+   under it are nine parts of. */
+.s-cost-say { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
 /* What the row is, under what it is called. The sub-line is where a person
    row says how much of what they cost landed on named work — the one thing
    the figure beside it cannot say on its own. */
@@ -8116,14 +8137,24 @@ body.is-figures .filter-tray { display: none; }
    `--d400` is for a caption repeating what is already visible. A line that
    says something new belongs a step up, and so do the qualifiers after each
    name: "4 at EUR55/h" is the rate, which is data. */
-.s-cost-sub { display: block; font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 4px; }
+/* And it does NOT inherit the head's weight. Making the group label bold
+   made its own qualifier bold with it, which put the loudest weight on the
+   page under the quietest job — a line that says what the figure counts. */
+.s-cost-sub {
+  display: block; font-size: var(--fs-xs); font-weight: var(--fw-regular);
+  color: var(--ink-muted); margin-top: 4px;
+}
 .s-cost-v {
   font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: var(--d50);
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
   text-align: right; min-width: 96px;
 }
+/* A SHARE IS THE COMPARISON, NOT THE DATA. At semibold it collided exactly
+   — same size, same weight, same ink — with the child label immediately
+   under it, so "100%" and "BDRs" read as two items in one list. The amount
+   beside it is what was spent; this says how much of the whole that was. */
 .s-cost-pc {
-  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-quiet);
+  font-size: var(--fs-xs); font-weight: var(--fw-regular); color: var(--ink-quiet);
   font-variant-numeric: tabular-nums; text-align: right; min-width: 44px;
 }
 /* THE GROUP IS THE ROW; THE CHILDREN ARE THE ANSWER TO "OF WHAT". Indented
@@ -8143,7 +8174,11 @@ body.is-figures .filter-tray { display: none; }
   align-items: baseline; gap: 16px;
 }
 .s-cost-kid .s-cost-say { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
-.s-cost-kid .s-cost-v { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); min-width: 72px; }
+/* ONE STEP OF INK IS NOT A RANK. The label and its own figure were the same
+   size, the same weight and one rung apart — the single axis of difference
+   this file calls a flat block everywhere else it finds one. The figure
+   takes the top of the ramp, because it is the thing being read. */
+.s-cost-kid .s-cost-v { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); min-width: 72px; }
 .s-cost-note { color: var(--ink-quiet); font-weight: var(--fw-regular); }
 
 /* One question per section, beside the heading it belongs to. A single row
@@ -8258,9 +8293,31 @@ body.is-figures .filter-tray { display: none; }
   text-align: right; margin-top: 4px;
 }
 
+/* ══ WHAT IT RETURNED, WHICH IS WHAT THE SECTION RANKS BY ═════════
+   Between the head and the inputs, because that is the reading order the
+   section's own eyebrow promises: what it signed, against what it cost.
+   The multiple is set at the body step rather than the figure step — the
+   signed amount is still the panel's one loud number, and a second 24px
+   figure beside it would make the panel argue with itself about which is
+   the headline. */
+.s-pan-ret {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
+  margin: 12px 0 0; font-size: var(--fs-xs); color: var(--ink-secondary);
+}
+.s-pan-x {
+  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: var(--ls-tight); font-variant-numeric: tabular-nums;
+}
+/* Under one it cost more than it brought back. Not a scale above that: 4×
+   and 200× are both working, and tinting between them would invent a bar
+   this page has never set. */
+.s-pan-x.tone-err { color: var(--err-text); }
+/* The baseline the multiple is a multiple OF, pushed to the end of the line
+   so the comparison reads before the thing compared. */
+.s-pan-base { margin-left: auto; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;
-  font-size: var(--fs-xs); color: var(--ink-quiet); margin-top: 16px;
+  font-size: var(--fs-xs); color: var(--ink-quiet); margin-top: 12px;
 }
 .s-pan-facts b { color: var(--d100); font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); }
 .s-pan-facts .is-good b { color: var(--ok-text); }
