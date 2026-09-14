@@ -7192,13 +7192,26 @@
          part and the whole cannot be mistaken for different things. The
          parent sums the children it prints rather than re-deriving, so the
          list reconciles by construction. */
-      { k: 'people', say: 'The desk', v: un.payroll,
+      /* ══ THE WORDS A COST LINE IS CALLED BY ════════════════════
+         "The desk" is sales-floor slang for the room, and as the heading of a
+         payroll total it names a place rather than a cost. `payrollRows`
+         multiplies a role's rate by its hours, so the figure is salaries and
+         the word is Salaries. "Resources" for the other, at Nour's direction,
+         and it is the better half of the pair: Suppliers names who you bought
+         from, Resources names what you bought — which is what a list headed
+         "what you spent it on" is answering. */
+      { k: 'people', say: 'Salaries', v: un.payroll,
+        /* PLURAL, BECAUSE THE SINGULAR INVITED A QUESTION IT CANNOT ANSWER.
+           "€3,936 of it on a campaign" reads as one campaign somebody could
+           name; the figure is the sum across every campaign these hours were
+           logged against. What the line says is how much of the payroll
+           landed on named work AT ALL, which is the finding underneath it. */
         sub: plural(un.people.length, 'person') + ' · ' +
-          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' of it on a campaign',
+          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' of it on campaigns',
         rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
-          note: fmtMoney(r.onCost) + ' of it on a campaign',
+          note: fmtMoney(r.onCost) + ' of it on campaigns',
           v: r.cost })) },
-      { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
+      { k: 'supp', say: 'Resources', v: now.spend.src + now.spend.enrich,
         sub: 'every attempt, not only the ones that answered',
         rows: [{ say: 'Finding people', note: 'LinkedIn, the brokers and the crawl', v: now.spend.src },
           { say: 'Filling in details', note: 'a number and an address', v: now.spend.enrich }] },
@@ -7376,16 +7389,19 @@
            closes, on no window at all. Two labels, two figures, and the one
            thing they must not do is share a name. */
         attFig('Potential', fmtMoney(pipe.weighted),
-          done ? 'of ' + fmtMoney(pipe.all) + ' open today, after this window closed'
-            /* THE BAR IS A PARENTHESIS, NOT A SENTENCE. It read "20.7× the
-               €27k needed, and three times is the bar" — a clause of teaching
-               tacked onto a figure, on a tile whose three neighbours say
-               their piece in six words. The bar is the baseline for the
-               ratio and it stays, at the size of the thing it is: an aside
-               that qualifies a number, not a lesson. */
-            : a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
-              : ' · ' + Math.round(a.coverage) + '× what you still need')
-              : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
+          /* ══ THE COVERAGE MULTIPLE GOES, AND "OF" WAS WRONG ANYWAY ═════
+             "21× what you still need" compares two figures a centimetre apart
+             on the same row — €560k here, €27k on the tile immediately left.
+             The eye does that without being told, and at twenty-one times
+             the multiple carries no decision: the answer is "plenty", which
+             two adjacent numbers already say. It survived three rewrites as
+             a parenthesis because the parenthesis was never the problem.
+
+             And €560k is not a slice OF €1.6m. It is €1.6m discounted by how
+             often each stage actually closes. "From" is what that is. */
+          done ? 'from ' + fmtMoney(pipe.all) + ' still open, after this window closed'
+            : a.gap ? 'from ' + fmtMoney(pipe.all) + ' of open deals'
+              : 'from ' + fmtMoney(pipe.all) + ' of open deals, and the target is already met',
           /* ══ COLOUR THE FIGURE ONLY WHEN THE FIGURE IS THE VERDICT ══════
              This tinted the figure amber whenever coverage fell under three
              times — so €395k, which is straightforwardly good news, wore
@@ -7436,10 +7452,23 @@
            from recorded in "Paid off", inherited by the phrase that replaced
            it. What it is, is what went out; the line underneath says what
            came back. */
+        /* ══ TWO CLAUSES, AND THE SECOND WAS ABOUT SOMETHING ELSE ══════
+           "12.8 months to break even" under a tile reading SPENT €210k says
+           the €210k breaks even in 12.8 months. It does not: `payback` is
+           spend-per-win divided by one customer's monthly gross profit — how
+           long ONE CUSTOMER takes to repay what it cost to win them. The
+           figure keeps the one place it is already said correctly, in the
+           ask below: "It takes 12.8 months for a customer to repay what they
+           cost." Here it was a true number under a false subject.
+
+           AND THE RATIO NAMES ITS UNIT. `ros` is this window's won ARR over
+           this window's spend — a YEAR of revenue against a QUARTER of cost.
+           That is the standard efficiency ratio and it is fine, as long as it
+           says so; "€1.30 back for every €1" claims cash returned. One word
+           fixes it, and it is the same word the rest of the page needed. */
         attFig('Spent', fmtMoney(now.spend.total),
-          now.payback == null ? 'nothing has closed against it yet'
-            : '€' + now.ros.toFixed(2) + ' back for every €1 · ' +
-              now.payback.toFixed(1) + ' months to break even') +
+          now.ros == null ? 'nothing spent in this window'
+            : '€' + now.ros.toFixed(2) + ' a year for every €1 spent') +
       '</div>' +
 
       '<section class="s-exec-sec">' +
@@ -7504,7 +7533,7 @@
           '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg>' +
           '<span class="s-insight-txt">Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what ' +
-            'you pay for lands on a campaign &mdash; <b>' + esc(fmtMoney(un.logged)) +
+            'you pay for lands on campaigns &mdash; <b>' + esc(fmtMoney(un.logged)) +
             '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody logged, ' +
             'so you cannot tell what it bought.</span>' +
         '</div>') +
@@ -7512,7 +7541,13 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<h2 class="s-exec-eyebrow">What each campaign gained</h2>' +
+          /* THE HEADING AND ITS NOTE WERE ONE SENTENCE TWICE. "What each
+             campaign gained" over "What each one gained, against what it
+             cost" is the heading read out again with a clause added. A
+             heading asks the question the section answers; the note says
+             what is counted. Split that way neither repeats the other, and
+             the heading is the same question as the ask beside it. */
+          '<h2 class="s-exec-eyebrow">Which campaigns paid off</h2>' +
           secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
             'against what they have returned, and tell me which one I should stop and what I ' +
             'would lose by stopping it.') +
@@ -7528,8 +7563,12 @@
            A definition is stated once, where the thing is introduced. Only
            the crew rows keep a second line, because theirs is the one that
            changes: a job, hours and a rate, different on every row. */
-        '<p class="s-exec-note">What each one gained, against what it cost — the hours ' +
-          'logged on it, the calls AiMY made, and what the suppliers charged.</p>' +
+        /* NO NOTE. "Which campaigns paid off" is the question and the panels
+           are the answer; a paragraph between them defining what counts as
+           cost is a legend for a table nobody asked for a legend to. What it
+           listed — hours, AiMY's calls, resources — is the crew block inside
+           every panel, itemised, a few lines below. Said twice is said once
+           too often, and the heading is the half that carries. */
         (camps.length ? '<div class="s-pans">' +
           camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
             '<div class="s-pan-head">' +
@@ -7591,9 +7630,14 @@
                  same fact twice, in two runs set identically, which is the
                  flat pair this whole pass exists to remove. The multiple and
                  the sum it is a multiple of belong in one sentence. */
-              '<span class="s-pan-base">back on ' + esc(fmtMoney(c.total)) + ' spent</span></p>'
+              /* ONE CLAUSE, BOTH NUMBERS. "back on €670 spent" left the
+                 multiple with nothing to multiply: 208× WHAT sat in the
+                 reader's head for the length of a line. Naming the sum the
+                 multiple is OF closes it, and ties the panel's two figures
+                 together — 208 × €670 is the €139k in the corner. */
+              '<span class="s-pan-base">the ' + esc(fmtMoney(c.total)) + ' it cost</span></p>'
               : c.total ? '<p class="s-pan-ret">' +
-                '<span class="s-pan-base">' + esc(fmtMoney(c.total)) + ' spent, nothing back yet</span></p>'
+                '<span class="s-pan-base">cost ' + esc(fmtMoney(c.total)) + ', nothing gained yet</span></p>'
               : '') +
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
@@ -7670,7 +7714,7 @@
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.aimy)) + '</span>' +
               '</span>' : '') +
               (c.suppliers ? '<span class="s-pan-p">' +
-                '<span class="s-pan-who"><b>Suppliers</b></span>' +
+                '<span class="s-pan-who"><b>Resources</b></span>' +
                 '<span class="s-pan-cost">' + esc(fmtMoney(c.suppliers)) + '</span>' +
               '</span>' : '') +
             '</div>' : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>') +

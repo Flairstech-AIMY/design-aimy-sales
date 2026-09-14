@@ -8338,9 +8338,12 @@ body.is-figures .filter-tray { display: none; }
    and 200× are both working, and tinting between them would invent a bar
    this page has never set. */
 .s-pan-x.tone-err { color: var(--err-text); }
-/* The baseline the multiple is a multiple OF, pushed to the end of the line
-   so the comparison reads before the thing compared. */
-.s-pan-base { margin-left: auto; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+/* The sum the multiple is a multiple OF. It used to be pushed to the far end
+   of the row, which was defensible while it was a separate statement
+   ("back on EUR670 spent") and is not now that it finishes the sentence the
+   figure starts. "208x" at one edge and "the EUR670 it cost" at the other is
+   a clause with the panel's whole width wedged into it. */
+.s-pan-base { color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;
   font-size: var(--fs-xs); color: var(--ink-quiet); margin-top: 12px;
