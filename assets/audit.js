@@ -64,6 +64,7 @@ const MARKERS = {
   'ntf-id': 'the task id AiMY QA\'s panel writes on each row for its own bookkeeping',
   'state': 'the pipeline row mark remembers which glyph it holds, so a frame that changes nothing redraws nothing',
   'done': 'the pipeline footer remembers whether it has flipped to its finished verbs',
+  'chat-rename-in': 'which conversation the rename box is renaming, read by the keydown and focusout listeners that commit it',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */

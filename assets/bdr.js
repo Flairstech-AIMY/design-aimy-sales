@@ -14265,7 +14265,11 @@
     el.classList.add('is-leaving');
     setTimeout(() => { if (el.parentNode) el.remove(); }, 200);
   }
-  function toast(msg, undo) {
+  /* `sub` is the library's own second line and this build had never passed
+     one. Copy link needs it: the link is real and it works for you, and a
+     receipt that did not say conversations live in this browser would be the
+     one place this build lied about what it is. */
+  function toast(msg, undo, sub) {
     /* The library's toast, with its own clock: `.aimy-toast-progress` scales
        from 1 to 0 over the toast's life, so a receipt carrying an Undo says
        how long you have rather than reading as stuck. */
@@ -14275,7 +14279,8 @@
     const inner =
       '<span class="aimy-toast-icon"><svg width="13" height="15" viewBox="0 0 18 20">' +
         '<use href="#aimy-logo-small"/></svg></span>' +
-      '<span class="aimy-toast-body"><span class="aimy-toast-title">' + esc(msg) + '</span></span>' +
+      '<span class="aimy-toast-body"><span class="aimy-toast-title">' + esc(msg) + '</span>' +
+        (sub ? '<span class="aimy-toast-sub">' + esc(sub) + '</span>' : '') + '</span>' +
       (undo ? '<span class="aimy-toast-divider"></span>' +
         '<button class="aimy-toast-undo" type="button" data-undo>Undo</button>' : '') +
       '<span class="aimy-toast-progress"><span class="aimy-toast-progress-fill" ' +
@@ -14624,13 +14629,28 @@
     clock: '<circle cx="12" cy="12" r="10"/> <polyline points="12 6 12 12 16 14"/>',
     money: '<rect width="20" height="12" x="2" y="6" rx="2"/> <circle cx="12" cy="12" r="2"/> <path d="M6 12h.01M18 12h.01"/>',
     linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/> <rect width="4" height="12" x="2" y="9"/> <circle cx="4" cy="4" r="2"/>',
+    /* The four a conversation's own menu draws, and the three dots that open
+       it. AiMY Knowledge's, path for path, because the column they sit in is
+       Knowledge's too. */
+    pen: '<path d="M13 21h8"/> <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
+    pin: '<path d="M12 17v5"/> <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
+    share: '<circle cx="18" cy="5" r="3"/> <circle cx="6" cy="12" r="3"/> <circle cx="18" cy="19" r="3"/> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
+    trash: '<path d="M10 11v6"/> <path d="M14 11v6"/> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/> <path d="M3 6h18"/> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    more: '<circle cx="12" cy="12" r="1"/> <circle cx="19" cy="12" r="1"/> <circle cx="5" cy="12" r="1"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
      line without the mark drifting off the first line of a wrapped fact. */
   const fact = (k, html) => '<span class="b-fact">' + chIcon(k) + '<span>' + html + '</span></span>';
 
-  const chIcon = (k) =>
+  /* A SIZE, WHERE THE STYLESHEET CANNOT GIVE ONE. Every mark in this build
+     is sized by the rule around it, which is right where there is a rule —
+     and the conversation menu lifted from AiMY Knowledge has none, because
+     there the icon table carries `width` and `height` itself. Rather than
+     add rules Knowledge does not have, the two call sites that need it ask
+     for it. Optional, so the forty that do not are untouched. */
+  const chIcon = (k, px) =>
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    (px ? 'width="' + px + '" height="' + px + '" ' : '') +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (ICONS[k] || '') + '</svg>';
 
@@ -15716,6 +15736,12 @@
   let CHATS = [];
   let CHAT_AT = null;
   let CHAT_Q = '';
+  /* Which row has its menu open, and which row is being renamed. Knowledge's
+     two pieces of column state and its encoding: `CHAT_MENU` holds an id for
+     the menu and `'!' + id` for the delete confirm, so one variable carries
+     both rungs and no two rows can be open at once. */
+  let CHAT_MENU = '';
+  let CHAT_EDIT = '';
   /* Twelve. The delta shares a five-megabyte quota with the corpus delta,
      and a thread carrying a prep sheet is not small — an unbounded history
      is a store that fails late and silently, which is the one failure this
@@ -15749,6 +15775,25 @@
   function chatRec() {
     return CHAT_AT ? CHATS.filter((x) => x.id === CHAT_AT)[0] : null;
   }
+  /* ══ THE SECOND LINE, AND WHY IT IS NOT THE ANSWERER ═══════════════════
+     Knowledge's row carries the agent that answered under the title, which
+     is a choice its reader made and ours does not have: here every answer is
+     AiMY, and a word repeated on every row is not a hierarchy, it is a
+     watermark. What varies — and what a reader actually picks a row by — is
+     the record it was about.
+
+     Written once, when the record is minted, rather than on every sync: it
+     is where you were when the conversation STARTED, not where you happen to
+     be while re-reading it.
+
+     The board is not a record and gets no line, which is the same rule
+     Knowledge applies to the one thread nobody started: it names no agent,
+     because labelling it would claim an author for the page itself. */
+  function chatOn() {
+    const rec = (S.con && DB.byCon[S.con]) || (S.camp && DB.byCamp[S.camp]) ||
+      (S.acc && DB.byAcc[S.acc]) || (S.list && DB.byList[S.list]);
+    return rec ? rec.name : '';
+  }
   function chatSync() {
     if (!TURNS.length) return;
     /* ══ A MESSAGE NOBODY ANSWERED IS NOT A CONVERSATION ═══════════════
@@ -15764,12 +15809,16 @@
     if (TURNS.length === 1 && TURNS[0].step === 'reach') return;
     let rec = chatRec();
     if (!rec) {
-      rec = { id: 'ch' + Date.now().toString(36), at: new Date().toISOString(), title: '', turns: [] };
+      rec = { id: 'ch' + Date.now().toString(36), at: new Date().toISOString(),
+        title: '', on: chatOn(), turns: [] };
       CHATS.unshift(rec);
       CHAT_AT = rec.id;
     }
     rec.turns = TURNS.slice();
-    rec.title = chatTitle(rec.turns);
+    /* Not over a name somebody typed. This runs after every paint and
+       re-derives the title from the first question, which would put the
+       question back the moment you said anything else. */
+    if (!rec.named) rec.title = chatTitle(rec.turns);
     if (CHATS.length > CHAT_KEEP) CHATS = CHATS.slice(0, CHAT_KEEP);
     DELTA.chat = CHATS;
     saveSoon();
@@ -15809,41 +15858,77 @@
       DELTA.chat = CHATS;
       saveSoon();
       paintChats();
-    });
+    }, 'Removed from this browser');
+  }
+  /* A pin is a statement that this one is not to be found by date, which is
+     why it comes out as its own band rather than as a mark on a row in
+     place. */
+  function pinChat(id) {
+    const rec = CHATS.filter((x) => x.id === id)[0];
+    if (!rec) return;
+    rec.pinned = !rec.pinned;
+    DELTA.chat = CHATS;
+    saveSoon();
+  }
+  /* Renaming happens in place — a modal for a title is a ceremony, and the
+     row is where the name is read. It commits on Enter and on blur, because
+     a title left behind by clicking elsewhere is a title somebody meant to
+     set, and abandons on Escape. An empty box keeps the old name rather than
+     leaving a row with nothing to read. */
+  function commitRename(box, keep) {
+    const rec = CHATS.filter((x) => x.id === box.getAttribute('data-chat-rename-in'))[0];
+    const v = String(box.value || '').trim();
+    if (keep && v && rec) {
+      rec.title = v.length > 72 ? v.slice(0, 70).replace(/\s+\S*$/, '') + '…' : v;
+      rec.named = true;
+      DELTA.chat = CHATS;
+      saveSoon();
+    }
+    CHAT_EDIT = '';
+    paintChats();
   }
 
   /* Knowledge's bands, and its reason for bucketing rather than walking:
      the list is ordered by recency and a band is a range of dates, so one
      band can be entered, left and entered again — which printed a heading
      twice with another wedged between its halves. Buckets can only produce
-     each heading once. Pinned is not here; nothing in this build pins a
-     conversation and a group that can never fill is a heading nobody sees. */
+     each heading once.
+
+     Pinned is a band of its own and keeps the top, because a pin says this
+     one is not to be found by date. It was left out while nothing in this
+     build could pin a conversation — the menu can now, and a heading that
+     can fill is a heading that belongs. */
   function chatGroups(rows) {
-    const CAP = ['Today', 'Yesterday', 'Earlier this week', 'This month', 'Older'];
+    const CAP = ['Pinned', 'Today', 'Yesterday', 'Earlier this week', 'This month', 'Older'];
     const band = (r) => {
+      if (r.pinned) return 0;
       const d = -daysBetween(TODAY_ISO, (r.at || '').slice(0, 10));
-      return d <= 0 ? 0 : d === 1 ? 1 : d < 7 ? 2 : d < 30 ? 3 : 4;
+      return d <= 0 ? 1 : d === 1 ? 2 : d < 7 ? 3 : d < 30 ? 4 : 5;
     };
     const buckets = CAP.map(() => []);
     rows.forEach((r) => buckets[band(r)].push(r));
     return buckets.map((ks, i) => ({ cap: CAP[i], rows: ks })).filter((g) => g.rows.length);
   }
-  /* ══ AND "ON SCREEN" IS NOT IN IT ══════════════════════════════════════
-     The column opened with a group of one naming whatever surface you had
-     left behind the canvas. The thread already says that, four hundred
-     pixels to the right, in the BASED ON chip above the first turn — which
-     is where it belongs, because it is a fact about the ANSWERS and not
-     about the history. A column headed "On screen" over one immovable row,
-     above the list it exists for, is a heading spent on the one thing the
-     reader cannot choose.
+  /* ══ AND THE COLUMN IS DRAWN THE WAY KNOWLEDGE DRAWS IT ════════════════
+     What stood here was a reading of Knowledge's column rather than
+     Knowledge's column: same idea, this build's prefix, and four things
+     quietly dropped along the way — the filled control at the top, the
+     Pinned band, the menu a row carries, and the second line under a title.
+     Each of those was argued away one at a time, and together they were the
+     component.
 
-     Starting a conversation leads, because starting is the verb; finding
-     one is second, because a list you scroll to search is a list you have
-     already failed to search. Both of those are Knowledge's order and its
-     reasoning. What is not taken is the filled pill: Knowledge's own note
-     on its gate says not one of Claude, Gemini, Mistral, Grok or Perplexity
-     fills that control, because it is the most obvious action on the panel
-     and obvious actions do not need shouting. */
+     So this emits Knowledge's markup, class for class, and the stylesheet it
+     hangs on is Knowledge's file lifted whole (sales.css, THE CHAT COLUMN IS
+     AiMY KNOWLEDGE'S). Two names differ and both are named where they are
+     used: `b-sr` for the off-screen label, because this build already has
+     that rule under its own name, and the second line carries the record a
+     conversation was had on rather than the agent that answered it, because
+     there is one agent here and a word on every row is not a hierarchy.
+
+     WHAT "ON SCREEN" WAS. The column opened with a group of one naming
+     whatever surface you had left behind the canvas — a heading spent on the
+     one row the reader cannot choose. That fact is now the quiet line under
+     a title, where a fact that varies belongs. */
   function paintChats() {
     const host = byId('overlayChats');
     if (!host) return;
@@ -15852,41 +15937,92 @@
       String(t.html || '').replace(/<[^>]+>/g, ' ')).join(' ')).toLowerCase();
     /* Title AND what was said, because you remember a conversation by
        something in it as often as by how it opened. */
-    const rows = q ? CHATS.filter((r) => hay(r).indexOf(q) >= 0) : CHATS;
-    const row = (r) =>
-      '<div class="b-chat-row' + (r.id === CHAT_AT ? ' is-here' : '') + '">' +
-        '<button class="b-chat-item" type="button" data-openchat="' + esc(r.id) + '">' +
-          '<span class="b-chat-name">' + esc(r.title || 'New conversation') + '</span>' +
-          (r.turns.length ? '<span class="b-chat-n">' + commas(r.turns.length) + '</span>' : '') +
-        '</button>' +
-        '<button class="b-chat-x" type="button" data-chatdel="' + esc(r.id) + '" ' +
-          'aria-label="' + esc('Delete ' + (r.title || 'this conversation')) + '">' +
-          chIcon('x') + '</button>' +
+    const hits = (r) => !q || hay(r).indexOf(q) >= 0;
+    /* WHAT YOU HAVE OPEN IS NEVER FILTERED OUT. A search that could hide the
+       conversation in front of you would be answering a different question
+       from the one being asked. */
+    const found = CHATS.filter((r) => r.id === CHAT_AT || hits(r));
+    /* … WHICH IS WHY THE MISS IS COUNTED WITHOUT IT. Keyed off `found`, a
+       search matching nothing would look exactly like a search matching one
+       thing, with no line saying so. What the reader wants to know is
+       whether anything ELSE matched. */
+    const others = found.filter((r) => r.id !== CHAT_AT);
+
+    const rowMenu = (r) => '<div class="ov-chat-menu" role="menu">' +
+        '<button class="ov-chat-mi" type="button" role="menuitem" data-chat-rename="' +
+          esc(r.id) + '">' + chIcon('pen', 14) + 'Rename</button>' +
+        '<button class="ov-chat-mi" type="button" role="menuitem" data-chat-pin="' +
+          esc(r.id) + '">' + chIcon('pin', 14) + (r.pinned ? 'Unpin' : 'Pin to top') + '</button>' +
+        '<button class="ov-chat-mi" type="button" role="menuitem" data-chat-share="' +
+          esc(r.id) + '">' + chIcon('share', 14) + 'Copy link</button>' +
+        '<button class="ov-chat-mi is-danger" type="button" role="menuitem" data-chat-del="' +
+          esc(r.id) + '">' + chIcon('trash', 14) + 'Delete</button>' +
       '</div>';
+    const rowConfirm = (r) => '<div class="ov-chat-menu" role="menu">' +
+        '<div class="ov-chat-mq">Delete this conversation?</div>' +
+        '<button class="ov-chat-mi" type="button" data-chat-menu="">Keep it</button>' +
+        '<button class="ov-chat-mi is-danger" type="button" data-chat-del-ok="' +
+          esc(r.id) + '">' + chIcon('trash', 14) + 'Delete</button>' +
+      '</div>';
+    /* A WRAPPER, because the menu control cannot live inside the row. The row
+       is a <button> and a button inside a button is invalid markup browsers
+       silently reparent — the control would end up outside the row it
+       belongs to. The wrapper makes them siblings. */
+    const row = (r) =>
+      '<div class="ov-chat-row' + (CHAT_MENU.replace(/^!/, '') === r.id ? ' is-menu' : '') + '">' +
+      (CHAT_EDIT === r.id
+        ? '<input class="ov-chat-rename" id="chatRename" value="' + esc(r.title) + '" ' +
+            'data-chat-rename-in="' + esc(r.id) + '" spellcheck="false" autocomplete="off" ' +
+            'aria-label="Rename conversation" />'
+        : '<button class="ov-chat' + (r.id === CHAT_AT ? ' is-here' : '') + '" type="button" ' +
+            'data-chat="' + esc(r.id) + '"' + (r.id === CHAT_AT ? ' aria-current="true"' : '') + '>' +
+            '<span class="ov-chat-lines">' +
+              '<span class="ov-chat-name">' +
+                (r.pinned ? '<span class="ov-chat-pin" aria-label="Pinned">' +
+                  chIcon('pin', 10) + '</span>' : '') +
+                esc(r.title || 'New conversation') + '</span>' +
+              (r.on ? '<span class="ov-chat-agent">' + esc(r.on) + '</span>' : '') +
+            '</span>' +
+            (r.turns.length ? '<span class="ov-chat-n">' + commas(r.turns.length) + '</span>' : '') +
+          '</button>') +
+      (CHAT_EDIT === r.id ? ''
+        : '<button class="ov-chat-more" type="button" data-chat-menu="' + esc(r.id) + '" ' +
+            'aria-haspopup="menu" aria-expanded="' +
+            (CHAT_MENU.replace(/^!/, '') === r.id ? 'true' : 'false') + '" ' +
+            'aria-label="More for this conversation">' + chIcon('more', 14) + '</button>') +
+      (CHAT_MENU === r.id ? rowMenu(r) : CHAT_MENU === '!' + r.id ? rowConfirm(r) : '') +
+      '</div>';
+
     host.innerHTML =
-      '<button class="b-chat-new" type="button" data-newchat>' + chIcon('plus') +
-        'New conversation</button>' +
-      (CHATS.length > 1 || q
-        /* `aria-label` rather than Knowledge's visually-hidden `<span>`:
-           that class is theirs and this build has no equivalent, and one
-           attribute says the same thing to a screen reader without a rule
-           whose only job is to hide something. */
-        ? '<label class="b-chat-find">' +
-          '<input class="b-chat-input" type="search" id="chatFind" data-chatfind ' +
-            'aria-label="Find a conversation" ' +
-            'placeholder="Find a conversation…" spellcheck="false" autocomplete="off" ' +
-            'value="' + esc(CHAT_Q) + '" /></label>'
-        : '') +
-      (rows.length
-        ? chatGroups(rows).map((g) => '<div class="b-chat-group">' +
-            '<div class="b-chat-cap">' + esc(g.cap) + '</div>' +
-            g.rows.map(row).join('') + '</div>').join('')
-        : '<p class="b-chat-none">' + (q
-            ? 'Nothing matches “' + esc(CHAT_Q) + '” — in a title or in anything said.'
-            : 'Nothing yet. Ask AiMY something and it lands here.') + '</p>');
+      '<button class="btn btn-brand btn-sm ov-chat-new" type="button" data-newchat>' +
+        chIcon('plus') + 'New conversation</button>' +
+      '<label class="ov-chat-find">' +
+        /* Knowledge's off-screen label, under this build's name for the same
+           rule: `k-sr` there, `b-sr` here. */
+        '<span class="b-sr">Find a conversation</span>' +
+        '<input class="ov-chat-input" type="search" id="chatFind" ' +
+          'placeholder="Find a conversation…" spellcheck="false" autocomplete="off" ' +
+          'value="' + esc(CHAT_Q) + '" /></label>' +
+      (q
+        ? (found.length
+            ? '<div class="ov-chat-group"><div class="ov-chat-cap">Found</div>' +
+              found.map(row).join('') + '</div>'
+            : '')
+        : chatGroups(found).map((g) => '<div class="ov-chat-group">' +
+            '<div class="ov-chat-cap">' + esc(g.cap) + '</div>' +
+            g.rows.map(row).join('') + '</div>').join('')) +
+      (q && !others.length
+        ? '<p class="ov-chat-none">Nothing else matches “' + esc(CHAT_Q) +
+          '” — in a title or in anything said.</p>'
+        /* A STATE KNOWLEDGE CANNOT REACH, which is why its column has no line
+           for it: there the thread you are standing in is always in the list.
+           Here the store starts empty, and the column would open as a control
+           over a search box with nothing under either. */
+        : !q && !CHATS.length
+          ? '<p class="ov-chat-none">Nothing yet. Ask AiMY something and it lands here.</p>'
+          : '');
     /* The caret goes back where it was: repainting the column on every
-       keystroke would otherwise send it to the end of the word. Knowledge's
-       line, for Knowledge's reason. */
+       keystroke would otherwise send it to the end of the word. */
     const box = byId('chatFind');
     if (box && document.activeElement !== box && CHAT_Q) {
       box.focus();
@@ -18876,6 +19012,15 @@
   document.addEventListener('click', (e) => {
     const t = e.target;
 
+    /* ══ A MENU CLOSES ON THE CLICK THAT LEAVES IT ═════════════════════
+       Deliberately does NOT return: the click that closes a menu is usually
+       also a click on something else, and swallowing it would make every
+       first press after opening one do nothing. Knowledge's line, at the
+       top of the router rather than beside the conversation branches,
+       because ninety branches sit above those and any of them would
+       otherwise carry you away with the menu still open behind you. */
+    if (CHAT_MENU && !t.closest('.ov-chat-row')) { CHAT_MENU = ''; paintChats(); }
+
     const home = t.closest('[data-home]');
     if (home) { go(cleared()); return; }
 
@@ -19297,10 +19442,59 @@
        where it can be read and copied rather than fired off. */
     const nc = t.closest('[data-newchat]');
     if (nc) { newChat(); return; }
-    const oc = t.closest('[data-openchat]');
-    if (oc) { openChat(oc.getAttribute('data-openchat')); return; }
-    const cd = t.closest('[data-chatdel]');
-    if (cd) { dropChat(cd.getAttribute('data-chatdel')); return; }
+
+    /* ══ THE CONVERSATION'S OWN CONTROLS, BEFORE THE ROW ITSELF ════════
+       Knowledge's ordering, and its reason: every one of these lives inside
+       `.ov-chat-row`, so placed after the branch that opens a row a press on
+       Rename would open the conversation instead. */
+    const cm = t.closest('[data-chat-menu]');
+    if (cm) {
+      const k = cm.getAttribute('data-chat-menu');
+      CHAT_MENU = (!k || CHAT_MENU === k) ? '' : k;
+      paintChats();
+      return;
+    }
+    const cr = t.closest('[data-chat-rename]');
+    if (cr) {
+      CHAT_EDIT = cr.getAttribute('data-chat-rename');
+      CHAT_MENU = '';
+      paintChats();
+      /* Selected rather than caret-placed: the title is a whole question,
+         and renaming almost always means replacing it, not editing a word. */
+      const box = byId('chatRename');
+      if (box) { box.focus(); box.select(); }
+      return;
+    }
+    const cp = t.closest('[data-chat-pin]');
+    if (cp) { pinChat(cp.getAttribute('data-chat-pin')); CHAT_MENU = ''; paintChats(); return; }
+    const cs = t.closest('[data-chat-share]');
+    if (cs) {
+      /* Home, plus this conversation — `cleared()` puts every key back to
+         its default and keeps `as`, so a link a manager copies opens at the
+         manager's desk rather than at a caller's. */
+      const url = location.origin + qs(Object.assign(cleared(), { chat: cs.getAttribute('data-chat-share') }));
+      CHAT_MENU = '';
+      paintChats();
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => {}, () => {});
+      /* SAID PLAINLY. The link is real and it works — for you. Conversations
+         live in this browser, so it opens empty for anybody else, and a
+         share control that did not say so would be the one place this build
+         lied about what it is. */
+      toast('Link copied', null,
+        'Opens this conversation in your browser. Nobody else can read it yet.');
+      return;
+    }
+    /* Two rungs, and the first is not destructive. A conversation is not
+       corpus data, so it does not deserve a typed confirmation — but it does
+       deserve more than one click on a menu item sitting where Rename was a
+       moment ago. */
+    const cd = t.closest('[data-chat-del]');
+    if (cd) { CHAT_MENU = '!' + cd.getAttribute('data-chat-del'); paintChats(); return; }
+    const cok = t.closest('[data-chat-del-ok]');
+    if (cok) { CHAT_MENU = ''; dropChat(cok.getAttribute('data-chat-del-ok')); return; }
+
+    const oc = t.closest('[data-chat]');
+    if (oc) { openChat(oc.getAttribute('data-chat')); return; }
 
     const rch = t.closest('[data-reach]');
     if (rch) {
@@ -19549,8 +19743,7 @@
     /* The conversation search repaints its own column and nothing else, so
        it is safe on every keystroke — the caret is put back by `paintChats`
        for exactly that reason. */
-    const cq = e.target.closest && e.target.closest('[data-chatfind]');
-    if (cq) { CHAT_Q = cq.value; paintChats(); return; }
+    if (e.target && e.target.id === 'chatFind') { CHAT_Q = e.target.value; paintChats(); return; }
     /* A field writes on every keystroke and redraws on none of them: a
        repaint mid-word takes the caret with it. The page catches up when you
        leave the field, which is also when what is still missing changes. */
@@ -19935,6 +20128,20 @@
     }, true);
   }
 
+  /* The rename box is replaced by every repaint, so neither of these can be
+     bound to the element — they are on the document and find it by id, which
+     is Knowledge's arrangement for Knowledge's reason. */
+  document.addEventListener('keydown', (e) => {
+    const box = e.target;
+    if (!box || box.id !== 'chatRename') return;
+    if (e.key === 'Enter') { e.preventDefault(); commitRename(box, true); }
+    else if (e.key === 'Escape') { e.preventDefault(); commitRename(box, false); }
+  });
+  document.addEventListener('focusout', (e) => {
+    const box = e.target;
+    if (box && box.id === 'chatRename' && CHAT_EDIT) commitRename(box, true);
+  });
+
   window.addEventListener('resize', () => placeSwitchBar(null));
   /* The webfont lands after the first paint and the buttons narrow under
      the bar; it is placed again when the fonts are in. */
@@ -19957,9 +20164,23 @@
   load();
   parse();
   paint();
-  /* After the first paint, because she is talking about the board and the
-     board has to exist to be talked about. */
-  reachGreet();
+  /* ══ AND A LINK CAN LAND IN ONE ═══════════════════════════════════════
+     `chat` has been among the URL keys since before there was a history to
+     point at, and nothing ever read it — which would have made Copy link a
+     control that produced a working address for a page that ignored it.
+
+     It takes precedence over the morning greeting: somebody who opened a
+     link came for that conversation, and a thread that answered them with
+     an unrelated introduction would be the product not listening. */
+  const linked = S.chat && CHATS.filter((x) => x.id === S.chat)[0];
+  if (linked) {
+    openChat(S.chat);
+    openCanvas();
+  } else {
+    /* After the first paint, because she is talking about the board and the
+       board has to exist to be talked about. */
+    reachGreet();
+  }
 
   /* A handle for checking counts from the console, and for the audit. Not
      product surface: nothing in the app reads it. */
