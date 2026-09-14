@@ -6650,7 +6650,31 @@
 
     const crew = Object.keys(by).map((k) => by[k]).sort((a, b) => b.cost - a.cost);
     const people = crew.reduce((n, r) => n + r.cost, 0);
-    const won = mem.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); });
+    /* ══ A DEAL HAS ONE HOME, AND THIS COUNTED IT IN EVERY HOUSE ══════
+       People sit on several campaigns — `camps: ['c3','c5','c7']` is ordinary
+       in this corpus — and this credited a win to EVERY campaign the person
+       belonged to. The campaigns cut summed to €316k against a €273k
+       headline, €43k over, and no surface could show it: the services cut
+       keys on `dealCamp` and reconciled exactly, but the two were in
+       different sections and nobody ever added them up.
+
+       Putting both behind one switcher is what surfaced it — AiMY Knowledge
+       read "Nothing gained" over a campaign row claiming €43k, on one card,
+       which is the same deal counted under two owners.
+
+       `dealCamp` is the build's existing answer to "whose deal is this": the
+       first campaign on the record. The same rule here, so one deal has one
+       home and both cuts reconcile against the figure at the top of the
+       page. `met` is deliberately left on membership — it answers "how many
+       people on this campaign have been met", which is a fact about the
+       roster rather than about attribution, and it contradicts no stated
+       total. */
+    const won = mem.filter((c) => {
+      const w = wonAt(c);
+      if (!w || !inPeriod(w, p)) return false;
+      const home = dealCamp(c);
+      return !!home && home.id === camp.id;
+    });
     return {
       camp: camp, members: mem.length, crew: crew, people: people, aimy: aimy,
       suppliers: suppliers, hours: hours, total: people + aimy + suppliers,
@@ -6899,7 +6923,7 @@
   /* The nouns, not the preposition. "By campaign" reads as an instruction to
      the page; the chips name the two things you can look at, and the heading
      above them already says what is being asked of each. */
-  const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services/Products' }];
+  const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services & Products' }];
   function cutBy() {
     return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
@@ -7121,6 +7145,18 @@
 
     const a = attainment(now, pipe, p);
     const camps = campaignCosts(p);
+    /* ══ A SERVICE IS SOLD BY CAMPAIGNS, AND THAT IS ITS BREAKDOWN ═════
+       The campaign card opens into the resources it consumed. The symmetric
+       question one level down from a service line is not "which people" —
+       nobody works on a product, they work on a campaign that sells one —
+       it is WHICH CAMPAIGNS. `byLine` is already keyed on the selling
+       campaign's first product, so the same key groups the costed campaigns
+       back the other way. */
+    const bySell = Object.create(null);
+    camps.forEach((r) => {
+      const k = r.camp.sells && r.camp.sells[0];
+      if (k) (bySell[k] || (bySell[k] = [])).push(r);
+    });
     const un = unlogged(p, heads);
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
     const age = dealAge(deals);
@@ -7793,13 +7829,53 @@
         (now.byLine.length ? '<div class="s-pans">' +
           now.byLine.map((r, i) => {
             const v = lineVerdict(r, bestArr);
+            /* ══ THE SAME CARD, BECAUSE IT IS THE SAME QUESTION ══════════
+               This card carried a name, a verdict, one figure and three
+               facts, against a campaign card carrying two figures and a
+               breakdown. Under a switcher that is a reader learning the
+               component twice.
+
+               THE COST WAS ALREADY IN THE DATA. `byLine` has summed `spend`
+               per line since it was written and nothing has ever rendered
+               it — so the one thing this page exists to compare, what a
+               thing gained against what it cost, was computed and thrown
+               away on half the surface. Both figures, same slot, same
+               shapes.
+
+               WHAT DOES NOT CARRY ACROSS, and should not: people and hours.
+               Nobody works on a product. They work on a campaign that sells
+               one, which is why the facts row differs — meetings, what a
+               meeting was worth, and what is still open are the three a
+               product line is judged on. The cards match in structure and
+               differ in content, which is what a dimension switch is. */
+            const sold = bySell[r.k] || [];
+            /* ══ AND THE COST IS WHAT THE CAMPAIGNS UNDER IT COST ═════════
+               `byLine.spend` sums `spendOn` per CONTACT; a campaign's total
+               is its touchpoint hours plus what it bought. Two different
+               arithmetics for one idea, and the card put them one above the
+               other: €793 in the head over a single row reading €670, €123
+               short with nothing to explain it.
+
+               A breakdown that does not add up to its own heading is the
+               defect this page keeps finding. The heading is the sum of the
+               rows printed under it, the way the campaign card's cost is the
+               sum of its resources. */
+            const soldCost = sold.reduce((n, s) => n + s.total, 0);
             return '<div class="s-pan" style="--i:' + i + '">' +
               '<div class="s-pan-head">' +
                 '<span class="s-pan-name">' + esc(sellSay(r.k)) +
                   '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
-                '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
-                  esc(r.arr ? fmtMoney(r.arr) : 'Nothing') +
-                  '<span class="s-pan-unit">gained</span></span>' +
+                '<span class="s-pan-figs">' +
+                  '<span class="s-pan-fig">' +
+                    '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
+                      esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
+                    '<span class="s-pan-unit">gained</span>' +
+                  '</span>' +
+                  (soldCost ? '<span class="s-pan-fig">' +
+                    '<span class="s-pan-spent">' + esc(fmtMoney(soldCost)) + '</span>' +
+                    '<span class="s-pan-unit">cost</span>' +
+                  '</span>' : '') +
+                '</span>' +
               '</div>' +
               '<div class="s-pan-facts">' +
                 '<span><b>' + r.meetings + '</b> met</span>' +
@@ -7815,6 +7891,20 @@
                   '</b> a meeting</span>' +
                 '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
               '</div>' +
+              /* What the line is made of, the way Resources says what a
+                 campaign is made of. The figure on the right is what each
+                 campaign gained, matching the headline it adds up to; its
+                 state and its cost are the qualifier underneath. */
+              (sold.length ? '<div class="s-pan-crew">' +
+                '<div class="s-pan-restitle">Campaigns</div>' +
+                sold.map((s) => '<span class="s-pan-p">' +
+                  '<span class="s-pan-who"><b>' + esc(s.camp.name) + '</b>' +
+                    '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
+                      (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
+                    '</span></span>' +
+                  '<span class="s-pan-cost">' + esc(s.arr ? fmtMoney(s.arr) : '—') + '</span>' +
+                '</span>').join('') +
+              '</div>' : '') +
             '</div>';
           }).join('') +
         '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>')) +
