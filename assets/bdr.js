@@ -20325,8 +20325,35 @@
       /* A MENU THAT WOULD RUN OFF THE EDGE HANGS THE OTHER WAY. Measured
          after it is shown, because a hidden element has no width. */
       if (!panel.hidden && panel.classList.contains('b-menu')) {
-        panel.classList.remove('is-right');
+        panel.classList.remove('is-right', 'is-up');
+        panel.style.maxHeight = '';
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
+        /* ══ AND THE SAME AGAIN DOWNWARDS ════════════════════════════════════════
+           The horizontal case has been handled since this menu was written
+           and the vertical one never was, so a menu opened low on the page
+           ran past the bottom of the window and under the composer — which
+           is fixed at z-index 200 against this menu's 40, so the last items
+           were behind it rather than merely off-screen. Nour hit it on the
+           "2 more" stack in a Lead map, five names deep.
+
+           THE FLOOR IS THE COMPOSER, not the viewport. Anything that ends
+           beneath that bar is unreachable even when the window says there is
+           room, so the bar's own top is what the space is measured against
+           and the fallback is the window only when no bar is up.
+
+           FLIP, THEN CAP, in that order. Hanging the menu above the button
+           is the better answer whenever the space up there is bigger — the
+           list stays whole and nothing scrolls. The cap is what is left when
+           neither side can hold it, and it never exceeds the 328px the
+           stylesheet already chose, so a menu that fits today is untouched. */
+        const bar = document.querySelector('.aimy-float-wrap');
+        const floor = bar ? bar.getBoundingClientRect().top - 12 : window.innerHeight - 16;
+        const seat = po.getBoundingClientRect();
+        const under = floor - seat.bottom - 8;
+        const over = seat.top - 8 - 16;
+        if (panel.getBoundingClientRect().bottom > floor && over > under) panel.classList.add('is-up');
+        const room = panel.classList.contains('is-up') ? over : under;
+        panel.style.maxHeight = Math.max(160, Math.min(328, Math.round(room))) + 'px';
       }
       return;
     }
