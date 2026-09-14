@@ -12912,14 +12912,28 @@
         ((said && said.thens) || []).forEach((t) => {
           if (t.offer && SELL[t.offer] && offers.indexOf(t.offer) < 0) offers.push(t.offer);
         });
-        const put = offers.map((k) =>
-          '<button class="s-inline-btn" type="button" data-fill="' +
+        /* ══ THE OFFER IS THE POINT; THE CALL IS HOW YOU MAKE IT ══════════
+           The reading above ends "Go into it asking for more. AiMY QA is what
+           goes with what they run" — and under it the offer was a text link,
+           second, behind an outlined Call. The button that does the thing the
+           paragraph just argued for was the quieter of the two.
+
+           `.s-insight-lnk.primary` is this build's filled action and it was
+           never used here. The offer takes it and goes first; Call keeps the
+           outlined pill, which is what a second action wears next to a filled
+           one. Two ranks, both already in the stylesheet, and the order now
+           matches the sentence.
+
+           ONLY THE FIRST OFFER IS FILLED. Two brand-filled buttons side by
+           side is two main actions, which is none. */
+        const put = offers.map((k, i) =>
+          '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-fill="' +
           esc(PRE + ', at ' + a.name + ', for ' + SELL[k].name) + '" ' +
           /* The hole is the name, and the name goes second. Without this the
              cursor lands after the service and the first thing anybody does
              is travel back through the sentence they were just handed. */
           'data-fillat="' + PRE.length + '">Offer ' + esc(SELL[k].name) + '</button>').join('');
-        return (door || put) ? '<div class="s-lead-acts">' + door + put + '</div>' : '';
+        return (door || put) ? '<div class="s-lead-acts">' + put + door + '</div>' : '';
       })() +
     '</section>';
   }
