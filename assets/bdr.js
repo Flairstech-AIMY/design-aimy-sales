@@ -2952,6 +2952,22 @@
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthYear = (iso) =>
     MONTH_SHORT[Number(iso.slice(5, 7)) - 1] + ' ' + iso.slice(0, 4);
+  /* ══ HOW LONG THEY HAVE STAYED, WHICH IS NOT THE SAME FACT AS WHEN ═════
+     A start date is a fact you have to do arithmetic on before it means
+     anything, and the thing it means is the one an account manager weighs
+     first: a company three years in is a different conversation from one
+     three months in, at the same money. The card has room for a date and
+     the masthead has room for the meaning.
+
+     Rounded to the year past two of them. A customer of two years and seven
+     months is a two-year customer in every sentence anybody says out loud,
+     and the extra clause is precision that changes nothing. */
+  function sayFor(iso) {
+    const d = daysBetween(iso, TODAY_ISO);
+    const m = Math.max(0, Math.round(d / 30.44));
+    if (m < 24) return plural(Math.max(1, m), 'month');
+    return plural(Math.floor(d / 365.25), 'year');
+  }
 
   function custGrid(rows) {
     if (!rows.length) {
@@ -11104,8 +11120,8 @@
                its start date is a subscription of unknown standing, and
                how long they have stayed is most of what it means. */
             (isCust(a)
-              ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) + ' · since ' +
-                esc(monthYear(subsAt(a)[0].since)))
+              ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) +
+                ' · a customer for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
               : '') +
             (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
               esc(sayWhen(a.signal.at))) : '') +
@@ -11158,21 +11174,54 @@
         chips +
       '</section>' +
 
-      '<section class="s-block s-block-wide" aria-label="Where they stand">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
-          '<span class="s-block-say">' + esc(plural(callsIn(hist).length, 'call')) +
-          ' into this company</span></div>' +
-        funnelOf(people, 'On the record here') +
-      '</section>' +
+      /* ══ AND NEITHER OF THESE IS ABOUT A CUSTOMER ══════════════════════
+         Both are the ACQUISITION record, and on this page they are the
+         second and third telling of it — the story strip above has already
+         walked the same ground. On a company nobody has bought from, that
+         repetition is at least all true and each telling adds something: the
+         strip is the shape, the funnel is where people fall out, the feed is
+         what was said.
 
-      /* Every call into the company, whoever made it and whoever they
-         called. On an account the person is the thing that tells two calls
-         apart, so the row leads with the name — and it is the same feed
-         the campaign uses, under the day it happened. */
-      '<section class="s-block s-block-wide" aria-label="What has been said here">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2></div>' +
-        feedBlock(hist, 'Nobody has called this company yet. ' + callFirst) +
-      '</section>' +
+         At a customer the funnel cannot say anything at all. Everyone at a
+         company that has bought is at the end of the ladder by definition,
+         so every row is one person and one of one — seven bars at 100%, a
+         chart with no variance. On twelve of the thirty-one there are no
+         calls at that company at all and it draws empty.
+
+         The feed is worse, because it is confidently wrong. The touchpoints
+         at a customer are overwhelmingly our own caller working OTHER
+         departments on a cold campaign, so the record of a company paying us
+         €130k a year opened with "Resolution · Not now. They asked us to
+         come back to it" — a deal we lost, at the top of a customer's page,
+         labelled as what has been said here.
+
+         Cut on this desk, both of them. There is no honest version of either
+         until the corpus holds a customer's own history — signed, renewed,
+         checked in, escalated — which it has never had, because the product
+         has never had customers. What a customer relationship IS lives at
+         the top of the page with the rest of the account's facts: what they
+         buy, what it is worth a year, how long they have been with us, when
+         we last said anything.
+
+         `isMgr()` as well as `isCust`, because a caller at this company is
+         not looking at a customer. She is prospecting the departments we
+         have not sold to, and both blocks are exactly right for that. */
+      (isMgr() && isCust(a) ? '' :
+        '<section class="s-block s-block-wide" aria-label="Where they stand">' +
+          '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
+            '<span class="s-block-say">' + esc(plural(callsIn(hist).length, 'call')) +
+            ' into this company</span></div>' +
+          funnelOf(people, 'On the record here') +
+        '</section>' +
+
+        /* Every call into the company, whoever made it and whoever they
+           called. On an account the person is the thing that tells two calls
+           apart, so the row leads with the name — and it is the same feed
+           the campaign uses, under the day it happened. */
+        '<section class="s-block s-block-wide" aria-label="What has been said here">' +
+          '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2></div>' +
+          feedBlock(hist, 'Nobody has called this company yet. ' + callFirst) +
+        '</section>') +
     '</div>';
   }
 
