@@ -5461,7 +5461,7 @@
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Financials</span>' +
         '<span class="b-door-fig">' + esc(euro(worth)) +
-          '<span class="b-door-of">won</span></span>' +
+          '<span class="b-door-of">gained</span></span>' +
         bookBar() +
         '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
         doorGo('Open the report') +
@@ -6972,7 +6972,7 @@
        revenue at a sensible price. A sales manager is not asked that. He is
        asked whether he is going to make the number, so the number leads and
        the spend becomes a clause about it. */
-    const money = 'You won <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
+    const money = 'You gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
       esc(fmtMoney(a.target)) + '</b>';
     /* Three tenses, and the paragraph has to be in the right one. A window
        still running is judged on pace; a finished one is judged on what it
@@ -7086,7 +7086,7 @@
         '<h2 class="s-rec-cap">Financials</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">This is the book a sales manager carries — what has been ' +
-          'won against the quarter’s target, and what the campaigns behind it cost. Your ' +
+          'gained against the quarter’s target, and what the campaigns behind it cost. Your ' +
           'desk has neither, so every figure on it would be somebody else’s. What you have ' +
           'done is on your campaigns and in your calls.</p>' +
           backBtn('data-home', 'Back to the briefing') +
@@ -7194,9 +7194,9 @@
          list reconciles by construction. */
       { k: 'people', say: 'The desk', v: un.payroll,
         sub: plural(un.people.length, 'person') + ' · ' +
-          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' of it on a named campaign',
+          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' of it on a campaign',
         rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
-          note: fmtMoney(r.onCost) + ' of it on a named campaign',
+          note: fmtMoney(r.onCost) + ' of it on a campaign',
           v: r.cost })) },
       { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
         sub: 'every attempt, not only the ones that answered',
@@ -7242,7 +7242,7 @@
       '<section class="slv" aria-label="What AiMY makes of it">' +
         '<div class="slv-head">' +
           '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<h1 class="slv-title">Where the money went</h1>' +
+          '<h1 class="slv-title">How the quarter is going</h1>' +
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
@@ -7255,28 +7255,8 @@
           '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
             ' <span class="s-att-of">of ' + esc(fmtMoney(a.target)) + '</span></span>' +
           '<span class="s-att-pc' + (a.pc >= 1 ? ' tone-ok' : '') + '">' +
-            esc(Math.round(a.pc * 100)) + '% to target</span>' +
+            esc(Math.round(a.pc * 100)) + '% of target</span>' +
         '</div>' +
-        /* ══ TWO TIME BASES IN ONE COMPARISON, AND NEITHER WAS STATED ════
-           The window is a quarter — the chip above says so — and the figure
-           is ANNUAL: every won deal counted at `acvOf`, which reads the price
-           book, and the price book is a year of a service. €273k is not what
-           came in this quarter; it is what a quarter's worth of new business
-           is worth over the twelve months it runs for. Against a €300k
-           quarterly quota that is the standard shape and the arithmetic is
-           right — the year target is four times it — but a reader who does
-           not already know the convention is out by a factor of four and has
-           nothing on the page to correct them.
-
-           "Signed" said neither half. It named no stage that the data model
-           recognises — `stageOf(c) === 'won'` is the actual test — and read
-           as somebody putting a pen to a document, which is an event, not an
-           amount. The stage is now its own word everywhere the figure is
-           labelled, and the unit is stated HERE and only here: under the one
-           number it qualifies, where the rest of the page inherits it
-           without any other figure having to repeat it. */
-        '<p class="s-att-what">New business won, counted at what it is worth ' +
-          'over a year.</p>' +
         /* ══ THE MARKS LIVED INSIDE THE THING THAT CLIPS THEM ═══════════
             Both are drawn to overhang the track by four pixels top and
             bottom — that overhang is what makes a mark read as crossing the
@@ -7289,7 +7269,7 @@
 
             The fills keep their clip; the marks go over it. */
         '<div class="s-att-bar" role="img" aria-label="' +
-          esc(fmtMoney(a.booked) + ' won of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
+          esc(fmtMoney(a.booked) + ' gained of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
             'another ' + fmtMoney(Math.max(0, a.forecast - a.booked)) + ' by the end, reaching ' +
             fmtMoney(a.forecast) + '.') + '">' +
           '<div class="s-att-track">' +
@@ -7315,7 +7295,15 @@
              it. "Already signed" against "expects another €86k before it
              closes" is the pair: what is in, and what is still coming. A
              closed window keeps the plain word, because nothing more is. */
-          '<span class="s-att-key is-booked">' + (done ? 'Won' : 'Already won') + '</span>' +
+          /* ══ THE MONEY WORDS, AND NOTHING ELSE ════════════════════
+             This key read "Signed so far", then "Already signed", then
+             "Already won", and it was asked what it meant every time — three
+             rewrites of a label that was never the hard part. A bar on a
+             money page shows three things and they have three ordinary
+             names: what you got, what you need, what might still come. Say
+             those. A key that needs a sentence under it is not a key, and
+             the sentence that was under this one has gone with it. */
+          '<span class="s-att-key is-booked">Gained</span>' +
           /* ══ A KEY DESCRIBES THE BAND IT IS A KEY FOR ══════════════════
              This read "AiMY expects €225k by the end" beside a hatched band
              that is not €225k of anything — €225k is where the band ENDS,
@@ -7328,9 +7316,9 @@
              shuts. Where that leaves the total is then visible without
              being stated — it is the right-hand end of the hatch, read
              against the target mark. */
-          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'AiMY expects another ' +
-            esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + ' before it closes</span>') +
-          '<span class="s-att-key is-target">The target</span>' +
+          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'Could still come · ' +
+            esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + '</span>') +
+          '<span class="s-att-key is-target">Target</span>' +
           (done || pacePc == null ? ''
             : '<span class="s-att-key is-pace">Where you should be today</span>') +
         '</div>' +
@@ -7342,9 +7330,9 @@
            two numbers, named the same way twice. It said "Still to sell" for
            a while, which is an action with no object on the one tile whose
            whole job is to say what is left of the figure directly above. */
-        attFig('Left to hit target', a.gap ? fmtMoney(a.gap) : 'Nothing',
+        attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
           a.gap ? (done ? 'the window is closed'
-            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' to do it')
+            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
             : 'the target is already met',
           a.gap ? null : 'ok') +
         /* ══ A WEIGHTED FIGURE NEEDS ITS DENOMINATOR ═════════════════════
@@ -7370,7 +7358,12 @@
            Coverage is a claim about a gap somebody can still close, so on a
            finished window it is not stated, and the line says which clock
            the figure is on instead. */
-        attFig('Expected from open deals', fmtMoney(pipe.weighted),
+        /* NOT "Could still come" — the bar's key already owns that phrase for
+           a different number. That one is what AiMY expects before THIS
+           window shuts; this is every open deal at the odds its stage
+           closes, on no window at all. Two labels, two figures, and the one
+           thing they must not do is share a name. */
+        attFig('Potential', fmtMoney(pipe.weighted),
           done ? 'of ' + fmtMoney(pipe.all) + ' open today, after this window closed'
             /* THE BAR IS A PARENTHESIS, NOT A SENTENCE. It read "20.7× the
                €27k needed, and three times is the bar" — a clause of teaching
@@ -7379,7 +7372,7 @@
                ratio and it stays, at the size of the thing it is: an aside
                that qualifies a number, not a lesson. */
             : a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
-              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed (bar 3×)')
+              : ' · ' + Math.round(a.coverage) + '× what you still need')
               : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
           /* ══ COLOUR THE FIGURE ONLY WHEN THE FIGURE IS THE VERDICT ══════
              This tinted the figure amber whenever coverage fell under three
@@ -7403,13 +7396,13 @@
            "behind" has its referent directly underneath it. A closed window
            has no pace left to be behind, and its shortfall is the tile at
            the front of this row, so it reports where it finished instead. */
-        attFig('Against the clock',
+        attFig('Ahead or behind',
           done ? Math.round(a.pc * 100) + '% of target'
             : a.paceMoney == null ? '—'
             : fmtMoney(Math.abs(a.paceMoney)) + ' ' + (ahead ? 'ahead' : 'behind'),
           done ? 'the window has closed'
-            : Math.round(a.pc * 100) + '% of the target sold, ' +
-              Math.round(a.elapsed * 100) + '% of the time used',
+            : Math.round(a.pc * 100) + '% of target, ' +
+              Math.round(a.elapsed * 100) + '% of the time gone',
           /* ══ THE TWO POLES, AND BEHIND IS THE NEGATIVE ONE ══════════════
              "€96k behind" is a shortfall written as a positive number with
              its sign in a word, and it was tinted `warn` — the amber this
@@ -7431,7 +7424,7 @@
            from recorded in "Paid off", inherited by the phrase that replaced
            it. What it is, is what went out; the line underneath says what
            came back. */
-        attFig('What you spent', fmtMoney(now.spend.total),
+        attFig('Spent', fmtMoney(now.spend.total),
           now.payback == null ? 'nothing has closed against it yet'
             : '€' + now.ros.toFixed(2) + ' back for every €1 · ' +
               now.payback.toFixed(1) + ' months to break even') +
@@ -7439,7 +7432,7 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What the money went on</div>' +
+          '<div class="s-exec-eyebrow">What you spent it on</div>' +
           secAsk('Where could I spend less', 'My people cost ' + fmtMoney(un.payroll) +
             ' this window and only ' + Math.round((un.pc || 0) * 100) + '% of it is logged ' +
             'against a campaign. Show me where the money is going that is not producing anything.') +
@@ -7499,15 +7492,15 @@
           '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg>' +
           '<span class="s-insight-txt">Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what ' +
-            'you pay for is logged against a named campaign &mdash; <b>' + esc(fmtMoney(un.logged)) +
-            '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody attributed ' +
-            'to one, so it cannot be judged against what it produced.</span>' +
+            'you pay for lands on a campaign &mdash; <b>' + esc(fmtMoney(un.logged)) +
+            '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody logged, ' +
+            'so you cannot tell what it bought.</span>' +
         '</div>') +
       '</section>' +
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">Campaigns, by what they returned</div>' +
+          '<div class="s-exec-eyebrow">What each campaign gained</div>' +
           secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
             'against what they have returned, and tell me which one I should stop and what I ' +
             'would lose by stopping it.') +
@@ -7523,9 +7516,8 @@
            A definition is stated once, where the thing is introduced. Only
            the crew rows keep a second line, because theirs is the one that
            changes: a job, hours and a rate, different on every row. */
-        '<p class="s-exec-note">What each one has won, against what it cost — every minute ' +
-          'logged against it, the calls AiMY made itself at compute cost, and what the suppliers ' +
-          'charged to find and fill in the people on it.</p>' +
+        '<p class="s-exec-note">What each one gained, against what it cost — the hours ' +
+          'logged on it, the calls AiMY made, and what the suppliers charged.</p>' +
         (camps.length ? '<div class="s-pans">' +
           camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
             '<div class="s-pan-head">' +
@@ -7558,7 +7550,7 @@
                  a campaign against rather than the headline it is ranked by. */
               '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
                 esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
-                '<span class="s-pan-unit">won</span></span>' +
+                '<span class="s-pan-unit">gained</span></span>' +
             '</div>' +
             /* ══ THE SECTION IS "BY WHAT THEY RETURNED" AND NOTHING SAID IT ══
                The heading ranks these by return; the eyebrow promises "what
@@ -7676,7 +7668,7 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">What is working, and what is not</div>' +
+          '<div class="s-exec-eyebrow">What sells and what does not</div>' +
           secAsk('Why are these not landing', 'Some of my product lines have taken meetings and ' +
             'closed nothing. Show me whether they are reaching the wrong people or losing the ' +
             'ones they reach.') +
@@ -7690,7 +7682,7 @@
                   '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
                 '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
                   esc(r.arr ? fmtMoney(r.arr) : 'Nothing') +
-                  '<span class="s-pan-unit">won</span></span>' +
+                  '<span class="s-pan-unit">gained</span></span>' +
               '</div>' +
               '<div class="s-pan-facts">' +
                 '<span><b>' + r.meetings + '</b> met</span>' +
@@ -7712,7 +7704,7 @@
       '</section>' +
 
       '<div class="s-odds">' +
-        '<span class="s-odds-cap">' + aiMark() + 'How many close, by how far they have got</span>' +
+        '<span class="s-odds-cap">' + aiMark() + 'How often deals close</span>' +
         '<div class="s-odds-rows">' +
           pipe.steps.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
             '<span class="s-odds-p">' + esc((r.p * 100).toFixed(1)) + '%</span>' +
@@ -7727,13 +7719,11 @@
            page dropped. It belongs here rather than in a tile: a rate is
            how many close, an age is how long that takes, and the two are
            halves of the same reading. */
-        '<p class="s-odds-note">Each rate is what this desk has actually closed from that ' +
-          'stage, not an industry average' +
-          (age == null ? '' : ', and a deal on this book runs ' +
-            '<b>' + esc(age.toFixed(1)) + ' months</b> on average') + '. ' +
-          (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
-            ' closed in this window' : 'Nothing closed in this window') + ', so each rate is ' +
-          'smoothed &mdash; one deal cannot swing it.</p>' +
+        '<p class="s-odds-note">Your own rates, not industry averages' +
+          (age == null ? '' : '. A deal here takes <b>' + esc(age.toFixed(1)) + ' months</b>') +
+          '. ' + (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
+            ' closed this window' : 'Nothing closed this window') +
+          ', so the rates are smoothed — one deal cannot swing them.</p>' +
       '</div>' +
 
       askRow(execAsks(now, pipe)) +
