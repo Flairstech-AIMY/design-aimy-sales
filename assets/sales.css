@@ -8053,9 +8053,9 @@ body.is-figures .filter-tray { display: none; }
 .s-odds-p {
   font-family: var(--font-sans); font-size: var(--fs-base);
   font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
-  /* Wide enough for the longest money this column holds, so the reason
+  /* Wide enough for the longest figure this column holds, so the reason
      beside it starts at the same x down the whole list. 56px fitted a
-     percentage; it does not fit €142k. */
+     percentage; it does not fit "2 deals". */
   color: var(--d50); min-width: 72px; text-align: right;
 }
 .s-odds-say {

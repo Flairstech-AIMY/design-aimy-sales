@@ -6858,27 +6858,46 @@
      different labels — `LOST_WHY`'s own margin says the parked column exists
      for deals a manager parks deliberately, and flags "the losses that should
      have gone there". A reader counting what slipped away wants both. */
+  /* ══ WHAT THEY COST, NOT WHAT THEY WOULD HAVE BEEN WORTH ════════════════
+     This block ranked by `acvOf`, and `acvOf` on a LOST deal never returns a
+     real number — the deal never closed, so there is no amount to read, and
+     the function falls through to comparables or the price list. I threw out
+     four modelled percentages and put a modelled money column in their place
+     on the same screen. Nour caught it.
+
+     `spendOn` has computed the honest figure since the cost model was
+     written: what was paid to find this person, to fill in their details, to
+     let AiMY call them, and the salaried hours somebody logged against them.
+     All four are real. Over an all-time window rather than the page's,
+     because a deal that died in May cost what it cost, and the quarter the
+     page is showing has nothing to do with it.
+
+     Counts rank the list now — the reason is the content and the count is
+     how often it happened — and the spend sits on the right, quietly, where
+     the old block put its money. Nothing here is modelled any more. */
   function lossesOf(deals) {
+    const ever = { from: '0000-01-01', to: TODAY_ISO };
     const by = Object.create(null);
     const gone = [];
-    let late = 0, back = 0, value = 0;
+    let late = 0, back = 0, spend = 0;
     deals.forEach((c) => {
       if (stageOf(c) !== 'lost') return;
       gone.push(c);
       const w = lostWhy(c);
-      const v = acvOf(c).value;
-      const r = by[w ? w.k : 'unsaid'] ||
-        (by[w ? w.k : 'unsaid'] = { k: w ? w.k : 'unsaid', why: w, n: 0, value: 0 });
-      r.n += 1; r.value += v;
-      value += v;
+      const k = w ? w.k : 'unsaid';
+      const paid = spendOn(c, ever).total;
+      const r = by[k] || (by[k] = { k: k, why: w, n: 0, spend: 0 });
+      r.n += 1; r.spend += paid;
+      spend += paid;
       if (w && w.back) back += 1;
       const ph = phasesOf(c).filter((t) => t.phase !== 'resolution');
       if (ph.length && ph[ph.length - 1].phase === 'commercial') late += 1;
     });
-    return { n: gone.length, value: value, late: late, back: back,
+    return { n: gone.length, spend: spend, late: late, back: back,
       age: dealAge(gone),
       parked: deals.filter((c) => stageOf(c) === 'later').length,
-      rows: Object.keys(by).map((k) => by[k]).sort((a, b) => b.value - a.value) };
+      rows: Object.keys(by).map((k) => by[k])
+        .sort((a, b) => (b.n - a.n) || (b.spend - a.spend)) };
   }
 
   /* ══ THE TARGET — MOCK, AND THE YARDSTICK EVERYTHING ELSE NEEDED ═══════
@@ -8161,12 +8180,12 @@
         '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
         (loss.rows.length ? '<div class="s-odds-rows">' +
           loss.rows.map((r) => '<div class="s-odds-row">' +
-            '<span class="s-odds-p">' + esc(fmtMoney(r.value)) + '</span>' +
+            '<span class="s-odds-p">' + esc(plural(r.n, 'deal')) + '</span>' +
             '<span class="s-odds-say">' + esc(r.why ? r.why.label : 'Nobody said why') +
               '<span class="s-odds-basis">' +
                 esc(r.why ? r.why.say : 'the record does not say') + '</span>' +
             '</span>' +
-            '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + '</span>' +
+            '<span class="s-odds-n">' + esc(fmtMoney(r.spend)) + ' spent</span>' +
           '</div>').join('') +
         '</div>' +
         '<p class="s-odds-note">' + lossNote + '</p>'
