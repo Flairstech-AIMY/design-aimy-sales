@@ -10178,81 +10178,92 @@
   const TEAM_FLAT = 4;
   const TEAM_SHOW = 3;
   const STACK_FACES = 4;
-  /* `sub` is the second line a face carries where it is drawn flat — on a
-     campaign the person's job, on a lead their job and what they have done
-     on it. The menu takes the same one, because a disclosure that shows
-     less about the hidden people than the row would have shown is a reason
-     to keep opening it. */
-  function teamFaces(ids, row, sub, k) {
+  /* `o` is what differs between the three places this draws, and the
+     defaults are the campaign's team, which is what it was written for.
+
+       sub(id)   the second line under a name, in the menu as on the line
+       k         the campaign, where this desk may take somebody off it
+       name(id)  what to call them; `actor` cannot answer for a contact
+       open(id)  the attribute that makes a menu row a control
+       faces     false where the set is one this build does not picture
+
+     THE FACES ARE THE ONE THING THAT DOES NOT TRAVEL. Every `faceOf` in
+     this build is a REP — us. A lead is drawn with a status dot and never
+     with a portrait, and the reason holds: we have photographs of nine
+     colleagues and none of six thousand strangers, so putting a face on a
+     contact would be the build inventing what somebody looks like. Without
+     them the stack keeps its shell, its chevron and its menu, and the count
+     stands where the faces would be. */
+  function teamFaces(ids, row, o) {
     const over = ids.length > TEAM_FLAT;
     const shown = over ? ids.slice(0, TEAM_SHOW) : ids;
     const rest = over ? ids.slice(TEAM_SHOW) : [];
     /* The stack's faces are whoever is not on the line; its MENU is the
-       whole team, because that menu is the roster and the roster is where
+       whole set, because that menu is the roster and the roster is where
        taking somebody off happens.
 
-       ══ AND UNDER SIX THE LINE IS THE ROSTER ══════════════════════════
+       ══ AND UNDER FIVE THE LINE IS THE ROSTER ═════════════════════════
        There is no stack at that size — every name is already on the page —
        so a menu to take somebody off would be a list of the people standing
        six pixels above it. The cross goes back on the row, which is where
        it started and where it is right when the row is all there is.
 
-       Exactly one place at any size, which is the whole rule: over five it
-       is in the roster and the line is clean, under six it is on the line
+       Exactly one place at any size, which is the whole rule: over four it
+       is in the roster and the line is clean, under five it is on the line
        and there is no roster. The two never draw together. */
+    const k = (o || {}).k;
     return shown.map((id) => row(id, over ? '' : crewOff(k, id))).join('') +
-      (rest.length ? teamStack(rest, ids, sub, k) : '');
+      (rest.length ? teamStack(rest, ids, o) : '');
   }
-  /* The faces of whoever is not on the line, and the menu that names them.
-     Its rows are not controls: a colleague has no page in this build to
-     open, and a row that highlights under the hand and then does nothing is
-     worse than a row that never offered. */
-  function teamStack(rest, all, sub, k) {
-    const say = sub || ((x) => (REP[x] && JOB[REP[x].fn]) || 'On the team');
+  /* The faces of whoever is not on the line, and the menu that names them. */
+  function teamStack(rest, all, o) {
+    const opt = o || {};
+    const say = opt.sub || ((x) => (REP[x] && JOB[REP[x].fn]) || 'On the team');
+    const named = opt.name || ((x) => (x === me().id ? 'You' : actor(x).name));
+    const faces = opt.faces !== false;
     const face = rest.slice(0, STACK_FACES);
-    const more = rest.length - face.length;
+    const more = faces ? rest.length - face.length : rest.length;
     return '<span class="b-menu-wrap b-stack-wrap">' +
       '<button class="b-stack b-menu-open" type="button" data-pickopen="teamRest" ' +
         'aria-haspopup="menu" aria-label="' +
-        esc(plural(rest.length, 'more person', 'more people') + ' on this team') + '">' +
+        esc(plural(rest.length, 'more person', 'more people')) + '">' +
         '<span class="b-stack-faces">' +
-          face.map((x) => '<span class="b-stack-face">' + faceOf(x, 26) + '</span>').join('') +
+          (faces ? face.map((x) => '<span class="b-stack-face">' + faceOf(x, 26) + '</span>').join('') : '') +
           (more ? '<span class="b-stack-face b-stack-n">+' + commas(more) + '</span>' : '') +
         '</span>' +
         '<svg class="b-stack-chev" viewBox="0 0 24 24" width="12" height="12" fill="none" ' +
           'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" ' +
           'stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
       '</button>' +
-      /* ══ THE MENU IS THE WHOLE TEAM, NOT THE REMAINDER ═════════════════
+      /* ══ THE MENU IS THE WHOLE SET, NOT THE REMAINDER ══════════════════
          The stack's FACES are whoever did not fit on the line — that is
-         what the stack is for — but its menu is the roster, every name on
+         what the stack is for — but its menu is the roster, every name in
          it, because the roster is where somebody gets taken off. A list
          holding only the overflow would put the cross beside four of the
          seven and leave the other three unremovable for no reason a reader
          could work out.
 
-         The cross was on the line first, next to each of the three names
-         the block shows. It made a block whose job is to say who works
-         this read as a row of things to dismiss, and it put the verb in
-         two places at once — beside three of them and inside a menu for
-         the rest. One place: here. */
+         A row is a control where there is something behind it. On a
+         campaign there is not — this build has no page for a colleague — so
+         those rows are spans and say so by not lighting under the hand. A
+         contact has a record, so on an account they are buttons that open
+         it, which is what the node on the line would have done. */
       '<div class="b-menu b-team-menu" id="teamRest" role="menu" hidden>' +
-        '<span class="b-menu-cap">The team</span>' +
-        all.map((x) => '<span class="b-menu-item b-menu-row">' + faceOf(x, 26) +
-          '<span class="b-menu-line"><span class="b-menu-name">' +
-          esc(x === me().id ? 'You' : actor(x).name) + '</span>' +
-          '<span class="b-menu-sub">' + esc(say(x)) + '</span></span>' +
-          crewOff(k, x) + '</span>').join('') +
+        '<span class="b-menu-cap">' + esc(opt.cap || 'The team') + '</span>' +
+        all.map((x) => {
+          const go = opt.open && opt.open(x);
+          const inner = (faces ? faceOf(x, 26) : (opt.mark ? opt.mark(x) : '')) +
+            '<span class="b-menu-line"><span class="b-menu-name">' + esc(named(x)) + '</span>' +
+            '<span class="b-menu-sub">' + esc(say(x)) + '</span></span>';
+          return go
+            ? '<button class="b-menu-item" type="button" role="menuitem" ' + go + '>' +
+              inner + '</button>'
+            : '<span class="b-menu-item b-menu-row">' + inner + crewOff(opt.k, x) + '</span>';
+        }).join('') +
       '</div>' +
     '</span>';
   }
-  /* ══ AND THE WRITE, WHICH IS A VERB ════════════════════════════════════
-     Every caller on the floor, ticked where they are already on it. It is
-     the campaign builder's own crew control — `draftItem('crew', …)` over
-     `BDRS`, writing through `data-cset` to `campSet` — which has only ever
-     been reachable on a campaign that has not run yet. Nothing here is a
-     new write path; what is new is the same control on a campaign that IS
-     running, which is when a manager actually moves somebody. */
+
   /* ══ THE LIST YOU ADD FROM IS SHORT BECAUSE IT EXCLUDES THE TEAM ═══════
      Written first as the builder writes it: every caller on the floor, the
      ones already on highlighted. Two things were wrong with it. The
@@ -10354,7 +10365,7 @@
         '<span class="b-cmeta-cap b-team-cap">The team</span>' +
         (mine ? crewPick(k) : '') +
       '</div>' +
-      teamFaces(ids, row, null, mine ? k : null) +
+      teamFaces(ids, row, { k: mine ? k : null }) +
     '</div>';
   }
 
@@ -12125,7 +12136,7 @@
                 esc(id === me().id ? 'You' : actor(id).name) + '</span>' +
                 '<span class="b-mate-role">' + esc(say(id)) + '</span>' +
               '</span>' +
-            '</div>', say);
+            '</div>', { sub: say });
         })() +
       '</div>' +
     '</section>';
@@ -13177,7 +13188,12 @@
       ((mine(DB.byCamp[y]) ? 1 : 0) - (mine(DB.byCamp[x]) ? 1 : 0)) || (by[y].length - by[x].length));
     const mineN = ids.filter((id) => mine(DB.byCamp[id])).length;
     const loose = people.filter((c) => !campsOf(c).length).length;
-    const folk = people.slice(0, 8);
+    /* `folk` capped this at eight and let them wrap. Measured on a company
+       where we hold nine: three rows of nodes, 116px, inside a Lead map
+       438px tall — and every one of those names is drawn again as a full
+       card in Who is here, directly underneath. `teamFaces` handles it now
+       and the cap goes with it: the stack says how many more there are,
+       which the silent slice never did. */
     const camps = ids.slice(0, 8);
     /* The head above already counts both, so a caption repeats it or says
        nothing. It says the thing the head cannot: which of these are mine. */
@@ -13188,12 +13204,33 @@
       '</span>';
     const limbs = [
       cap('Who we hold here', '') +
-      '<div class="b-map-row">' + folk.map((x) =>
-        '<button class="b-node" type="button" data-con="' + esc(x.id) + '">' +
-          '<span class="b-node-top">' + dotOf(x) +
-            '<span class="b-node-name">' + esc(x.name) + '</span></span>' +
-          '<span class="b-node-sub">' + esc(x.title) + '</span>' +
-        '</button>').join('') + '</div>',
+      /* ══ THE SAME STACK, WITHOUT THE FACES ═════════════════════════════
+         The campaign's team and this row have the same defect and the same
+         answer: three on the line and the rest behind one press. What does
+         not travel is the portrait. `faceOf` is only ever a rep in this
+         build, and a lead is drawn with a status dot — we have photographs
+         of nine colleagues and none of six thousand strangers, so a face on
+         a contact would be the page inventing what somebody looks like. The
+         count stands where the faces would be, the dot comes into the menu
+         with the name, and every row there opens the record the node on the
+         line would have opened. */
+      '<div class="b-map-row">' +
+        teamFaces(people.map((x) => x.id), (id) => {
+          const x = DB.byCon[id];
+          return '<button class="b-node" type="button" data-con="' + esc(id) + '">' +
+            '<span class="b-node-top">' + dotOf(x) +
+              '<span class="b-node-name">' + esc(x.name) + '</span></span>' +
+            '<span class="b-node-sub">' + esc(x.title) + '</span>' +
+          '</button>';
+        }, {
+          faces: false,
+          cap: 'Everybody we hold here',
+          name: (id) => DB.byCon[id].name,
+          sub: (id) => DB.byCon[id].title,
+          mark: (id) => dotOf(DB.byCon[id]),
+          open: (id) => 'data-con="' + esc(id) + '"',
+        }) +
+      '</div>',
     ];
     if (camps.length) {
       limbs.push(
@@ -13213,9 +13250,10 @@
         }).join('') + '</div>');
     }
     const rest = [];
-    if (people.length > folk.length) {
-      rest.push(plural(people.length - folk.length, 'more lead') + ' on the roster below');
-    }
+    /* "N more lead on the roster below" stood here, counting what the old
+       eight-deep slice had dropped — a footnote at the foot of the block
+       about something that happened at the top of it. The stack carries
+       that count now, where the names are, as a number you can press. */
     if (ids.length > camps.length) rest.push(plural(ids.length - camps.length, 'more campaign'));
     if (loose) rest.push(commas(loose) + ' on no campaign at all');
     return mapShell({
