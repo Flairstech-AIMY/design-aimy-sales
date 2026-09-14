@@ -7012,7 +7012,20 @@
           'meetings if I move spend to the cheaper one.' });
     }
     if (top && now.arr) {
-      out.push({ label: 'Why ' + sellSay(top.k) + ' is doing all the work',
+      /* ══ A NAME CANNOT BE THE SUBJECT OF A VERB THAT AGREES ═════════════
+         "Why Engineering teams IS doing all the work". Three of the eight
+         names in `SELLS` break a singular verb — `eng` is a plural noun, and
+         `test` and `back` are conjunctions ("QA and test automation are").
+         An agreement rule would have to guess plurality off arbitrary product
+         copy, so the sentence stops asking a name to be its subject: the
+         product becomes the object of a preposition, where nothing agrees
+         with anything and every one of the eight reads.
+
+         It is also the better question. The ask underneath is about the
+         products that are NOT selling; "is doing all the work" reads as
+         praise for the one that is. What is wrong here is the concentration.
+      */
+      out.push({ label: 'Why so much rides on ' + sellSay(top.k),
         ask: sellSay(top.k) + ' brought in ' + Math.round((top.arr / now.arr) * 100) +
           '% of everything we signed. Show me whether the other products are reaching too ' +
           'few people or losing the ones they reach.' });
@@ -7125,7 +7138,15 @@
     const worst = paid.filter((c) => !c.arr && c.total > 200).sort((x, y) => y.total - x.total)[0];
     if (best) bits.push(door({ camp: best.camp.id }, esc(best.camp.name)) + ' cost ' +
       esc(fmtMoney(best.total)) + ' and returned <b>' + esc(fmtMoney(best.arr)) + '</b>.');
-    if (worst) bits.push(door({ camp: worst.camp.id }, esc(worst.camp.name)) + ' has cost ' +
+    /* PAST SIMPLE, FOR THE SAME REASON AND AT NO COST. "Logistics, Southern
+       Europe HAS cost €804" is this paragraph's own instance of the fault
+       above — campaign names are conjunctions and lists as often as products
+       are. `cost` is identical in the singular and the plural, so dropping
+       one word fixes every name at once, keeps the name first where the door
+       is, and makes this sentence parallel with the one before it, which was
+       already past simple. The window scopes the claim, so the present
+       perfect was never earning its "up to now" either. */
+    if (worst) bits.push(door({ camp: worst.camp.id }, esc(worst.camp.name)) + ' cost ' +
       esc(fmtMoney(worst.total)) + ' across ' + esc(plural(Math.round(worst.hours), 'hour')) +
       ' and closed nothing.');
 
