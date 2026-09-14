@@ -1721,67 +1721,9 @@
       const texts = SIGNAL_TEXT[k];
       a.signal = { k: k, text: texts[(h >> 8) % texts.length], src: SIGNAL_SRC[k], at: dayAdd(-((h >> 12) % 21)) };
     });
-    /* ══ THE BOOK DID NOT HOLD ONE CUSTOMER ═══════════════════════════════
-       Two hundred companies, six hundred people, twenty-one thousand calls,
-       and every one of them about somebody who has not bought yet. The only
-       customers the product knew about were the five deals that happened to
-       close inside this quarter's pipeline — a company three years old with
-       a memory three months long.
-
-       A SUBSCRIPTION IS A FACT ON THE ACCOUNT, NOT A DEAL. A deal is
-       something you are trying to close; a subscription is something that
-       is already running, and the moment the second is filed as the first
-       the forecast starts counting money it banked two years ago. Nothing
-       in Financials reads these, which is the point: attainment is what was
-       signed in a window, and none of this was.
-
-       One account in six, which puts thirty-odd on the desk — enough to be
-       a book you work rather than a list you read, and well short of the
-       pipeline beside it. Off the id's hash like the signals, so having
-       them moves nothing else in the corpus.
-
-       AND WHAT THEY BOUGHT FITS THEIR SECTOR. `IND_FIT` already says which
-       of the eight belong against an industry, and a hospital subscribed to
-       test automation is a worse fiction than no customers at all. */
-    const SUB_OLDEST = 1100;   /* three years; the desk is not older than that */
-    const SUB_YOUNGEST = 90;   /* under three months it is a deal still landing */
-    acc.forEach((a) => {
-      a.subs = [];
-      const h = Math.abs(hash(a.id + ':sub'));
-      if (h % 6) return;
-      const fits = (IND_FIT[a.industry] || { fits: [] }).fits;
-      if (!fits.length) return;
-      const band = priceBand(a.size);
-      const add = (k, salt) => {
-        if (!k) return;
-        for (let i = 0; i < a.subs.length; i++) if (a.subs[i].sell === k) return;
-        const g = Math.abs(hash(a.id + ':sub:' + salt));
-        const list = (PRICE[k] || PRICE.qa)[band] || 0;
-        a.subs.push({
-          sell: k,
-          since: dayAdd(-(SUB_YOUNGEST + (g % (SUB_OLDEST - SUB_YOUNGEST)))),
-          /* The list price as a first contract actually signs: a little
-             under it more often than over. A book priced at the rate card
-             to the euro is the one number a manager would know is fiction. */
-          acv: Math.round((list * (0.82 + ((g >> 8) % 26) / 100)) / 500) * 500,
-          /* ══ AND HOW LONG IT RUNS BEFORE SOMEBODY HAS TO SIGN AGAIN ═══
-             A subscription with no term is a subscription that never comes
-             up, and the date it comes up is the one clock an account
-             manager actually works to. Twelve months is the common case;
-             two and three years are what a bigger contract buys with a
-             discount, so they are rarer and they land on the larger ones by
-             being drawn off the same hash as the price. */
-          term: [12, 12, 12, 24, 36][(g >> 16) % 5],
-        });
-      };
-      add(fits[(h >> 4) % fits.length], 'a');
-      /* One customer in four has already expanded once. That is the whole
-         argument this desk makes, in the corpus rather than in a sentence:
-         without a second sale anywhere in the book, a surface asking for one
-         is asking for something that has never happened here. */
-      if (h % 24 === 0) add(fits[(h >> 9) % fits.length], 'b');
-      a.subs.sort((x, y) => (x.since < y.since ? -1 : 1));
-    });
+    /* The customer book was seeded here and is seeded at the foot of this
+       function now: it has to see every contact, and this is not the last
+       place they are made. */
 
 
     /* ── What the sources can find ──
@@ -2095,6 +2037,98 @@
       }
     }
 
+    /* ══ LAST, BECAUSE IT HAS TO SEE EVERY CONTACT ═══════════════════
+       This ran beside the signals, two thirds of the way up, and the
+       guard below it — a customer must be a company we hold a number at
+       — was reading a roster that was not finished. The main loop mints
+       `CON_N` people and a later phase mints more; one of those later
+       ones, p568, was the only name at a company the guard therefore
+       threw out of the book. It is at the foot of `seed` now, where
+       `con` is whole.
+
+       Nothing else moved with it. The block reads `acc` and `con` and
+       writes only `a.subs`, and it spends no draw from the shared PRNG
+       — every value in it comes off the account's own hash — so running
+       it later changes nothing that was generated before it. */
+    /* ══ THE BOOK DID NOT HOLD ONE CUSTOMER ═══════════════════════════════
+       Two hundred companies, six hundred people, twenty-one thousand calls,
+       and every one of them about somebody who has not bought yet. The only
+       customers the product knew about were the five deals that happened to
+       close inside this quarter's pipeline — a company three years old with
+       a memory three months long.
+
+       A SUBSCRIPTION IS A FACT ON THE ACCOUNT, NOT A DEAL. A deal is
+       something you are trying to close; a subscription is something that
+       is already running, and the moment the second is filed as the first
+       the forecast starts counting money it banked two years ago. Nothing
+       in Financials reads these, which is the point: attainment is what was
+       signed in a window, and none of this was.
+
+       One account in six, which puts thirty-odd on the desk — enough to be
+       a book you work rather than a list you read, and well short of the
+       pipeline beside it. Off the id's hash like the signals, so having
+       them moves nothing else in the corpus.
+
+       AND WHAT THEY BOUGHT FITS THEIR SECTOR. `IND_FIT` already says which
+       of the eight belong against an industry, and a hospital subscribed to
+       test automation is a worse fiction than no customers at all. */
+    const SUB_OLDEST = 1100;   /* three years; the desk is not older than that */
+    const SUB_YOUNGEST = 90;   /* under three months it is a deal still landing */
+    /* ══ AND A CONTRACT IS WITH SOMEBODY ══════════════════════════════
+       The first cut of this drew a subscription off nothing but the
+       account's own hash, so a company with no name on file could be a
+       customer — and one of them was: a telecom paying us for Voice and QA
+       with not a single person on the record, which is not a thin fixture,
+       it is an impossible one. Somebody signed it and somebody rings us
+       when it breaks.
+
+       A phone rather than merely a person, because the whole desk is built
+       around being able to pick one up, and a customer nobody can ring is
+       the same nonsense one step quieter. Checked here rather than
+       repaired later: minting a contact at this point would push onto `con`
+       between the two touchpoint phases that straddle this block, and every
+       draw after it would move. */
+    const conAt = Object.create(null);
+    con.forEach((c) => { (conAt[c.acc] || (conAt[c.acc] = [])).push(c); });
+    acc.forEach((a) => {
+      a.subs = [];
+      const h = Math.abs(hash(a.id + ':sub'));
+      if (h % 6) return;
+      if (!(conAt[a.id] || []).some((c) => c.phone)) return;
+      const fits = (IND_FIT[a.industry] || { fits: [] }).fits;
+      if (!fits.length) return;
+      const band = priceBand(a.size);
+      const add = (k, salt) => {
+        if (!k) return;
+        for (let i = 0; i < a.subs.length; i++) if (a.subs[i].sell === k) return;
+        const g = Math.abs(hash(a.id + ':sub:' + salt));
+        const list = (PRICE[k] || PRICE.qa)[band] || 0;
+        a.subs.push({
+          sell: k,
+          since: dayAdd(-(SUB_YOUNGEST + (g % (SUB_OLDEST - SUB_YOUNGEST)))),
+          /* The list price as a first contract actually signs: a little
+             under it more often than over. A book priced at the rate card
+             to the euro is the one number a manager would know is fiction. */
+          acv: Math.round((list * (0.82 + ((g >> 8) % 26) / 100)) / 500) * 500,
+          /* ══ AND HOW LONG IT RUNS BEFORE SOMEBODY HAS TO SIGN AGAIN ═══
+             A subscription with no term is a subscription that never comes
+             up, and the date it comes up is the one clock an account
+             manager actually works to. Twelve months is the common case;
+             two and three years are what a bigger contract buys with a
+             discount, so they are rarer and they land on the larger ones by
+             being drawn off the same hash as the price. */
+          term: [12, 12, 12, 24, 36][(g >> 16) % 5],
+        });
+      };
+      add(fits[(h >> 4) % fits.length], 'a');
+      /* One customer in four has already expanded once. That is the whole
+         argument this desk makes, in the corpus rather than in a sentence:
+         without a second sale anywhere in the book, a surface asking for one
+         is asking for something that has never happened here. */
+      if (h % 24 === 0) add(fits[(h >> 9) % fits.length], 'b');
+      a.subs.sort((x, y) => (x.since < y.since ? -1 : 1));
+    });
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
@@ -2375,6 +2409,23 @@
   const callable = (c) =>
     !!c.phone && !c.dnc && !isExit(c.checkpoint) && rank(c.checkpoint) <= 3 &&
     !(c.next && c.next.due > TODAY_ISO);
+
+  /* ══ AND THE MANAGER'S VERSION OF THE SAME QUESTION ════════════════════
+     `callable` means the CALLER has not finished with them: it stops at
+     rank 3 and excludes a hand-over, which is right for a queue of people
+     somebody is still cold-calling. On the manager's desk every lead is
+     handed over by definition, so the same predicate answers false for the
+     entire book — and the account masthead, which asks it to count who can
+     be rung, told a manager that a customer paying us €177k a year had
+     nobody with a number, eight pixels above a control offering to ring
+     one of them by name.
+
+     A number and no do-not-call is the whole of the test on that desk. The
+     click router already spells it out inline for its next-call opener, in
+     a comment saying exactly this; it is a function now, so the two desks
+     cannot drift apart again. */
+  const ringable = (c) => !!c.phone && !c.dnc;
+  const canRing = (c) => (isMgr() ? ringable(c) : callable(c));
 
   /* ══ A MEETING THAT HAS PASSED IS A QUESTION ═══════════════════════════
      Once a meeting is booked they leave the queue; once its day has gone
@@ -2959,10 +3010,22 @@
         esc(monthYear(fit.closed)) + '</b>, and nothing has moved at them in six weeks.';
       return pack(said, said, [fitLine(null)], 'what they run, against the range');
     }
+    /* ══ AND IT SAID SOMETHING IT HAD NOT CHECKED ══════════════════════
+       This read "which is the whole of what fits a telecom business", and
+       the branch it stands in has checked no such thing. It is reached when
+       `expansionsOf` finds nothing, and that happens for exactly one reason:
+       `SVC_NEXT` walked from their newest contract points at something they
+       already hold. A telecom running Voice and QA got the sentence while
+       `IND_FIT` puts support and data against their sector too — two
+       services they do not buy, under a line claiming there were none.
+
+       A reading that overstates once is a reading nobody trusts twice, and
+       this one is on the quietest customers, where there is nothing else on
+       the page to contradict it. It says what was actually tested. */
     const ci = checkinSay(a, touchesAt(a.id));
-    const said = 'They run <b>' + esc(joinAnd(hold)) + '</b>, which is the whole of ' +
-      'what fits a ' + esc(indLabel(a).toLowerCase()) + ' business. ' + esc(ci.text) + '.';
-    return pack(said, said, [], 'the book against their sector');
+    const said = 'They run <b>' + esc(joinAnd(hold)) + '</b>, and the thing that usually ' +
+      'follows what they bought last is already theirs. ' + esc(ci.text) + '.';
+    return pack(said, said, [], 'what they run, against the range');
   }
   /* One, two and three read differently and a join written inline three
      times drifts. Nothing else in the build needed it; this card does,
@@ -2993,9 +3056,15 @@
       if (c && c.phone && !c.dnc) who = c;
     }
     if (!who) who = consAt(a.id).filter((c) => c.phone && !c.dnc)[0] || null;
+    /* `who` comes back with it. The card wants a verb and nothing else, and
+       "Open the account" is the honest one where there is nobody to ring —
+       but the RECORD is that account, so the same fallback there is a
+       button that goes where you already are. The caller decides by asking
+       whether anybody was found. */
     return who
-      ? { label: 'Call ' + who.name.split(' ')[0], attr: 'data-call="' + esc(who.id) + '"' }
-      : { label: 'Open the account', attr: 'data-acc="' + esc(a.id) + '"' };
+      ? { who: who, label: 'Call ' + who.name.split(' ')[0],
+          attr: 'data-call="' + esc(who.id) + '"' }
+      : { who: null, label: 'Open the account', attr: 'data-acc="' + esc(a.id) + '"' };
   }
   function custCard(a, i) {
     const subs = subsAt(a);
@@ -11167,7 +11236,8 @@
     const reached = (c) => (!isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered')) ? 1 : 0;
     const people = consAt(a.id).sort((x, y) =>
       (reached(y) - reached(x)) || (qRank(x) - qRank(y)) || qTie(x, y));
-    const call = people.filter(callable);
+    /* Whoever this desk can ring, by this desk's own rule. */
+    const call = people.filter(canRing);
     const hist = touchesAt(a.id);
     const camps = [];
     people.forEach((c) => campsOf(c).forEach((k) => {
@@ -11470,6 +11540,26 @@
     } else if (free.length) {
       door = '<button class="s-insight-lnk" type="button" data-goto="accCamps">' +
         'Put them on a campaign</button>';
+    }
+    /* ══ AND AT A CUSTOMER IT IS WHOEVER THE CONTRACT IS WITH ══════════
+       The chain above ranks by the phone: who picked up, then whoever else
+       can be called, then a campaign to put them on. Every rung of it is
+       about getting through to a company that has not bought, and the door
+       it produced on a customer read "Open Daisy Taylor — with the
+       director", which describes where a deal we LOST got to.
+
+       `custAct` already answers the question a customer's page is asking —
+       the person on the newest contract if they can be rung, otherwise
+       anybody here with a number — and the card in the book draws its verb
+       from it, so the record and the card now name the same person instead
+       of two. Where it finds nobody the chain above stands: that branch
+       ends in "Open the account", and the account is this page. */
+    if (isMgr() && isCust(a)) {
+      const act = custAct(a);
+      if (act.who) {
+        door = '<button class="s-insight-lnk" type="button" ' + act.attr + '>' +
+          esc(act.label) + '</button>';
+      }
     }
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this company">' +
       '<div class="s-lead-mark">' +
