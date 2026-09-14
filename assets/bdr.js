@@ -7944,7 +7944,20 @@
                    argues for stopping them; with it, it reads as meetings
                    that are not converting yet, which is a different
                    decision. That difference is what the cut is for. */
-                '<span><b>' + r.open + '</b> open, ' +
+                /* "OPEN" CARRIED THREE EXCLUSIONS SILENTLY. `isDeal` is
+                   handed over to the manager; `dealLive` is not won, not
+                   lost and not parked — the four stages the odds block names
+                   further down as Not met, Scoped, Shown and Priced. None of
+                   that is in the word, which is why it had to be asked.
+
+                   And it broke the row's parallel: "met" and "signed" say
+                   what HAPPENED, "open" says what state a thing is in. "Still
+                   deciding" is the same grammar as its neighbours and the
+                   same subject — they met, they signed, they are still
+                   deciding — and a deal somebody parked is not deciding
+                   anything, which is the exclusion the word needed to
+                   carry. */
+                '<span><b>' + r.open + '</b> still deciding, ' +
                   esc(fmtMoney(r.pipeline)) + ' if they land</span>' +
               '</div>' +
               /* What the line is made of, the way Resources says what a
