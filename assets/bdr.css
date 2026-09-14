@@ -4026,3 +4026,54 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    top of the ramp, and a mark that changes two things at once is a second
    rank nobody asked for. */
 .s-lead-deck b, .s-lead-deck strong { font-weight: var(--fw-bold); }
+
+/* ══ 88. THE DECK WAS BALANCING ITSELF INTO A COLUMN ═══════════════════════
+   `text-wrap: balance` on the deck, from the shell. It is a HEADING rule:
+   the browser evens out the line lengths of a short block so the last line
+   is not a stub, and the way it does that is by pulling the whole block in
+   from its own max-width.
+
+   Measured on a customer's reading — six lines at 18px, `max-width` 557px,
+   rendering at 474. Eighty-three pixels of measure given back to nothing,
+   inside a section 642px wide, so the paragraph sat as a narrow even-edged
+   column with a quarter of the block empty beside it. That is the "max
+   width" complaint, and the max-width was never the cause.
+
+   `pretty` is the body-copy one: it fixes orphans and leaves the measure
+   alone. And 58ch rather than 52, because at 18px in a 642px block the
+   shorter measure was leaving a gutter wide enough to read as a mistake.
+
+   THE LEADING WITH IT. 1.3 at 18px is a heading's leading, and it is what
+   the multi-line decks were set in — six lines of 18px at 1.3 is the
+   "cramped" half of the same complaint. `--lh-base` is 1.45 and is what
+   every other paragraph in the build reads at. */
+.s-lead-deck { text-wrap: pretty; }
+.s-home .s-lead-deck, .b-lead-slim .s-lead-deck { max-width: 58ch; line-height: var(--lh-base); }
+
+/* ══ THE CONCLUSION IS NOT THE SETUP ═══════════════════════════════════════
+   A customer's reading is three claims — what happened, what it means, and
+   what of ours answers it — and as one paragraph the third arrived as the
+   fifth line of six, in the same ink at the same weight as the setup. The
+   only part that says what to DO was the hardest part to find.
+
+   Three things separate it and all three are quiet: a rule, which is the
+   cheapest way to say a thought ended; the product glyph, which is what
+   this build puts against a thing we sell everywhere else; and one step of
+   weight. Not colour — the offer is not a verdict, and this build spends
+   its two hues on things that went well or badly.
+
+   The step is 400 to 500 with the marks inside it at 700, so the line reads
+   as firmer than the paragraph above without competing with the names in
+   it, which are the thing to come away with. */
+.b-lead-then {
+  display: flex; align-items: flex-start; gap: 9px;
+  max-width: 58ch; margin: 0 0 16px; padding-top: 13px;
+  border-top: 1px solid var(--card-border);
+  font-size: var(--t-deck); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50); text-wrap: pretty;
+}
+/* The glyph is drawn on a 24 grid and has no size of its own; without this
+   it fills the flex item, which is the width of the line. `margin-top`
+   optically centres it on the first line rather than on the box. */
+.b-lead-then svg { width: 17px; height: 17px; flex-shrink: 0; margin-top: 4px; }
+.b-lead-then b { font-weight: var(--fw-bold); }

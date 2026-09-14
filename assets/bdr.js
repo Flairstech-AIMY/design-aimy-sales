@@ -2826,29 +2826,54 @@
      `from` names both halves of the derivation, because both are disputable
      and a reader who doubts one should know which to go and check: where
      the event was seen, and the book it was read against. */
+  /* ══ ONE READING, TWO PLACES, TWO SHAPES ═══════════════════════════════
+     The same sentence has to sit on a card three to a row and on a record
+     with a page to itself, and those want different things. A card has room
+     for one paragraph and no ranks, so everything it can say has to be in
+     the prose and the marks. A record has room to SHOW that this is three
+     claims — what happened, what that means, and what of ours answers it —
+     and set as one block it read as a slab a reader has to parse before
+     they can find the conclusion.
+
+     So the reading comes back in both forms and the caller picks. `text` is
+     the flat one. `what` and `then` are the same claims split at the seam
+     they already had, which is why no prose had to be rewritten to do it.
+
+     THE NAME IS BOLD ON THE CARD AND NOT ON THE RECORD. It is the subject
+     of the sentence either way; what differs is whether the reader needs
+     telling which company this is. In a grid of fifteen they do. On the
+     company's own page there is an `<h1>` of their name forty pixels above,
+     and marking it again in the first three words spends the loudest thing
+     the paragraph has on the one fact the reader cannot possibly be missing
+     — while the offer, which is the point, is the third mark of three. */
   function custSay(a) {
     const subs = subsAt(a);
     const hold = holdSay(subs);
     const o = openingAt(a);
     if (o) {
       const n = o.news;
-      const what = '<b>' + esc(a.name) + '</b> ' + esc(n.say) + ' — ' + esc(n.means) + '.';
+      const said = ' ' + esc(n.say) + ' — ' + esc(n.means) + '.';
+      const what = '<b>' + esc(a.name) + '</b>' + said;
+      const plain = esc(a.name) + said;
       if (o.kind === 'open') {
-        return { text: what + ' They already run <b>' + esc(joinAnd(hold)) +
-            '</b>, and <b>' + esc(SELL[o.offer].name) + '</b> is the one that answers it.',
+        const then = 'They already run <b>' + esc(joinAnd(hold)) +
+          '</b>, and <b>' + esc(SELL[o.offer].name) + '</b> is the one that answers it.';
+        return { text: what + ' ' + then, what: plain, then: then,
           from: n.src + ', against what they hold' };
       }
       if (o.kind === 'hold') {
         /* Not an opening, and the surface must not dress it as one. What
            just changed is a thing we are already paid to do, which makes
            this the week somebody there starts asking whether it works. */
-        return { text: what + ' That is <b>' + esc(SELL[o.offer].name) +
-            '</b>, which is ours already — so this is a call to make before ' +
-            'somebody there makes it about us.',
+        const then = 'That is <b>' + esc(SELL[o.offer].name) +
+          '</b>, which is ours already — so this is a call to make before ' +
+          'somebody there makes it about us.';
+        return { text: what + ' ' + then, what: plain, then: then,
           from: n.src + ', against what they hold' };
       }
-      return { text: what + ' Nothing in the range answers it, so this is a call ' +
-          'about them rather than about us.',
+      const then = 'Nothing in the range answers it, so this is a call ' +
+        'about them rather than about us.';
+      return { text: what + ' ' + then, what: plain, then: then,
         from: n.src + ', against what they hold' };
     }
     /* Nothing has happened. The standing fit speaks instead — what goes
@@ -5977,7 +6002,20 @@
     return (t.doors >= 2
       ? 'You have a name in <b>' + commas(t.doors) + '</b> of their functions'
       : t.doors === 1 ? 'You have one way in' : 'You have nobody on file here') +
-      (t.proven ? ', and they have signed with us before.' : ', and they have never bought.');
+      /* ══ AND NOT TO SOMEBODY READING A CUSTOMER'S PAGE ═══════════════
+         "They have signed with us before" is the proof term, and on a
+         company that has not bought it is the whole point of the sentence:
+         it is the one thing that moves an account up the ranking for a
+         reason nobody disputes. On a customer it is the fourth telling in
+         one screen — the chip beside the name says Customer, the masthead
+         says what they buy and for how long, the relationship block says
+         when they signed — and it is told in the past tense, about a
+         contract that is running now.
+
+         The first half stays, because how many ways in you have is a fact
+         about this desk that nothing else on the page states. */
+      (isCust(a) ? '.' : t.proven ? ', and they have signed with us before.'
+        : ', and they have never bought.');
   }
 
   /* When it closed. `stageOf` reads the last phase touchpoint, so the day it
@@ -11015,7 +11053,15 @@
       if (mine(k) && camps.indexOf(k) < 0) camps.push(k);
     }));
     const free = myCampaigns().filter((k) => camps.indexOf(k) < 0).slice(0, 5);
-    const ci = isMgr() ? checkinSay(a, hist) : null;
+    /* ══ AND THE CLOCK IS THE RELATIONSHIP BLOCK'S ON A CUSTOMER ═══════
+       On a company nobody has bought from, the check-in is one fact among
+       the facts and the masthead is the only place it could go. On a
+       customer the block directly underneath now opens with the cadence,
+       ends on the clock as its last node, and carries it a third time as an
+       amber chip — so the masthead was the fourth telling, and the longest:
+       "Worth a check-in every three weeks, and nothing has been said here
+       yet" sitting above a sentence that says the same two things. */
+    const ci = isMgr() && !isCust(a) ? checkinSay(a, hist) : null;
 
     /* The furthest anyone here has got, as the chip beside the name. Below
        `answered` nobody has been reached, and that is the chip's whole
@@ -11160,7 +11206,7 @@
         '</div>' +
       '</section>' +
 
-      storyBlock(accStory(a, people, hist)) +
+      storyBlock(isMgr() && isCust(a) ? custStory(a) : accStory(a, people, hist)) +
       accLead(a, people, hist, call, free) +
       (isMgr() ? fitBlock(a) : '') +
       accMap(a, people) +
@@ -11248,7 +11294,19 @@
        every day, and the line above it is what CHANGED. News, then the
        frame the news sits in. Where nothing has changed it is the whole
        reading, and this block used to draw nothing at all in that case. */
-    const why = isMgr() ? tierWhy(a) : '';
+    /* ══ AND NOT UNDER A CUSTOMER'S NEWS ═══════════════════════════════
+       `tierWhy` ends "and they have signed with us before", which on a
+       customer's page is the third time in one screen: the chip beside the
+       name says Customer, the masthead says what they buy and how long they
+       have bought it, and then the reading appends it as news. It is also a
+       standing fact about the account bolted onto a sentence about a thing
+       that happened last Tuesday — two subjects, one paragraph, and the
+       reader has to find the seam.
+
+       It keeps its place everywhere else, which is where it earns one: on a
+       company nobody has sold to, how many ways in you have and whether
+       they have ever bought is the whole of what this desk knows. */
+    const why = isMgr() && !(isCust(a) && said && said.then) ? tierWhy(a) : '';
     const thin = !said || said.from === 'the account itself';
     if (thin && !why) return '';
     const got = hist.filter((t) => t.outcome === 'reached')[0];
@@ -11278,8 +11336,22 @@
         '<span class="work-state ws-detected" data-work-state="detected">' +
           esc(thin ? 'what this desk holds here' : said.from) + '</span>' +
       '</div>' +
-      '<p class="s-lead-deck">' +
-        (thin ? why : said.text + (why ? ' ' + why : '')) + '</p>' +
+      /* ══ THREE CLAIMS AT ONE RANK IS A SLAB ════════════════════════════
+         A customer's reading is what happened, what it means and what of
+         ours answers it, and set as one paragraph the conclusion — the only
+         part that says what to DO — arrived as the fifth line of six, in
+         the same ink at the same weight as the setup. The reader had to
+         parse the whole block before they could find the point of it.
+
+         Two elements, because there are two thoughts: the news and its
+         consequence are one, and the offer is the other. The split needs no
+         new prose — `custSay` already had the seam, it was just being
+         joined over. */
+      (said && said.then
+        ? '<p class="s-lead-deck">' + said.what + '</p>' +
+          '<p class="b-lead-then">' + chIcon('sell') + '<span>' + said.then + '</span></p>'
+        : '<p class="s-lead-deck">' +
+            (thin ? why : said.text + (why ? ' ' + why : '')) + '</p>') +
       (door ? '<div class="s-lead-acts">' + door + '</div>' : '') +
     '</section>';
   }
@@ -12571,8 +12643,13 @@
   }
 
   function storyBlock(o) {
-    return '<section class="s-block s-block-wide b-story" aria-label="The story so far">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h">The story so far</h2>' +
+    /* The heading is the caller's by default and is passed in where the
+       story is a different story. One component, because a relationship and
+       an acquisition are both a thing that happened in order, with a state
+       now and something owed next — which is the whole of what this draws. */
+    const head = o.head || 'The story so far';
+    return '<section class="s-block s-block-wide b-story" aria-label="' + esc(head) + '">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">' + esc(head) + '</h2>' +
         (o.cite ? '<span class="s-block-say">' + esc(o.cite) + '</span>' : '') + '</div>' +
       /* THE LADDER OPENS IT. It had a section of its own, under a heading
          that asked the same question this one answers, and the two said the
@@ -12737,6 +12814,89 @@
          some of the book and the line says which. This story is drawn from
          one company, and the reader is on that company's page with its name
          at the top. There is no set to name. */
+      cite: '',
+    };
+  }
+
+  /* ══ THE RELATIONSHIP, IN THE SHAPE THE STORY ALREADY HAS ══════════════
+     `accStory` is the acquisition: first called, got through, handed over,
+     and whatever the deal did after that. On a customer it tells the story
+     of whichever deal happened to be open — at one company that meant the
+     strip ended "They said no", about an engineering deal we lost, at the
+     top of the page of a company paying us for support. The loudest block
+     on the record was about the one thing that did not happen.
+
+     The relationship is the same KIND of thing — something that happened in
+     order, a state now, something owed next — so it is the same component
+     with different nodes. Signed, then every expansion, then the last time
+     anybody said anything, then the check-in the tier bought them, which is
+     the only node that is about the future and is therefore the one the
+     strip ends on.
+
+     `next` is the tier's own standing instruction, which existed and was
+     drawn nowhere a manager would meet it. */
+  function custStory(a) {
+    const subs = subsAt(a);
+    const hist = touchesAt(a.id);
+    const t = tierOf(a);
+    const last = hist.length ? hist[0] : null;
+    const steps = subs.map((s, i) => ({
+      k: i === 0 ? 'Signed' : 'Expanded',
+      t: (SELL[s.sell] || {}).name + ' · ' + monthYear(s.since),
+      tone: 'ok',
+    }));
+    if (last) {
+      steps.push({ k: 'Last spoken to',
+        t: sayDay(last.at) + ' · ' + actor(last.by).name.split(' ')[0], tone: 'neutral' });
+    }
+    /* The clock, counted from the last thing anybody did at the COMPANY —
+       the same rule `checkinSay` uses, and recomputed here rather than
+       parsed back out of its sentence, so the chip and the masthead cannot
+       drift apart. */
+    const lastDay = last ? last.at.slice(0, 10) : null;
+    const left = lastDay == null ? null : t.days - daysBetween(lastDay, TODAY_ISO);
+    steps.push(left == null
+      ? { k: 'No check-in yet', t: 'nothing has been said here', tone: 'warn' }
+      : left < 0
+        ? { k: 'Check-in overdue', t: plural(-left, 'day') + ' past it', tone: 'warn' }
+        : { k: 'Next check-in', t: left === 0 ? 'today' : 'in ' + plural(left, 'day'), tone: 'neutral' });
+    const worth = custWorth(a);
+    return {
+      head: 'How this has gone',
+      /* ══ THE STANDING FACTS HERE, THE INSTRUCTION BELOW ════════════════
+         The cadence was first written into `next`, in front of the tier's
+         own `play` — and `play` at Gold opens "Worth the trip and a standing
+         check-in", so the row read "Worth a check-in every three weeks.
+         Worth the trip and a standing check-in." The same word twice and the
+         same fact twice, six words apart.
+
+         It belongs here. How long they have been with us, what they pay and
+         how often they are owed a word are three facts about the account and
+         they read as one sentence; `play` is an instruction and reads as one
+         on its own, which is what it was written as. */
+      now: '<b>' + esc(sayFor(subs[0].since)) + '</b> a customer, worth <b>' +
+        esc(euro(worth)) + '</b> a year' +
+        /* Three marks, not five. How many contracts and which tier are both
+           already drawn — the contracts by name in the masthead and the
+           strip below, the tier as the shield on the company's own line —
+           so marking them here spends the emphasis on the two facts a
+           reader has already been given twice, and buries the three that
+           are only said here: how long, how much, how often. */
+        (subs.length > 1 ? ' across ' + commas(subs.length) + ' contracts' : ' on one contract') +
+        ', and ' + esc(t.label) + ', so they are owed a word every <b>' +
+        esc(t.every) + '</b>.' +
+        (last ? '' : ' Nobody has said anything to them yet.'),
+      steps: storyTrim(steps),
+      /* The tier's own standing instruction, which existed and was drawn
+         nowhere a manager would meet it. */
+      next: esc(t.play),
+      done: left != null && left >= 0,
+      due: left == null ? null
+        : { what: 'Check-in',
+            when: left < 0 ? plural(-left, 'day') + ' late'
+              : left === 0 ? 'due today' : 'in ' + plural(left, 'day'),
+            late: left < 0 },
+      hand: '',
       cite: '',
     };
   }
