@@ -8471,7 +8471,16 @@
 
      Off the hash like the signals, the book and the news — no stored graph,
      no draw from the shared stream, and the same answer on every machine. */
-  const REACH_FIRST = 31;   /* one lead in thirty-one you already know */
+  /* ══ AND THE TWO ARE NOT THE SAME SIZE ═════════════════════════════════
+     One in thirty-one of the index was a direct connection, which across
+     two thousand people is sixty-five of them in a single market. Second
+     degree is the opposite: you reach almost anybody through somebody,
+     which is the whole reason that half of this exists. One in a hundred
+     and forty direct now, and of the rest one in eleven with a path.
+     Measured on the index: twenty people you actually know against a
+     hundred and ninety-six you could be introduced to, which is the shape
+     of a real network rather than an inverted one. */
+  const REACH_FIRST = 140;  /* one in a hundred and forty you already know */
   const REACH_SECOND = 11;  /* of the rest, one in eleven shares somebody */
   /* ══ AND THE CONNECTION IS OUT THERE, NOT IN THE BOOK ══════════════════
      A bridge was drawn first from people this desk had already reached. It
@@ -8482,7 +8491,7 @@
      question, who do we both know inside our own pipeline, and thrown away
      the reason for asking an outside source at all.
 
-     `DB.net` is that outside world and the build already carries twelve
+     `DB.net` is that outside world and the build already carries two
      thousand of them, each with a name, a title and a company: it is the
      index a list search runs against, which is to say it is the population
      LinkedIn returns from. A handful are marked `known` because they mirror
@@ -8498,15 +8507,23 @@
     if (!pool || !pool.length) return null;
     const via = pool[(h >> 9) % pool.length];
     /* Never somebody at the same company: "you both know their colleague"
-       is not a bridge, it is the account we are already standing on. */
-    const a = accOf(c);
-    if (a && via.co === a.name) return null;
+       is not a bridge, it is the company we are already trying to get into.
+       `c` is a lead in the book on a card and a row out of the index in a
+       message, so the name is read off whichever of the two it has. */
+    const co = c.co || ((accOf(c) || {}).name);
+    if (co && via.co === co) return null;
     return { k: 'second', via: via, n: 2 + ((h >> 5) % 8) };
   }
   /* What the connection is FOR. A path to somebody is worth a sentence only
      if there is something to say when you get there, and the campaign they
      are on already knows what we would be selling them. */
-  const reachSell = (c) => SELL[sellOf(c)] || SELL.qa;
+  /* What the connection is FOR. A path to somebody is worth a sentence only
+     if there is something to say when you get there. A lead in the book has
+     a campaign that already knows what we would sell them; a stranger has
+     only their sector, and `IND_FIT` is what this build uses to answer that
+     everywhere else. */
+  const reachSell = (x) => SELL[x.camps ? sellOf(x)
+    : ((IND_FIT[x.industry] || { fits: ['qa'] }).fits[0])] || SELL.qa;
 
   /* ══ AND AiMY SAYS IT RATHER THAN FILING IT ════════════════════════════
      The bell holds what is OWED — a meeting unwritten, a deal past its
@@ -8521,33 +8538,62 @@
      carries the unread count, so it is already the thing on screen that
      means AiMY has something for you". Nothing has ever set it. It does
      now, and this is the first thing it counts. */
+  /* ══ AND THE PERSON IS ONE WE DO NOT HAVE ══════════════════════════════
+     This scanned the queue first, which made the whole feature an
+     annotation on leads we already hold — "you happen to know this one" —
+     when the thing asked for was SUGGESTED LEADS. A path into somebody
+     already on the board is worth a line on their card and it is not worth
+     a message; the message is for the person who is not there yet, because
+     that is the one AiMY found and nobody else could have.
+
+     `DB.net` again: the outside world, which is where a stranger lives.
+     Ranked by the same ceiling the account tier uses — every service
+     `IND_FIT` puts against their sector, at their size band — so the one
+     message a session is about the biggest company you have a way into
+     rather than the first row that matched. A sector with no fit is not
+     suggested at all: knowing somebody is not a reason to call them. */
   function reachTop() {
-    const pool = (isMgr() ? queue(null, 'all') : queue(null, 'all'))
-      .map((c) => ({ c: c, r: reachOf(c) }))
-      .filter((x) => x.r);
-    /* Somebody you know outranks somebody you can be introduced to, and
-       among equals the bigger account — this is one message a day, so it
-       had better be about the best of them rather than the first. */
-    pool.sort((a, b) =>
-      ((a.r.k === 'first' ? 0 : 1) - (b.r.k === 'first' ? 0 : 1)) ||
-      (ceilingOf(accOf(b.c)) - ceilingOf(accOf(a.c))));
-    return pool[0] || null;
+    const out = [];
+    (DB.net || []).forEach((n) => {
+      const fit = IND_FIT[n.industry];
+      if (!fit) return;
+      const r = reachOf(n);
+      if (!r) return;
+      const band = priceBand(n.size);
+      out.push({ c: n, r: r,
+        worth: fit.fits.reduce((s, k) => s + ((PRICE[k] || PRICE.qa)[band] || 0), 0) });
+    });
+    /* ══ THE PRIZE RANKS IT, NOT THE DEGREE ═══════════════════════════
+       Degree came first and it buried half the feature: every direct
+       connection in the index outranked every introduction, so the message
+       was always first-degree and the bridge — the half that was actually
+       asked for — never once surfaced on either desk.
+
+       It is also the wrong business call. A company where four hundred
+       thousand of our work could fit, reachable through somebody, beats a
+       ninety-thousand one you happen to know directly; an introduction is
+       one more email, not a different order of difficulty. The prize ranks
+       it and the degree breaks a tie, which is the way round the account
+       tier already does it. The message says which kind it is either way,
+       and the reader decides. */
+    out.sort((a, b) => (b.worth - a.worth) ||
+      ((a.r.k === 'first' ? 0 : 1) - (b.r.k === 'first' ? 0 : 1)));
+    return out[0] || null;
   }
   function reachSay(hit) {
     const c = hit.c;
     const r = hit.r;
-    const a = accOf(c);
     const sell = reachSell(c);
-    const where = a ? a.name : 'their company';
+    const who = esc(c.title) + ' at <b>' + esc(c.co) + '</b>, ' +
+      esc((INDUSTRY[c.industry] || { label: 'a company' }).label.toLowerCase()) +
+      ' at ' + esc(headLabel(c));
     if (r.k === 'first') {
-      return '<b>' + esc(c.name) + '</b> is a connection of yours — ' +
-        esc(c.title) + ' at <b>' + esc(where) + '</b>, ' +
-        esc(indLabel(a).toLowerCase()) + ' at ' + esc(headLabel(a)) + '. ' +
-        '<b>' + esc(sell.name) + '</b> is what we would be selling them, and ' +
-        'nobody here has called them yet. Want me to write the message?';
+      return '<b>' + esc(c.name) + '</b> is a connection of yours — ' + who + '. ' +
+        '<b>' + esc(sell.name) + '</b> is what fits them and they are nowhere in your ' +
+        'book. Want me to write the message?';
     }
-    return 'You and <b>' + esc(c.name) + '</b> — ' + esc(c.title) + ' at <b>' +
-      esc(where) + '</b> — share <b>' + esc(plural(r.n, 'connection')) + '</b>. ' +
+    return 'You and <b>' + esc(c.name) + '</b> — ' + who + ' — share <b>' +
+      esc(plural(r.n, 'connection')) + '</b>, and they are nowhere in your book. ' +
       'The closest is <b>' + esc(r.via.name) + '</b>, ' + esc(r.via.title) + ' at ' +
       esc(r.via.co) +
       /* Almost never, and worth a clause when it happens: a bridge who
@@ -8556,39 +8602,52 @@
       (r.via.known ? ', which is already in your book' : '') +
       '. Want me to write the ask?';
   }
-  /* The draft itself. Authored per degree, because the two are different
-     letters: one is a note to somebody you know, the other is a favour
-     asked of a third party, and the second one has to give them a reason
-     to say yes that is about THEM rather than about us. */
+  /* ══ AND IT IS A FIRST APPROACH, NOT A RECONNECTION ════════════════════
+     The first-degree letter opened "we have not spoken in a while", which
+     is a sentence about a relationship and there is not one. A LinkedIn
+     connection is not somebody you have talked to — you can be connected to
+     several hundred people you have never once contacted, and that is
+     exactly the population this feature is for. Opening on a shared history
+     that does not exist is the fastest way to be ignored by somebody who
+     remembers perfectly well that you have never met.
+
+     What the connection buys is not familiarity. It is permission to write
+     at all, and one line of context for why you are in each other's
+     network. So the letter says so plainly, and then does what a first
+     approach has to do: name what we run, name the thing that is probably
+     true of them, and ask for a small yes.
+
+     Authored per degree, because the two are different letters. One is a
+     first note to a stranger you share a network with; the other is a
+     favour asked of a third party, and the second has to give them a reason
+     to say yes that is about the person being introduced rather than about
+     us. */
   function reachDraft(hit) {
     const c = hit.c;
     const r = hit.r;
-    const a = accOf(c);
     const sell = reachSell(c);
+    const key = c.camps ? sellOf(c) : (IND_FIT[c.industry] || { fits: ['qa'] }).fits[0];
     const first = c.name.split(' ')[0];
     const body = r.k === 'first'
       ? '<p class="s-callp"><b>To</b> ' + esc(c.name) + ' · ' + esc(c.title) +
-          ' at ' + esc(a ? a.name : '') + '</p>' +
-        '<p class="s-callp">' + esc(first) + ' — we have not spoken in a while. ' +
-          /* The name as it is written. `toLowerCase` made "QA and test
-             automation" into "qa and test automation", and would have made
-             "AiMY Voice" into "aimy voice" — a product name is a proper
-             noun and does not bend to fit a sentence. */
-          'We run ' + esc(sell.name) + ' for companies your size: ' +
-          esc(sell.blurb) + '. ' + esc(cap1(WHY_NOW[sellOf(c)] || '')) +
-          ' — if that is anywhere near true for you, is it worth twenty minutes?</p>'
+          ' at ' + esc(c.co || (accOf(c) || {}).name || '') + '</p>' +
+        '<p class="s-callp">' + esc(first) + ' — we are connected here and have never ' +
+          'spoken, so this is out of the blue. We run ' + esc(sell.name) + ': ' +
+          esc(sell.blurb) + '. ' + esc(cap1(WHY_NOW[key] || '')) +
+          ' — if that is anywhere near true at ' + esc(c.co || 'your end') +
+          ', is it worth twenty minutes? If it is not, say so and I will leave it.</p>'
       : '<p class="s-callp"><b>To</b> ' + esc(r.via.name) + ' · ' + esc(r.via.title) +
           ' at ' + esc(r.via.co) + '</p>' +
-        '<p class="s-callp">' + esc(r.via.name.split(' ')[0]) + ' — you are connected to ' +
-          esc(c.name) + ' at ' + esc(a ? a.name : '') + '. We do ' +
-          esc(sell.name) + ' and I think it is relevant to what ' +
-          'they are dealing with. Would you be willing to introduce us, or tell me ' +
-          'whether it is worth asking?</p>' +
-        '<p class="s-callp"><b>Why them</b> ' + esc(cap1(WHY_NOW[sellOf(c)] || '')) + '.</p>';
-    return answerBlock(r.k === 'first' ? 'A message to ' + c.name
+        '<p class="s-callp">' + esc(r.via.name.split(' ')[0]) + ' — I see you are connected ' +
+          'to ' + esc(c.name) + ' at ' + esc(c.co) + '. We do ' + esc(sell.name) +
+          ', and I think it is relevant to what they are dealing with. Would you be ' +
+          'willing to introduce us, or tell me whether it is worth asking?</p>' +
+        '<p class="s-callp"><b>Why them</b> ' + esc(cap1(WHY_NOW[key] || '')) + '.</p>';
+    return answerBlock(r.k === 'first' ? 'A first note to ' + c.name
       : 'An ask for ' + r.via.name,
       '<div class="s-brief-call">' + body + '</div>',
-      r.k === 'first' ? 'your own network' : 'a connection you share, off their LinkedIn');
+      r.k === 'first' ? 'your LinkedIn network, and their sector'
+        : 'a connection you share, off their LinkedIn');
   }
   const cap1 = (s) => String(s || '').replace(/^./, (x) => x.toUpperCase());
   /* ══ WHO IS ACTUALLY CALLING IT ════════════════════════════════════════
@@ -15712,9 +15771,16 @@
       hint: hit.r.k === 'first'
         ? 'Read off your LinkedIn network. Nothing has been sent.'
         : 'Read off their LinkedIn, against your network. Nothing has been sent.',
+      /* ══ AND THE SECOND VERB IS ADD, NOT OPEN ══════════════════════
+         It was "Open <name>", which is the ordinary door to a record — and
+         there is no record. The whole point of the message is that this is
+         somebody we do not have, so the useful second answer is to put them
+         on the board. It hands the composer a complete `Add a lead:`
+         sentence, `for <service>` and all, which is the path that already
+         exists and now carries what the lead is for. */
       opts: [
         { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
-        { k: 'open', label: 'Open ' + hit.c.name.split(' ')[0], quiet: true },
+        { k: 'add', label: 'Add them to the board', quiet: true },
       ] });
     paintThread();
     markUnread();
@@ -19021,9 +19087,11 @@
     const rch = t.closest('[data-reach]');
     if (rch) {
       if (!REACH_HIT) return;
-      if (rch.getAttribute('data-reach') === 'open') {
+      if (rch.getAttribute('data-reach') === 'add') {
+        const n = REACH_HIT.c;
         hideCanvas();
-        go({ con: REACH_HIT.c.id, p: '' });
+        fillBar('Add a lead: ' + n.name + ', ' + n.title + ' at ' + n.co +
+          ', for ' + reachSell(n).name);
         return;
       }
       TURNS.forEach((x) => { if (x.step === 'reach') x.spent = true; });
