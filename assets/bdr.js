@@ -2355,7 +2355,27 @@
              before DELTA had been read from storage the first time, so it
              concatenated the empty default and every campaign made in the
              browser vanished on reload. */
-          DB.camp = DB.camp.concat(DELTA.camp || []);
+          /* ══ AND A SEEDED ONE YOU EDITED IS NOT A SECOND CAMPAIGN ══════
+             `DELTA.camp` was only ever campaigns MADE in the browser, and a
+             concat was right for those. `campSet` pushes whatever it patches
+             into the same list, which was harmless while the only thing it
+             patched was a draft — and the moment a crew could be changed on
+             a campaign that came out of the seed, the seeded copy and the
+             edited copy both came back. Measured: eleven campaigns, c7
+             twice. `reindex` builds `byCamp` by id so the later one wins and
+             most of the product looked right, which is the worst shape a
+             defect like this can take.
+
+             Replaced where it stands rather than appended, so a campaign
+             keeps its place in the list after it is edited — and anything in
+             the delta that is NOT in the seed is still a campaign somebody
+             made, and still goes on the end. */
+          const kept = Object.create(null);
+          (DELTA.camp || []).forEach((x) => (kept[x.id] = x));
+          const seeded = Object.create(null);
+          DB.camp.forEach((x) => (seeded[x.id] = 1));
+          DB.camp = DB.camp.map((x) => kept[x.id] || x)
+            .concat((DELTA.camp || []).filter((x) => !seeded[x.id]));
           (DELTA.made || []).forEach((m) => {
             DB.acc = DB.acc.concat(m.acc);
             DB.con = DB.con.concat(m.con);
@@ -9822,18 +9842,29 @@
      no queue: every one of them is a sentence about calls that have not
      happened, and a campaign with nothing on it reading "0% got through" is
      the product inventing a fact about an empty room. */
-  function draftMenu(id, label, cap, items) {
+  /* `cls` is the button, because this menu is reached from two places that
+     want different weights: a field in the builder, where it is the value
+     you are editing, and the verb on a team block's caption row. */
+  function draftMenu(id, label, cap, items, cls) {
     return '<span class="b-menu-wrap">' +
-      '<button class="b-draft-pick b-menu-open" type="button" data-pickopen="' + esc(id) + '" ' +
+      '<button class="' + esc(cls || 'b-draft-pick') + ' b-menu-open" type="button" ' +
+      'data-pickopen="' + esc(id) + '" ' +
         'aria-haspopup="menu">' + (label || '<span class="b-draft-none">Choose</span>') + '</button>' +
       '<div class="b-menu" id="' + esc(id) + '" role="menu" hidden>' +
-        '<span class="b-menu-cap">' + esc(cap) + '</span>' + items +
+        /* A caption is optional. A menu that opens with a search box does
+           not need one: the box's own placeholder says what is in the list,
+           and a title above a field is the same sentence twice. */
+        (cap ? '<span class="b-menu-cap">' + esc(cap) + '</span>' : '') + items +
       '</div>' +
     '</span>';
   }
-  function draftItem(field, val, name, on, sub2) {
+  /* `lead` is drawn before the name, and the only thing that passes one is a
+     crew row: a colleague is a face here and on every other surface, and a
+     list of people with no faces in a build that draws them everywhere else
+     is the one menu where you cannot tell at a glance who is already on. */
+  function draftItem(field, val, name, on, sub2, lead) {
     return '<button class="b-menu-item' + (on ? ' is-on' : '') + '" type="button" role="menuitem" ' +
-      'data-cset="' + esc(field + '|' + val) + '">' +
+      'data-cset="' + esc(field + '|' + val) + '">' + (lead || '') +
       '<span class="b-menu-line"><span class="b-menu-name">' + esc(name) + '</span>' +
       (sub2 ? '<span class="b-menu-sub">' + esc(sub2) + '</span>' : '') + '</span></button>';
   }
@@ -9903,7 +9934,7 @@
           draftField('The team', draftMenu('dCrew',
             crew.length ? crew.map((r) => esc(r.name)).join(', ') : '', 'Who works it',
             BDRS.map((r) => draftItem('crew', r.id, r.name,
-              k.crew.indexOf(r.id) >= 0, JOB[r.fn])).join(''))) +
+              k.crew.indexOf(r.id) >= 0, JOB[r.fn], faceOf(r.id, 26))).join(''))) +
           /* ══ THE LISTS YOU ALREADY HAVE ═══════════════════════════════
              A campaign with nobody on it is a campaign nobody can work, and
              the people are already in the book — found, run and saved as
@@ -10108,20 +10139,194 @@
      campaign — owns it, calling — which is a sentence about the campaign
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
-  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };  /* ══ A TEAM THAT DOES NOT FIT ON A LINE ════════════════════════════════
+     `.b-team` lays a face, a name and a job flat and wraps. That is the
+     right drawing for the four people a campaign used to have; measured on
+     a crew of seven it is three rows deep and 108px tall, and the block
+     that says who works this campaign is the tallest thing on the page
+     after the reading.
+
+     Three, then the rest as a stack of overlapping faces you can press. The
+     overlap is the point and not decoration: faces set apart are a list of
+     people and faces set over each other are ONE THING, a group, which is
+     what the hidden remainder is. It is the shape every product that has
+     ever had assignees converges on, for that reason.
+
+     WHERE THE LINE FALLS. Five fit. Six is where the row breaks on the
+     narrowest column this block is drawn in, so five is the last size that
+     is better shown whole than summarised — a stack hiding one person is a
+     press to learn something you had room to read.
+
+     AND IT ONLY SHOWS. The first cut made the stack the way to change the
+     crew as well, on the argument that the trigger was already the answer
+     and a block with a stack AND a button is two ways to do one thing. It
+     is not one thing. "Who else is on this" and "change who is on this" are
+     a reading and a write, and putting them on one press made the reading
+     the worse of the two: the menu under it had to list every caller on the
+     floor with the current crew ticked, so pressing a stack of four faces
+     to find out who those four were handed you eight names to decode.
+
+     The stack names the rest and nothing else. Assigning is a verb, it says
+     so, and it sits on the caption's row where this build puts the verb
+     that belongs to a section. */
+  const TEAM_FLAT = 5;
+  const TEAM_SHOW = 3;
+  const STACK_FACES = 4;
+  /* `sub` is the second line a face carries where it is drawn flat — on a
+     campaign the person's job, on a lead their job and what they have done
+     on it. The menu takes the same one, because a disclosure that shows
+     less about the hidden people than the row would have shown is a reason
+     to keep opening it. */
+  function teamFaces(ids, row, sub, k) {
+    const over = ids.length > TEAM_FLAT;
+    const shown = over ? ids.slice(0, TEAM_SHOW) : ids;
+    const rest = over ? ids.slice(TEAM_SHOW) : [];
+    /* The stack's faces are whoever is not on the line; its MENU is the
+       whole team, because that menu is the roster and the roster is where
+       taking somebody off happens. */
+    return shown.map(row).join('') + (rest.length ? teamStack(rest, ids, sub, k) : '');
+  }
+  /* The faces of whoever is not on the line, and the menu that names them.
+     Its rows are not controls: a colleague has no page in this build to
+     open, and a row that highlights under the hand and then does nothing is
+     worse than a row that never offered. */
+  function teamStack(rest, all, sub, k) {
+    const say = sub || ((x) => (REP[x] && JOB[REP[x].fn]) || 'On the crew');
+    const face = rest.slice(0, STACK_FACES);
+    const more = rest.length - face.length;
+    return '<span class="b-menu-wrap b-stack-wrap">' +
+      '<button class="b-stack b-menu-open" type="button" data-pickopen="teamRest" ' +
+        'aria-haspopup="menu" aria-label="' +
+        esc(plural(rest.length, 'more person', 'more people') + ' on this team') + '">' +
+        '<span class="b-stack-faces">' +
+          face.map((x) => '<span class="b-stack-face">' + faceOf(x, 26) + '</span>').join('') +
+          (more ? '<span class="b-stack-face b-stack-n">+' + commas(more) + '</span>' : '') +
+        '</span>' +
+        '<svg class="b-stack-chev" viewBox="0 0 24 24" width="12" height="12" fill="none" ' +
+          'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" ' +
+          'stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
+      '</button>' +
+      /* ══ THE MENU IS THE WHOLE TEAM, NOT THE REMAINDER ═════════════════
+         The stack's FACES are whoever did not fit on the line — that is
+         what the stack is for — but its menu is the roster, every name on
+         it, because the roster is where somebody gets taken off. A list
+         holding only the overflow would put the cross beside four of the
+         seven and leave the other three unremovable for no reason a reader
+         could work out.
+
+         The cross was on the line first, next to each of the three names
+         the block shows. It made a block whose job is to say who works
+         this read as a row of things to dismiss, and it put the verb in
+         two places at once — beside three of them and inside a menu for
+         the rest. One place: here. */
+      '<div class="b-menu b-team-menu" id="teamRest" role="menu" hidden>' +
+        '<span class="b-menu-cap">The team</span>' +
+        all.map((x) => '<span class="b-menu-item b-menu-row">' + faceOf(x, 26) +
+          '<span class="b-menu-line"><span class="b-menu-name">' +
+          esc(x === me().id ? 'You' : actor(x).name) + '</span>' +
+          '<span class="b-menu-sub">' + esc(say(x)) + '</span></span>' +
+          crewOff(k, x) + '</span>').join('') +
+      '</div>' +
+    '</span>';
+  }
+  /* ══ AND THE WRITE, WHICH IS A VERB ════════════════════════════════════
+     Every caller on the floor, ticked where they are already on it. It is
+     the campaign builder's own crew control — `draftItem('crew', …)` over
+     `BDRS`, writing through `data-cset` to `campSet` — which has only ever
+     been reachable on a campaign that has not run yet. Nothing here is a
+     new write path; what is new is the same control on a campaign that IS
+     running, which is when a manager actually moves somebody. */
+  /* ══ THE LIST YOU ADD FROM IS SHORT BECAUSE IT EXCLUDES THE TEAM ═══════
+     Written first as the builder writes it: every caller on the floor, the
+     ones already on highlighted. Two things were wrong with it. The
+     highlight was doing the work of a verb — one press meant take off on
+     one row and put on the next — and the list was the whole floor, so it
+     scrolled, and a list that scrolls wants a search box, and ticking
+     several with a repaint between each wants a confirm. That is the form
+     `campMenu` has a note refusing, arrived at one reasonable step at a
+     time.
+
+     It adds, and it only ever lists people who are not on the campaign, so
+     it is as long as the floor minus the crew — one to five rows here.
+     Nothing to search. One press, one person, and the menu stays open for
+     the next because `data-cset` reopens what it was pressed in.
+
+     Taking somebody off is not in here. It happens where their name
+     already is, which is the one place a reader is looking when they
+     decide somebody should come off. */
+  function crewPick(k) {
+    const off = BDRS.filter((r) => r.id !== k.owner && k.crew.indexOf(r.id) < 0);
+    if (!off.length) return '';
+    /* No caption over it. The button that opened this says Add to the crew
+       and the box under it says Find a caller, so a third line naming the
+       list is the same sentence a third time — and it was the only thing
+       between the hand and the first name.
+
+       The box is `data-picksearch`, which `pickopen` focuses on open and
+       `pickFilter` narrows on every keystroke: the menu opens with the
+       caret already in it, so on a floor this size the fastest way to add
+       somebody is to type three letters of their name. That is what the
+       search is for here. It is not the search box `campMenu` refuses —
+       that one sat over a multiple choice and a confirm, and this list
+       still writes on the press it is given. */
+    return draftMenu('teamPick', 'Add to the crew', '',
+      '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+        'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
+      off.map((r) => draftItem('crew', r.id, r.name, false, JOB[r.fn], faceOf(r.id, 26))).join(''),
+      's-inline-btn');
+  }
+  /* ══ AND TAKING SOMEBODY OFF SITS ON THEIR OWN ROW ═════════════════════
+     A cross beside the name, wherever the name is drawn — on the line for
+     the three the block shows, and in the stack's menu for the rest. It
+     needs no list of its own and no second reading of who is on: the team
+     IS the list, and it is already on the page.
+
+     Never the owner. A campaign belongs to a manager and the crew is who
+     works it for them; there is no state in which taking the owner off is
+     the thing somebody meant. */
+  const crewOff = (k, id) => (!k || id === k.owner ? ''
+    : '<button class="b-crew-x" type="button" data-cset="' + esc('crew|' + id) + '" ' +
+      'aria-label="' + esc('Take ' + actor(id).name + ' off this campaign') + '">' +
+      chIcon('x') + '</button>');
+
+
   function teamRow(k) {
     const ids = [k.owner].concat(k.crew.filter((id) => id !== k.owner));
+    /* ══ AND ONLY THE OWNER MAY CHANGE IT ══════════════════════════════
+       A campaign belongs to the manager who owns it, and `mine()` on that
+       desk is exactly that test. A caller crewed onto it reads the same
+       block and gets the same stack, as a disclosure: she can see who else
+       is on it and she cannot add herself to somebody's campaign, which is
+       the rule the rest of this build already keeps about whose book is
+       whose.
+
+       THE CREW PICKER ITSELF IS NOT NEW. The campaign builder has carried
+       it since it was written — `draftItem('crew', …)` over `BDRS`, ticked,
+       writing through `data-cset` to `campSet` — and it has only ever been
+       reachable on a campaign that has not run yet. Nothing here adds a
+       write path. What it adds is the same control on a campaign that IS
+       running, which is when a manager actually moves somebody. */
+    const mine = isMgr() && k.owner === me().id;
+    const row = (id) => {
+      const you = id === me().id;
+      return '<div class="b-mate">' + faceOf(id, 32) +
+        '<span class="b-mate-t">' +
+          '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
+          '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + '</span>' +
+        '</span>' +
+      '</div>';
+    };
     return '<div class="b-team">' +
-      '<span class="b-cmeta-cap b-team-cap">The team</span>' +
-      ids.map((id) => {
-        const you = id === me().id;
-        return '<div class="b-mate">' + faceOf(id, 32) +
-          '<span class="b-mate-t">' +
-            '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
-            '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + '</span>' +
-          '</span>' +
-        '</div>';
-      }).join('') +
+      /* The caption and the verb share a row, which is where this build
+         puts the one thing a section does — the same shape `openLoop` uses
+         to hang Notes off Missing details. The faces start on the line
+         under it either way, so the block does not change height when the
+         verb is not drawn. */
+      '<div class="b-team-head">' +
+        '<span class="b-cmeta-cap b-team-cap">The team</span>' +
+        (mine ? crewPick(k) : '') +
+      '</div>' +
+      teamFaces(ids, row, null, mine ? k : null) +
     '</div>';
   }
 
@@ -11858,32 +12063,42 @@
         '<span class="s-block-say">' + esc(plural(ids.length, 'person')) +
           ' on this lead</span>' +
       '</div>' +
+      /* ══ AND THE SAME OVERFLOW, BECAUSE THIS ONE GROWS FASTER ══════════
+         A campaign's team is whoever is crewed on it. A lead's is that plus
+         whoever has ever logged a touchpoint against it, so it is the
+         longer of the two by construction and grows every time somebody
+         new picks up the phone. Same three, same stack, and the menu
+         carries the same second line — a colleague hidden behind it shows
+         what they have done on this lead, not merely that they exist. */
       '<div class="b-team b-team-rec">' +
-        ids.map((id) => {
-          const you = id === me().id;
-          const theirs = hist.filter((t) => t.by === id);
-          const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
-          const mets = theirs.filter((t) => t.outcome === 'phase').length;
-          const bits = [];
-          if (calls) bits.push(plural(calls, 'call'));
-          if (mets) bits.push(plural(mets, 'meeting'));
-          /* Nothing done yet is not nothing to say: it is what they are
-             here for, which is the more useful half on a cold lead. */
-          if (!bits.length) {
-            bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
-              : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
-                ? 'has it now' : 'takes it at Interested')
-              : 'on the crew');
-          }
-          return '<div class="b-mate">' + faceOf(id, 32) +
-            '<span class="b-mate-t">' +
-              '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
-              '<span class="b-mate-role">' +
-                esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + ' · ' +
-                esc(bits.join(', ')) + '</span>' +
-            '</span>' +
-          '</div>';
-        }).join('') +
+        (function () {
+          const say = (id) => {
+            const you = id === me().id;
+            const theirs = hist.filter((t) => t.by === id);
+            const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
+            const mets = theirs.filter((t) => t.outcome === 'phase').length;
+            const bits = [];
+            if (calls) bits.push(plural(calls, 'call'));
+            if (mets) bits.push(plural(mets, 'meeting'));
+            /* Nothing done yet is not nothing to say: it is what they are
+               here for, which is the more useful half on a cold lead. */
+            if (!bits.length) {
+              bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
+                : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
+                  ? 'has it now' : 'takes it at Interested')
+                : 'on the crew');
+            }
+            return ((REP[id] && JOB[REP[id].fn]) || 'On the crew') + ' · ' + bits.join(', ');
+          };
+          return teamFaces(ids, (id) =>
+            '<div class="b-mate">' + faceOf(id, 32) +
+              '<span class="b-mate-t">' +
+                '<span class="b-mate-name">' +
+                esc(id === me().id ? 'You' : actor(id).name) + '</span>' +
+                '<span class="b-mate-role">' + esc(say(id)) + '</span>' +
+              '</span>' +
+            '</div>', say);
+        })() +
       '</div>' +
     '</section>';
   }
@@ -14039,6 +14254,10 @@
        so the mark on the record is the mark on the button that made it. */
     no: '<circle cx="12" cy="12" r="8.75"/> <path d="M5.8 18.2 18.2 5.8"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    /* Two crossed strokes, not the circled slash `no` draws: that one means
+       do-not-call on this desk and it is the wrong sentence beside a
+       colleague's name. This one means take it off the list. */
+    x: '<path d="M18 6 6 18"/> <path d="m6 6 12 12"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
     mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
     clock: '<circle cx="12" cy="12" r="10"/> <polyline points="12 6 12 12 16 14"/>',
@@ -18275,14 +18494,20 @@
       } else if (f === 'crew') {
         const at = k.crew.indexOf(v);
         campSet(k, { crew: at >= 0 ? k.crew.filter((x) => x !== v) : k.crew.concat([v]) });
-        stay = 'dCrew';
+        /* The same write is reached from two menus now — the builder's and
+           the one on a running campaign's team block — and only one of them
+           is on the page. Named in the order they were built; the first that
+           exists after the repaint is the one to reopen. */
+        stay = 'dCrew,teamPick';
       } else if (f === 'client') campSet(k, { client: v || null });
       else if (f === 'ind') campSet(k, { industry: v });
       else if (f === 'reg') campSet(k, { region: v });
       else if (f === 'list') { listOnCamp(v, k); stay = 'dList'; }
       paint();
       if (stay) {
-        const again = document.querySelector('[data-pickopen="' + stay + '"]');
+        const again = stay.split(',')
+          .map((s) => document.querySelector('[data-pickopen="' + s + '"]'))
+          .filter(Boolean)[0];
         if (again) again.click();
       }
       return;

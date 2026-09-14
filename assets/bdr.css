@@ -4108,3 +4108,115 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    which is the token the build uses for a warn hue set as TYPE. */
 .b-due { font-weight: var(--fw-semibold); }
 .b-due.is-late { color: var(--warn-text); }
+
+/* ══ 90. THE REST OF THE TEAM, AS ONE THING ════════════════════════════════
+   `.b-team` lays a face, a name and a job flat and wraps. Measured on a crew
+   of seven it is three rows deep and 108px tall, and the block saying who
+   works this campaign became the tallest thing on the page after the
+   reading. Three, then the rest as a stack.
+
+   THE OVERLAP IS THE ARGUMENT, not the decoration. Faces set apart are a
+   list of people; faces set over each other are one object, a group — which
+   is exactly what the hidden remainder is, and why every product that has
+   ever had assignees arrives at this shape. `margin-left` negative by a
+   third of the face, and each one carries a ring in the ground colour so
+   the edges stay separate where they cross. `direction: rtl` on the row
+   with `ltr` back on each face: it makes the FIRST face sit on top without
+   a z-index per child, which is what stacking order should look like when
+   the eye reads left to right.
+
+   IT IS A CONTROL AT REST, so it takes the chip's hairline and ground —
+   `.filter-chip` is the shape this build uses for a small pressable thing,
+   and a bare stack of faces beside three named colleagues reads as more
+   colleagues rather than as a way in. */
+.b-stack-wrap { display: inline-flex; }
+.b-stack {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 3px 8px 3px 5px; border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+  cursor: pointer; color: var(--d200);
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+:root[data-theme="light"] .b-stack { background: rgba(16, 24, 40, 0.05); }
+.b-stack:hover { color: var(--d50); border-color: rgba(var(--accent-rgb), 0.4); }
+.b-stack:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-stack-faces { display: inline-flex; align-items: center; direction: rtl; }
+.b-stack-face {
+  direction: ltr; display: inline-grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  /* The ring is the page behind the stack rather than a colour of its own,
+     so a face overlapping another is cut out of it cleanly in both themes. */
+  box-shadow: 0 0 0 2px var(--page-bg, #171a1c);
+  overflow: hidden; flex-shrink: 0;
+}
+.b-stack-face + .b-stack-face { margin-right: -9px; }
+.b-stack-face svg, .b-stack-face img { display: block; width: 100%; height: 100%; }
+/* The count and the plus are the two faces this stack does not have: same
+   circle, same ring, a ground and a figure instead of a person. */
+/* The count is the one face this stack does not have: same circle, same
+   ring, a ground and a figure instead of a person. There was a plus here
+   too, for the case where the stack hid nobody and was still the way to
+   change the crew — the stack does not do that any more, so a stack with
+   nothing in it is not drawn at all. */
+.b-stack-n {
+  background: var(--card-bg-raised, rgba(255, 255, 255, 0.09));
+  border: 1px solid var(--card-border);
+  font-size: var(--t-micro); font-weight: var(--fw-bold); color: var(--d100);
+  font-variant-numeric: tabular-nums;
+}
+.b-stack-chev { flex-shrink: 0; opacity: 0.7; }
+
+/* ══ AND THE ONE THAT TAKES SOMEBODY OFF ══════════════════════════════════
+   Beside the name rather than in a list of its own, which is the whole
+   argument: the team is already drawn, so a second list of who is on it
+   exists only to hang a verb from. Quiet until the row is under the hand —
+   a cross per colleague, lit, on a block whose job is to say who works
+   this, would read as a row of things to dismiss.
+
+   It is not hidden, which is the other half of that. `opacity: 0` on a
+   control is a control a reader cannot find and a keyboard cannot skip
+   sensibly; this one sits one step down the ink ramp and comes up on
+   hover, on focus, and whenever the row it is on is hovered. */
+.b-crew-x {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  width: 20px; height: 20px; margin-left: 2px; border-radius: 6px;
+  border: 0; padding: 0; background: none; cursor: pointer;
+  color: var(--d300);
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-crew-x svg { width: 13px; height: 13px; }
+.b-mate:hover .b-crew-x, .b-menu-row:hover .b-crew-x { color: var(--d100); }
+.b-crew-x:hover { color: var(--err-text); background: var(--err-bg); }
+.b-crew-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+/* The row it sits in is a `div` of two text lines; the cross has to sit
+   with them rather than under them. */
+.b-mate { position: relative; }
+
+/* ══ THE CAPTION AND THE VERB SHARE A ROW ══════════════════════════════════
+   `.b-team` is a wrapping flex row and the caption takes the whole first
+   line of it. The verb that changes the crew belongs beside the caption
+   rather than out among the faces, where it would read as a colleague — so
+   the two share a line of their own and the faces start under it. */
+.b-team-head {
+  flex-basis: 100%; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 12px; margin-bottom: 2px;
+}
+.b-team-head .b-team-cap { margin-bottom: 0; }
+/* The verb is two words and it broke across them: `.b-team-head` inherits
+   the shrink a flex child has by default, so at `space-between` across the
+   block's full width the button was the thing that gave. A control never
+   wraps — the row it is on can. */
+.b-team-head .b-menu-wrap { flex-shrink: 0; }
+.b-team-head .b-menu-open { white-space: nowrap; }
+
+/* A row in a menu that is a disclosure rather than a chooser. `.b-menu-item`
+   carries the hover and the cursor because everything else in a menu here
+   does something; these name the people the stack could not fit, and this
+   build has no page for a colleague to open. */
+.b-menu-row { cursor: default; }
+.b-menu-row:hover { background: transparent; color: var(--d100); }
+/* The face in a menu row, at the size the stack draws it. */
+.b-team-menu .b-menu-item > svg, .b-team-menu .b-menu-item > img,
+.b-menu-row > svg, .b-menu-row > img {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+}
