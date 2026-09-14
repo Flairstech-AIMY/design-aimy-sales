@@ -13122,8 +13122,20 @@
             const theirs = hist.filter((t) => t.by === id);
             const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
+            /* ══ ZERO IS A COUNT, AND A CALLER IS JUDGED ON IT ════════════
+               "Never called them" was a sentence where a figure belonged.
+               Nought calls beside a colleague's fourteen is the same fact in
+               the same unit, it lines up as a column, and it does not need
+               reading — which was the whole complaint about the phrase it
+               replaced two commits ago and about "on the team" before that.
+
+               ONLY FOR A CALLER. The manager does not ring leads; "0 calls"
+               under Sales manager would be an accusation the job does not
+               support, so a non-caller with nothing logged still falls to
+               what they are here for. `fn` is the test, not the label. */
+            const rings = !!(REP[id] && REP[id].fn === 'bdr');
             const bits = [];
-            if (calls) bits.push(plural(calls, 'call'));
+            if (calls || rings) bits.push(plural(calls, 'call'));
             if (mets) bits.push(plural(mets, 'meeting'));
             /* ══ "ON THE TEAM" UNDER A HEADING READING THE TEAM ═══════════
                Nothing done yet is not nothing to say — that part of the old
@@ -13140,12 +13152,16 @@
                filters on `not-called` and the briefing offers "Show the 2
                never called" — and beside a colleague reading "7 calls" it
                draws the line the block exists to draw. */
-            if (!bits.length) {
-              bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
-                : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
-                  ? 'has it now' : 'takes it at Interested')
-                : 'never called them');
-            }
+            /* WHOSE IT IS SURVIVES THE COUNT. A caller now always carries
+               a figure, so these would never render again if they stayed a
+               fallback — and "0 calls" on a lead somebody OWNS is a sharper
+               reading than the count alone. Ownership joins the count;
+               everything else still only speaks when nothing else does. */
+            const rel = id === c.owner ? (you ? 'yours to call' : 'theirs to call')
+              : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
+                ? 'has it now' : 'takes it at Interested')
+              : '';
+            if (rel && (!bits.length || id === c.owner)) bits.push(rel);
             return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
           return teamFaces(ids, (id) => mateRow(id, say(id)), { sub: say });
