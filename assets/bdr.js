@@ -11478,8 +11478,17 @@
          joined over. */
       ((said && said.thens && said.thens.length)
         ? '<p class="s-lead-deck">' + said.what + '</p>' +
-          said.thens.map((t) =>
-            '<p class="b-lead-then">' + chIcon('sell') + '<span>' + t + '</span></p>').join('')
+          /* ══ ONE RULE FOR THE GROUP, NOT ONE PER LINE ══════════════════
+             Each conclusion carried its own border-top, so two of them drew
+             two rules and three would draw three — a stack of separators
+             inside a single card, each one announcing a boundary that is
+             the same boundary. The rule is between the finding and what
+             follows from it, and there is one of those however many things
+             follow. */
+          '<div class="b-lead-thens">' +
+            said.thens.map((t) =>
+              '<p class="b-lead-then">' + chIcon('sell') + '<span>' + t + '</span></p>').join('') +
+          '</div>'
         : '<p class="s-lead-deck">' +
             (thin ? why : said.text + (why ? ' ' + why : '')) + '</p>') +
       /* ══ AND THE VERB THAT USED TO LIVE UNDER THE SECOND BLOCK ═════════

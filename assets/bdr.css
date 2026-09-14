@@ -4037,32 +4037,55 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .s-home .s-lead-deck, .b-lead-slim .s-lead-deck { max-width: 58ch; line-height: var(--lh-base); }
 
 /* ══ THE CONCLUSION IS NOT THE SETUP ═══════════════════════════════════════
-   A customer's reading is three claims — what happened, what it means, and
-   what of ours answers it — and as one paragraph the third arrived as the
-   fifth line of six, in the same ink at the same weight as the setup. The
-   only part that says what to DO was the hardest part to find.
+   A customer's reading is a finding — what happened and what it means — and
+   then what of ours follows from it, sometimes two things. As one paragraph
+   the conclusion arrived as the fifth line of six in the same ink at the
+   same weight as the setup, and the only part that says what to DO was the
+   hardest part to find.
 
-   Three things separate it and all three are quiet: a rule, which is the
-   cheapest way to say a thought ended; the product glyph, which is what
-   this build puts against a thing we sell everywhere else; and one step of
-   weight. Not colour — the offer is not a verdict, and this build spends
-   its two hues on things that went well or badly.
+   FIRST ATTEMPT RANKED ON ONE AXIS AND IT WAS NOT ENOUGH. Deck at 400,
+   conclusion at 500, both at 18px: a hundred units of weight at one size,
+   which at a glance is three slabs of the same text separated by rules. The
+   doctrine ranks on size, weight and case, and only one of the three was
+   doing anything.
 
-   The step is 400 to 500 with the marks inside it at 700, so the line reads
-   as firmer than the paragraph above without competing with the names in
-   it, which are the thing to come away with. */
+   The build already has this exact relationship and it ranks on three.
+   `.b-nm-say` is the instruction in the relationship block — 16px, semibold,
+   `--d50` — and `.b-nm-then` is what follows it: `--t-ui`, `--d200`, with
+   `b` at `--d50` and bold. Four points of size, a step of ink, and three
+   hundred units of weight between the prose and the names in it.
+
+   So this follows that, which is also why it needs no new argument: a
+   reader who has met one of these has met both. The finding keeps the deck
+   at 18. What follows drops to 14 and one step down the ink ramp — not
+   below it: `--d200` is the floor for type and this sits on it. The product
+   names are the thing to come away with, so they take the bold AND the
+   brightest ink, which makes them the only marked thing in the lower half
+   of the card and findable without reading a word around them.
+
+   NOT COLOUR, on any of it. An offer is not a verdict, and this build
+   spends its two hues on things that went well or badly. */
+.b-lead-thens {
+  margin: 0 0 16px; padding-top: 13px;
+  border-top: 1px solid var(--card-border);
+  display: flex; flex-direction: column; gap: 9px;
+}
 .b-lead-then {
   display: flex; align-items: flex-start; gap: 9px;
-  max-width: 58ch; margin: 0 0 16px; padding-top: 13px;
-  border-top: 1px solid var(--card-border);
-  font-size: var(--t-deck); font-weight: var(--fw-medium);
-  line-height: var(--lh-base); color: var(--d50); text-wrap: pretty;
+  max-width: 74ch; margin: 0;
+  font-size: var(--t-ui); font-weight: var(--fw-regular);
+  line-height: var(--lh-base); color: var(--d200); text-wrap: pretty;
 }
+/* 74ch rather than the deck's 58: a measure is a count of characters and
+   these are four points smaller, so the same 58 would have set them in a
+   column two thirds the width of the paragraph above and reintroduced the
+   ragged gutter §88 exists to remove. */
+.b-lead-then b { font-weight: var(--fw-bold); color: var(--d50); }
 /* The glyph is drawn on a 24 grid and has no size of its own; without this
-   it fills the flex item, which is the width of the line. `margin-top`
-   optically centres it on the first line rather than on the box. */
-.b-lead-then svg { width: 17px; height: 17px; flex-shrink: 0; margin-top: 4px; }
-.b-lead-then b { font-weight: var(--fw-bold); }
+   it fills the flex item, which is the width of the line. It follows the
+   text down a size, and `margin-top` optically centres it on the first line
+   rather than on the box. */
+.b-lead-then svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 3px; }
 
 /* ══ 89. THE CLOCK IN A ROW OF FACTS, WHICH HAS NEVER BEEN DRAWN ═══════════
    `.b-due` is written onto the check-in on an account's masthead and onto
