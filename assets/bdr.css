@@ -2795,6 +2795,18 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-menu > .b-menu-cap:first-child { top: 0; }
 .b-menu > .b-menu-find { top: 22px; }
+/* ══ AND 22px IS THE HEIGHT OF A CAPTION THAT MAY NOT BE THERE ════════════
+   The offset above is the caption's, because every menu with a search had
+   one over it. The crew menu does not — the button that opens it and the
+   box's own placeholder already say what the list is — so the box stuck 22
+   pixels down from the top of a menu it was the first thing in, with a dead
+   strip above it for rows to scroll into and the first name pressed hard
+   against its underside.
+
+   First child, no phantom. The margin goes with it: `2px 0 6px` was spacing
+   against the caption's own 6px of padding-bottom, and with nothing above it
+   the box wants the menu's padding and no more. */
+.b-menu > .b-menu-find:first-child { top: 0; margin-top: 0; margin-bottom: 8px; }
 
 /* ══ 62. EVERY PRESSABLE ANSWERS THE HAND ══════════════════════════════════
    Twenty kinds of control here pressed down under the cursor and seven did
@@ -4145,8 +4157,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   direction: ltr; display: inline-grid; place-items: center;
   width: 26px; height: 26px; border-radius: 50%;
   /* The ring is the page behind the stack rather than a colour of its own,
-     so a face overlapping another is cut out of it cleanly in both themes. */
-  box-shadow: 0 0 0 2px var(--page-bg, #171a1c);
+     so a face overlapping another is cut out of it cleanly in both themes.
+     `--page-bg` was the name it was written with and this build has no such
+     token, so every ring fell to the hard-coded dark and stayed dark on the
+     light theme — a black edge round each face on a white ground. Read out
+     of the browser: `--body-bg`, #171a1c against #f4f6f9. */
+  box-shadow: 0 0 0 2px var(--body-bg);
   overflow: hidden; flex-shrink: 0;
 }
 .b-stack-face + .b-stack-face { margin-right: -9px; }
@@ -4179,7 +4195,14 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    hover, on focus, and whenever the row it is on is hovered. */
 .b-crew-x {
   display: inline-grid; place-items: center; flex-shrink: 0;
-  width: 20px; height: 20px; margin-left: 2px; border-radius: 6px;
+  /* ══ AND THEY LINE UP ══════════════════════════════════════════════════
+     `margin-left: 2px` put each cross immediately after the name block, so
+     seven of them landed at seven different x positions — one per name
+     length — and the column that should have read as a single edge read as
+     a ragged one. `auto` takes the rest of the row, which is what makes
+     them a column: the rows are all the same width, so the end of every row
+     is the same place. */
+  width: 20px; height: 20px; margin-left: auto; border-radius: 6px;
   border: 0; padding: 0; background: none; cursor: pointer;
   color: var(--d300);
   transition: color var(--t-fast), background-color var(--t-fast);

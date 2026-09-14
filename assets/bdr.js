@@ -10191,7 +10191,7 @@
      open, and a row that highlights under the hand and then does nothing is
      worse than a row that never offered. */
   function teamStack(rest, all, sub, k) {
-    const say = sub || ((x) => (REP[x] && JOB[REP[x].fn]) || 'On the crew');
+    const say = sub || ((x) => (REP[x] && JOB[REP[x].fn]) || 'On the team');
     const face = rest.slice(0, STACK_FACES);
     const more = rest.length - face.length;
     return '<span class="b-menu-wrap b-stack-wrap">' +
@@ -10251,9 +10251,19 @@
      Nothing to search. One press, one person, and the menu stays open for
      the next because `data-cset` reopens what it was pressed in.
 
-     Taking somebody off is not in here. It happens where their name
-     already is, which is the one place a reader is looking when they
-     decide somebody should come off. */
+     Taking somebody off is not in here. It is in the roster the stack
+     opens, which lists the whole team for that reason.
+
+     ══ AND THE WORD IS TEAM ══════════════════════════════════════════
+     The block is headed The team, the roster is captioned The team, and
+     this said Add to the crew — a third word for a set the page has
+     already named twice on the same screen, and the rule this build keeps
+     everywhere else is one word for one set. `k.crew`, `data-cset="crew|…"`
+     and `BDRS` keep the key they were born with: a key renamed to match a
+     label is a migration for a word, which is the same note the switcher
+     carries about `on=deals`. Only what is read changed, and everywhere it
+     is read — the verb, the fallback role on a face, and the line under a
+     name on a lead's team. */
   function crewPick(k) {
     const off = BDRS.filter((r) => r.id !== k.owner && k.crew.indexOf(r.id) < 0);
     if (!off.length) return '';
@@ -10269,7 +10279,7 @@
        search is for here. It is not the search box `campMenu` refuses —
        that one sat over a multiple choice and a confirm, and this list
        still writes on the press it is given. */
-    return draftMenu('teamPick', 'Add to the crew', '',
+    return draftMenu('teamPick', 'Add to the team', '',
       '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
         'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
       off.map((r) => draftItem('crew', r.id, r.name, false, JOB[r.fn], faceOf(r.id, 26))).join(''),
@@ -10312,7 +10322,7 @@
       return '<div class="b-mate">' + faceOf(id, 32) +
         '<span class="b-mate-t">' +
           '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
-          '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + '</span>' +
+          '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the team') + '</span>' +
         '</span>' +
       '</div>';
     };
@@ -12086,9 +12096,9 @@
               bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
                 : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
                   ? 'has it now' : 'takes it at Interested')
-                : 'on the crew');
+                : 'on the team');
             }
-            return ((REP[id] && JOB[REP[id].fn]) || 'On the crew') + ' · ' + bits.join(', ');
+            return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
           return teamFaces(ids, (id) =>
             '<div class="b-mate">' + faceOf(id, 32) +
