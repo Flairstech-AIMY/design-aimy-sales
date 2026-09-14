@@ -1562,22 +1562,13 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    On the After-meeting cut a card ends in two answers instead of one verb. */
 .b-qcard-decide { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* ══ 38. THE CHAT COLUMN ═══════════════════════════════════════════════════
-   On screen and Recent, in the column the markup reserved for them. */
-.b-chat-group { display: flex; flex-direction: column; gap: 4px; }
-.b-chat-cap {
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--d300); padding: 0 8px 4px;
-}
-.b-chat-item {
-  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d100);
-  text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px;
-  padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.b-chat-item.is-on { background: var(--card-bg-raised); border-color: var(--card-border); color: var(--d50); }
-button.b-chat-item { cursor: pointer; transition: border-color var(--t-fast), color var(--t-fast); }
-button.b-chat-item:hover { border-color: var(--card-border); color: var(--d50); }
-button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* §38 styled the old column — a caption, a row, and an `is-on` state for the
+   one row that could not be pressed. Every rule in it is superseded by §91,
+   including two that defined `.b-chat-group`, `.b-chat-cap` and
+   `.b-chat-item` a second time further down the file, which is the shape a
+   redesign leaves behind when the old rules are kept "just in case". The
+   ellipsis went with it: a conversation's title wraps now, for the reason
+   §91 gives. */
 
 
 /* ══ 40. THE CHOOSER ═══════════════════════════════════════════════════════
@@ -4265,4 +4256,111 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-team-menu .b-menu-item > svg, .b-team-menu .b-menu-item > img,
 .b-menu-row > svg, .b-menu-row > img {
   width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ══ 91. THE CHAT COLUMN, FROM AiMY KNOWLEDGE ══════════════════════════════
+   §38 styled a caption and a row, which was the whole of what the column
+   held: "On screen · Your book" and up to eight strings somebody had typed
+   this tab. Knowledge's is a conversation list — a new-conversation control,
+   a search, dated groups, a row per conversation carrying its turn count —
+   and the difference was never a matter of type sizes.
+
+   PORTED, NOT COPIED. §28 takes AiMY QA's notification CSS verbatim with a
+   token bridge, and says so, because the component was lifted whole. This
+   is not that: Knowledge's rows are `.ov-chat-*` over a store of sessions
+   with agents, pins and shareable links, and what lands here is the design
+   over this build's own conversations. Same structure, same order, same
+   reasoning; this build's class prefix, because these are its rules.
+
+   WHAT COMES ACROSS UNCHANGED is the density argument, which is the part
+   Knowledge wrote at length: a narrow column must not fall through the type
+   floor, so the row and the search box sit one step up and everything else
+   lands on the floor rather than under it. --t-ui over --t-micro here.
+   Hierarchy by step AND weight AND ink, every rung moving together. */
+
+/* Starting one, then finding one. The column's first control, and not a
+   filled one: Knowledge's own note says not one of Claude, Gemini, Mistral,
+   Grok or Perplexity fills it, because it is the most obvious action on the
+   panel and obvious actions do not need shouting. */
+.b-chat-new {
+  display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+  width: 100%; padding: 7px 10px; margin-bottom: 4px;
+  border: 0; border-radius: var(--r-sm, 8px); background: transparent;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d200); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.b-chat-new svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
+.b-chat-new:hover { background: var(--card-bg-raised); color: var(--d50); }
+.b-chat-new:active { transform: scale(0.99); }
+.b-chat-new:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Second, because a list you scroll to search is a list you have already
+   failed to search. It draws only once there is more than one thing to
+   search, since a box over a single row is furniture. */
+.b-chat-find { display: block; margin-bottom: 16px; }
+.b-chat-input {
+  width: 100%; padding: 7px 9px; border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--card-border); background: transparent;
+  font-family: inherit; font-size: var(--t-ui); color: var(--d100);
+}
+.b-chat-input::placeholder { color: var(--d400); }
+.b-chat-input:focus-visible { outline: 2px solid var(--brand); outline-offset: -1px; }
+
+/* 8 under the label, 20 between groups — Knowledge's ratio rule, and it is
+   what makes a group read as a group rather than as a list with a heading
+   in it. The 20 is the column's own flex gap, which already had it. */
+.b-chat-group { display: flex; flex-direction: column; gap: 2px; }
+.b-chat-cap {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d400); padding: 0 8px; margin-bottom: 8px;
+}
+
+/* A row is the conversation and the way to be rid of it. The cross keeps to
+   itself until the row is under the hand — a column of them would read as a
+   list of things to dismiss, which is the same argument the team block
+   settled and the same answer. */
+.b-chat-row { position: relative; display: flex; align-items: stretch; }
+.b-chat-item {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: flex-start; gap: 8px;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d200); text-align: left; cursor: pointer;
+  background: transparent; border: 0; border-radius: var(--r-sm, 8px);
+  padding: 7px 8px;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.b-chat-item:hover { background: var(--card-bg-raised); color: var(--d50); }
+.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-chat-row.is-here .b-chat-item {
+  background: rgba(var(--accent-rgb), 0.14); color: var(--d50); font-weight: var(--fw-semibold);
+}
+/* It wraps rather than ellipsising, which is Knowledge's call and its
+   reason: a conversation's title IS the question that was asked, and "What
+   does the corpus say about data resi…" is the half that does not say which
+   question. These rows are what you are choosing between, and a list you
+   cannot read is a list you cannot choose from. */
+.b-chat-name { flex: 1 1 auto; min-width: 0; line-height: var(--lh-snug, 1.35); }
+/* The turn count, against the block rather than the last word of it, so a
+   two-line title does not push its own badge out of line with the rows
+   above. */
+.b-chat-n {
+  flex-shrink: 0; margin-left: auto; padding-top: 1px;
+  font-size: var(--t-micro); font-variant-numeric: tabular-nums; color: var(--d400);
+}
+.b-chat-row.is-here .b-chat-n { color: var(--d200); }
+.b-chat-x {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  width: 24px; margin-left: 2px; border: 0; padding: 0; border-radius: var(--r-sm, 8px);
+  background: none; cursor: pointer; color: var(--d400); opacity: 0;
+  transition: opacity var(--t-fast), color var(--t-fast), background-color var(--t-fast);
+}
+.b-chat-x svg { width: 13px; height: 13px; }
+.b-chat-row:hover .b-chat-x, .b-chat-row:focus-within .b-chat-x { opacity: 1; }
+.b-chat-x:hover { color: var(--err-text); background: var(--err-bg); }
+.b-chat-x:focus-visible { opacity: 1; outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.b-chat-none {
+  margin: 0; padding: 0 8px; font-size: var(--t-ui); color: var(--d300);
+  line-height: var(--lh-base); text-wrap: pretty;
 }

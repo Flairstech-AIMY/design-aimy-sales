@@ -2226,7 +2226,11 @@
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
   let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
-    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [], cal: [] };
+    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [], cal: [],
+    /* What was said in the canvas. `session` above is a run of calls and
+       has been since before there was a canvas; the two are unrelated and
+       the names are close enough that it is worth saying so here. */
+    chat: [] };
 
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
@@ -2345,7 +2349,12 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [] }, d);
+            dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [], chat: [] }, d);
+          /* The conversations come back whole. They reference nothing in the
+             corpus — a turn is the words that were on screen — so unlike a
+             contact patch or a saved list they need nothing to exist first,
+             and they are restored here rather than waiting on `reindex`. */
+          CHATS = (DELTA.chat || []).filter((x) => x && x.id && x.turns);
           /* The accounts and people a saved list minted come back before the
              contact patches are applied, or a patch would have nothing to
              land on and the list would open on an empty roster. */
@@ -15675,18 +15684,214 @@
      border. On screen is what the thread is about; Recent is what you have
      asked this session, each a press away from being asked again. */
   const ASKED = [];
+
+  /* ══ THE COLUMN LISTED ONE THING BECAUSE THERE WAS ONE THING ═══════════
+     `paintChats` drew "On screen · Your book" and, under it, up to eight
+     strings somebody had typed this tab. That is not a chat history; it is
+     a list of recent queries in a 240px column, and next to AiMY Knowledge's
+     — a new-conversation control, a search box, dated groups, a row per
+     conversation with its turn count and a menu on it — the gap is not a
+     matter of type sizes. Knowledge lists CONVERSATIONS. This build had
+     one, `TURNS`, cleared whenever a builder started and gone on reload.
+
+     So the design came with a prerequisite, and the prerequisite is the
+     interesting half. Knowledge's own note on doing this says it closed a
+     README that "declared, twice, that conversations do not survive a
+     reload" — and the same defect is worse here now than it was there,
+     because the canvas is where AiMY posts unprompted: the message about
+     somebody you have a way in to is a message she sent you, and a reload
+     threw it away.
+
+     `TURNS` STAYS THE LIVE ARRAY. Twenty call sites push to it, three clear
+     it, and the thread painter reads it; a refactor into a map of threads
+     would touch every one of them to no purpose. It is the OPEN
+     conversation, and the store holds the rest — `chatSync` writes it back
+     after every paint, which is exactly the moment it has changed.
+
+     Serialisable by construction: every turn here is `{who, html, opts,
+     hint, card, step}` and every one of those is a string or a plain array.
+     Knowledge has a hard part this build does not — its answers are stored
+     as closures and re-run, so a live turn there persists its QUESTION and
+     is rehydrated. Nothing here is live; what was said is what is shown. */
+  let CHATS = [];
+  let CHAT_AT = null;
+  let CHAT_Q = '';
+  /* Twelve. The delta shares a five-megabyte quota with the corpus delta,
+     and a thread carrying a prep sheet is not small — an unbounded history
+     is a store that fails late and silently, which is the one failure this
+     build's own note on `KEY_DB` exists to refuse. */
+  const CHAT_KEEP = 12;
+  /* `save` is the board's debounced writer and it sets `FIG_TICK`, which
+     makes every figure on the next paint animate as though it had changed.
+     A turn landing in a conversation has changed no figure, and a screen
+     that ticks its numbers because somebody typed a question is the build
+     crying wolf about its own writes. Same file, same debounce, no tick. */
+  let chatTimer = null;
+  function saveSoon() {
+    if (chatTimer) clearTimeout(chatTimer);
+    chatTimer = setTimeout(saveNow, 400);
+  }
+
+  /* The first thing somebody typed, which is what the conversation was
+     about. Where AiMY opened it — and she does now — there is no question
+     to take, so the name is her first sentence, cut at its first full stop.
+     Never the key: Knowledge falls back to one because its keys are
+     surfaces and read as names; ours are timestamps and do not. */
+  function chatTitle(turns) {
+    const said = turns.filter((t) => t.who === 'you')[0] || turns[0];
+    if (!said) return 'New conversation';
+    const flat = String(said.html || '').replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    const one = flat.split(/(?<=[.?!])\s/)[0] || flat;
+    return (one.length > 72 ? one.slice(0, 70).replace(/\s+\S*$/, '') + '…' : one)
+      || 'New conversation';
+  }
+  function chatRec() {
+    return CHAT_AT ? CHATS.filter((x) => x.id === CHAT_AT)[0] : null;
+  }
+  function chatSync() {
+    if (!TURNS.length) return;
+    /* ══ A MESSAGE NOBODY ANSWERED IS NOT A CONVERSATION ═══════════════
+       AiMY opens the thread herself on every load, and with the store in
+       place each of those became a saved conversation — reload three times
+       and the column held three identical "You and Kate Robinson…" rows,
+       none of which anybody had replied to. The history filled with the
+       product talking to itself.
+
+       A thread that is only her unprompted opener is not written down. Act
+       on it — write the message, ask for the introduction — and there is a
+       second turn, and it persists like anything else. */
+    if (TURNS.length === 1 && TURNS[0].step === 'reach') return;
+    let rec = chatRec();
+    if (!rec) {
+      rec = { id: 'ch' + Date.now().toString(36), at: new Date().toISOString(), title: '', turns: [] };
+      CHATS.unshift(rec);
+      CHAT_AT = rec.id;
+    }
+    rec.turns = TURNS.slice();
+    rec.title = chatTitle(rec.turns);
+    if (CHATS.length > CHAT_KEEP) CHATS = CHATS.slice(0, CHAT_KEEP);
+    DELTA.chat = CHATS;
+    saveSoon();
+  }
+  function newChat() {
+    chatSync();
+    TURNS.length = 0;
+    CHAT_AT = null;
+    THREAD_SEEN = 0;
+    paintThread();
+    paintChats();
+  }
+  function openChat(id) {
+    chatSync();
+    const rec = CHATS.filter((x) => x.id === id)[0];
+    if (!rec) return;
+    CHAT_AT = id;
+    TURNS.length = 0;
+    rec.turns.forEach((t) => TURNS.push(t));
+    /* Seen, so an old conversation does not animate its last turn in as
+       though it had just arrived. */
+    THREAD_SEEN = TURNS.length;
+    paintThread();
+    paintChats();
+  }
+  function dropChat(id) {
+    const rec = CHATS.filter((x) => x.id === id)[0];
+    if (!rec) return;
+    const at = CHATS.indexOf(rec);
+    CHATS = CHATS.filter((x) => x.id !== id);
+    DELTA.chat = CHATS;
+    saveSoon();
+    if (CHAT_AT === id) { TURNS.length = 0; CHAT_AT = null; THREAD_SEEN = 0; paintThread(); }
+    paintChats();
+    toast('Conversation deleted', () => {
+      CHATS = CHATS.slice(0, at).concat([rec], CHATS.slice(at));
+      DELTA.chat = CHATS;
+      saveSoon();
+      paintChats();
+    });
+  }
+
+  /* Knowledge's bands, and its reason for bucketing rather than walking:
+     the list is ordered by recency and a band is a range of dates, so one
+     band can be entered, left and entered again — which printed a heading
+     twice with another wedged between its halves. Buckets can only produce
+     each heading once. Pinned is not here; nothing in this build pins a
+     conversation and a group that can never fill is a heading nobody sees. */
+  function chatGroups(rows) {
+    const CAP = ['Today', 'Yesterday', 'Earlier this week', 'This month', 'Older'];
+    const band = (r) => {
+      const d = -daysBetween(TODAY_ISO, (r.at || '').slice(0, 10));
+      return d <= 0 ? 0 : d === 1 ? 1 : d < 7 ? 2 : d < 30 ? 3 : 4;
+    };
+    const buckets = CAP.map(() => []);
+    rows.forEach((r) => buckets[band(r)].push(r));
+    return buckets.map((ks, i) => ({ cap: CAP[i], rows: ks })).filter((g) => g.rows.length);
+  }
+  /* ══ AND "ON SCREEN" IS NOT IN IT ══════════════════════════════════════
+     The column opened with a group of one naming whatever surface you had
+     left behind the canvas. The thread already says that, four hundred
+     pixels to the right, in the BASED ON chip above the first turn — which
+     is where it belongs, because it is a fact about the ANSWERS and not
+     about the history. A column headed "On screen" over one immovable row,
+     above the list it exists for, is a heading spent on the one thing the
+     reader cannot choose.
+
+     Starting a conversation leads, because starting is the verb; finding
+     one is second, because a list you scroll to search is a list you have
+     already failed to search. Both of those are Knowledge's order and its
+     reasoning. What is not taken is the filled pill: Knowledge's own note
+     on its gate says not one of Claude, Gemini, Mistral, Grok or Perplexity
+     fills that control, because it is the most obvious action on the panel
+     and obvious actions do not need shouting. */
   function paintChats() {
     const host = byId('overlayChats');
     if (!host) return;
-    const c = S.con && DB.byCon[S.con], k = S.camp && DB.byCamp[S.camp], a = S.acc && DB.byAcc[S.acc], l = S.list && DB.byList[S.list];
-    const on = c ? c.name : k ? k.name : a ? a.name : l ? l.name : 'Your book';
+    const q = CHAT_Q.trim().toLowerCase();
+    const hay = (r) => (r.title + ' ' + r.turns.map((t) =>
+      String(t.html || '').replace(/<[^>]+>/g, ' ')).join(' ')).toLowerCase();
+    /* Title AND what was said, because you remember a conversation by
+       something in it as often as by how it opened. */
+    const rows = q ? CHATS.filter((r) => hay(r).indexOf(q) >= 0) : CHATS;
+    const row = (r) =>
+      '<div class="b-chat-row' + (r.id === CHAT_AT ? ' is-here' : '') + '">' +
+        '<button class="b-chat-item" type="button" data-openchat="' + esc(r.id) + '">' +
+          '<span class="b-chat-name">' + esc(r.title || 'New conversation') + '</span>' +
+          (r.turns.length ? '<span class="b-chat-n">' + commas(r.turns.length) + '</span>' : '') +
+        '</button>' +
+        '<button class="b-chat-x" type="button" data-chatdel="' + esc(r.id) + '" ' +
+          'aria-label="' + esc('Delete ' + (r.title || 'this conversation')) + '">' +
+          chIcon('x') + '</button>' +
+      '</div>';
     host.innerHTML =
-      '<div class="b-chat-group"><div class="b-chat-cap">On screen</div>' +
-        '<div class="b-chat-item is-on">' + esc(on) + '</div></div>' +
-      (ASKED.length
-        ? '<div class="b-chat-group"><div class="b-chat-cap">Recent</div>' + ASKED.slice(0, 8).map((q) =>
-            '<button class="b-chat-item" type="button" data-ask="' + esc(q) + '">' + esc(q) + '</button>').join('') + '</div>'
-        : '');
+      '<button class="b-chat-new" type="button" data-newchat>' + chIcon('plus') +
+        'New conversation</button>' +
+      (CHATS.length > 1 || q
+        /* `aria-label` rather than Knowledge's visually-hidden `<span>`:
+           that class is theirs and this build has no equivalent, and one
+           attribute says the same thing to a screen reader without a rule
+           whose only job is to hide something. */
+        ? '<label class="b-chat-find">' +
+          '<input class="b-chat-input" type="search" id="chatFind" data-chatfind ' +
+            'aria-label="Find a conversation" ' +
+            'placeholder="Find a conversation…" spellcheck="false" autocomplete="off" ' +
+            'value="' + esc(CHAT_Q) + '" /></label>'
+        : '') +
+      (rows.length
+        ? chatGroups(rows).map((g) => '<div class="b-chat-group">' +
+            '<div class="b-chat-cap">' + esc(g.cap) + '</div>' +
+            g.rows.map(row).join('') + '</div>').join('')
+        : '<p class="b-chat-none">' + (q
+            ? 'Nothing matches “' + esc(CHAT_Q) + '” — in a title or in anything said.'
+            : 'Nothing yet. Ask AiMY something and it lands here.') + '</p>');
+    /* The caret goes back where it was: repainting the column on every
+       keystroke would otherwise send it to the end of the word. Knowledge's
+       line, for Knowledge's reason. */
+    const box = byId('chatFind');
+    if (box && document.activeElement !== box && CHAT_Q) {
+      box.focus();
+      try { box.setSelectionRange(CHAT_Q.length, CHAT_Q.length); } catch (e) {}
+    }
   }
   /* ══ THE CANVAS IS THE THREAD, SO THE CARD STANDS DOWN ════════════════
      Fifteen things open this: a brief, a prep sheet, a campaign's resource,
@@ -16453,6 +16658,12 @@
     if (TURNS.length > THREAD_SEEN && host.lastElementChild) host.lastElementChild.classList.add('b-arrive');
     THREAD_SEEN = TURNS.length;
     host.scrollTop = host.scrollHeight;
+    /* The thread has just been painted, which is the one moment it is known
+       to have changed — every push in this file is followed by a paint, so
+       hooking the save here catches all twenty of them and no call site had
+       to learn about the store. */
+    chatSync();
+    paintChats();
   }
 
   /* Find a person or a campaign by what somebody typed. Exact-ish: a name
@@ -19084,6 +19295,13 @@
        chips grey out, the way every other step in this thread spends its
        options — and the draft arrives as the next turn, in the canvas,
        where it can be read and copied rather than fired off. */
+    const nc = t.closest('[data-newchat]');
+    if (nc) { newChat(); return; }
+    const oc = t.closest('[data-openchat]');
+    if (oc) { openChat(oc.getAttribute('data-openchat')); return; }
+    const cd = t.closest('[data-chatdel]');
+    if (cd) { dropChat(cd.getAttribute('data-chatdel')); return; }
+
     const rch = t.closest('[data-reach]');
     if (rch) {
       if (!REACH_HIT) return;
@@ -19328,6 +19546,11 @@
        take the focus out of the box being typed in. */
     const ps = e.target.closest && e.target.closest('[data-picksearch]');
     if (ps) { pickFilter(ps); return; }
+    /* The conversation search repaints its own column and nothing else, so
+       it is safe on every keystroke — the caret is put back by `paintChats`
+       for exactly that reason. */
+    const cq = e.target.closest && e.target.closest('[data-chatfind]');
+    if (cq) { CHAT_Q = cq.value; paintChats(); return; }
     /* A field writes on every keystroke and redraws on none of them: a
        repaint mid-word takes the caret with it. The page catches up when you
        leave the field, which is also when what is still missing changes. */
