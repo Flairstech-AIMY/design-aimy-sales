@@ -7179,7 +7179,6 @@
       { k: 'aimy', say: 'AiMY', v: now.spend.aimy,
         sub: 'the calls it made itself, at compute cost', rows: [] },
     ].filter((r) => r.v > 0);
-    const costTop = now.spend.total || 1;
 
     return '<div class="s-home">' +
       '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the briefing') + '</div>' +
@@ -7400,17 +7399,28 @@
            is a quantity somebody reads; this one is a number everything
            else is divided BY, so it is stated exactly and each rounded
            group reconciles against it. */
+        /* ══ AND IT NO LONGER PROMISES A COLUMN THAT IS NOT THERE ═════
+           "every share below is of that" was the caption for a column of
+           percentages down the right of this list, and the column is gone.
+           The total stays, unrounded: it is the figure the two amounts are
+           read against and the one every other reading on this page divides
+           by. */
         '<p class="s-exec-note"><b>€' +
           esc(Math.round(now.spend.total).toLocaleString('en-GB')) + '</b> across ' +
-          esc(when) + ', and every share below is of that.</p>' +
+          esc(when) + ', and this is where it went.</p>' +
         '<div class="s-cost">' +
           cost.map((g) => '<div class="s-cost-g">' +
             '<div class="s-cost-row">' +
               '<span class="s-cost-say">' + esc(g.say) +
                 '<span class="s-cost-sub">' + esc(g.sub) + '</span></span>' +
+              /* ══ NO SHARE COLUMN ═══════════════════════════════
+                 It was unlabelled, it rounded to something untrue — the desk
+                 is 99.86% and suppliers 0.14%, which printed as "100%" and
+                 "<1%" and read as summing past a hundred — and with two rows
+                 it said nothing €210k beside €304 does not already say. A
+                 share is worth a column when the split is the finding; here
+                 the amounts ARE the split. */
               '<span class="s-cost-v">' + esc(fmtMoney(g.v)) + '</span>' +
-              '<span class="s-cost-pc">' + esc(g.v / costTop >= 0.005
-                ? Math.round((g.v / costTop) * 100) + '%' : '<1%') + '</span>' +
             '</div>' +
             (g.rows.length ? '<div class="s-cost-kids">' +
               g.rows.map((r) => '<div class="s-cost-kid">' +

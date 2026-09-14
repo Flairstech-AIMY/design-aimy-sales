@@ -618,7 +618,7 @@
    time, badly, and it is the axis that costs the reader their eyes. */
 .s-pan-facts span, .s-pan-meta, .s-pan-unit, .s-pan-state, .s-pan-base,
 .s-exec-eyebrow, .s-exec-note, .s-af-cap, .s-af-sub,
-.s-cost-note, .s-cost-pc, .s-odds-cap, .s-odds-n, .s-odds-note,
+.s-cost-note, .s-odds-cap, .s-odds-n, .s-odds-note,
 .s-att-of, .s-att-key, .s-asks-cap { color: var(--d200); }
 /* "Nothing" is a state a campaign is IN, not a value that failed to arrive.
    Dimming it said the second. The word carries the meaning, which is also

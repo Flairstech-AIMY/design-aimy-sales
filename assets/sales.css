@@ -8119,7 +8119,7 @@ body.is-figures .filter-tray { display: none; }
   column-gap: 0; row-gap: 32px; margin-top: 12px;
 }
 .s-cost-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline; gap: 16px;
   padding: 8px 0; border-top: 1px solid var(--card-border);
 }
@@ -8159,14 +8159,6 @@ body.is-figures .filter-tray { display: none; }
   font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: var(--d50);
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
   text-align: right; min-width: 96px;
-}
-/* A SHARE IS THE COMPARISON, NOT THE DATA. At semibold it collided exactly
-   — same size, same weight, same ink — with the child label immediately
-   under it, so "100%" and "BDRs" read as two items in one list. The amount
-   beside it is what was spent; this says how much of the whole that was. */
-.s-cost-pc {
-  font-size: var(--fs-xs); font-weight: var(--fw-regular); color: var(--ink-quiet);
-  font-variant-numeric: tabular-nums; text-align: right; min-width: 44px;
 }
 /* THE GROUP IS THE ROW; THE CHILDREN ARE THE ANSWER TO "OF WHAT". Indented
    and one step down, so a reader can stop at three lines or read nine — the
