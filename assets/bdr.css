@@ -4182,6 +4182,29 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-stack-chev { flex-shrink: 0; opacity: 0.7; }
 
+/* ══ AND WHERE THERE ARE NO FACES IT IS A NODE ═════════════════════════════
+   The lozenge above is right among `.b-mate` — a face and two lines, no box
+   around them. The account draws this in a row of `.b-node`, which are
+   cards, and a flex row stretches its children: measured, the pill came out
+   61 wide by 64 tall at a 9999px radius, which is not a pill. It is a blob
+   with a small circle and a chevron rattling inside it.
+
+   So it is a node. The node's radius, ground, border and padding, hovering
+   the way a node hovers, with the count as its whole content — one more
+   door in a row of doors, which is what it is. Stretching is right here and
+   was only ever wrong at a pill radius: the row sets every node to the
+   height of the tallest, and this one joins them. */
+.b-stack.is-count {
+  gap: 7px; padding: 10px 14px; border-radius: 12px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  color: var(--d100); font-size: var(--t-ui); font-weight: var(--fw-semibold);
+}
+.b-stack.is-count:hover {
+  border-color: var(--accent); background: var(--card-bg-raised); color: var(--d50);
+}
+.b-stack.is-count:active { transform: scale(0.985); }
+.b-stack-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 /* ══ AND THE ONE THAT TAKES SOMEBODY OFF ══════════════════════════════════
    Beside the name rather than in a list of its own, which is the whole
    argument: the team is already drawn, so a second list of who is on it

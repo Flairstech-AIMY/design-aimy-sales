@@ -10224,13 +10224,28 @@
     const face = rest.slice(0, STACK_FACES);
     const more = faces ? rest.length - face.length : rest.length;
     return '<span class="b-menu-wrap b-stack-wrap">' +
-      '<button class="b-stack b-menu-open" type="button" data-pickopen="teamRest" ' +
-        'aria-haspopup="menu" aria-label="' +
+      '<button class="b-stack b-menu-open' + (faces ? '' : ' is-count') + '" type="button" ' +
+        'data-pickopen="teamRest" aria-haspopup="menu" aria-label="' +
         esc(plural(rest.length, 'more person', 'more people')) + '">' +
-        '<span class="b-stack-faces">' +
-          (faces ? face.map((x) => '<span class="b-stack-face">' + faceOf(x, 26) + '</span>').join('') : '') +
-          (more ? '<span class="b-stack-face b-stack-n">+' + commas(more) + '</span>' : '') +
-        '</span>' +
+        /* ══ WITH NO FACES IT IS NOT A PILL ════════════════════════════
+           The faced version is a small lozenge because it stands in a row
+           of `.b-mate` — a face and two lines of text, no box. The account
+           draws it in a row of `.b-node`, which are cards, and a flex row
+           stretches its children: the pill came out 61 wide by 64 tall at a
+           9999px radius, which is not a pill, it is a blob with a small
+           circle and a chevron rattling inside it.
+
+           A node is what the row is made of, so this is one: the node's
+           radius, the node's ground, the node's padding, and the count as
+           its whole content. "6 more" rather than "+6" — a plus is a badge
+           saying there are others, and in a row of names what you want is a
+           door saying how many are behind it. */
+        (faces
+          ? '<span class="b-stack-faces">' +
+            face.map((x) => '<span class="b-stack-face">' + faceOf(x, 26) + '</span>').join('') +
+            (more ? '<span class="b-stack-face b-stack-n">+' + commas(more) + '</span>' : '') +
+            '</span>'
+          : '<span class="b-stack-count">' + commas(more) + ' more</span>') +
         '<svg class="b-stack-chev" viewBox="0 0 24 24" width="12" height="12" fill="none" ' +
           'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" ' +
           'stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
