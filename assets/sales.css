@@ -8053,7 +8053,10 @@ body.is-figures .filter-tray { display: none; }
 .s-odds-p {
   font-family: var(--font-sans); font-size: var(--fs-base);
   font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
-  color: var(--d50); min-width: 56px; text-align: right;
+  /* Wide enough for the longest money this column holds, so the reason
+     beside it starts at the same x down the whole list. 56px fitted a
+     percentage; it does not fit €142k. */
+  color: var(--d50); min-width: 72px; text-align: right;
 }
 .s-odds-say {
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-secondary);

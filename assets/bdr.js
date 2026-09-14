@@ -6788,54 +6788,26 @@
      lucky deal read as a 50% close rate, and pulls an empty step to the
      prior exactly rather than to zero. The page says the sample is thin
      rather than hiding it. */
-  /* ══ NAMED THE WAY THE BOARD NAMES THEM ═══════════════════════════
-     These read "Price on the table", "Seen the solution" — true, checkable,
-     and not what the reader calls them. He works a board with six columns
-     on it and those columns have names; a second vocabulary for the same
-     four stages is a second thing to learn for one job, and it stops him
-     reading a rate here and going to that column.
-
-     So the stage's own label leads, off `DEAL_STAGE` rather than off a
-     literal, and the phrase that says what the stage MEANS follows it — the
-     rate needs both: the name to find the column, the fact to trust the
-     number. Rename a stage and this renames with it. */
+  /* ══ FOUR KEYS AND A PRIOR, WHICH IS ALL THAT IS LEFT ═══════════════════
+     These rows carried each stage's plain-English meaning, and the label to
+     put in front of it, because the odds table printed both. That table is
+     gone — the page asks where deals collapse now, not how often they close —
+     and the ladder survives only as the weighting behind Potential, which
+     wants the key and nothing else. `DEAL_STAGE` still holds the names for
+     everything that renders one. */
   const ODDS_STEPS = [
-    { k: 'commercial', was: 'the price is on the table' },
-    { k: 'proof',      was: 'they have seen it working' },
-    { k: 'discovery',  was: 'we have been through what they need' },
-    { k: 'qual',       was: 'handed over, nobody has met them' },
+    { k: 'commercial' },
+    { k: 'proof' },
+    { k: 'discovery' },
+    { k: 'qual' },
   ];
-  /* ══ THE LABEL WAS STANDING IN FRONT OF THE PLAIN ENGLISH ═══════════════
-     "Priced — the price is on the table" puts a one-word participle where
-     the eye lands and the sentence that actually says the thing second. The
-     reader hits the jargon, bounces, reads the gloss, and the label has
-     earned nothing: everything it meant was already in the clause behind it.
-
-     Nour read the row titles as vague, and they are — HERE. On the deals
-     board they are column heads over deals and they work, which is the whole
-     argument in `DEAL_STAGES`: Qualification, Discovery, Proof and Commercial
-     were renamed because a stage has to stand alone ON A CARD, and the four
-     replacements must not collide with `PHASES` — Discovery meeting, Proof
-     meeting, Commercial meeting — or with the diary's Demo tag. That
-     constraint rules out almost every alternative, and it survived a reader
-     on this desk asking what "Proof" meant. It is not being reopened for a
-     block that had the plain sentence sitting right there all along.
-
-     So the clause leads and the stage name drops to the basis line, where it
-     is the reference it should have been: a reader who wants the board's word
-     finds it, and a reader who wants the meaning reads it first. The note
-     under the rows still says "Only Priced", and Priced is still on screen. */
-  ODDS_STEPS.forEach((r) => {
-    r.tag = DEAL_STAGE[r.k].label;
-    r.say = r.was.charAt(0).toUpperCase() + r.was.slice(1);
-  });
   const ODDS_PRIOR = { commercial: 0.55, proof: 0.32, discovery: 0.16, qual: 0.06 };
   const SMOOTH = 2;
   let ODDS_CACHE = null;
   function oddsLadder() {
     if (ODDS_CACHE) return ODDS_CACHE;
     const by = Object.create(null);
-    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, tag: r.tag, n: 0, won: 0 }));
+    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, n: 0, won: 0 }));
     /* Learned off every deal that has finished, at the furthest stage it
        reached before it did — a deal that closed from Commercial is
        evidence about Commercial, and it is no longer standing there. */
@@ -6865,7 +6837,6 @@
   function pipelineOf(deals) {
     const open = deals.filter(dealLive);
     const tier = { comparable: 0, modelled: 0 };
-    const step = Object.create(null);
     let all = 0, weighted = 0;
     open.forEach((c) => {
       const v = acvOf(c);
@@ -6873,20 +6844,41 @@
       tier[v.basis] = (tier[v.basis] || 0) + v.value;
       all += v.value;
       weighted += v.value * o.p;
-      /* ══ TWO POPULATIONS, AND ONLY ONE REACHED THE PAGE ═════════════════
-         `n` on this step is how many deals are standing at this stage now.
-         `n` on the LADDER row is how many have FINISHED here, which is what
-         the rate was learned from — the same letter for two different counts,
-         and the second never left `oddsLadder`. Without it the page cannot
-         say whether a rate is measured or assumed, which is the whole
-         difference between the four numbers it prints. Carried under names
-         that cannot be confused with the open count. */
-      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, tag: o.tag, p: o.p,
-        seen: o.n || 0, signed: o.won || 0, n: 0, value: 0 });
-      r.n += 1; r.value += v.value;
     });
-    return { open: open.length, all: all, weighted: weighted, tier: tier,
-      steps: ODDS_STEPS.map((o) => step[o.k]).filter(Boolean) };
+    return { open: open.length, all: all, weighted: weighted, tier: tier };
+  }
+
+  /* ══ AND THE SAME BOOK, ASKED WHY IT LOST ═══════════════════════════════
+     `pipelineOf` reads what is still standing. This reads what fell over, off
+     the `why` the resolution touchpoint already carries, and adds the two
+     facts a count cannot give on its own: WHERE the deal was when it died,
+     and whether `LOST_WHY` marks the reason a not-yet rather than a no.
+
+     `parked` travels with it because the two are the same event wearing
+     different labels — `LOST_WHY`'s own margin says the parked column exists
+     for deals a manager parks deliberately, and flags "the losses that should
+     have gone there". A reader counting what slipped away wants both. */
+  function lossesOf(deals) {
+    const by = Object.create(null);
+    const gone = [];
+    let late = 0, back = 0, value = 0;
+    deals.forEach((c) => {
+      if (stageOf(c) !== 'lost') return;
+      gone.push(c);
+      const w = lostWhy(c);
+      const v = acvOf(c).value;
+      const r = by[w ? w.k : 'unsaid'] ||
+        (by[w ? w.k : 'unsaid'] = { k: w ? w.k : 'unsaid', why: w, n: 0, value: 0 });
+      r.n += 1; r.value += v;
+      value += v;
+      if (w && w.back) back += 1;
+      const ph = phasesOf(c).filter((t) => t.phase !== 'resolution');
+      if (ph.length && ph[ph.length - 1].phase === 'commercial') late += 1;
+    });
+    return { n: gone.length, value: value, late: late, back: back,
+      age: dealAge(gone),
+      parked: deals.filter((c) => stageOf(c) === 'later').length,
+      rows: Object.keys(by).map((k) => by[k]).sort((a, b) => b.value - a.value) };
   }
 
   /* ══ THE TARGET — MOCK, AND THE YARDSTICK EVERYTHING ELSE NEEDED ═══════
@@ -7246,7 +7238,33 @@
     });
     const un = unlogged(p, heads);
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
-    const age = dealAge(deals);
+    const loss = lossesOf(deals);
+    /* Three short sentences, each a fact and none of them a lesson: where
+       they died, how long they took to die, and what is not finished with
+       yet. Every clause is conditional on the data saying it. */
+    const lossBits = [];
+    if (loss.n) {
+      lossBits.push(loss.late === loss.n
+        ? 'Every one of them had the price on the table before it died.'
+        : loss.late
+          ? '<b>' + loss.late + '</b> of the ' + loss.n +
+            ' had the price on the table before they died.'
+          : 'None of them got as far as a price.');
+      if (loss.age != null) {
+        lossBits.push('They ran <b>' + esc(loss.age.toFixed(1)) + ' months</b> on average.');
+      }
+      const lossTail = [];
+      if (loss.back) {
+        lossTail.push('<b>' + loss.back + '</b> ' + verbFor(loss.back, 'is') +
+          ' worth another run');
+      }
+      if (loss.parked) {
+        lossTail.push('<b>' + loss.parked + '</b> more ' + verbFor(loss.parked, 'is') +
+          ' parked rather than lost');
+      }
+      if (lossTail.length) lossBits.push(joinAnd(lossTail) + '.');
+    }
+    const lossNote = lossBits.join(' ');
     /* ══ "YOUR OWN RATES" WAS FALSE THREE TIMES IN FOUR ═══════════════════
        `p = (won + SMOOTH) / (n + SMOOTH / prior)` returns the prior EXACTLY
        when a stage has nothing finished behind it, and three of the four have
@@ -8117,81 +8135,42 @@
         '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>')) +
       '</section>' +
 
+      /* ══ WHERE DEALS DIE IS WORTH KNOWING; A CLOSE RATE IS NOT ══════════
+         This was "How often a deal closes from here", and it was rewritten
+         four times without getting better, because the fault was never the
+         wording — it was the question. Sixteen pieces of data, twelve of them
+         percentages the block's own footnotes called estimates, all of it
+         propping up one sentence. And the honest response to a close rate is
+         "so what". A rate is a thing to know. Where deals die is a thing to
+         DO something about.
+
+         `LOST_WHY` has been on the record since the deals board was built:
+         six reasons, each with the sentence a manager would say, and a `back`
+         flag for the ones that are a not-yet rather than a no. Nothing has
+         ever rendered it in aggregate — the same fault as `byLine.spend` and
+         `cac`, computed and thrown away. What it says here is specific and
+         none of it is modelled: nothing was lost on price and nothing to a
+         competitor. They went quiet, or they were never the right fit, and
+         both of those are this desk's to fix.
+
+         RANKED BY MONEY, on a money page. The label leads because these
+         labels ARE plain English — "Nobody decided" needs nothing standing in
+         front of it — and the line under each says the same thing longer for
+         a reader who wants it. */
       '<div class="s-odds">' +
-        /* ══ A RATE IS CONDITIONAL; THE HEADING DROPPED THAT ══════════════
-           "How often deals close" over four descending percentages that sum
-           to 101.8 is read as a breakdown of a whole, and the near-hundred
-           confirms the wrong reading before anybody checks. Each of these is
-           its own rate: of the deals that get THIS far, this share signs.
-           "From here" carries the condition into every row without spending
-           a sentence teaching it. */
-        '<span class="s-odds-cap">' + aiMark() + 'How often a deal closes from here</span>' +
-        '<div class="s-odds-rows">' +
-          pipe.steps.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
-            /* WHOLE PERCENTS. A tenth of a point off eleven finished deals is
-               precision the number does not have; off ZERO finished deals it
-               is precision invented. `dealAge` records the same rule one unit
-               along — a mean in days "invites a precision the number does not
-               have" — and this is that rule at a decimal place. */
-            '<span class="s-odds-p">' + esc(String(Math.round(r.p * 100))) + '%</span>' +
-            '<span class="s-odds-say">' + esc(r.say) +
-              /* WHAT THIS ONE RATE IS BUILT ON, on the row making the claim,
-                 so a measured rate and an assumed one stop looking alike. */
-              '<span class="s-odds-basis">' + esc(r.tag) + ' &middot; ' + esc(r.seen
-                ? r.signed + ' of ' + r.seen + ' signed'
-                : 'estimate, nothing finished here yet') + '</span>' +
+        '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
+        (loss.rows.length ? '<div class="s-odds-rows">' +
+          loss.rows.map((r) => '<div class="s-odds-row">' +
+            '<span class="s-odds-p">' + esc(fmtMoney(r.value)) + '</span>' +
+            '<span class="s-odds-say">' + esc(r.why ? r.why.label : 'Nobody said why') +
+              '<span class="s-odds-basis">' +
+                esc(r.why ? r.why.say : 'the record does not say') + '</span>' +
             '</span>' +
-            '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + ' &middot; ' +
-              esc(fmtMoney(r.value)) + ' open</span>' +
+            '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + '</span>' +
           '</div>').join('') +
         '</div>' +
-        /* ══ AND HOW LONG THEY HAVE BEEN THERE ══════════════════════════
-           Every CRM this desk has worked in puts average deal age on the
-           board's masthead, and it is the one headline figure of theirs this
-           page dropped. It belongs here rather than in a tile: a rate is how
-           many close, an age is how long, and the two are halves of one
-           reading. */
-        /* ══ WHAT THE NOTE OWES THE READER ════════════════════════════════
-           THE BASIS FIRST, because three of these four rates are the prior
-           and the old note swore every one of them was measured here.
-
-           THEN WHERE THEY GO. This block IS the Potential tile: each stage's
-           open value times its rate sums to €560k, and the stage values sum
-           to the €1.6m that tile's own line quotes. The most useful thing on
-           the block was the one thing it never said, fifteen hundred pixels
-           from the figure it explains.
-
-           THEN THE AGE, AND ITS VERB HAD TO CHANGE. `dealAge` averages
-           hand-over to decision, or to TODAY for a deal still running, and
-           its own margin says this book's hand-overs cluster recent so
-           "almost nothing has resolved". A mean over lives-so-far is a FLOOR,
-           not a duration — "a deal here takes 1.6 months" claimed the second
-           when the number is the first. How old they are is what it measures.
-
-           WHAT WENT: "one deal cannot swing them", when one more win at
-           Priced moves it from 48 to 51; and "only 5 deals closed this
-           window", which the Spent tile and the Priced row each now say
-           better than a disclaimer can. */
-        /* ══ SHORT WORDS, AND NO SENTENCE THAT TEACHES ════════════════════
-           Two rewrites in, this note still opened "An estimate moves to a real
-           rate as deals are won or lost" — an abstract subject, an abstract
-           verb and an abstract object, explaining a word the row beside it
-           had already explained. "Estimate, nothing finished here yet" IS the
-           explanation. A note that teaches the mechanism behind a word the
-           reader can already read is a lesson nobody asked for, so it goes
-           and nothing is lost.
-
-           "These rates turn X into Y" was machinery too. The reader wants one
-           thing here: why is Potential €560k when €1.6m is open? Because not
-           all of it lands. "Worth" is the plain word for that, "at these
-           rates" points at the four lines above without naming them, and the
-           whole answer is nine words. */
-        '<p class="s-odds-note">' +
-          'At these rates, the <b>' + esc(fmtMoney(pipe.all)) +
-          '</b> still open is worth <b>' + esc(fmtMoney(pipe.weighted)) +
-          '</b> &mdash; the Potential above.' +
-          (age == null ? '' : ' The average deal is <b>' + esc(age.toFixed(1)) +
-            ' months</b> old.') + '</p>' +
+        '<p class="s-odds-note">' + lossNote + '</p>'
+          : '<p class="s-odds-note">Nothing has been lost.</p>') +
       '</div>' +
 
       askRow(execAsks(now, pipe)) +
