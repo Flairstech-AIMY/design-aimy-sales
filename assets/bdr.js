@@ -6608,7 +6608,6 @@
     const perWin = wins.length ? arr / wins.length : 0;
     return {
       p: p, days: days, spend: spend, wins: wins, arr: arr,
-      ros: spend.total ? arr / spend.total : null,
       cac: wins.length ? spend.total / wins.length : null,
       payback: wins.length && perWin ? spend.total / wins.length / (perWin * GROSS_MARGIN / 12) : null,
       funnel: FUNNEL.map((s) => ({ k: s.k, label: s.label, n: stage[s.k],
@@ -7036,7 +7035,7 @@
      What makes it a reading rather than a caption is that every clause names
      something the figures below do NOT say on their face — the campaign
      whose cost and return are furthest apart, the one that has taken hours
-     and closed nothing, the share of payroll that lands on a campaign at
+     and closed nothing, the share of payroll that lands on campaigns at
      all. Ranked, and the loudest three are said. */
   function execBrief(now, a, camps, un, deals) {
     const bits = [];
@@ -7121,9 +7120,16 @@
       esc(fmtMoney(worst.total)) + ' across ' + esc(plural(Math.round(worst.hours), 'hour')) +
       ' and closed nothing.');
 
+    /* PLURAL, LIKE THE TWO PLACES THIS FINDING IS ALSO SAID. The payroll
+       row and the note under the breakdown were both moved off "a campaign"
+       because the singular reads as one campaign somebody could name; the
+       figure is the sum across all of them. This clause was written before
+       that pass and the sweep never reached the paragraph. "At all" stays: it
+       is the emphasis, and it is the one word that keeps this from being a
+       verbatim prefix of the note below. */
     if (un.pc != null && un.pc < 0.5) {
       bits.push('Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what you pay for lands ' +
-        'on a campaign at all.');
+        'on campaigns at all.');
     }
     return bits.join(' ');
   }
@@ -7537,28 +7543,37 @@
            winning one customer, and how long that customer takes to earn it
            back — a different sentence from the one the two words were
            doing. */
-        /* "What it cost to get" leaves its object dangling on the one tile
-           whose figure is a plain total -- the same defect the page it came
-           from recorded in "Paid off", inherited by the phrase that replaced
-           it. What it is, is what went out; the line underneath says what
-           came back. */
-        /* ══ TWO CLAUSES, AND THE SECOND WAS ABOUT SOMETHING ELSE ══════
-           "12.8 months to break even" under a tile reading SPENT €210k says
-           the €210k breaks even in 12.8 months. It does not: `payback` is
-           spend-per-win divided by one customer's monthly gross profit — how
-           long ONE CUSTOMER takes to repay what it cost to win them. The
-           figure keeps the one place it is already said correctly, in the
-           ask below: "It takes 12.8 months for a customer to repay what they
-           cost." Here it was a true number under a false subject.
+        /* ══ A RATIO TO ANOTHER TILE IS NOT A FACT ABOUT THIS ONE ══════
+           This line has been rewritten three times — "paid off", "€1.30 back
+           for every €1", "€1.30 a year for every €1 spent" — and read as vague
+           every time, because each pass edited the WORDING of a ratio that
+           should not have been here. `ros` is €273k of won ARR over €210k of
+           spend: one figure from the headline four hundred pixels up, one
+           from the tile it sits under. The eye makes that comparison on its
+           own, and at 1.3 the answer is "about even", which two numbers on
+           one screen already say. The page removed the 21× coverage multiple
+           and the 208× return multiple for exactly this reason; this one
+           survived because I kept rewriting it instead of asking whether it
+           belonged.
 
-           AND THE RATIO NAMES ITS UNIT. `ros` is this window's won ARR over
-           this window's spend — a YEAR of revenue against a QUARTER of cost.
-           That is the standard efficiency ratio and it is fine, as long as it
-           says so; "€1.30 back for every €1" claims cash returned. One word
-           fixes it, and it is the same word the rest of the page needed. */
+           IT ALSO COMPARED A YEAR TO A QUARTER. A won deal's value is annual;
+           the spend beneath it is one quarter's. "€1.30 a year for every €1
+           spent" is heard as a euro that keeps paying — a spectacular return
+           — when the truth is a thin one.
+
+           WHAT THE TILE SHOULD SAY is what the €210k BOUGHT, the way its three
+           neighbours each explain their own figure rather than divide it by
+           somebody else's. `cac` has been computed since this aggregate was
+           written and has never rendered. €42k a deal against an average deal
+           of €55k is the finding, and it carries the count of deals signed
+           this quarter — which appears nowhere else on this page. */
         attFig('Spent', fmtMoney(now.spend.total),
-          now.ros == null ? 'nothing spent in this window'
-            : '€' + now.ros.toFixed(2) + ' a year for every €1 spent') +
+          !now.spend.total ? 'nothing spent in this window'
+            : now.cac == null ? 'nothing signed against it yet'
+              : now.wins.length === 1
+                ? fmtMoney(now.cac) + ' for the one deal signed'
+                : fmtMoney(now.cac) + ' for each of the ' +
+                  plural(now.wins.length, 'deal') + ' signed') +
       '</div>' +
 
       '<section class="s-exec-sec">' +
