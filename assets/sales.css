@@ -8047,22 +8047,23 @@ body.is-figures .filter-tray { display: none; }
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
 }
 .s-odds-cap svg { color: var(--ai-text); }
+/* The caption and the name of the column under its right end, on one line.
+   Baseline, so the two micro-caps labels sit on the same rule; `.s-pan-unit`
+   drops the top margin it needs when it hangs under a figure instead. */
+.s-odds-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.s-odds-top .s-pan-unit { margin-top: 0; }
 .s-odds-rows { display: flex; flex-direction: column; margin-top: 12px; }
-.s-odds-row { display: flex; align-items: baseline; gap: 16px; padding: 8px 0; border-top: 1px solid var(--card-border); }
-.s-odds-row:first-child { border-top: 0; }
-.s-odds-p {
-  font-family: var(--font-sans); font-size: var(--fs-base);
-  font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
-  color: var(--d50); min-width: 56px; text-align: right;
-}
-.s-odds-say {
-  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-secondary);
-  flex: 1 1 auto; min-width: 0;
-}
-.s-odds-n {
-  font-size: var(--fs-xs); color: var(--ink-quiet); white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
+/* ══ THE ROWS ARE `.s-pan-p`, THE ROW THIS PAGE ALREADY DRAWS TWICE ═════
+   Its own five rules went with the three-column layout they served — a
+   figure slot, a middle that flexed, and a hanging sub-line. Resources and
+   Campaigns above already shape a name, a qualifier and a figure, and that
+   is exactly what a reason, its count and its cost are. All this block adds
+   is the rule between rows, which `.s-pan-crew` gets from its own gap. */
+.s-odds-rows .s-pan-p { padding: 8px 0; border-top: 1px solid var(--card-border); }
+.s-odds-rows .s-pan-p:first-child { border-top: 0; }
+/* The doors sit off the note, at the foot of the block, the way every other
+   reading on this desk ends. */
+.s-odds .s-lead-acts { margin-top: 14px; }
 /* `pretty` rather than `balance`: this is a description, and the thing worth
    preventing is one word alone on the last line. */
 /* ══ AND IT IS NOT A FIFTH ROW ══════════════════════════════

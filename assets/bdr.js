@@ -6788,31 +6788,26 @@
      lucky deal read as a 50% close rate, and pulls an empty step to the
      prior exactly rather than to zero. The page says the sample is thin
      rather than hiding it. */
-  /* ══ NAMED THE WAY THE BOARD NAMES THEM ═══════════════════════════
-     These read "Price on the table", "Seen the solution" — true, checkable,
-     and not what the reader calls them. He works a board with six columns
-     on it and those columns have names; a second vocabulary for the same
-     four stages is a second thing to learn for one job, and it stops him
-     reading a rate here and going to that column.
-
-     So the stage's own label leads, off `DEAL_STAGE` rather than off a
-     literal, and the phrase that says what the stage MEANS follows it — the
-     rate needs both: the name to find the column, the fact to trust the
-     number. Rename a stage and this renames with it. */
+  /* ══ FOUR KEYS AND A PRIOR, WHICH IS ALL THAT IS LEFT ═══════════════════
+     These rows carried each stage's plain-English meaning, and the label to
+     put in front of it, because the odds table printed both. That table is
+     gone — the page asks where deals collapse now, not how often they close —
+     and the ladder survives only as the weighting behind Potential, which
+     wants the key and nothing else. `DEAL_STAGE` still holds the names for
+     everything that renders one. */
   const ODDS_STEPS = [
-    { k: 'commercial', was: 'the price is on the table' },
-    { k: 'proof',      was: 'they have seen it working' },
-    { k: 'discovery',  was: 'we have been through what they need' },
-    { k: 'qual',       was: 'handed over, nobody has met them' },
+    { k: 'commercial' },
+    { k: 'proof' },
+    { k: 'discovery' },
+    { k: 'qual' },
   ];
-  ODDS_STEPS.forEach((r) => { r.say = DEAL_STAGE[r.k].label + ' — ' + r.was; });
   const ODDS_PRIOR = { commercial: 0.55, proof: 0.32, discovery: 0.16, qual: 0.06 };
   const SMOOTH = 2;
   let ODDS_CACHE = null;
   function oddsLadder() {
     if (ODDS_CACHE) return ODDS_CACHE;
     const by = Object.create(null);
-    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, n: 0, won: 0 }));
+    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, n: 0, won: 0 }));
     /* Learned off every deal that has finished, at the furthest stage it
        reached before it did — a deal that closed from Commercial is
        evidence about Commercial, and it is no longer standing there. */
@@ -6842,7 +6837,6 @@
   function pipelineOf(deals) {
     const open = deals.filter(dealLive);
     const tier = { comparable: 0, modelled: 0 };
-    const step = Object.create(null);
     let all = 0, weighted = 0;
     open.forEach((c) => {
       const v = acvOf(c);
@@ -6850,11 +6844,60 @@
       tier[v.basis] = (tier[v.basis] || 0) + v.value;
       all += v.value;
       weighted += v.value * o.p;
-      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
-      r.n += 1; r.value += v.value;
     });
-    return { open: open.length, all: all, weighted: weighted, tier: tier,
-      steps: ODDS_STEPS.map((o) => step[o.k]).filter(Boolean) };
+    return { open: open.length, all: all, weighted: weighted, tier: tier };
+  }
+
+  /* ══ AND THE SAME BOOK, ASKED WHY IT LOST ═══════════════════════════════
+     `pipelineOf` reads what is still standing. This reads what fell over, off
+     the `why` the resolution touchpoint already carries, and adds the two
+     facts a count cannot give on its own: WHERE the deal was when it died,
+     and whether `LOST_WHY` marks the reason a not-yet rather than a no.
+
+     Follow-up travels with it because the two are the same event wearing
+     different labels — `LOST_WHY`'s own margin says that column exists for
+     deals a manager sets down deliberately, and flags "the losses that should
+     have gone there". A reader counting what slipped away wants both. */
+  /* ══ WHAT THEY COST, NOT WHAT THEY WOULD HAVE BEEN WORTH ════════════════
+     This block ranked by `acvOf`, and `acvOf` on a LOST deal never returns a
+     real number — the deal never closed, so there is no amount to read, and
+     the function falls through to comparables or the price list. I threw out
+     four modelled percentages and put a modelled money column in their place
+     on the same screen. Nour caught it.
+
+     `spendOn` has computed the honest figure since the cost model was
+     written: what was paid to find this person, to fill in their details, to
+     let AiMY call them, and the salaried hours somebody logged against them.
+     All four are real. Over an all-time window rather than the page's,
+     because a deal that died in May cost what it cost, and the quarter the
+     page is showing has nothing to do with it.
+
+     Counts rank the list now — the reason is the content and the count is
+     how often it happened — and the spend sits on the right, quietly, where
+     the old block put its money. Nothing here is modelled any more. */
+  function lossesOf(deals) {
+    const ever = { from: '0000-01-01', to: TODAY_ISO };
+    const by = Object.create(null);
+    const gone = [];
+    let late = 0, back = 0, spend = 0;
+    deals.forEach((c) => {
+      if (stageOf(c) !== 'lost') return;
+      gone.push(c);
+      const w = lostWhy(c);
+      const k = w ? w.k : 'unsaid';
+      const paid = spendOn(c, ever).total;
+      const r = by[k] || (by[k] = { k: k, why: w, n: 0, spend: 0 });
+      r.n += 1; r.spend += paid;
+      spend += paid;
+      if (w && w.back) back += 1;
+      const ph = phasesOf(c).filter((t) => t.phase !== 'resolution');
+      if (ph.length && ph[ph.length - 1].phase === 'commercial') late += 1;
+    });
+    return { n: gone.length, spend: spend, late: late, back: back,
+      age: dealAge(gone),
+      followUp: deals.filter((c) => stageOf(c) === 'later').length,
+      rows: Object.keys(by).map((k) => by[k])
+        .sort((a, b) => (b.n - a.n) || (b.spend - a.spend)) };
   }
 
   /* ══ THE TARGET — MOCK, AND THE YARDSTICK EVERYTHING ELSE NEEDED ═══════
@@ -7003,7 +7046,20 @@
           'meetings if I move spend to the cheaper one.' });
     }
     if (top && now.arr) {
-      out.push({ label: 'Why ' + sellSay(top.k) + ' is doing all the work',
+      /* ══ A NAME CANNOT BE THE SUBJECT OF A VERB THAT AGREES ═════════════
+         "Why Engineering teams IS doing all the work". Three of the eight
+         names in `SELLS` break a singular verb — `eng` is a plural noun, and
+         `test` and `back` are conjunctions ("QA and test automation are").
+         An agreement rule would have to guess plurality off arbitrary product
+         copy, so the sentence stops asking a name to be its subject: the
+         product becomes the object of a preposition, where nothing agrees
+         with anything and every one of the eight reads.
+
+         It is also the better question. The ask underneath is about the
+         products that are NOT selling; "is doing all the work" reads as
+         praise for the one that is. What is wrong here is the concentration.
+      */
+      out.push({ label: 'Why so much rides on ' + sellSay(top.k),
         ask: sellSay(top.k) + ' brought in ' + Math.round((top.arr / now.arr) * 100) +
           '% of everything we signed. Show me whether the other products are reaching too ' +
           'few people or losing the ones they reach.' });
@@ -7116,7 +7172,15 @@
     const worst = paid.filter((c) => !c.arr && c.total > 200).sort((x, y) => y.total - x.total)[0];
     if (best) bits.push(door({ camp: best.camp.id }, esc(best.camp.name)) + ' cost ' +
       esc(fmtMoney(best.total)) + ' and returned <b>' + esc(fmtMoney(best.arr)) + '</b>.');
-    if (worst) bits.push(door({ camp: worst.camp.id }, esc(worst.camp.name)) + ' has cost ' +
+    /* PAST SIMPLE, FOR THE SAME REASON AND AT NO COST. "Logistics, Southern
+       Europe HAS cost €804" is this paragraph's own instance of the fault
+       above — campaign names are conjunctions and lists as often as products
+       are. `cost` is identical in the singular and the plural, so dropping
+       one word fixes every name at once, keeps the name first where the door
+       is, and makes this sentence parallel with the one before it, which was
+       already past simple. The window scopes the claim, so the present
+       perfect was never earning its "up to now" either. */
+    if (worst) bits.push(door({ camp: worst.camp.id }, esc(worst.camp.name)) + ' cost ' +
       esc(fmtMoney(worst.total)) + ' across ' + esc(plural(Math.round(worst.hours), 'hour')) +
       ' and closed nothing.');
 
@@ -7193,7 +7257,68 @@
     });
     const un = unlogged(p, heads);
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
-    const age = dealAge(deals);
+    const loss = lossesOf(deals);
+    /* Three short sentences, each a fact and none of them a lesson: where
+       they died, what they took to die, and what is not finished with yet.
+       Every clause is conditional on the data saying it. Parked is not in
+       here any more — the door underneath says it and the count with it. */
+    const lossBits = [];
+    if (loss.n) {
+      lossBits.push(loss.late === loss.n
+        ? 'Every one of them had the price on the table before it died.'
+        : loss.late
+          ? '<b>' + loss.late + '</b> of the ' + loss.n +
+            ' had the price on the table before they died.'
+          : 'None of them got as far as a price.');
+      const lossFacts = [];
+      if (loss.age != null) {
+        lossFacts.push('ran <b>' + esc(loss.age.toFixed(1)) + ' months</b> on average');
+      }
+      if (loss.spend) lossFacts.push('cost <b>' + esc(fmtMoney(loss.spend)) + '</b> in all');
+      if (lossFacts.length) lossBits.push('They ' + joinAnd(lossFacts) + '.');
+      if (loss.back) {
+        lossBits.push('<b>' + loss.back + '</b> ' + verbFor(loss.back, 'is') +
+          ' worth another run.');
+      }
+    }
+    const lossNote = lossBits.join(' ');
+    /* ══ A READING THAT ENDS IN A FACT ENDS NOWHERE ═══════════════════════
+       `custTake` states this build's rule against itself: "Every other
+       reading on this desk ends in two buttons that narrow the list under
+       it." This one said three deals were worth another run and gave the
+       reader no way to reach them, which is the defect that margin was
+       written about.
+
+       BOTH DOORS GO TO CUTS THAT EXIST. `cutOf` is `stageOf` for a manager,
+       so Lost and Follow-up are real columns on his board and land on six
+       cards and four. A dedicated "worth another run" cut would be a seventh
+       chip overlapping Lost, and the chip row's own margin forbids exactly
+       that — the six narrow the forty-eight and sum to All. Landing on Lost
+       is enough: each card there already prints "Worth another run at it"
+       under the reason, so the three name themselves on arrival. */
+    const lossDoor = (over, label) => '<button class="s-insight-lnk" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), over))) + '">' + esc(label) + '</button>';
+    const lossActs = !loss.n ? '' :
+      lossDoor({ on: 'deals', q: 'lost' }, 'Show the ' + commas(loss.n) + ' lost') +
+      /* NOT "PARKED". That is my word for it; the board's word is Follow-up,
+         which is what `DEAL_STAGES` labels the stage and what the chip this
+         door presses says on it. A door whose label is not the name of the
+         place it opens is the reader learning two words for one column. */
+      (loss.followUp
+        ? lossDoor({ on: 'deals', q: 'later' },
+          'Show the ' + commas(loss.followUp) + ' on follow-up')
+        : '');
+    /* ══ "YOUR OWN RATES" WAS FALSE THREE TIMES IN FOUR ═══════════════════
+       `p = (won + SMOOTH) / (n + SMOOTH / prior)` returns the prior EXACTLY
+       when a stage has nothing finished behind it, and three of the four have
+       nothing: 32.0, 16.0 and 6.0 were `ODDS_PRIOR` printed to a tenth of a
+       point under a sentence swearing they were measured on this desk. A
+       stage holding one lost deal would read 14.8, not 16.0 — the roundness
+       was the tell.
+
+       So the note names which stages have evidence and which are still the
+       starting estimate, and it reads that off the ladder instead of
+       asserting it, so it stays true as deals resolve. */
 
     /* ══ THE SCALE HAS TO MEAN THE SAME THING TWICE ═════════════════════
        It was the largest of the three figures, which makes the bar's own
@@ -8053,27 +8178,72 @@
         '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>')) +
       '</section>' +
 
+      /* ══ WHERE DEALS DIE IS WORTH KNOWING; A CLOSE RATE IS NOT ══════════
+         This was "How often a deal closes from here", and it was rewritten
+         four times without getting better, because the fault was never the
+         wording — it was the question. Sixteen pieces of data, twelve of them
+         percentages the block's own footnotes called estimates, all of it
+         propping up one sentence. And the honest response to a close rate is
+         "so what". A rate is a thing to know. Where deals die is a thing to
+         DO something about.
+
+         `LOST_WHY` has been on the record since the deals board was built:
+         six reasons, each with the sentence a manager would say, and a `back`
+         flag for the ones that are a not-yet rather than a no. Nothing has
+         ever rendered it in aggregate — the same fault as `byLine.spend` and
+         `cac`, computed and thrown away. What it says here is specific and
+         none of it is modelled: nothing was lost on price and nothing to a
+         competitor. They went quiet, or they were never the right fit, and
+         both of those are this desk's to fix.
+
+         RANKED BY MONEY, on a money page. The label leads because these
+         labels ARE plain English — "Nobody decided" needs nothing standing in
+         front of it — and the line under each says the same thing longer for
+         a reader who wants it. */
       '<div class="s-odds">' +
-        '<span class="s-odds-cap">' + aiMark() + 'How often deals close</span>' +
-        '<div class="s-odds-rows">' +
-          pipe.steps.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
-            '<span class="s-odds-p">' + esc((r.p * 100).toFixed(1)) + '%</span>' +
-            '<span class="s-odds-say">' + esc(r.say) + '</span>' +
-            '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + ' &middot; ' +
-              esc(fmtMoney(r.value)) + ' open</span>' +
-          '</div>').join('') +
+        /* ══ ONE LABEL OVER A COLUMN, NOT ONE DOWN EVERY ROW ══════════════
+           A unit under a figure is right when there is one figure, which is
+           why the panel heads wear it: two numbers in a corner, each saying
+           its own name. Down a list every figure means the same thing, so
+           the word stops being a label and becomes a column of itself —
+           four SPENTs teaching nothing after the first.
+
+           The caption row already spans the block, and the right end of it
+           sits directly over the figures. One `.s-pan-unit` there is the
+           column heading this wanted to be, in the same treatment, once. */
+        '<div class="s-odds-top">' +
+          '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
+          (loss.rows.length ? '<span class="s-pan-unit">spent</span>' : '') +
         '</div>' +
-        /* ══ AND HOW LONG THEY HAVE BEEN THERE ══════════════════════════
-           Every CRM this desk has worked in puts average deal age on the
-           board's masthead, and it is the one headline figure of theirs this
-           page dropped. It belongs here rather than in a tile: a rate is
-           how many close, an age is how long that takes, and the two are
-           halves of the same reading. */
-        '<p class="s-odds-note">Your own rates, not industry averages' +
-          (age == null ? '' : '. A deal here takes <b>' + esc(age.toFixed(1)) + ' months</b>') +
-          '. ' + (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
-            ' closed this window' : 'Nothing closed this window') +
-          ', so the rates are smoothed — one deal cannot swing them.</p>' +
+        /* ══ THE COUNT BELONGS TO THE REASON, NOT TO A COLUMN ═════════════
+           A bold "2 deals" in a right-aligned figure slot made a count look
+           like the row's subject and pushed the reason — the only thing on
+           the row anybody reads — a hundred and twenty pixels off the left
+           edge. The count is not a measure of anything; it is how many times
+           that reason happened, so it belongs beside the reason.
+
+           WHICH IS A COMPONENT THIS PAGE ALREADY DRAWS TWICE. `.s-pan-p` is
+           the Resources row and the Campaigns row directly above: a name, a
+           qualifier under it, a figure on the right. Same shape, same
+           treatment, nothing new to learn and four dead rules deleted. */
+        (loss.rows.length ? '<div class="s-odds-rows">' +
+          loss.rows.map((r) => '<span class="s-pan-p">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(r.why ? r.why.label : 'Nobody said why') + '</b>' +
+              /* THE COUNT CARRIES THE RANKING, so it cannot be set like the
+                 clause beside it. `.s-pan-who b` is already this build's
+                 second rank — the name's colour and weight, one step down in
+                 size — which puts the count above the gloss and below the
+                 reason without inventing a treatment for it. */
+              '<span class="s-pan-meta"><b>' + esc(plural(r.n, 'deal')) + '</b> &middot; ' +
+                esc(r.why ? r.why.say : 'the record does not say') + '</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(fmtMoney(r.spend)) + '</span>' +
+          '</span>').join('') +
+        '</div>' +
+        '<p class="s-odds-note">' + lossNote + '</p>' +
+        (lossActs ? '<div class="s-lead-acts">' + lossActs + '</div>' : '')
+          : '<p class="s-odds-note">Nothing has been lost.</p>') +
       '</div>' +
 
       askRow(execAsks(now, pipe)) +
