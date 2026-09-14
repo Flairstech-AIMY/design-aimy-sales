@@ -1764,6 +1764,14 @@
              under it more often than over. A book priced at the rate card
              to the euro is the one number a manager would know is fiction. */
           acv: Math.round((list * (0.82 + ((g >> 8) % 26) / 100)) / 500) * 500,
+          /* ══ AND HOW LONG IT RUNS BEFORE SOMEBODY HAS TO SIGN AGAIN ═══
+             A subscription with no term is a subscription that never comes
+             up, and the date it comes up is the one clock an account
+             manager actually works to. Twelve months is the common case;
+             two and three years are what a bigger contract buys with a
+             discount, so they are rarer and they land on the larger ones by
+             being drawn off the same hash as the price. */
+          term: [12, 12, 12, 24, 36][(g >> 16) % 5],
         });
       };
       add(fits[(h >> 4) % fits.length], 'a');
@@ -2827,69 +2835,121 @@
      and a reader who doubts one should know which to go and check: where
      the event was seen, and the book it was read against. */
   /* ══ ONE READING, TWO PLACES, TWO SHAPES ═══════════════════════════════
-     The same sentence has to sit on a card three to a row and on a record
+     The same reading has to sit on a card three to a row and on a record
      with a page to itself, and those want different things. A card has room
      for one paragraph and no ranks, so everything it can say has to be in
-     the prose and the marks. A record has room to SHOW that this is three
-     claims — what happened, what that means, and what of ours answers it —
-     and set as one block it read as a slab a reader has to parse before
-     they can find the conclusion.
+     the prose and the marks. A record has room to SHOW that this is a
+     finding and then what follows from it, and set as one block the
+     conclusion — the only part that says what to DO — arrived as the fifth
+     line of six in the same ink at the same weight as the setup.
 
      So the reading comes back in both forms and the caller picks. `text` is
-     the flat one. `what` and `then` are the same claims split at the seam
-     they already had, which is why no prose had to be rewritten to do it.
+     the flat one. `what` is the finding and `thens` are what follows,
+     split at seams the prose already had.
+
+     `thens` IS A LIST, AND THAT IS THE WHOLE OF WHAT USED TO BE A SECOND
+     BLOCK. "What else fits" stood underneath this one on every customer's
+     page, answering the same question from the other end — the news names
+     the thing that answers what just happened, the range names the thing
+     that goes with what they run — and they very often named different
+     products. Two recommendations eight inches apart, each with its own
+     heading and its own verb, and a caption between them apologising for
+     the difference. They are two reasons for one decision, so they are two
+     lines of one reading.
+
+     THE ORDER IS `custState`'S ORDER, and it has to be: a card whose tag
+     says Renewing over a sentence about what else we could sell them is the
+     page contradicting itself in eighty pixels. Renewal, then news, then
+     the standing fit.
 
      THE NAME IS BOLD ON THE CARD AND NOT ON THE RECORD. It is the subject
-     of the sentence either way; what differs is whether the reader needs
-     telling which company this is. In a grid of fifteen they do. On the
-     company's own page there is an `<h1>` of their name forty pixels above,
-     and marking it again in the first three words spends the loudest thing
-     the paragraph has on the one fact the reader cannot possibly be missing
-     — while the offer, which is the point, is the third mark of three. */
+     either way; what differs is whether the reader needs telling which
+     company this is. In a grid of fifteen they do. On the company's own
+     page there is an h1 of their name forty pixels above, and marking it
+     again spends the loudest thing the paragraph has on the one fact the
+     reader cannot be missing — while the offer, which is the point, is the
+     last mark of three.
+
+     THE CARD TAKES ONE CONCLUSION. It is one card in a grid and it is
+     ranked; a card that lists two things to do has ranked neither. */
   function custSay(a) {
     const subs = subsAt(a);
     const hold = holdSay(subs);
+    const worth = custWorth(a);
+    const rn = renewAt(a);
     const o = openingAt(a);
+    const fit = expansionsOf(a.id)[0];
+    /* The standing fit as one line, and never where the news has just named
+       the same product — "Finance and back office is the one that answers
+       it" followed by "Finance and back office is what goes with what they
+       run" is one recommendation given two reasons and drawn as two. */
+    const fitLine = (skip) => {
+      if (!fit || fit.next === skip) return null;
+      return '<b>' + esc(SELL[fit.next].name) + '</b> is what goes with what they run — ' +
+        esc(fit.why) + '.' +
+        /* Ninety days from signature before we go back, and the rule says
+           so out loud rather than hiding the row until the clock runs out.
+           A manager who can see it is early can decide to be early. */
+        (fit.ripe ? '' : ' They signed ' + esc(plural(fit.days, 'day')) + ' ago, so it is early.');
+    };
+    const pack = (plain, bold, thens, from) => ({
+      text: bold + (thens[0] ? ' ' + thens[0] : ''),
+      what: plain, thens: thens.filter(Boolean), from: from,
+    });
+
+    /* ══ 1. A DATE SOMEBODY ELSE SET ═══════════════════════════════════ */
+    if (rn && rn.days <= RENEW_SOON) {
+      const sub = rn.sub;
+      const said = ' renews <b>' + esc(SELL[sub.sell].name) + '</b> in <b>' +
+        esc(plural(rn.days, 'day')) + '</b>, on ' + esc(sayDay(rn.at)) + ' — ' +
+        (subs.length > 1
+          ? '<b>' + esc(euro(sub.acv)) + '</b> of the ' + esc(euro(worth)) + ' a year they pay us'
+          : 'the whole of what they pay us') + '.';
+      return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
+        /* The renewal conversation is the one meeting of the year where
+           more is on the table than less, so what goes with what they run
+           is the thing to walk in with rather than a separate errand. */
+        [fitLine(null)
+          ? 'Go into it asking for more. ' + fitLine(null)
+          : 'Nothing else in the range fits them, so this one is about keeping it.'],
+        'their contract, counted from the day they signed');
+    }
+
+    /* ══ 2. SOMETHING HAPPENED TO THEM ═════════════════════════════════ */
     if (o) {
       const n = o.news;
       const said = ' ' + esc(n.say) + ' — ' + esc(n.means) + '.';
-      const what = '<b>' + esc(a.name) + '</b>' + said;
-      const plain = esc(a.name) + said;
+      const from = n.src + ', against what they hold';
       if (o.kind === 'open') {
-        const then = 'They already run <b>' + esc(joinAnd(hold)) +
-          '</b>, and <b>' + esc(SELL[o.offer].name) + '</b> is the one that answers it.';
-        return { text: what + ' ' + then, what: plain, then: then,
-          from: n.src + ', against what they hold' };
+        return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
+          ['They already run <b>' + esc(joinAnd(hold)) + '</b>, and <b>' +
+            esc(SELL[o.offer].name) + '</b> is the one that answers it.',
+            fitLine(o.offer)], from);
       }
       if (o.kind === 'hold') {
         /* Not an opening, and the surface must not dress it as one. What
            just changed is a thing we are already paid to do, which makes
            this the week somebody there starts asking whether it works. */
-        const then = 'That is <b>' + esc(SELL[o.offer].name) +
-          '</b>, which is ours already — so this is a call to make before ' +
-          'somebody there makes it about us.';
-        return { text: what + ' ' + then, what: plain, then: then,
-          from: n.src + ', against what they hold' };
+        return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
+          ['That is <b>' + esc(SELL[o.offer].name) + '</b>, which is ours already — so ' +
+            'this is a call to make before somebody there makes it about us.',
+            fitLine(o.offer)], from);
       }
-      const then = 'Nothing in the range answers it, so this is a call ' +
-        'about them rather than about us.';
-      return { text: what + ' ' + then, what: plain, then: then,
-        from: n.src + ', against what they hold' };
+      return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
+        ['Nothing in the range answers it, so this is a call about them rather than about us.',
+          fitLine(null)], from);
     }
-    /* Nothing has happened. The standing fit speaks instead — what goes
-       with what they run — and where even that is exhausted, the clock the
-       tier bought them. */
-    const exp = expansionsOf(a.id)[0];
-    if (exp) {
-      return { text: 'They have run <b>' + esc(SELL[exp.bought].name) + '</b> since <b>' +
-          esc(sayWhen(exp.closed)) + '</b>. <b>' + esc(SELL[exp.next].name) +
-          '</b> is what sits next to it — ' + esc(exp.why) + '.',
-        from: 'what they run, against the range' };
+
+    /* ══ 3. NOTHING HAS HAPPENED, WHICH IS ALSO A READING ══════════════ */
+    if (fit) {
+      const said = 'They have run <b>' + esc(SELL[fit.bought].name) + '</b> since <b>' +
+        esc(monthYear(fit.closed)) + '</b>, and nothing has moved at them in six weeks.';
+      return pack(said, said, [fitLine(null)], 'what they run, against the range');
     }
     const ci = checkinSay(a, touchesAt(a.id));
-    return { text: 'They run <b>' + esc(joinAnd(hold)) + '</b>, which is the whole of ' +
-        'what fits a ' + esc(indLabel(a).toLowerCase()) + ' business. ' + esc(ci.text) + '.',
-      from: 'the book against their sector' };
+    const said = 'They run <b>' + esc(joinAnd(hold)) + '</b>, which is the whole of ' +
+      'what fits a ' + esc(indLabel(a).toLowerCase()) + ' business. ' + esc(ci.text) + '.';
+    return pack(said, said, [], 'the book against their sector');
   }
   /* One, two and three read differently and a join written inline three
      times drifts. Nothing else in the build needed it; this card does,
@@ -2900,6 +2960,10 @@
      each one is a different thing to do this week: something opened, a
      thing we run is under a light, or nothing has moved. */
   function custState(a) {
+    /* First, for the reason `custRank` puts it first: it is the only state
+       here with a date somebody outside this building set. */
+    const r = renewAt(a);
+    if (r && r.days <= RENEW_SOON) return { label: 'Renewing', tone: 'warn' };
     const o = openingAt(a);
     if (o && o.kind === 'open') return { label: 'Opening', tone: 'ok' };
     if (o && o.kind === 'hold') return { label: 'Check in', tone: 'warn' };
@@ -4716,6 +4780,24 @@
     const worth = book.reduce((n, a) => n + custWorth(a), 0);
     const open = openings();
     const hold = book.map(openingAt).filter((o) => o && o.kind === 'hold');
+    const due = book.map(renewAt).filter((r) => r && r.days <= RENEW_SOON);
+    /* ══ ITS OWN SENTENCE, AND FIRST ═══════════════════════════════════
+       Written as a third clause in the join first, and it broke the join in
+       the exact way `dealsTake` has a note about: the list turns its last
+       comma into "and", so a clause carrying a comma of its own steals it.
+       "worth €68k a year between them, 9 of them moved … and 2 had news"
+       put the "and" two clauses early and left the real join without one.
+
+       Making it a sentence is not only the fix. The other two clauses are
+       about news, which is a set of things that happened; this is about a
+       date, and a date that can take a customer with it does not belong in
+       a list of interesting developments. It goes first for the same reason
+       it sorts first. */
+    const renewSay = due.length
+      ? '<b>' + commas(due.length) + '</b> of them ' + (due.length === 1 ? 'renews' : 'renew') +
+        ' inside the quarter, worth <b>' +
+        esc(euro(due.reduce((n, r) => n + r.sub.acv, 0))) + '</b> a year between them. '
+      : '';
     const bits = [];
     if (open.length) {
       /* Six weeks, because that is the window `newsAt` reads and a sentence
@@ -4738,11 +4820,11 @@
         '<span class="s-lead-say">a year, across <span class="s-lead-of">' +
           commas(book.length) + '</span> companies that already buy from you.</span>' +
       '</div>' +
-      '<p class="s-lead-deck">' +
+      '<p class="s-lead-deck">' + renewSay +
         (bits.length
           ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') +
             '. The rest are quiet, and they are under those.'
-          : 'Nothing has happened at any of them in the last six weeks. ' +
+          : 'Nothing else has happened at any of them in the last six weeks. ' +
             'What stands is what goes with what they already run.') + '</p>' +
     '</section>';
   }
@@ -5621,7 +5703,7 @@
   function subsAt(a) {
     if (!a) return [];
     const out = (a.subs || []).map((s) => ({
-      sell: s.sell, since: s.since, acv: s.acv, con: null }));
+      sell: s.sell, since: s.since, acv: s.acv, term: s.term, con: null }));
     consAt(a.id).forEach((c) => {
       if (!isDeal(c) || stageOf(c) !== 'won') return;
       const at = wonAt(c);
@@ -5633,13 +5715,68 @@
       for (let i = 0; i < out.length; i++) {
         if (out[i].sell === k) { out.splice(i, 1); break; }
       }
-      out.push({ sell: k, since: at, acv: acvOf(c).value, con: c });
+      /* Twelve, because nobody negotiated a term on this record and a
+         deal that closed last month has not earned a longer one. */
+      out.push({ sell: k, since: at, acv: acvOf(c).value, term: 12, con: c });
     });
     return out.sort((x, y) => (x.since < y.since ? -1 : 1));
   }
   /* What they pay us in a year. Every surface that names a customer names
      this, so it is one function and not a reduce written five times. */
   const custWorth = (a) => subsAt(a).reduce((n, s) => n + s.acv, 0);
+  /* ══ THE ONE DATE AN ACCOUNT MANAGER ACTUALLY WORKS TO ═════════════════
+     Everything else on this desk is a clock we set ourselves — a check-in
+     cadence the tier buys, a ninety-day ripeness on what they bought. A
+     renewal is the opposite: it is a date the CUSTOMER is walking towards
+     whether anybody here looks at it or not, and it is the only one where
+     doing nothing has a cost rather than an opportunity cost.
+
+     Counted forward from the signature in whole terms rather than stored,
+     for the reason every other date here is derived: a stored next-renewal
+     is a field that goes stale the day it passes, and this one cannot,
+     because it is the first term boundary that has not happened yet. A
+     three-year contract signed in 2024 renews in 2027, and the same
+     function says so in 2028. */
+  function renewOf(s) {
+    const term = s.term || 12;
+    let n = 1;
+    let at = monthStep(s.since, term);
+    /* The guard is not decoration: `monthStep` walks a real calendar and a
+       corrupt `since` would otherwise spin here. Forty terms is a century
+       of twelve-month contracts. */
+    while (at < TODAY_ISO && n < 40) { n += 1; at = monthStep(s.since, term * n); }
+    return at;
+  }
+  /* The soonest of them, because a company with two contracts renews twice
+     and the one you have to do something about is the near one. */
+  function renewAt(a) {
+    let best = null;
+    subsAt(a).forEach((s) => {
+      const at = renewOf(s);
+      if (!best || at < best.at) best = { at: at, sub: s, days: daysBetween(TODAY_ISO, at) };
+    });
+    return best;
+  }
+  /* A quarter. Long enough that there is still time to do something about
+     it, short enough that saying so is not crying wolf about a date nine
+     months out. It is also the notice period most of these contracts would
+     carry, which is what makes it the moment the decision is actually made
+     rather than the moment it is signed. */
+  const RENEW_SOON = 90;
+  /* ══ WHAT THEY HAVE BEEN WORTH, WHICH IS NOT WHAT THEY ARE WORTH ═══════
+     `custWorth` is the rate — what they pay in a year. This is the total
+     they have paid, and the two rank companies differently: a €40k contract
+     running for three years has brought in more than an €87k one signed in
+     the spring, and only one of those is a relationship worth protecting
+     like one.
+
+     Rounded to the nearest five hundred. It is a rate multiplied by elapsed
+     days, so the last three digits are arithmetic rather than money, and a
+     figure that looks precise invites somebody to reconcile it against an
+     invoice that does not exist. */
+  const billedAt = (a) => Math.round(subsAt(a).reduce((n, s) =>
+    n + s.acv * (daysBetween(s.since, TODAY_ISO) / 365.25), 0) / 500) * 500;
+
   const isCust = (a) => subsAt(a).length > 0;
   /* ══ THE BOOK, AND WHAT PUTS ONE COMPANY ABOVE ANOTHER ═════════════════
      Not revenue. A list of twenty-eight customers ranked by what they pay
@@ -5654,9 +5791,17 @@
 
      `custWorth` is not wasted; it is the tie-break, and it is what the
      figure over the block sums. */
+  /* ══ AND A RENEWAL OUTRANKS AN OPENING ═════════════════════════════════
+     Losing a customer costs more than not growing one, and it costs the
+     whole of them rather than the difference. A renewal is also the only
+     thing on this surface with a deadline somebody else set: an opening
+     that goes unworked is still there next month, and a contract that
+     lapses is not. */
   const custRank = (a) => {
+    const r = renewAt(a);
+    if (r && r.days <= RENEW_SOON) return 0;
     const o = openingAt(a);
-    return !o ? 3 : o.kind === 'open' ? 0 : o.kind === 'hold' ? 1 : 2;
+    return !o ? 4 : o.kind === 'open' ? 1 : o.kind === 'hold' ? 2 : 3;
   };
   let CUST_CACHE = null;
   function customers() {
@@ -10992,43 +11137,6 @@
     return out.sort((x, y) => y.days - x.days);
   }
 
-  function fitBlock(a) {
-    const rows = expansionsOf(a.id);
-    if (!rows.length) return '';
-    return '<section class="s-block s-block-wide" aria-label="What else fits">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">What else fits</h2>' +
-        /* ══ TWO RECOMMENDATIONS ON ONE PAGE, AND THE READER IS OWED THE
-           DIFFERENCE ═══════════════════════════════════════════════════
-           Where something has happened, the reading at the top of this page
-           names the thing that answers it and this block names the thing
-           that goes with what they run — and they are very often not the
-           same product. Both are true and they answer different questions,
-           which is fine; what is not fine is two recommendations eight
-           inches apart with nothing saying why they disagree.
-
-           The caption is where that goes. It is one line, it is already
-           there, and it was spending itself restating the section it sits
-           on: "they are already a customer" over a block that only ever
-           draws for customers. */
-        '<span class="s-block-say">' +
-          (openingAt(a) ? 'the standing fit, whatever just happened'
-            : 'they are already a customer') + '</span>' +
-      '</div>' +
-      '<div class="b-exp">' + rows.map((x, i) =>
-        '<div class="b-exp-row" style="--i:' + Math.min(i, 8) + '">' +
-          '<div class="b-exp-head">' +
-            '<span class="b-exp-next">' + esc(SELL[x.next].name) + '</span>' +
-            '<span class="' + (x.ripe ? 'tag tag-ok' : 'tag tag-neutral') + '">' +
-              (x.ripe ? 'ready now' : 'ready in ' + plural(RIPE - x.days, 'day')) + '</span>' +
-          '</div>' +
-          '<p class="b-exp-why">They bought <b>' + esc(SELL[x.bought].name) + '</b> ' +
-            esc(sayWhen(x.closed)) + ', and ' + esc(x.why) + '.</p>' +
-          '<button class="s-inline-btn b-exp-go" type="button" data-fill="' +
-            esc('Add a lead: , at ' + x.acc.name) + '">Put somebody on it</button>' +
-        '</div>').join('') + '</div>' +
-    '</section>';
-  }
 
   function accPage() {
     const a = DB.byAcc[S.acc];
@@ -11169,6 +11277,21 @@
               ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) +
                 ' · a customer for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
               : '') +
+            /* The one date on this page somebody outside the building set.
+               It is stated in the relationship block too, as the node the
+               strip walks towards — and unlike the check-in, which that
+               block now says three ways, this is a single fact and the
+               masthead is where a reader looks for a single fact. The
+               countdown rides with it only inside the quarter, because
+               "renews Mar 2027" needs no urgency attached in September. */
+            (function () {
+              const rn = isCust(a) ? renewAt(a) : null;
+              if (!rn) return '';
+              return fact('calendar', 'Renews <b>' + esc(monthYear(rn.at)) + '</b>' +
+                (rn.days <= RENEW_SOON
+                  ? ' · <span class="b-due is-late">' + esc(plural(rn.days, 'day')) + ' away</span>'
+                  : ''));
+            })() +
             (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
               esc(sayWhen(a.signal.at))) : '') +
             /* Beside the reasoning, because the two are one thought: this is
@@ -11208,7 +11331,12 @@
 
       storyBlock(isMgr() && isCust(a) ? custStory(a) : accStory(a, people, hist)) +
       accLead(a, people, hist, call, free) +
-      (isMgr() ? fitBlock(a) : '') +
+      /* `fitBlock` stood here. It answered the same question the reading
+         above answers, from the other end, under its own heading with its
+         own verb — and a caption between them apologising for naming a
+         different product. Two reasons for one decision are two lines of
+         one reading, not two blocks. Folded into `accLead`; the function
+         and its §74 are gone with it. */
       accMap(a, people) +
 
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
@@ -11306,7 +11434,8 @@
        It keeps its place everywhere else, which is where it earns one: on a
        company nobody has sold to, how many ways in you have and whether
        they have ever bought is the whole of what this desk knows. */
-    const why = isMgr() && !(isCust(a) && said && said.then) ? tierWhy(a) : '';
+    const why = isMgr() && !(isCust(a) && said && said.thens && said.thens.length)
+      ? tierWhy(a) : '';
     const thin = !said || said.from === 'the account itself';
     if (thin && !why) return '';
     const got = hist.filter((t) => t.outcome === 'reached')[0];
@@ -11347,12 +11476,25 @@
          consequence are one, and the offer is the other. The split needs no
          new prose — `custSay` already had the seam, it was just being
          joined over. */
-      (said && said.then
+      ((said && said.thens && said.thens.length)
         ? '<p class="s-lead-deck">' + said.what + '</p>' +
-          '<p class="b-lead-then">' + chIcon('sell') + '<span>' + said.then + '</span></p>'
+          said.thens.map((t) =>
+            '<p class="b-lead-then">' + chIcon('sell') + '<span>' + t + '</span></p>').join('')
         : '<p class="s-lead-deck">' +
             (thin ? why : said.text + (why ? ' ' + why : '')) + '</p>') +
-      (door ? '<div class="s-lead-acts">' + door + '</div>' : '') +
+      /* ══ AND THE VERB THAT USED TO LIVE UNDER THE SECOND BLOCK ═════════
+         "Put somebody on it" was the way out of `fitBlock`: it fills the
+         composer with `Add a lead: , at <company>`, cursor between the
+         comma and the name, which is the one action a standing fit has. The
+         block is folded into this one, so the verb comes with it rather
+         than being lost with the heading it sat under. */
+      (function () {
+        const fit = isMgr() && isCust(a) ? expansionsOf(a.id)[0] : null;
+        const put = fit
+          ? '<button class="s-inline-btn" type="button" data-fill="' +
+            esc('Add a lead: , at ' + a.name) + '">Put somebody on it</button>' : '';
+        return (door || put) ? '<div class="s-lead-acts">' + door + put + '</div>' : '';
+      })() +
     '</section>';
   }
 
@@ -11394,7 +11536,12 @@
        fit is on this page already, in its own block under this one, and
        saying it here as well would be the page making its quietest claim
        twice in eighty pixels. */
-    if (isMgr() && openingAt(a)) return custSay(a);
+    /* Every customer, not only the ones something happened to. The quiet
+       branches of `custSay` are a reading too — what they run and how long
+       they have run it, or the clock the tier bought them — and the ladder
+       below is about getting through to a stranger on the phone, which is
+       not what anybody opens a customer's page to find out. */
+    if (isMgr() && isCust(a)) return custSay(a);
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
     if (sig) return signalReading(a, sig, hist);
@@ -12860,6 +13007,14 @@
       : left < 0
         ? { k: 'Check-in overdue', t: plural(-left, 'day') + ' past it', tone: 'warn' }
         : { k: 'Next check-in', t: left === 0 ? 'today' : 'in ' + plural(left, 'day'), tone: 'neutral' });
+    /* Last, because it is the furthest away and because it is the node the
+       whole strip is walking towards. Amber inside the quarter: that is the
+       point at which the decision starts being made rather than signed. */
+    const rn = renewAt(a);
+    if (rn) {
+      steps.push({ k: 'Renews', t: monthYear(rn.at) + ' · ' + (SELL[rn.sub.sell] || {}).name,
+        tone: rn.days <= RENEW_SOON ? 'warn' : 'neutral' });
+    }
     const worth = custWorth(a);
     return {
       head: 'How this has gone',
@@ -12874,6 +13029,12 @@
          how often they are owed a word are three facts about the account and
          they read as one sentence; `play` is an instruction and reads as one
          on its own, which is what it was written as. */
+      /* ══ TWO SENTENCES, BECAUSE THREE CLAUSES IS A LIST ════════════════
+         Written as one, "worth €42k a year and €45k billed so far across 2
+         contracts, and Silver, so…" hangs the contract count off the
+         cumulative figure rather than off the rate, and then adds a tier to
+         a list it is not parallel with. The money is one sentence and what
+         the tier asks of you is another. */
       now: '<b>' + esc(sayFor(subs[0].since)) + '</b> a customer, worth <b>' +
         esc(euro(worth)) + '</b> a year' +
         /* Three marks, not five. How many contracts and which tier are both
@@ -12883,8 +13044,8 @@
            reader has already been given twice, and buries the three that
            are only said here: how long, how much, how often. */
         (subs.length > 1 ? ' across ' + commas(subs.length) + ' contracts' : ' on one contract') +
-        ', and ' + esc(t.label) + ', so they are owed a word every <b>' +
-        esc(t.every) + '</b>.' +
+        ' and <b>' + esc(euro(billedAt(a))) + '</b> billed so far. ' +
+        esc(t.label) + ', so they are owed a word every <b>' + esc(t.every) + '</b>.' +
         (last ? '' : ' Nobody has said anything to them yet.'),
       steps: storyTrim(steps),
       /* The tier's own standing instruction, which existed and was drawn
@@ -14469,6 +14630,25 @@
        still the standing fit and it is still drawn, on the card of every
        customer nothing has happened to, which is where a reader has the
        room to weigh it. It is not news and it does not ring a bell. */
+    /* ══ THE ONE ROW WITH SOMEBODY ELSE'S DEADLINE ON IT ═══════════════
+       Every other row in this bell is work that will still be there next
+       week. A contract that lapses will not be, and it takes the whole
+       customer with it rather than the difference — which is why it is
+       above the openings and why it is the one customer row that names a
+       date instead of a count. */
+    const due = customers().map((a) => ({ a: a, r: renewAt(a) }))
+      .filter((x) => x.r && x.r.days <= RENEW_SOON)
+      .sort((x, y) => x.r.days - y.r.days);
+    if (due.length) {
+      const one = due[0];
+      tasks.push({ id: 'cust-renew', sev: 'p2', type: 'Renewals',
+        when: plural(due.length, 'contract') + ' inside a quarter',
+        body: one.a.name + ' renews ' + SELL[one.r.sub.sell].name + ' in ' +
+          plural(one.r.days, 'day') + ', worth ' + euro(one.r.sub.acv) + ' a year' +
+          (due.length > 1 ? ', and ' + plural(due.length - 1, 'other') + ' follow' : '') + '.',
+        cta: 'Show the book',
+        ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }) });
+    }
     const moved = openings();
     if (moved.length) {
       const one = moved[0];

@@ -3395,27 +3395,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   line-height: var(--lh-base); text-wrap: pretty;
 }
 
-/* ══ 74. WHAT ELSE FITS ════════════════════════════════════════════════════
-   The reason is the point, so it gets the body size and the room; the
-   service is a label over it and the timing is a chip, because "ready in
-   nineteen days" is a fact about the row rather than a thing to read. */
-.b-exp { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-.b-exp-row {
-  padding: 13px 15px; border-radius: var(--r-md);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  animation: b-surface-in 220ms var(--ease-out) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
-}
-.b-exp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-.b-exp-next {
-  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50);
-}
-.b-exp-why {
-  margin: 0; font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); text-wrap: pretty; max-width: 62ch;
-}
-.b-exp-go { margin-top: 8px; }
-@media (prefers-reduced-motion: reduce) { .b-exp-row { animation: none; } }
+/* §74 styled "What else fits" — a block of its own under the reading on a
+   customer's page, naming the service that goes with what they run. It
+   answered the same question the reading answers, from the other end, with
+   its own heading and its own verb; the two named different products often
+   enough that a caption had to sit between them explaining the difference.
+   Two reasons for one decision are two lines of one reading. Folded into
+   `.b-lead-then` at §88, and the six rules go with the block. */
 
 /* ══ 75. A MARK PER KIND OF FACT ═══════════════════════════════════════════
    The mark sits with the fact rather than in a column of its own, so a row
@@ -4077,3 +4063,25 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    optically centres it on the first line rather than on the box. */
 .b-lead-then svg { width: 17px; height: 17px; flex-shrink: 0; margin-top: 4px; }
 .b-lead-then b { font-weight: var(--fw-bold); }
+
+/* ══ 89. THE CLOCK IN A ROW OF FACTS, WHICH HAS NEVER BEEN DRAWN ═══════════
+   `.b-due` is written onto the check-in on an account's masthead and onto
+   the renewal beside it, and no sheet has ever defined it. Measured on a
+   prospect: the element renders at the ink and weight of the row it sits
+   in, which is to say it renders as the row it sits in. "Check-in overdue
+   by 9 days" has never once been amber.
+
+   The audit could not see it, and the reason is its own documented blind
+   spot one rung along: the only usage was inside a CONCATENATED attribute —
+   `class="b-due' + (late ? ' is-late' : '') + '"` — which the scan cannot
+   read as a class list. Writing a second, static one exposed the first. A
+   class assembled at runtime is invisible to a check that reads source.
+
+   Quieter than `.b-nm-due`, which is the same idea as a chip inside the
+   relationship block: this one sits in a row of plain facts separated by
+   middots, so a pill here would be the only boxed thing on the line and
+   would read as a control. The word carries it — weight at rest, and the
+   warn ink when the date has gone. `--warn-text` rather than `--warn`,
+   which is the token the build uses for a warn hue set as TYPE. */
+.b-due { font-weight: var(--fw-semibold); }
+.b-due.is-late { color: var(--warn-text); }
