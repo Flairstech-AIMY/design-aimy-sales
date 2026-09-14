@@ -7258,16 +7258,20 @@
        So the note names which stages have evidence and which are still the
        starting estimate, and it reads that off the ladder instead of
        asserting it, so it stays true as deals resolve. */
-    const oddsSolid = pipe.steps.filter((r) => r.seen);
+    /* IT WAS SUMMARISING THE TABLE IT STANDS UNDER. "Only Priced has
+       finished deals behind it; the rest are starting estimates until deals
+       resolve there" was written in the same pass that gave every row its own
+       basis line, and then the rows outgrew it: each one now names its own
+       evidence, in its own words, more precisely than a summary can. Four
+       rows saying it beats one sentence counting them.
+
+       What the rows CANNOT say is what the word "estimate" on three of them
+       is doing there, so that is all the sentence keeps — and only while a
+       row still carries the word. "Won or lost" rather than "resolve": the
+       page has two words for that and they are on the board. */
     const oddsThin = pipe.steps.filter((r) => !r.seen);
-    const oddsBasis = !oddsSolid.length
-      ? 'Nothing has finished at any stage yet, so every rate here is a starting estimate.'
-      : !oddsThin.length
-        ? 'Built on every deal this desk has finished.'
-        : 'Only <b>' + esc(joinAnd(oddsSolid.map((r) => DEAL_STAGE[r.k].label))) + '</b> ' +
-          (oddsSolid.length === 1 ? 'has' : 'have') + ' finished deals behind ' +
-          (oddsSolid.length === 1 ? 'it' : 'them') +
-          '; the rest are starting estimates until deals resolve there.';
+    const oddsBasis = oddsThin.length
+      ? 'An estimate moves to a real rate as deals are won or lost. ' : '';
 
     /* ══ THE SCALE HAS TO MEAN THE SAME THING TWICE ═════════════════════
        It was the largest of the three figures, which makes the bar's own
@@ -8183,10 +8187,17 @@
            window", which the Spent tile and the Priced row each now say
            better than a disclaimer can. */
         '<p class="s-odds-note">' + oddsBasis +
-          ' Applied to the <b>' + esc(fmtMoney(pipe.all)) + '</b> still open, they are the <b>' +
-          esc(fmtMoney(pipe.weighted)) + '</b> on Potential above.' +
-          (age == null ? '' : ' Deals here are <b>' + esc(age.toFixed(1)) +
-            ' months</b> old on average.') + '</p>' +
+          /* ACTIVE, AND POINTING THE WAY THE READER IS. "Applied to the €1.6m
+             still open, THEY ARE the €560k" made rates equal money and put
+             the derivation in the passive; the question underneath is where
+             the €560k came from. The rates turn one figure into the other,
+             and "€1.6m of open deals" is the phrase the Potential tile uses
+             for it, so the same thing is called the same thing twice. */
+          'These rates turn the <b>' + esc(fmtMoney(pipe.all)) +
+          '</b> of open deals into the <b>' + esc(fmtMoney(pipe.weighted)) +
+          '</b> of Potential above.' +
+          (age == null ? '' : ' The average deal is <b>' + esc(age.toFixed(1)) +
+            ' months</b> old.') + '</p>' +
       '</div>' +
 
       askRow(execAsks(now, pipe)) +
