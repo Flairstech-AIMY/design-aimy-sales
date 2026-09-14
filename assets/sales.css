@@ -607,10 +607,58 @@ button {
 
    90ms is deliberately below the motion scale's smallest step (--t-fast,
    150ms). Press-release is the one interaction where 150ms is perceptible
-   as lag: the finger is already up before the surface answers. The scale
-   has no press step; noted in ../GAPS.md.
+   as lag: the finger is already up before the surface answers.
 ═══════════════════════════════════════════════ */
-:root { --t-press: 90ms; }
+
+/* ═══════════════════════════════════════════════
+   THE MOTION SCALE, AND THE FIVE RUNGS IT DID NOT HAVE
+
+   The library gives four steps — press 90, fast 150, base 200, slow 300 —
+   and the note above ends "the scale has no press step". It had more holes
+   than that. Every value a motion audit asked for above 300ms was written
+   as a literal, and five of them were written more than once: 420 in two
+   places, 520 in two, 700, 90 as a stagger offset, 45 as another. A scale
+   with holes is a scale that gets worked around, and a worked-around scale
+   is a stylesheet where the same intent has four numbers.
+
+   So the holes are filled, HERE rather than in aimy-ds.css, because that
+   file is Knowledge's and QA's too and none of this is theirs to inherit.
+   Named for what they are FOR, the way --ty-masthead and --ty-deck are, and
+   not for how fast they are: "quick" and "fast" as neighbours on one ramp is
+   a scale nobody can recall the order of.
+
+   They are the transitions.dev motion scale, whose 150ms `quick` --t-fast
+   already IS, to the millisecond. So these are the rest of one scale rather
+   than a second one laid beside it.
+
+   THE CURVE IS THE ONE PLACE THE TWO DISAGREE, and the disagreement stands.
+   That scale's `smooth-out` is cubic-bezier(0.22, 1, 0.36, 1); the library
+   declares exactly that and bdr.css §22 overrides it to (0.23, 1, 0.32, 1),
+   with its reason — a press seen two hundred times a day settles and gets
+   out of the way. Four hundredths on the third control point is not a thing
+   anybody can see, and overturning an argued decision to win a diff is how a
+   scale stops being believed. Named here so the next reader finds it as a
+   choice rather than as drift. Equivalences:
+
+     --t-stagger  40ms  = duration-stagger   per-item offset
+     --t-beat     80ms  = duration-micro     a path drawing, an intent delay
+     --t-open    250ms  = duration-fast      a menu opening, a tab bar sliding
+     --t-panel   400ms  = duration-slow      a panel arriving
+     --t-emphasis 500ms = duration-very-slow the one reveal a page is about
+
+   THE RULE THAT IS NOT A NUMBER: a stagger's TOTAL is offset × count, and it
+   has to stay under about 300ms or the last item is not late by a rhythm, it
+   is just late. Every stagger in this build caps its index for that reason;
+   two of them had forgotten to.
+═══════════════════════════════════════════════ */
+:root {
+  --t-press: 90ms;
+  --t-stagger: 40ms;
+  --t-beat: 80ms;
+  --t-open: 250ms;
+  --t-panel: 400ms;
+  --t-emphasis: 500ms;
+}
 
 /* THE ACCENT IS THE LIBRARY'S, AND STAYS THE LIBRARY'S.
 
@@ -1179,6 +1227,11 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
+  /* The conversation column came over from AiMY Knowledge with its rules and
+     without this, because Knowledge has no guard on them either. Every other
+     transition in this build answers the preference; a component being
+     lifted whole is not a reason for one to stop. */
+  .ov-chat, .ov-chat-more, .ov-chat-mi { transition: none; }
 }
 
 /* ── Theme toggle ──────────────────────────────────────────────────
@@ -1604,7 +1657,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
   white-space: nowrap; max-width: calc(100% - 140px);
   overflow: hidden; pointer-events: none;
   opacity: 0;
-  transition: opacity var(--t-base) 150ms ease;
+  /* `ease` is the browser's default curve and the only place in this file
+     that used it. Surface motion takes --ease-out like everything else. */
+  transition: opacity var(--t-base) var(--t-fast) var(--ease-out);
 }
 .aimy-overlay.open .overlay-context-bar { opacity: 1; }
 /* .overlay-thread's top padding clears the badge alone. With the basis bar
@@ -7978,9 +8033,15 @@ body.is-figures .filter-tray { display: none; }
 
 
 @media (prefers-reduced-motion: no-preference) {
-  .s-att-booked, .s-att-fcast { transform-origin: left; animation: s-att-wipe 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+  /* ══ THE ONE REVEAL A PAGE IS ABOUT, AND THE CEILING ON IT ════════
+     700 and 520, on the same hand-rolled curve the peek card was using —
+     three literals for one intent. --t-emphasis is the top of the scale and
+     it is 500: past that a reveal stops reading as the page arriving and
+     starts reading as the page being slow, and this is the surface where
+     somebody is looking for a number. */
+  .s-att-booked, .s-att-fcast { transform-origin: left; animation: s-att-wipe var(--t-emphasis) var(--ease-out) backwards; }
   .s-att-fcast { animation-delay: 220ms; }
-  .s-exec .s-af { animation: s-exec-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+  .s-exec .s-af { animation: s-exec-rise var(--t-emphasis) var(--ease-out) backwards; }
 }
 @keyframes s-att-wipe { from { transform: scaleX(0); } }
 
@@ -8304,8 +8365,10 @@ body.is-figures .filter-tray { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
   .s-exec .s-pan {
-    animation: s-exec-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: calc(var(--i, 0) * 45ms);
+    animation: s-exec-rise var(--t-emphasis) var(--ease-out) backwards;
+    /* The second stagger with no `min()`. 45ms was also the one offset in
+       the build that was not 40. */
+    animation-delay: calc(min(var(--i, 0), 6) * var(--t-stagger));
   }
 }
 

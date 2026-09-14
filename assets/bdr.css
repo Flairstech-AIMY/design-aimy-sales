@@ -1346,11 +1346,21 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 @keyframes pipe-spin { to { transform: rotate(360deg); } }
 @keyframes pipe-draw { to { stroke-dashoffset: 0; } }
 .pipe-pop { animation: pipe-pop 200ms var(--ease-out) both; }
-.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) 60ms forwards; }
+/* The mark lands, then the tick draws inside it. 80ms is the beat between
+   two things that are one event — short enough to read as sequence, long
+   enough not to read as simultaneity gone wrong. */
+.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) var(--t-beat) forwards; }
 .pipe-spin { animation: pipe-spin 850ms linear infinite; }
 /* text that changes state goes through a blur — swapText() */
-.b-swap { transition: opacity 90ms var(--ease-out), filter 90ms var(--ease-out); }
-.b-swap.is-swapping { opacity: 0; filter: blur(4px); }
+/* ══ A NUMBER CHANGING IS NOT A BUTTON BEING PRESSED ══════════════
+   90ms is --t-press, and it was here by proximity rather than by argument:
+   a press is short because the finger is already up, and nothing about that
+   applies to a figure being replaced. Four pixels of blur crossed in 90ms is
+   not a softening, it is a flash of something unreadable. The swap step is
+   --t-fast over --blur-small's two pixels — a shorter distance to travel,
+   held long enough to read as one value becoming another. */
+.b-swap { transition: opacity var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out); }
+.b-swap.is-swapping { opacity: 0; filter: blur(2px); }
 @media (prefers-reduced-motion: reduce) {
   .pipe-pop, .pipe-pop path, .pipe-spin { animation: none !important; }
   .pipe-pop path { stroke-dashoffset: 0; }
@@ -1420,11 +1430,20 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-switch { position: relative; }
 .b-switch-bar {
   position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--d50);
-  transform-origin: left center; transition: transform 160ms cubic-bezier(0.77, 0, 0.175, 1);
+  /* SURFACE MOTION TAKES THE SURFACE CURVE. This was
+     `cubic-bezier(0.77, 0, 0.175, 1)` — a symmetrical ease-IN-out, which on
+     a bar that slides between tabs means it spends its first frames barely
+     moving. A thing changing position should leave at once and arrive
+     gently, which is what --ease-out is and why every other moving surface
+     in this build already uses it. */
+  transform-origin: left center; transition: transform 160ms var(--ease-out);
   pointer-events: none;
 }
 .b-tick { display: inline-block; animation: b-tick 220ms var(--ease-out) both; }
-@keyframes b-tick { from { opacity: 0; transform: translateY(5px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+/* 4px and 2px: a mark appearing in place travels the swap distance, not the
+   slide distance, and softens by the swap's blur. 5 and 4 were off every
+   step of both scales. */
+@keyframes b-tick { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }
 
 /* ══ 33. A NEW TURN ARRIVES ════════════════════════════════════════════════
@@ -1879,9 +1898,16 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   background: var(--card-bg-raised); border: 1px solid var(--card-border-hover); border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 0 0 1px rgba(255,255,255,0.03);
   transform-origin: top left;
-  animation: b-menu-in 140ms var(--ease-out) both;
+  /* ══ IT OPENED FASTER THAN A MENU IS SUPPOSED TO CLOSE ══════════
+     140ms, which is under the 150 a DISMISSAL gets. Opening and closing are
+     not the same event: a close should get out of the way, an open is an
+     invitation and has to be legible while it happens, or the menu is simply
+     there and the eye has to find out where from. --t-open, and the 0.97 a
+     menu starts from rather than the 0.96 that belongs to something the size
+     of a modal. */
+  animation: b-menu-in var(--t-open) var(--ease-out) both;
 }
-@keyframes b-menu-in { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes b-menu-in { from { opacity: 0; transform: scale(0.97) translateY(-4px); } to { opacity: 1; transform: none; } }
 .b-menu[hidden] { display: none; }
 .b-menu-cap {
   padding: 4px 10px 6px;
@@ -2111,7 +2137,9 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Overshoot rather than ease-out. The card is arriving, not fading in, and
      a thing that arrives settles. */
-  animation: b-peek-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* A panel arriving: --t-panel, and the build's own curve rather than a
+     hand-rolled one that was within a rounding error of it anyway. */
+  animation: b-peek-in var(--t-panel) var(--ease-out);
 }
 /* The shell's own light values for the same two shadows, and no inner
    hairline: on white there is no light for an edge to catch. */
@@ -2184,8 +2212,15 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    a time behind it. */
 .b-peek-acts .s-insight-lnk {
   opacity: 0;
-  animation: b-chip-in 420ms var(--ease-out) forwards;
-  animation-delay: calc(var(--i, 0) * 90ms);
+  /* ══ AND THE LAST CHIP WAS NOT WAITING A RHYTHM, IT WAS JUST WAITING ══
+     90ms apart with NO CAP on the index — the one stagger in this file that
+     forgot the `min()` every other one has. Five chips put the last one at
+     450ms before it starts and 870ms before it settles, on a row of controls
+     beside an answer you have already read. 40ms, capped at the sixth, is
+     240ms end to end: the same total the queue cards were tuned to, reached
+     the same way. */
+  animation: b-chip-in var(--t-panel) var(--ease-out) forwards;
+  animation-delay: calc(min(var(--i, 0), 6) * var(--t-stagger));
 }
 @keyframes b-chip-in {
   from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
@@ -4336,3 +4371,10 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
               opacity var(--t-base) var(--ease-out);
 }
 .chat-msg.is-thinking .msg-avatar { opacity: 0; }
+/* Same lift, same omission. The frame still appears and the avatar still
+   comes back — only the fading does not, which is the whole of what the
+   preference asks for. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-msg.aimy:not(.is-thinking) .msg-bubble,
+  .chat-msg.aimy:not(.is-thinking) .msg-avatar { transition: none; }
+}
