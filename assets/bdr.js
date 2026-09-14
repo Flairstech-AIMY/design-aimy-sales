@@ -7258,20 +7258,6 @@
        So the note names which stages have evidence and which are still the
        starting estimate, and it reads that off the ladder instead of
        asserting it, so it stays true as deals resolve. */
-    /* IT WAS SUMMARISING THE TABLE IT STANDS UNDER. "Only Priced has
-       finished deals behind it; the rest are starting estimates until deals
-       resolve there" was written in the same pass that gave every row its own
-       basis line, and then the rows outgrew it: each one now names its own
-       evidence, in its own words, more precisely than a summary can. Four
-       rows saying it beats one sentence counting them.
-
-       What the rows CANNOT say is what the word "estimate" on three of them
-       is doing there, so that is all the sentence keeps — and only while a
-       row still carries the word. "Won or lost" rather than "resolve": the
-       page has two words for that and they are on the board. */
-    const oddsThin = pipe.steps.filter((r) => !r.seen);
-    const oddsBasis = oddsThin.length
-      ? 'An estimate moves to a real rate as deals are won or lost. ' : '';
 
     /* ══ THE SCALE HAS TO MEAN THE SAME THING TWICE ═════════════════════
        It was the largest of the three figures, which makes the bar's own
@@ -8186,16 +8172,24 @@
            Priced moves it from 48 to 51; and "only 5 deals closed this
            window", which the Spent tile and the Priced row each now say
            better than a disclaimer can. */
-        '<p class="s-odds-note">' + oddsBasis +
-          /* ACTIVE, AND POINTING THE WAY THE READER IS. "Applied to the €1.6m
-             still open, THEY ARE the €560k" made rates equal money and put
-             the derivation in the passive; the question underneath is where
-             the €560k came from. The rates turn one figure into the other,
-             and "€1.6m of open deals" is the phrase the Potential tile uses
-             for it, so the same thing is called the same thing twice. */
-          'These rates turn the <b>' + esc(fmtMoney(pipe.all)) +
-          '</b> of open deals into the <b>' + esc(fmtMoney(pipe.weighted)) +
-          '</b> of Potential above.' +
+        /* ══ SHORT WORDS, AND NO SENTENCE THAT TEACHES ════════════════════
+           Two rewrites in, this note still opened "An estimate moves to a real
+           rate as deals are won or lost" — an abstract subject, an abstract
+           verb and an abstract object, explaining a word the row beside it
+           had already explained. "Estimate, nothing finished here yet" IS the
+           explanation. A note that teaches the mechanism behind a word the
+           reader can already read is a lesson nobody asked for, so it goes
+           and nothing is lost.
+
+           "These rates turn X into Y" was machinery too. The reader wants one
+           thing here: why is Potential €560k when €1.6m is open? Because not
+           all of it lands. "Worth" is the plain word for that, "at these
+           rates" points at the four lines above without naming them, and the
+           whole answer is nine words. */
+        '<p class="s-odds-note">' +
+          'At these rates, the <b>' + esc(fmtMoney(pipe.all)) +
+          '</b> still open is worth <b>' + esc(fmtMoney(pipe.weighted)) +
+          '</b> &mdash; the Potential above.' +
           (age == null ? '' : ' The average deal is <b>' + esc(age.toFixed(1)) +
             ' months</b> old.') + '</p>' +
       '</div>' +
