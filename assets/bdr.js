@@ -10152,13 +10152,16 @@
      what the hidden remainder is. It is the shape every product that has
      ever had assignees converges on, for that reason.
 
-     WHERE THE LINE FALLS, and it is a judgement rather than a measurement.
-     Five is the last size worth showing whole: a stack hiding one person is
-     a press to learn something the block had room to say. It is not the
-     width at which the row stops wrapping — measured at the narrow end of
-     this pane, five already runs to two lines and 110px, against 65 for the
-     stacked seven. Two rows of named colleagues is a team you can read; the
-     three the stack leaves are the point at which it stops being one.
+     WHERE THE LINE FALLS. Four. It was five first, on the reading that a
+     stack hiding one person is a press to learn something the block had
+     room to say — which is true, and is outweighed by what five costs:
+     measured at the narrow end of this pane a five-strong team runs to two
+     lines and 110px, against 65 for a seven behind the stack. A block that
+     doubles in height to avoid hiding one name has spent the page to save
+     the press.
+
+     Four is one line at every width this is drawn at, so the rule reads the
+     same everywhere: the team fits, or it is three and a stack.
 
      AND IT ONLY SHOWS. The first cut made the stack the way to change the
      crew as well, on the argument that the trigger was already the answer
@@ -10172,7 +10175,7 @@
      The stack names the rest and nothing else. Assigning is a verb, it says
      so, and it sits on the caption's row where this build puts the verb
      that belongs to a section. */
-  const TEAM_FLAT = 5;
+  const TEAM_FLAT = 4;
   const TEAM_SHOW = 3;
   const STACK_FACES = 4;
   /* `sub` is the second line a face carries where it is drawn flat — on a
