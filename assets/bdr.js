@@ -648,11 +648,42 @@
     { id: 'karim',  name: 'Karim Doss',    initials: 'KD', fn: 'bdr' },
     { id: 'rana',   name: 'Rana Ibrahim',  initials: 'RI', fn: 'bdr' },
     { id: 'tarek',  name: 'Tarek Halim',   initials: 'TH', fn: 'bdr' },
+    /* Two more desks on the other side of the hand-over, appended so Lina
+       stays `MANAGERS[0]` — every fallback in the build reaches for that
+       when a campaign has no owner of its own. */
+    { id: 'nadia',  name: 'Nadia Fouad',   initials: 'NF', fn: 'sales-manager' },
+    { id: 'hazem',  name: 'Hazem Saad',    initials: 'HS', fn: 'sales-manager' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
   const BDRS = REPS.filter((r) => r.fn === 'bdr');
   const MANAGERS = REPS.filter((r) => r.fn === 'sales-manager');
+  /* ══ THREE MANAGERS, AND THE BOOK IS NOT SPLIT IN THREE ═════════════════
+     One manager was the answer to five, and the reason still holds: "five
+     sales managers made ownership a lottery nobody could follow in a demo
+     — the manager's desk held a ninth of the leads". Nour wants the
+     hand-over to be a choice again, with each of them assigned to many. An
+     even draw would bring the lottery straight back, so this is a bag of
+     seats rather than a list of names: the desk the product is read from
+     keeps most of the book, and the other two hold enough campaigns each to
+     be somebody you would really hand a lead to.
+
+     ONE DRAW EITHER WAY. `pick` takes a single number from the generator
+     whatever the array's length, so weighting the seats moves WHICH manager
+     a campaign lands on and nothing else — every count, date and touchpoint
+     in the corpus is untouched. The same property the cut from five to one
+     relied on, used in the other direction. */
+  const MGR_SEATS = [];
+  MANAGERS.forEach((r, i) => {
+    /* Six seats against two and two. Not tuned: I moved the boundary three
+       ways and the book came out 6/2/1 every time with the pair swapping
+       places, because ten fixed draws over nine campaigns do not divide
+       evenly however the bag is cut. Fitting the seats until the dice agreed
+       would be tuning a generator to a screenshot, so this is the split the
+       intention asks for and the outcome is what it is. */
+    const seats = i === 0 ? 6 : 2;
+    for (let s = 0; s < seats; s++) MGR_SEATS.push(r);
+  });
   const DEFAULT_ME = 'engy';
   /* ══ TWO DESKS, NINE PEOPLE ════════════════════════════════
      The control in the bar is a PERSONA switcher and it was listing a
@@ -1319,7 +1350,7 @@
         resources: res,
         from: dayAdd(-startAgo),
         to: dayAdd(runFor - startAgo),
-        owner: pick(r, MANAGERS).id,
+        owner: pick(r, MGR_SEATS).id,
         crew: crew,
         state: state,
         industry: ind.k,
