@@ -3898,3 +3898,61 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   }
   .b-diary .b-cal-day { height: 60px; }
 }
+
+/* ══ 85. THE NUMBER THAT IS NEWS ═══════════════════════════════════════════
+   `.b-cut-n` is how many are in a cut. It is a size, it is the same next
+   week, and it is set quiet on purpose. This is the other kind of number a
+   chip can carry: how many of them something happened to since you last
+   looked — which is the only figure in that row worth crossing a room for.
+
+   It is the bell's badge, rule for rule. A reader who has learnt what an
+   accent pill at the top of the screen means has already learnt this, and
+   a second treatment for the same idea would be a second thing to learn.
+   Only the weight differs: `.ntf-count` sits in a panel head with room
+   around it, and this one rides inside a 30px chip beside a dimmer number,
+   so it takes the tighter padding a pill needs at that size.
+
+   NOT DIMMED, which is the whole of it. The count beside it is at 0.65 and
+   should be; a badge at 0.65 is a badge nobody sees, and one nobody sees
+   is worse than none — it takes the room and pays nothing back. */
+/* ══ AND A BORROWED TOKEN IS ONLY DECLARED WHERE IT WAS BORROWED ═════════
+   Written first as `var(--qa-accent)` over `rgba(var(--qa-accent-rgb), .16)`,
+   copying §28 — the bell's own count, which is what this badge is meant to
+   look like. §28 is AiMY QA's CSS taken verbatim, and it works because the
+   bridge at the top of it maps QA's token names onto this shell's. That
+   bridge is declared on `.ntf-anchor`. A chip in the page is not inside it.
+
+   So the two names resolved to NOTHING here, and a custom property with no
+   value does not fall back to anything sensible: `color` went invalid at
+   computed-value time and INHERITED, taking the chip's own ink, while
+   `background` was simply dropped. The rule applied. The class was defined
+   and used, so the audit passed. And the badge rendered as a bare number in
+   the same colour as the count beside it.
+
+   The bell is untouched — it is correct where it stands, and §28 says in
+   its own first line that the rules in it are not to be edited. What was
+   wrong was borrowing its names outside the scope that defines them. This
+   uses the shell's own, and they were read out of the browser rather than
+   out of the file, because the failure mode of a missing token is a rule
+   that looks exactly like one that worked. */
+.b-cut-new {
+  margin-left: 6px; padding: 1px 6px; border-radius: 9999px;
+  font-size: var(--t-micro); font-weight: 700; font-variant-numeric: tabular-nums;
+  /* ══ FILLED, IN BOTH STATES ═════════════════════════════════════════
+     The first cut of this gave the badge a tinted ground and took the
+     ground away on the active chip, reasoning that an accent pill inside
+     an accent-tinted chip would dissolve. On screen it did worse than
+     dissolve: with no ground it is a number in accent ink sitting beside a
+     number in the same accent ink at 0.65, and "Customers 31 9" reads as
+     one figure somebody typed twice.
+
+     Solid, always. A filled pill against a 15% ground is a different
+     OBJECT rather than a different shade, which is the distinction that
+     survives being glanced at — and it is what a badge is everywhere
+     else, including the bell forty pixels above it. */
+  background: var(--accent); color: #fff;
+  /* The chip's own text sets the line box; without this the pill grows the
+     chip by two pixels and the one chip carrying news sits taller than the
+     six beside it. */
+  line-height: 1.35;
+}

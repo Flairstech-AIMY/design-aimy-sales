@@ -1696,6 +1696,60 @@
       const texts = SIGNAL_TEXT[k];
       a.signal = { k: k, text: texts[(h >> 8) % texts.length], src: SIGNAL_SRC[k], at: dayAdd(-((h >> 12) % 21)) };
     });
+    /* ══ THE BOOK DID NOT HOLD ONE CUSTOMER ═══════════════════════════════
+       Two hundred companies, six hundred people, twenty-one thousand calls,
+       and every one of them about somebody who has not bought yet. The only
+       customers the product knew about were the five deals that happened to
+       close inside this quarter's pipeline — a company three years old with
+       a memory three months long.
+
+       A SUBSCRIPTION IS A FACT ON THE ACCOUNT, NOT A DEAL. A deal is
+       something you are trying to close; a subscription is something that
+       is already running, and the moment the second is filed as the first
+       the forecast starts counting money it banked two years ago. Nothing
+       in Financials reads these, which is the point: attainment is what was
+       signed in a window, and none of this was.
+
+       One account in six, which puts thirty-odd on the desk — enough to be
+       a book you work rather than a list you read, and well short of the
+       pipeline beside it. Off the id's hash like the signals, so having
+       them moves nothing else in the corpus.
+
+       AND WHAT THEY BOUGHT FITS THEIR SECTOR. `IND_FIT` already says which
+       of the eight belong against an industry, and a hospital subscribed to
+       test automation is a worse fiction than no customers at all. */
+    const SUB_OLDEST = 1100;   /* three years; the desk is not older than that */
+    const SUB_YOUNGEST = 90;   /* under three months it is a deal still landing */
+    acc.forEach((a) => {
+      a.subs = [];
+      const h = Math.abs(hash(a.id + ':sub'));
+      if (h % 6) return;
+      const fits = (IND_FIT[a.industry] || { fits: [] }).fits;
+      if (!fits.length) return;
+      const band = priceBand(a.size);
+      const add = (k, salt) => {
+        if (!k) return;
+        for (let i = 0; i < a.subs.length; i++) if (a.subs[i].sell === k) return;
+        const g = Math.abs(hash(a.id + ':sub:' + salt));
+        const list = (PRICE[k] || PRICE.qa)[band] || 0;
+        a.subs.push({
+          sell: k,
+          since: dayAdd(-(SUB_YOUNGEST + (g % (SUB_OLDEST - SUB_YOUNGEST)))),
+          /* The list price as a first contract actually signs: a little
+             under it more often than over. A book priced at the rate card
+             to the euro is the one number a manager would know is fiction. */
+          acv: Math.round((list * (0.82 + ((g >> 8) % 26) / 100)) / 500) * 500,
+        });
+      };
+      add(fits[(h >> 4) % fits.length], 'a');
+      /* One customer in four has already expanded once. That is the whole
+         argument this desk makes, in the corpus rather than in a sentence:
+         without a second sale anywhere in the book, a surface asking for one
+         is asking for something that has never happened here. */
+      if (h % 24 === 0) add(fits[(h >> 9) % fits.length], 'b');
+      a.subs.sort((x, y) => (x.since < y.since ? -1 : 1));
+    });
+
 
     /* ── What the sources can find ──
        The book is what you have; this is what is out there. Three thousand
@@ -2716,6 +2770,174 @@
      is true of a cut with nobody in it and false of a search that found
      nothing — and the second is the one you reach by typing, where the
      answer you need is your own words back and a way out of them. */
+  /* ══ A CUSTOMER, AS THE SAME CARD ══════════════════════════════════════
+     A person is a card, a campaign is a card, a list is a card. A customer
+     is a card, in the same grid, with the same anatomy in the same places:
+     what kind of thing this is across the top, the name, the context under
+     it, what AiMY makes of it, and one way in at the foot. The build has one
+     card and this is it — the only thing new here is what goes in the slots.
+
+     WHAT GOES IN THEM IS A COMPANY, NOT A PERSON. Every other row on this
+     board is a deal, which is somebody with a phone number; a contract
+     belongs to the company, because three people at one customer do not
+     have three of them. That is the one real difference and it is drawn as
+     one: the title opens the account rather than a record. */
+  const custHay = (a) => {
+    const n = newsAt(a);
+    return [a.name, a.city, indLabel(a),
+      subsAt(a).map((s) => (SELL[s.sell] || {}).name || s.sell).join(' '),
+      n ? n.label + ' ' + n.say : ''].join(' ');
+  };
+  /* What they buy, in their own names, in the order they bought them. */
+  const holdSay = (subs) => subs.map((s) => (SELL[s.sell] || {}).name || s.sell);
+  /* ══ AND THE READING IS THE WHOLE POINT OF THE SURFACE ═════════════════
+     Three claims in one paragraph, because they are one thought and a
+     reader who is given them as three lines has to assemble it: what
+     happened, what that means for them, and what of ours answers it. The
+     last clause is the only one that mentions us — an offer that leads
+     with our own product is a pitch, and a pitch is what a manager has to
+     translate before they can say it out loud.
+
+     `from` names both halves of the derivation, because both are disputable
+     and a reader who doubts one should know which to go and check: where
+     the event was seen, and the book it was read against. */
+  function custSay(a) {
+    const subs = subsAt(a);
+    const hold = holdSay(subs);
+    const o = openingAt(a);
+    if (o) {
+      const n = o.news;
+      const what = '<b>' + esc(a.name) + '</b> ' + esc(n.say) + ' — ' + esc(n.means) + '.';
+      if (o.kind === 'open') {
+        return { text: what + ' They already run <b>' + esc(joinAnd(hold)) +
+            '</b>, and <b>' + esc(SELL[o.offer].name) + '</b> is the one that answers it.',
+          from: n.src + ', against what they hold' };
+      }
+      if (o.kind === 'hold') {
+        /* Not an opening, and the surface must not dress it as one. What
+           just changed is a thing we are already paid to do, which makes
+           this the week somebody there starts asking whether it works. */
+        return { text: what + ' That is <b>' + esc(SELL[o.offer].name) +
+            '</b>, which is ours already — so this is a call to make before ' +
+            'somebody there makes it about us.',
+          from: n.src + ', against what they hold' };
+      }
+      return { text: what + ' Nothing in the range answers it, so this is a call ' +
+          'about them rather than about us.',
+        from: n.src + ', against what they hold' };
+    }
+    /* Nothing has happened. The standing fit speaks instead — what goes
+       with what they run — and where even that is exhausted, the clock the
+       tier bought them. */
+    const exp = expansionsOf(a.id)[0];
+    if (exp) {
+      return { text: 'They have run <b>' + esc(SELL[exp.bought].name) + '</b> since <b>' +
+          esc(sayWhen(exp.closed)) + '</b>. <b>' + esc(SELL[exp.next].name) +
+          '</b> is what sits next to it — ' + esc(exp.why) + '.',
+        from: 'what they run, against the range' };
+    }
+    const ci = checkinSay(a, touchesAt(a.id));
+    return { text: 'They run <b>' + esc(joinAnd(hold)) + '</b>, which is the whole of ' +
+        'what fits a ' + esc(indLabel(a).toLowerCase()) + ' business. ' + esc(ci.text) + '.',
+      from: 'the book against their sector' };
+  }
+  /* One, two and three read differently and a join written inline three
+     times drifts. Nothing else in the build needed it; this card does,
+     because a customer can hold up to three of the eight. */
+  const joinAnd = (xs) => (xs.length < 2 ? (xs[0] || '')
+    : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
+  /* The state of a customer, which is what the tag says. Three of them and
+     each one is a different thing to do this week: something opened, a
+     thing we run is under a light, or nothing has moved. */
+  function custState(a) {
+    const o = openingAt(a);
+    if (o && o.kind === 'open') return { label: 'Opening', tone: 'ok' };
+    if (o && o.kind === 'hold') return { label: 'Check in', tone: 'warn' };
+    return { label: 'Customer', tone: 'neutral' };
+  }
+  /* Who to ring. The person who signed if the contract has one on it, then
+     anybody at the company with a number — and where there is neither, the
+     honest verb is the one that opens the page which can answer it. */
+  function custAct(a) {
+    const subs = subsAt(a);
+    let who = null;
+    for (let i = subs.length - 1; i >= 0 && !who; i--) {
+      const c = subs[i].con;
+      if (c && c.phone && !c.dnc) who = c;
+    }
+    if (!who) who = consAt(a.id).filter((c) => c.phone && !c.dnc)[0] || null;
+    return who
+      ? { label: 'Call ' + who.name.split(' ')[0], attr: 'data-call="' + esc(who.id) + '"' }
+      : { label: 'Open the account', attr: 'data-acc="' + esc(a.id) + '"' };
+  }
+  function custCard(a, i) {
+    const subs = subsAt(a);
+    const n = newsAt(a);
+    const st = custState(a);
+    const act = custAct(a);
+    const since = subs.length ? subs[0].since : null;
+    return '<article class="type-card s-card b-qcard" data-card="' + esc(a.id) + '" ' +
+      'style="--i:' + Math.min(i || 0, 8) + '" ' +
+      'data-open="acc:' + esc(a.id) + '">' +
+      '<div class="tc-head">' +
+        '<span class="tag tag-' + esc(st.tone) + '">' + esc(st.label) + '</span>' +
+        /* What KIND of thing happened, beside the state that happened
+           because of it. On a quiet customer the slot stays empty rather
+           than reaching for a fact to fill it. */
+        (n ? '<span class="tc-type b-fact">' + chIcon('spark') +
+          '<span>' + esc(n.label) + ' · ' + esc(sayWhen(n.at)) + '</span></span>' : '') +
+      '</div>' +
+      '<div class="b-qcard-top">' +
+        '<button class="tc-title s-card-title" type="button" data-acc="' + esc(a.id) + '">' +
+          esc(a.name) + '</button>' +
+        tierMark(a) +
+      '</div>' +
+      /* The relationship, where a person's card puts their job: it is what
+         this company IS to us, and everything under it is context. */
+      '<p class="tc-summary b-qcard-role">' + esc(joinAnd(holdSay(subs))) + '</p>' +
+      '<p class="b-qcard-where">' +
+        fact('industry', esc(indLabel(a))) +
+        fact('where', esc(cityLabel(a))) + '</p>' +
+      '<p class="b-qcard-where">' +
+        /* ══ THE ONE FIGURE ON THIS CARD THAT DECIDES ANYTHING ═══════════
+           A deal card carries no money, and the argument written over it
+           holds: fifteen amounts down a page is a column nobody adds up,
+           and which deal you work is decided by the reading and never by
+           the number.
+
+           A customer is the other case. What they pay is not a forecast of
+           what they might — it is the thing at risk in the Check in state
+           and the base the Opening is measured against, so it is a fact
+           about what is in front of you rather than a guess about what
+           might be. Per YEAR, said out loud, because a subscription
+           quoted without its period is the oldest way to overstate one. */
+        fact('money', '<b>' + esc(euro(custWorth(a))) + '</b> a year') +
+        (since ? fact('calendar', 'since ' + esc(monthYear(since))) : '') + '</p>' +
+      aimyBlock(custSay(a), true) +
+      '<div class="tc-gov b-qcard-foot">' +
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" ' +
+          act.attr + '>' + esc(act.label) + '</button>' +
+      '</div>' +
+    '</article>';
+  }
+  /* "since 12 March 2024" is a precision nobody wants about a contract that
+     has been running for two years, and `sayWhen` says "8 months ago",
+     which is a duration where the card is stating a start. */
+  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthYear = (iso) =>
+    MONTH_SHORT[Number(iso.slice(5, 7)) - 1] + ' ' + iso.slice(0, 4);
+
+  function custGrid(rows) {
+    if (!rows.length) {
+      return S.find
+        ? '<p class="b-vfoot">No customer matches “' + esc(S.find) + '”. ' +
+          '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
+        : '<p class="b-vfoot">Nobody is buying from you yet. A deal marked Won lands here.</p>';
+    }
+    return '<div class="b-grid">' + rows.map(custCard).join('') + '</div>';
+  }
+
   function qgrid(rows, emptyText) {
     if (!rows.length) {
       if (emptyText) return '<p class="b-vfoot">' + esc(emptyText) + '</p>';
@@ -4387,10 +4609,67 @@
     const all = queue(null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
+    /* ══ THE CHIP COUNTS WHAT PRESSING IT SHOWS ════════════════════════
+       `cutOf` counted the won deals in this quarter and the chip said 3,
+       which is what the cut used to hold. It holds the book now, so the
+       number over it is the book — a chip whose count and whose contents
+       disagree is the one defect a row of filters cannot survive. */
+    counts.won = customers().length;
     return '<div class="s-home">' +
-      dealsTake() +
+      /* ══ THE HEADLINE ANSWERS THE CUT YOU ARE ON ═══════════════════════
+         `dealsTake` opens "€1.4m still open, across 27 deals you are
+         running" — the right sentence over six of the seven cuts and the
+         wrong one over the seventh, where nothing on the page below is open
+         and none of it is a deal. Standing over the book it was the surface
+         talking about somewhere else. */
+      (S.q === 'won' ? custTake() : dealsTake()) +
       queueBlock(all, counts, 'deals') +
     '</div>';
+  }
+
+  /* ══ WHAT THE BOOK ADDS UP TO, BEFORE THE BOOK ═════════════════════════
+     The same shape the pipeline gets, for the same reason: a grid of
+     twenty-eight cards with no takeaway over it makes the reader do the
+     arithmetic. The figure is what they pay us; the sentence is the only
+     thing about it worth knowing today.
+
+     AND IT HAS NO DOORS. Every other reading on this desk ends in two
+     buttons that narrow the list under it. There is nothing to narrow to:
+     the openings are not a cut, they are the top of this one, because the
+     book is already ranked by what moved. A door that scrolls you to the
+     first card is not a door, and a second chip for a set of three would
+     be a filter that is empty most weeks. */
+  function custTake() {
+    const book = customers();
+    const worth = book.reduce((n, a) => n + custWorth(a), 0);
+    const open = openings();
+    const hold = book.map(openingAt).filter((o) => o && o.kind === 'hold');
+    const bits = [];
+    if (open.length) {
+      bits.push('<b>' + commas(open.length) + '</b> of them moved this month onto something ' +
+        'we sell and they do not have');
+    }
+    if (hold.length) {
+      bits.push('<b>' + commas(hold.length) + '</b> had news about work we already do for them');
+    }
+    return '<section class="s-insight is-lead s-block-wide" aria-label="Where the book stands">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">Read off the book</span>' +
+      '</div>' +
+      '<div class="s-lead-line">' +
+        '<span class="s-lead-n">' + esc(euro(worth)) + '</span>' +
+        '<span class="s-lead-say">a year, across <span class="s-lead-of">' +
+          commas(book.length) + '</span> companies that already buy from you.</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' +
+        (bits.length
+          ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') +
+            '. The rest are quiet, and they are under those.'
+          : 'Nothing has happened at any of them in the last six weeks. ' +
+            'What stands is what goes with what they already run.') + '</p>' +
+    '</section>';
   }
 
   /* ══ A MONTH OF DOTS, AND ONE DAY IN FULL ══════════════════════════════
@@ -5056,7 +5335,10 @@
   /* `tierOf` reads won deals, so a deal signed or undone in this session
      changes a tier — it belongs with the rest of the derived money. */
   const clearMoney = () => {
-    SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; TIER_CACHE = null;
+    SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; TIER_CACHE = null;    /* The book reads won deals too — a deal signed in this session makes a
+       customer, and one undone unmakes it. */
+    CUST_CACHE = null;
+
   };
   const srcOf = (c) => srcIndex()[c.id] || null;
   /* Nobody on a list came in some other way — they were in the book before
@@ -5243,7 +5525,259 @@
     consAt(a.id).forEach((c) => (seen[titleBand(c.title)] = 1));
     return Object.keys(seen).length;
   };
-  const provenAt = (a) => !!a && consAt(a.id).some((c) => isDeal(c) && stageOf(c) === 'won');
+  /* ══ AND A CUSTOMER HAS ALWAYS SIGNED ══════════════════════════════════
+     This read won deals alone, so a company that has been paying us for two
+     years was ranked as one that had never bought. Proof is worth two of
+     the four points that make an account gold — half the ladder — so the
+     book the desk actually owns sat under the strangers beside it. */
+  const provenAt = (a) => !!a && ((a.subs || []).length > 0 ||
+    consAt(a.id).some((c) => isDeal(c) && stageOf(c) === 'won'));
+  /* ══ WHAT THIS COMPANY BUYS FROM US, AND HAS DONE FOR A WHILE ══════════
+     Two ways an account becomes a customer and the surface must not be able
+     to tell them apart: a deal somebody closed this quarter, and a contract
+     that has been running since before the pipeline the board draws. The
+     first is on the record as a won deal; the second is on the account.
+
+     One shape out, so nothing downstream has to ask which kind it got —
+     what they hold, since when, what it is worth a year, and the person
+     whose name is on it if there is one. A won deal has a name on it and a
+     seeded contract does not, which is a real difference and is drawn as
+     one rather than invented away. */
+  function subsAt(a) {
+    if (!a) return [];
+    const out = (a.subs || []).map((s) => ({
+      sell: s.sell, since: s.since, acv: s.acv, con: null }));
+    consAt(a.id).forEach((c) => {
+      if (!isDeal(c) || stageOf(c) !== 'won') return;
+      const at = wonAt(c);
+      if (!at) return;
+      const k = sellOf(c);
+      /* The deal wins the row. A company that signed for the same service
+         twice has renewed, not bought twice, and the live fact about it is
+         the one with a person attached. */
+      for (let i = 0; i < out.length; i++) {
+        if (out[i].sell === k) { out.splice(i, 1); break; }
+      }
+      out.push({ sell: k, since: at, acv: acvOf(c).value, con: c });
+    });
+    return out.sort((x, y) => (x.since < y.since ? -1 : 1));
+  }
+  /* What they pay us in a year. Every surface that names a customer names
+     this, so it is one function and not a reduce written five times. */
+  const custWorth = (a) => subsAt(a).reduce((n, s) => n + s.acv, 0);
+  const isCust = (a) => subsAt(a).length > 0;
+  /* ══ THE BOOK, AND WHAT PUTS ONE COMPANY ABOVE ANOTHER ═════════════════
+     Not revenue. A list of twenty-eight customers ranked by what they pay
+     is a list whose top never changes, and the three that want you this
+     week land wherever their invoices happen to fall. What ranks a customer
+     on a Tuesday is whether anything has happened to them.
+
+     So: the ones something opened at, then the ones whose news is about a
+     thing we already run for them — which is a call you make before
+     somebody else does — then the quiet book, and only there by what it
+     pays us. The order is the argument the surface is making.
+
+     `custWorth` is not wasted; it is the tie-break, and it is what the
+     figure over the block sums. */
+  const custRank = (a) => {
+    const o = openingAt(a);
+    return !o ? 3 : o.kind === 'open' ? 0 : o.kind === 'hold' ? 1 : 2;
+  };
+  let CUST_CACHE = null;
+  function customers() {
+    if (CUST_CACHE) return CUST_CACHE;
+    CUST_CACHE = DB.acc.filter(isCust)
+      .sort((x, y) => custRank(x) - custRank(y) || custWorth(y) - custWorth(x));
+    return CUST_CACHE;
+  }
+  /* ══ WHAT HAPPENED AT A CUSTOMER WHILE NOBODY WAS LOOKING ══════════════
+     The book already carries `a.signal` — dated, sourced, one clause: "raised
+     a Series B", "is hiring a Head of Support". It works for the job it was
+     built for, which is telling a caller that a stranger has moved. It does
+     not work here, and the reason is worth writing down.
+
+     A CLAUSE IS NOT AN ARGUMENT. "Raised a Series B" argues for nothing in
+     particular. Put it in front of a manager who already sells this company
+     something and the next sentence has to be invented, which is how a
+     product ends up recommending QA to a Voice customer because ninety days
+     have passed. The ninety-day clock is a calendar reminder wearing the
+     costume of an insight.
+
+     So every event here carries THREE things, and the middle one is the
+     hinge: what happened, what that means for them, and which of the eight
+     it therefore makes a case for. The offer is not chosen; it falls out.
+
+     AUTHORED, LIKE THE CASE STUDIES. This is the second place in the build
+     where somebody is going to repeat the sentence out loud in a room — the
+     first is `STORIES` — and a generated consequence would be a plausible
+     sentence about a company nobody has read anything about. Twenty-four of
+     them, each a thing that happens to a business.
+
+     `inds` is on the two that cannot happen to everybody. A supervisory
+     review is a fact about a regulated sector, and handing one to a hotel
+     chain would discredit every other line on the surface. */
+  const NEWS = [
+    { k: 'funded', label: 'Funding', src: 'the news',
+      say: 'raised €40m in a Series B, earmarked for opening in Germany and Poland',
+      means: 'a second language and a second time zone landing on a support desk they staff themselves',
+      points: ['support', 'voice', 'know'] },
+    { k: 'funded', label: 'Funding', src: 'the news',
+      say: 'closed a €12m growth round on a plan to double headcount inside a year',
+      means: 'twice the people asking the same questions, and nobody writing the answers down',
+      points: ['know', 'eng', 'back'] },
+    { k: 'funded', label: 'Funding', src: 'the news',
+      say: 'took €25m to put a year of roadmap into six months',
+      means: 'a release cadence they are about to outrun, with the same people checking it',
+      points: ['test', 'eng', 'qa'] },
+
+    { k: 'grew', label: 'Expansion', src: 'the news',
+      say: 'opened a second office, in Lisbon',
+      means: 'one team in two time zones, and the handover between them is where the queue will sit',
+      points: ['support', 'voice', 'know'] },
+    { k: 'grew', label: 'Expansion', src: 'the news',
+      say: 'announced it is entering the French market in the new year',
+      means: 'a language nobody on their desk speaks, on a line that already runs at capacity',
+      points: ['support', 'voice'] },
+    { k: 'grew', label: 'Expansion', src: 'the news',
+      say: 'signed its first contract outside Europe',
+      means: 'hours nobody is covering, and the first ones missed will be the ones that mattered',
+      points: ['support', 'voice', 'back'] },
+
+    { k: 'bought', label: 'Acquisition', src: 'the news',
+      say: 'acquired a smaller competitor and is folding it in this quarter',
+      means: 'two of every system and two answers to every question, for at least a year',
+      points: ['know', 'back', 'data'] },
+    { k: 'bought', label: 'Acquisition', src: 'the news',
+      say: 'was acquired, and the parent has told it to consolidate operations',
+      means: 'somebody is counting what every function costs now, and support is always on that list',
+      points: ['support', 'back', 'qa'] },
+
+    { k: 'hiring', label: 'Hiring', src: 'LinkedIn',
+      say: 'has five support desk roles open, three of them out for a second month',
+      means: 'they are trying to hire their way out of a queue, and the market is not selling',
+      points: ['support', 'voice'] },
+    { k: 'hiring', label: 'Hiring', src: 'LinkedIn',
+      say: 'posted four QA engineer roles in a fortnight',
+      means: 'they have decided quality is a headcount problem, which is the decision we sell against',
+      points: ['qa', 'test'] },
+    { k: 'hiring', label: 'Hiring', src: 'LinkedIn',
+      say: 'is hiring six engineers onto an eighteen-month programme',
+      means: 'a year of onboarding before the first of them ships anything',
+      points: ['eng', 'test'] },
+    { k: 'hiring', label: 'Hiring', src: 'LinkedIn',
+      say: 'has had a finance operations role open since the spring',
+      means: 'month-end is being carried by somebody whose actual job is something else',
+      points: ['back', 'data'] },
+
+    { k: 'exec', label: 'New leadership', src: 'LinkedIn',
+      say: 'has a new Chief Operating Officer, in post four weeks',
+      means: 'a first hundred days, which is when every supplier gets looked at and every cost gets asked for a reason',
+      points: ['support', 'back', 'qa'] },
+    { k: 'exec', label: 'New leadership', src: 'LinkedIn',
+      say: 'appointed a Head of Customer Experience, a role they did not have before',
+      means: 'somebody owns a number nobody was measuring, and the first thing they will want is it measured',
+      points: ['qa', 'voice', 'support'] },
+    { k: 'exec', label: 'New leadership', src: 'LinkedIn',
+      say: 'has a new CTO, in from a company that outsourced most of its testing',
+      means: 'the argument has already been won somewhere else, by the person who now makes the decision',
+      points: ['test', 'eng'] },
+
+    { k: 'shipped', label: 'Launch', src: 'the news',
+      say: 'launched a self-service product at a consumer audience',
+      means: 'a hundred small questions where there used to be ten large ones, and not one of them worth a person',
+      points: ['voice', 'know', 'support'] },
+    { k: 'shipped', label: 'Launch', src: 'the news',
+      say: 'put its whole catalogue online ahead of the season',
+      means: 'peak volume on a channel they have never run at peak',
+      points: ['support', 'voice', 'data'] },
+    { k: 'shipped', label: 'Launch', src: 'the news',
+      say: 'shipped a platform rebuild it had deferred twice',
+      means: 'a codebase that moved underneath a test suite nobody has rewritten',
+      points: ['test', 'eng'] },
+
+    { k: 'ruled', label: 'Regulation', src: 'their filings',
+      inds: ['banking', 'health', 'public', 'telecom', 'energy'],
+      say: 'has a supervisory review due, with conversation records in scope',
+      means: 'they will have to evidence every conversation, and today they listen to a sample of them',
+      points: ['qa', 'know'] },
+    { k: 'ruled', label: 'Regulation', src: 'their filings',
+      inds: ['banking', 'health', 'public'],
+      say: 'was told at its last audit that its procedures were not being followed on the floor',
+      means: 'the procedures exist and nobody can find them at the moment they are needed',
+      points: ['know', 'qa'] },
+
+    { k: 'broke', label: 'Went wrong', src: 'the news',
+      say: 'apologised publicly after a week of unanswered support tickets',
+      means: 'the failure is on the record now, and the thing that failed is a thing we run for other people',
+      points: ['support', 'voice', 'qa'] },
+    { k: 'broke', label: 'Went wrong', src: 'the news',
+      say: 'had an outage that took its phone lines down for a day and a half',
+      means: 'nobody could tell a customer what was happening, which is the part that gets remembered',
+      points: ['voice', 'support', 'know'] },
+
+    { k: 'tender', label: 'Out to tender', src: 'their filings',
+      say: 'is out to tender for the contract it runs its back office on',
+      means: 'a door standing open on the function next to the one we already run',
+      points: ['back', 'data', 'support'] },
+    { k: 'tender', label: 'Out to tender', src: 'their filings',
+      say: 'let a three-year supplier contract lapse without renewing it',
+      means: 'somebody decided that arrangement was not working, and the work it was doing did not go away',
+      points: ['support', 'back', 'test', 'eng'] },
+  ];
+  /* Six weeks. Past that it is history rather than news, and a card that
+     opens with something from the spring is a card nobody believes is
+     watched. The signal on a prospect is fresh for three; a customer is
+     called on a longer cycle, so the window that feeds it is longer. */
+  const NEWS_FRESH = 45;
+  /* Two customers in five, off the id like everything else that has to
+     survive the corpus being rebuilt on a different day. Every customer
+     having something to report would be the surface telling you it is
+     guessing. */
+  function newsAt(a) {
+    if (!a || !isCust(a)) return null;
+    const h = Math.abs(hash(a.id + ':news'));
+    if (h % 5 >= 2) return null;
+    const pool = NEWS.filter((n) => !n.inds || n.inds.indexOf(a.industry) >= 0);
+    if (!pool.length) return null;
+    const n = pool[(h >> 4) % pool.length];
+    return Object.assign({}, n, { at: dayAdd(-((h >> 12) % NEWS_FRESH)) });
+  }
+
+  /* ══ AND THE OFFER FALLS OUT OF IT ═════════════════════════════════════
+     Three terms and no judgement: what the news argues for, what their
+     sector can actually use, and what they do not already buy from us. The
+     first is authored on the event, the second is `IND_FIT`, and the third
+     is the book. Nothing is scored and nothing is ranked by a weight
+     somebody would have to defend.
+
+     THE SECTOR FILTER IS NOT REDUNDANT. The news is the argument, so it is
+     tempting to let it choose alone — but a hotel chain that raises money is
+     not thereby a buyer of test automation, and one line like that on this
+     surface discredits every other line on it.
+
+     THREE ANSWERS, AND TWO OF THEM ARE NOT AN OPENING. If what the news
+     points at is something we ALREADY run for them, that is not a sale; it
+     is the week their contract gets looked at by somebody new, which is the
+     other half of account management and the half that loses money quietly.
+     And if nothing fits, the surface says nothing fits. A product that
+     always has something to sell you is one nobody reads twice. */
+  function openingAt(a) {
+    const n = newsAt(a);
+    if (!n) return null;
+    const have = Object.create(null);
+    subsAt(a).forEach((s) => (have[s.sell] = 1));
+    const fit = (IND_FIT[a.industry] || { fits: [] }).fits;
+    const open = n.points.filter((k) => fit.indexOf(k) >= 0 && !have[k]);
+    if (open.length) return { news: n, kind: 'open', offer: open[0] };
+    const held = n.points.filter((k) => have[k]);
+    if (held.length) return { news: n, kind: 'hold', offer: held[0] };
+    return { news: n, kind: 'none', offer: null };
+  }
+  /* What the chip badges and the bell reports: the ones where something
+     happened AND it opens something they do not have. */
+  const openings = () => customers().map(openingAt).filter((o) => o && o.kind === 'open');
+
+
 
   /* Their words, out of the CRM this desk came from — Gold, Silver, Bench
      is what the team already says out loud, and a ranking nobody uses the
@@ -7030,13 +7564,38 @@
      to All, so the row of chips is also the shape of the day. */
   function cuts(counts, all, call) {
     const on = S.q || 'all';
-    const chip = (k, label, n) =>
+    /* ══ THE COUNT IS THE SIZE; THE BADGE IS THE NEWS ══════════════════
+       Every chip here carries one number and it is how many are in the cut
+       — a size, which is why it is set quiet and sits inside the chip
+       rather than beside it. The customer book needs a second number and it
+       is a different KIND of fact: not how many customers there are, but
+       how many of them something happened to since you last looked. A book
+       of twenty-eight is the same book every week; three of them moving is
+       the only thing on this row that is news.
+
+       So it is drawn as news. The bell's own badge, at the bell's own
+       weight and accent — a reader who has learnt what that pill means at
+       the top of the screen has already learnt what it means here — and
+       it is the one number on the row that is not dimmed, because a badge
+       nobody notices is a badge doing nothing.
+
+       It appears only when there is something to say. A chip carrying a
+       permanent 0 teaches a reader to stop looking at the place the
+       number lives, which costs more than the zero was ever worth. */
+    const chip = (k, label, n, badge) =>
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
-      esc(k) + '">' + esc(label) + '<span class="b-cut-n" data-fig="cut:' + esc(k) + '">' + commas(n) + '</span></button>';
+      esc(k) + '">' + esc(label) + '<span class="b-cut-n" data-fig="cut:' + esc(k) + '">' + commas(n) + '</span>' +
+      (badge ? '<span class="b-cut-new" data-fig="new:' + esc(k) + '" ' +
+        'title="' + esc(plural(badge, 'customer') + ' moved') + '">' + commas(badge) + '</span>' : '') +
+      '</button>';
     /* The run sits at the end of the row it acts on: these cuts, this page.
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
-      (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
+      (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0,
+        /* Only the book is badged, and only where the book is the cut. On a
+           campaign the same key means the deals that campaign closed, which
+           is a different set and has no news attached to it. */
+        b.k === 'won' && isMgr() && !S.camp ? openings().length : 0)).join('') +
       /* ══ THE VERB THAT STARTS A RUN IS A BUTTON ═══════════════════════════
          It was `.s-inline-btn` — accent words with no ground, no border and
          no box — sitting at the end of a row of filter chips that all have
@@ -7122,10 +7681,30 @@
      underlines Today while you are standing on Deals is the page lying about
      where you are. */
   function queueBlock(all, counts, here) {
+    /* ══ ONE CUT SWAPS THE BODY AND NOTHING ELSE ═══════════════════════
+       The customer book is a list of companies under a chip row about
+       deals, and the temptation was to give it a page. It does not need
+       one: the switcher, the search box, the chips, the pager and the grid
+       are all the right components in the right places already, and the
+       only thing that differs is what a row IS.
+
+       So the block stays whole and the body swaps. Everything above the
+       grid is drawn by the same code from the same state, which is what
+       stops the chip row jumping when you press Customers — the one thing
+       a row of filters must never do.
+
+       `!S.camp`, because a campaign's `won` is the deals that campaign
+       closed. That is a real set and it belongs to the campaign; the book
+       belongs to the desk. */
+    const book = isMgr() && !S.camp && S.q === 'won';
     /* Narrowed BEFORE paging, so the foot line counts what matched rather
        than what page fifteen of the unsearched list happens to hold. */
-    const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
-    const call = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
+    const pg = book
+      ? paged(customers().filter((a) => matches(custHay(a))))
+      : paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
+    /* A run down the cards is a run of calls, and the book is companies.
+       Nothing to run, so the row that offers it does not draw. */
+    const call = book ? [] : pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="Your accounts">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
@@ -7146,7 +7725,9 @@
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
-        findBox(S.camp ? 'Find someone on this campaign' : 'Find a name, a company, a campaign') +
+        findBox(S.camp ? 'Find someone on this campaign'
+          : book ? 'Find a customer, a sector, a thing that happened'
+          : 'Find a name, a company, a campaign') +
       '</div>' +
       /* THE NUMBER SITS UNDER THE HEADING IT COUNTS. It was at the far end
          of the heading's row, which is where a section's actions live —
@@ -7159,7 +7740,7 @@
               : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
         : '') +
       cuts(counts, all, call) +
-      qgrid(pg.rows) +
+      (book ? custGrid(pg.rows) : qgrid(pg.rows)) +
       /* ══ AND THE FOOT COUNTS THE SAME THING THE TAB NAMES ═════════════
          People on one desk, deals on the other, under a tab that says
          Accounts on both: three nouns for one set, and a caller handing a
@@ -7172,7 +7753,10 @@
          AT accounts. The manager's is 48 at 44, which is the same word doing
          honest work. Making it literal on both means one card per company
          with its people inside it, which is a different queue. */
-      pager(pg, 'account') +
+      /* And on the one cut where a row is a company that pays us, it says
+         so. "28 accounts" is true and is the tab's word for a set this
+         surface has a better one for. */
+      pager(pg, book ? 'customer' : 'account') +
     '</section>';
   }
   /* Where you are, and the two ways to move. Never "load more": a caller
@@ -10240,33 +10824,36 @@
   };
   const RIPE = 90;
 
-  /* Every deal we won, what it bought them, and what sits next to it. */
+  /* ══ WHAT SITS NEXT TO WHAT THEY RUN ═══════════════════════════════════
+     This walked every contact looking for a won deal, which was the only
+     kind of customer the product had. The book knows better now: `subsAt`
+     answers for both kinds at once, so the walk is over the book and the
+     three-line hunt through `dealCamp` for what a deal sold goes with it.
+
+     THE NEWEST CONTRACT IS THE ONE THE NEXT SALE FOLLOWS FROM. A company
+     that bought Knowledge two years ago and Support in March is a Support
+     customer with a Knowledge deployment, not the other way round, and
+     `SVC_NEXT` walked from the older of the two would argue from the
+     wrong end of their own history.
+
+     This is the STANDING fit — what goes with what, on a ninety-day clock.
+     It is what the surface says about a customer nothing has happened to.
+     When something has, `openingAt` speaks instead, because an argument
+     built on a thing that happened beats one built on a calendar. */
   function expansionsOf(accId) {
+    const pool = accId ? [DB.byAcc[accId]].filter(isCust) : customers();
     const out = [];
-    const seen = Object.create(null);
-    DB.con.forEach((c) => {
-      if (c.checkpoint !== 'handed-over') return;
-      if (accId && c.acc !== accId) return;
-      if (stageOf(c) !== 'won') return;
-      const k = dealCamp(c);
-      const bought = k && k.sells.length ? k.sells[0] : null;
-      const edge = bought ? SVC_NEXT[bought] : null;
+    pool.forEach((a) => {
+      const subs = subsAt(a);
+      const last = subs[subs.length - 1];
+      const edge = last ? SVC_NEXT[last.sell] : null;
       if (!edge) return;
-      const a = accOf(c);
-      if (!a) return;
-      /* Not what they already have. A won deal on the same service at the
-         same company means this is a renewal conversation, not a new one. */
-      const already = DB.con.some((y) => y.acc === a.id && y.checkpoint === 'handed-over' &&
-        stageOf(y) === 'won' && (dealCamp(y) || { sells: [] }).sells[0] === edge.to);
-      if (already) return;
-      const key = a.id + '|' + edge.to;
-      if (seen[key]) return;
-      seen[key] = 1;
-      const ph = phasesOf(c);
-      const closed = ph.length ? ph[ph.length - 1].at.slice(0, 10) : c.checkpointAt.slice(0, 10);
-      const days = daysBetween(closed, TODAY_ISO);
-      out.push({ con: c, acc: a, bought: bought, next: edge.to, why: edge.why,
-        closed: closed, days: days, ripe: days >= RIPE });
+      /* Not what they already have: that is a renewal conversation, and
+         this list is only ever about a second thing. */
+      if (subs.some((s) => s.sell === edge.to)) return;
+      const days = daysBetween(last.since, TODAY_ISO);
+      out.push({ con: last.con, acc: a, bought: last.sell, next: edge.to, why: edge.why,
+        closed: last.since, days: days, ripe: days >= RIPE });
     });
     return out.sort((x, y) => y.days - x.days);
   }
@@ -12042,7 +12629,27 @@
   const bucketOf = (c) => (afterMeeting(c) ? 'after' : c.checkpoint);
   /* A cut is a step at one desk and a stage at the other, and it is exactly
      one per person either way — which is what lets the chips add up to All. */
-  const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
+  /* ══ THE CUT THAT WAS A DEAD END ═══════════════════════════════════════
+     Six of these chips narrow the board to a place a sale stands. The
+     seventh said Won, held the three deals that happened to close inside
+     this quarter, and every card in it read "Signed. Nothing else in the
+     range fits them yet." It was the one chip in the row that led nowhere
+     — the product losing interest at the exact moment the company started
+     paying us.
+
+     It is the customer book now, and the label says so. Won is what the
+     DEAL did and the tag on the record still says it; Customers is what
+     those companies ARE, which is the thing this cut is a list of. The
+     key stays `won` — it is in bookmarks, in `cutOf`, in `dealQueue` and
+     in every `data-q` on the page, and a key renamed to match a label is
+     a migration for a word.
+
+     AND IT IS NOT WINDOWED. The old cut showed this quarter because won
+     deals were the whole of what the product remembered. A company that
+     signed three years ago is exactly as much a customer as one that
+     signed in March, so the cut holds the book and no clock narrows it. */
+  const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k,
+    label: x.k === 'won' ? 'Customers' : x.label }));
   const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
