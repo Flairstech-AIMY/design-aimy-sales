@@ -15795,7 +15795,14 @@
     return rec ? rec.name : '';
   }
   function chatSync() {
-    if (!TURNS.length) return;
+    /* ══ A PLACEHOLDER IS NOT SOMETHING THAT WAS SAID ═══════════════
+       This runs after every paint, and one of those paints is the one that
+       puts the wait up. Stored as-is, a reload mid-answer would bring back a
+       mark that will never resolve — a conversation frozen thinking about a
+       question that was answered before the tab closed. What is written down
+       is what was said. */
+    const said = TURNS.filter((t) => !t.thinking);
+    if (!said.length) return;
     /* ══ A MESSAGE NOBODY ANSWERED IS NOT A CONVERSATION ═══════════════
        AiMY opens the thread herself on every load, and with the store in
        place each of those became a saved conversation — reload three times
@@ -15806,7 +15813,7 @@
        A thread that is only her unprompted opener is not written down. Act
        on it — write the message, ask for the introduction — and there is a
        second turn, and it persists like anything else. */
-    if (TURNS.length === 1 && TURNS[0].step === 'reach') return;
+    if (said.length === 1 && said[0].step === 'reach') return;
     let rec = chatRec();
     if (!rec) {
       rec = { id: 'ch' + Date.now().toString(36), at: new Date().toISOString(),
@@ -15814,7 +15821,7 @@
       CHATS.unshift(rec);
       CHAT_AT = rec.id;
     }
-    rec.turns = TURNS.slice();
+    rec.turns = said;
     /* Not over a name somebody typed. This runs after every paint and
        re-derives the title from the first question, which would put the
        question back the moment you said anything else. */
@@ -16180,6 +16187,15 @@
       return '<div class="chat-msg user">' + msgAvatar('you') +
         '<div class="msg-bubble">' + t.html + '</div></div>';
     }
+    /* ══ A TURN THAT IS NOT AN ANSWER YET ════════════════════════
+       Same element, same classes, one extra — `is-thinking`, which the
+       stylesheet reads to take the frame OFF rather than the message being
+       rebuilt to gain one when the answer lands. AiMY Knowledge's
+       arrangement, and §92 lifts the rules that go with it. */
+    if (t.thinking) {
+      return '<div class="chat-msg aimy is-thinking">' + msgAvatar('aimy') +
+        '<div class="msg-bubble">' + t.html + '</div></div>';
+    }
     return '<div class="chat-msg aimy">' + msgAvatar('aimy') +
       '<div class="msg-bubble">' + t.html +
         (t.hint ? '<p class="s-cb-hint">' + kbdify(t.hint) + '</p>' : '') +
@@ -16208,9 +16224,46 @@
   }
 
   function say(who, html) {
+    thinkDrop();
     TURNS.push({ who: who, html: html });
     paintThread();
   }
+
+  /* ══ THE PLACEHOLDER IS A TURN, AND ONE THAT NEVER SETTLES IS A BUG ═══
+     It lives in `TURNS` so the thread draws it the way it draws everything
+     else — which means every way out of the wait has to take it with it: an
+     answer replaces it, a question asked over the top of it replaces it, and
+     Stop during the wait removes it along with the question it was waiting
+     on. There is no path that writes an answer without going through `say`.
+
+     `THREAD_SEEN` comes back with it. The arrival animation fires when the
+     thread has grown since the last paint, so a placeholder that pushed the
+     count up and then left would make the answer it was standing in for land
+     silently — the one turn in the thread that most needs to arrive. */
+  function thinkDrop() {
+    const n = TURNS.filter((t) => t.thinking).length;
+    if (!n) return false;
+    const keep = TURNS.filter((t) => !t.thinking);
+    TURNS.length = 0;
+    keep.forEach((t) => TURNS.push(t));
+    THREAD_SEEN = Math.max(0, THREAD_SEEN - n);
+    stopThinking();
+    return true;
+  }
+
+  /* Knowledge's placeholder, markup and all: the mark on the left, what it is
+     doing on the right. Written once and read by both the card and the
+     thread, because two copies of one sentence is two sentences.
+
+     "The book" is the manager's word for his own deals; a caller has a queue
+     and no book. "The record" is what both desks call the thing every answer
+     here is read out of, and it is the word the readings themselves use —
+     "nothing on the record says how it went". */
+  const thinkRow = () =>
+    '<span class="ai-thinking">' +
+      '<canvas class="think-mark" width="26" height="26" aria-hidden="true"></canvas>' +
+      '<span class="ai-thinking-label">Reading the record…</span>' +
+    '</span>';
 
   /* ══ THE MARK, DISPERSED AND REFORMED ══════════════════════════════════
      Lifted from Knowledge's gate rather than written again. Two products
@@ -16415,9 +16468,14 @@
     return true;
   }
 
-  function startThinking() {
+  /* WHICH MARK, when there can be two. The card keeps its own in a hidden
+     box after an answer has replaced the words around it, and a bare
+     document-order lookup would animate that one while the thread's sat
+     still. The card still asks for the first, because it has only ever had
+     one; the thread hands over its own. */
+  function startThinking(el) {
     stopThinking();
-    const cv = $('.think-mark');
+    const cv = el || $('.think-mark');
     if (!cv) return;
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const ctx = cv.getContext && cv.getContext('2d');
@@ -16658,12 +16716,26 @@
        an answer that is about to be written in full, four inches away, on
        the surface you are looking at. The card exists because a question
        used to cover the page it was asked about; inside the canvas there is
-       no page to cover. The wait still runs, and it runs on the canvas's own
-       composer, so the answer lands in the thread with the same pause in
-       front of it. */
+       no page to cover, so it does not draw.
+
+       WHAT WAS LEFT WAS SILENCE. The card went and nothing took its place:
+       720ms of an empty thread under a question, with only the beam on the
+       composer to say anything had been heard. The beam says the product is
+       working; it does not say what it is working ON, and it sits at the
+       bottom of the screen while the eye is on the last thing said.
+
+       So the wait goes where the answer will be, as a turn — the mark and
+       four words, standing in the place the answer takes. Knowledge does
+       exactly this, and it is one component either way: the card and the
+       thread draw the same `thinkRow`. The pause is the card's 1400 rather
+       than the 720 it was cut to, because there is something to look at now
+       and the two waits should not be two numbers. */
     const over = byId('aimyOverlay');
     if (over && over.classList.contains('open')) {
-      PEEK_AT = setTimeout(peekFlush, 720);
+      TURNS.push({ who: 'aimy', html: thinkRow(), thinking: true });
+      paintThread();
+      startThinking($('.chat-msg.is-thinking .think-mark'));
+      PEEK_AT = setTimeout(peekFlush, 1400);
       return;
     }
     box.hidden = false;
@@ -16673,18 +16745,9 @@
     byId('peekActs').innerHTML = '';
     PEEK_ACTS = '';
     byId('aimyFloatWrap').classList.add('has-peek');
-    /* Knowledge's own placeholder, markup and all: the mark on the left,
-       what it is doing on the right. `startThinking` finds the canvas by
-       class the way it does there, so it has to be in the DOM first. */
-    byId('peekBody').innerHTML =
-      '<span class="ai-thinking">' +
-        '<canvas class="think-mark" width="26" height="26" aria-hidden="true"></canvas>' +
-        /* "The book" is the manager's word for his own deals; a caller has a
-           queue and no book. "The record" is what both desks call the thing
-           every answer here is read out of, and it is the word the readings
-           themselves use — "nothing on the record says how it went". */
-        '<span class="ai-thinking-label">Reading the record…</span>' +
-      '</span>';
+    /* The same row the thread draws. `startThinking` finds the canvas by
+       class the way Knowledge does, so it has to be in the DOM first. */
+    byId('peekBody').innerHTML = thinkRow();
     startThinking();
     PEEK_AT = setTimeout(peekFlush, 1400);
   }
@@ -16750,6 +16813,9 @@
     stopThinking();
     peekStreamStop();
     generating(false);
+    /* Nothing was said, so nothing is written — which now includes taking
+       back the mark that said something was coming. */
+    if (thinkDrop()) paintThread();
   }
 
   /* Whatever is owed, all of it: the answer that has not been written to

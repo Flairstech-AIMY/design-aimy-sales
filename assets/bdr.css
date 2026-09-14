@@ -4277,3 +4277,62 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    sales.css, THE CHAT COLUMN IS AiMY KNOWLEDGE’S, LIFTED WHOLE. Nothing
    about it is this build’s to override, so this file has no rule for it.
    §38 was the caption-and-row pair that stood before either. */
+
+/* ══ 92. THINKING HAS NO FRAME, FROM AiMY KNOWLEDGE ═══════════════════
+   The canvas had no wait at all: asking inside it skipped the card, and what
+   stood in for it was 720ms of nothing. It has one now, as a turn, and these
+   are Knowledge's four rules for it — character for character, comments and
+   all, the way §28 and the chat column take theirs. Everything they hang on
+   is the shell's: `.chat-msg`, `.msg-bubble`, `.msg-avatar`, `.ai-thinking`
+   and its label are in aimy-ds.css, and `.think-mark` is §47 above.
+
+   Not taken: `.chat-msg.aimy:has(.ai-thinking) .msg-acts`. A turn here has no
+   actions row to hide. */
+
+/* ══ THINKING HAS NO FRAME ═════════════════════════════════
+   No bubble and no avatar while there is nothing to put in them. The classes
+   stay on the same elements throughout — only this rule comes off — so the
+   frame appears around an answer that is already streaming rather than the
+   message being rebuilt to gain one. */
+.chat-msg.is-thinking .msg-avatar { display: none; }
+/* ══ UNDRESSING THE BUBBLE TAKES TWO SELECTORS ═════════════════
+   The bubble is dressed TWICE in the library: once as `.chat-msg.aimy
+   .msg-bubble` for the default dark theme, and again as `:root[data-theme=
+   "light"] .chat-msg.aimy .msg-bubble` for light, which is five class-level
+   selectors deep.
+
+   The single rule here was three deep, so it beat the dark one and lost to
+   the light one — and lost only PARTLY, which is why this was easy to miss.
+   Padding and shadow are not set by the light rule, so those cleared; the
+   background and border are, so a white pill with a hairline survived on a
+   state that is meant to have no container at all. Dark mode was correct the
+   whole time and light mode was not, from one rule that half-applied.
+
+   So the light theme is answered on its own terms. Not `!important`, which
+   would win here and then have to be fought later, and not a bare `:root`
+   prefix to pad the count — the second selector says which rule it exists to
+   override, which is the thing a reader needs to know. */
+.chat-msg.is-thinking .msg-bubble,
+:root[data-theme="light"] .chat-msg.aimy.is-thinking .msg-bubble {
+  background: none;
+  border-color: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+/* The frame fades up rather than snapping on, so the first words are not
+   interrupted by a box drawing itself around them.
+
+   `:not(.is-thinking)` is doing real work here. A transition belongs to the
+   state being entered, so declaring it on both states animates the frame OUT
+   as well as in — and since `push` reads layout before the class is applied,
+   the browser resolves the framed style first and then fades it away. The
+   frame appeared for an instant and dissolved, which is the opposite of the
+   intent. Declared only on the resting state, entering the thinking state is
+   instant and leaving it fades in. */
+.chat-msg.aimy:not(.is-thinking) .msg-bubble,
+.chat-msg.aimy:not(.is-thinking) .msg-avatar {
+  transition: background-color var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              opacity var(--t-base) var(--ease-out);
+}
+.chat-msg.is-thinking .msg-avatar { opacity: 0; }
