@@ -7146,8 +7146,10 @@
        groups by, never by the number of things in it. */
     const byRole = Object.create(null);
     un.people.forEach((r) => {
-      const g = byRole[r.fn] || (byRole[r.fn] = { fn: r.fn, n: 0, rate: r.rate, cost: 0, hours: 0, on: 0 });
-      g.n += 1; g.cost += r.cost; g.hours += r.hours; g.on += r.onCamp.hours;
+      const g = byRole[r.fn] || (byRole[r.fn] =
+        { fn: r.fn, n: 0, rate: r.rate, cost: 0, hours: 0, on: 0, onCost: 0 });
+      g.n += 1; g.cost += r.cost; g.hours += r.hours;
+      g.on += r.onCamp.hours; g.onCost += r.onCamp.cost;
     });
     const roles = Object.keys(byRole).map((k) => byRole[k]).sort((x, y) => y.cost - x.cost);
     const cost = [
@@ -7165,12 +7167,36 @@
          page is read against — cost per deal, what came back for every euro,
          how long a customer takes to pay for itself — and a section that
          shows two of the three costs cannot carry any of them. */
+      /* ══ THE ATTRIBUTION IS IN THE COLUMN'S OWN UNIT ════════════════
+         It read "60 of 3196 hours on a campaign" beside €176k, and three
+         things were wrong with that at once.
+
+         THE UNITS DID NOT MATCH, so the two halves of the row looked
+         unrelated and then related wrongly. €176k is what all 3196 hours
+         cost; 60 is how many of them landed on named work. Read together —
+         and a figure and the line beside it are always read together — the
+         row says €176k bought sixty hours of campaign work. It is out by a
+         factor of fifty-three.
+
+         THE GRAMMAR WAS AMBIGUOUS. "60 of 3196 hours on a campaign" parses
+         just as easily as "60 of [the 3196 hours that were] on a campaign",
+         which inverts the whole point.
+
+         AND IT DID NOT ADD UP. Each child rounded its own hours, and the
+         parent rounded the true sum — 60 and 7 under a heading that said 68.
+         A reader who checks the one piece of arithmetic a breakdown invites
+         finds it wrong.
+
+         All three go away by saying it in money: €3,446 of €176k is the same
+         ratio as 60 of 3196, in the unit the column is already in, where the
+         part and the whole cannot be mistaken for different things. The
+         parent sums the children it prints rather than re-deriving, so the
+         list reconciles by construction. */
       { k: 'people', say: 'The desk', v: un.payroll,
         sub: plural(un.people.length, 'person') + ' · ' +
-          Math.round(roles.reduce((n, r) => n + r.on, 0)) + ' of ' +
-          Math.round(roles.reduce((n, r) => n + r.hours, 0)) + ' hours went on a campaign',
+          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' of it on a named campaign',
         rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
-          note: Math.round(r.on) + ' of ' + Math.round(r.hours) + ' hours on a campaign',
+          note: fmtMoney(r.onCost) + ' of it on a named campaign',
           v: r.cost })) },
       { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
         sub: 'every attempt, not only the ones that answered',
@@ -7255,7 +7281,21 @@
             : '<span class="s-att-pace" style="left:' + pacePc.toFixed(1) + '%"></span>') +
         '</div>' +
         '<div class="s-att-keys">' +
-          '<span class="s-att-key is-booked">' + (done ? 'Signed' : 'Signed so far') + '</span>' +
+          /* ══ AND "SO FAR" NAMED NO WINDOW ═══════════════════════
+             The other three keys each say what their band or mark IS, in
+             full. This one said "Signed so far", which leaves the boundary
+             open — so far this quarter, or so far ever? The bar is bounded
+             by the chip above it, and the key was the only thing on the row
+             implying otherwise.
+
+             It does NOT take the figure. Its sibling carries €86k because a
+             delta cannot be read off a stacked band; this band's amount is
+             the headline four lines up, and repeating it would restate the
+             loudest number on the page in order to label the colour beneath
+             it. "Already signed" against "expects another €86k before it
+             closes" is the pair: what is in, and what is still coming. A
+             closed window keeps the plain word, because nothing more is. */
+          '<span class="s-att-key is-booked">' + (done ? 'Signed' : 'Already signed') + '</span>' +
           /* ══ A KEY DESCRIBES THE BAND IT IS A KEY FOR ══════════════════
              This read "AiMY expects €225k by the end" beside a hatched band
              that is not €225k of anything — €225k is where the band ENDS,
