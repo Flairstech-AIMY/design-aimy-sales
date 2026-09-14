@@ -13118,21 +13118,33 @@
       '<div class="b-team b-team-rec">' +
         (function () {
           const say = (id) => {
-            const you = id === me().id;
             const theirs = hist.filter((t) => t.by === id);
             const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
+            /* ══ EACH OF THEM COUNTED IN THEIR OWN UNIT, AND NOTHING ELSE ═══
+               Nour: what does "theirs to call" add? Nothing. Engy is named
+               twelve times on this page and carries ten calls against this
+               lead; whose it is was never in question, and the phrase sat in
+               a slot the rest of which is a figure.
+
+               "Takes it at Interested" is worse, because the page says it
+               properly two blocks up, in its own: "Your part ends at
+               Interested — Lina Haddad takes it from there." That is the
+               sentence. This was the same thing compressed until it stopped
+               being one, and it reads identically on every lead in the book,
+               which is the "on the team" fault wearing a process rule.
+
+               So both go, and the rule is the one Nour has been pointing at
+               all along: a colleague is counted, in the unit their job is
+               counted in. A caller has calls. A manager has meetings — he
+               takes the lead over at Interested, so meetings are what he
+               does here. Each always shows their own; the other joins it
+               only when it is not nought, because a BDR who set two meetings
+               did something the call count does not say. */
+            const rings = !!(REP[id] && REP[id].fn === 'bdr');
             const bits = [];
-            if (calls) bits.push(plural(calls, 'call'));
-            if (mets) bits.push(plural(mets, 'meeting'));
-            /* Nothing done yet is not nothing to say: it is what they are
-               here for, which is the more useful half on a cold lead. */
-            if (!bits.length) {
-              bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
-                : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
-                  ? 'has it now' : 'takes it at Interested')
-                : 'on the team');
-            }
+            if (rings || calls) bits.push(plural(calls, 'call'));
+            if (!rings || mets) bits.push(plural(mets, 'meeting'));
             return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
           return teamFaces(ids, (id) => mateRow(id, say(id)), { sub: say });
