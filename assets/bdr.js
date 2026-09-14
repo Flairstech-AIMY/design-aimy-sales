@@ -3981,7 +3981,13 @@
     if (l) return backBtn('data-back', 'Back to ' + cap(l.name));
     /* A deal opened from the board goes back to the board: `on` rides
        through the navigation, so the only thing missing was the word. */
-    if (S.on === 'deals') return backBtn('data-back', 'Back to accounts');
+    /* And the book is a cut of that tab rather than a tab of its own, so
+       the way back has to name the cut. "Back to accounts" from a customer
+       lands you on the pipeline, which is a different list of different
+       companies, and the one you were reading is two presses away. */
+    if (S.on === 'deals') {
+      return backBtn('data-back', S.q === 'won' ? 'Back to the customers' : 'Back to accounts');
+    }
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     if (S.on === 'money') return backBtn('data-back', 'Back to Financials');
     /* Named for where it now comes from. `data-back` clears to the briefing,
@@ -4646,8 +4652,11 @@
     const hold = book.map(openingAt).filter((o) => o && o.kind === 'hold');
     const bits = [];
     if (open.length) {
-      bits.push('<b>' + commas(open.length) + '</b> of them moved this month onto something ' +
-        'we sell and they do not have');
+      /* Six weeks, because that is the window `newsAt` reads and a sentence
+         that rounds it to "this month" is the page overstating how fresh
+         its own evidence is. */
+      bits.push('<b>' + commas(open.length) + '</b> of them moved in the last six weeks ' +
+        'onto something we sell and they do not have');
     }
     if (hold.length) {
       bits.push('<b>' + commas(hold.length) + '</b> had news about work we already do for them');
@@ -5775,7 +5784,10 @@
   }
   /* What the chip badges and the bell reports: the ones where something
      happened AND it opens something they do not have. */
-  const openings = () => customers().map(openingAt).filter((o) => o && o.kind === 'open');
+  const openings = () => customers().map((a) => {
+    const o = openingAt(a);
+    return o && o.kind === 'open' ? Object.assign({ acc: a }, o) : null;
+  }).filter(Boolean);
 
 
 
@@ -7588,14 +7600,51 @@
       (badge ? '<span class="b-cut-new" data-fig="new:' + esc(k) + '" ' +
         'title="' + esc(plural(badge, 'customer') + ' moved') + '">' + commas(badge) + '</span>' : '') +
       '</button>';
+    /* ══ AND THE BOOK IS NOT ONE OF THE SIX ════════════════════════════
+       It was drawn in the loop with the stages, in stage order, between
+       Priced and Lost — which is the row telling a reader it is another
+       place a deal stands. It is not, and the arithmetic says so before
+       the design does: the other six narrow the forty-eight and sum to
+       All, and this one is thirty-one companies that are not in the
+       forty-eight at all. A chip that breaks the row's own rule and looks
+       identical to the chips that keep it is the row lying.
+
+       Three things say it is different, and none of them is loudness.
+
+       IT IS OUT OF THE ROW. Lifted past the run button to the far end,
+       behind a rule. Everything left of that rule is the pipeline and the
+       verb that works it; everything right of it is the book. A reader
+       never has to be told the sum stops there.
+
+       IT CARRIES A MARK. The company glyph, which is what this build puts
+       against a company everywhere else — on a card, in a masthead, in the
+       lead map. Six bare words and one marked one is a difference you see
+       before you have read any of them.
+
+       IT HAS A GROUND AT REST. The chips are outlined and empty until you
+       are standing on one. The ghost beside them makes exactly this
+       argument in reverse — no fill at rest is what tells you the six
+       narrow a list and the one acts — so a fill is what says this one
+       does neither: it changes what a row IS.
+
+       On a campaign there is no book and the loop keeps its seventh chip,
+       labelled Won, meaning the deals that campaign closed. */
+    const book = isMgr() && !S.camp;
+    const bookChip = () =>
+      '<button class="filter-chip b-cut-book' + (on === 'won' ? ' active' : '') + '" ' +
+      'type="button" data-q="won">' + chIcon('company') + 'Customers' +
+      '<span class="b-cut-n" data-fig="cut:won">' + commas(customers().length) + '</span>' +
+      (openings().length
+        ? '<span class="b-cut-new" data-fig="new:won" title="' +
+          esc(plural(openings().length, 'customer') + ' moved') + '">' +
+          commas(openings().length) + '</span>'
+        : '') +
+      '</button>';
     /* The run sits at the end of the row it acts on: these cuts, this page.
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
-      (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0,
-        /* Only the book is badged, and only where the book is the cut. On a
-           campaign the same key means the deals that campaign closed, which
-           is a different set and has no news attached to it. */
-        b.k === 'won' && isMgr() && !S.camp ? openings().length : 0)).join('') +
+      (isMgr() ? MGR_BUCKETS : BUCKETS).filter((b) => !(book && b.k === 'won'))
+        .map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
       /* ══ THE VERB THAT STARTS A RUN IS A BUTTON ═══════════════════════════
          It was `.s-inline-btn` — accent words with no ground, no border and
          no box — sitting at the end of a row of filter chips that all have
@@ -7621,7 +7670,13 @@
         ? '<button class="b-ghost b-cuts-go" type="button" data-callall="' +
           esc(call.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
           'Call them</button>'
-        : '') + '</div>';
+        : '') +
+      /* After the run, because the run belongs to the cuts it acts on and
+         the rule is what ends that group. A separator drawn before the
+         verb would put the verb on the book's side of it, acting on a set
+         it cannot act on. */
+      (book ? '<span class="b-cut-split" aria-hidden="true"></span>' + bookChip() : '') +
+      '</div>';
   }
 
   /* ══ A PAGE OF THE QUEUE, NOT THE QUEUE ════════════════════════════════
@@ -10864,7 +10919,22 @@
     return '<section class="s-block s-block-wide" aria-label="What else fits">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">What else fits</h2>' +
-        '<span class="s-block-say">they are already a customer</span>' +
+        /* ══ TWO RECOMMENDATIONS ON ONE PAGE, AND THE READER IS OWED THE
+           DIFFERENCE ═══════════════════════════════════════════════════
+           Where something has happened, the reading at the top of this page
+           names the thing that answers it and this block names the thing
+           that goes with what they run — and they are very often not the
+           same product. Both are true and they answer different questions,
+           which is fine; what is not fine is two recommendations eight
+           inches apart with nothing saying why they disagree.
+
+           The caption is where that goes. It is one line, it is already
+           there, and it was spending itself restating the section it sits
+           on: "they are already a customer" over a block that only ever
+           draws for customers. */
+        '<span class="s-block-say">' +
+          (openingAt(a) ? 'the standing fit, whatever just happened'
+            : 'they are already a customer') + '</span>' +
       '</div>' +
       '<div class="b-exp">' + rows.map((x, i) =>
         '<div class="b-exp-row" style="--i:' + Math.min(i, 8) + '">' +
@@ -10917,7 +10987,17 @@
        under a reading that named who got through. The call is the fact. */
     SAID_SIGNAL = signalOf(a) ? a.id : null;
     const everReached = hist.some((t) => t.outcome === 'reached');
-    const chip = top && rank(top.checkpoint) >= rank('answered')
+    /* ══ AND A COMPANY THAT PAYS US IS NOT DESCRIBED BY A CALL ═════════
+       Every answer this chip had was about how far the phone got — reached,
+       not reached, the furthest step anybody stands at. At a customer they
+       are all true and all beside the point: "Reached before" over a
+       company that has been paying us for two years is the page reporting
+       the least interesting relationship it has with them. The strongest
+       fact about a company goes in the slot reserved for the strongest
+       fact, and nothing outranks buying from us. */
+    const chip = isCust(a)
+      ? { label: 'Customer', tone: 'ok' }
+      : top && rank(top.checkpoint) >= rank('answered')
       ? { label: stepLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
       : everReached
         ? { label: 'Reached before', tone: 'ok' }
@@ -10964,8 +11044,20 @@
             /* The prize, without the shield in front of it. The shield is on
                the name now; repeating it here would put the same mark twice
                in one masthead, and this line's job is the figure. */
+            /* ══ WHAT THEY PAY GOES BEFORE WHAT THEY MIGHT ═════════════
+               The ceiling is a model — every service `IND_FIT` puts against
+               their sector, at their size, at list price — and on a
+               stranger it is the best figure the page has. On a customer
+               there is a real one sitting beside it, and a masthead that
+               leads with the guess while the fact stands behind it has
+               ranked them backwards. Both are drawn, because the pair IS
+               the account management question: this is what they buy, and
+               this is how much of us they could. */
+            (isMgr() && isCust(a)
+              ? fact('money', '<b>' + esc(euro(custWorth(a))) + '</b> a year today')
+              : '') +
             (isMgr()
-              ? fact('money', '<b>' + esc(euro(ceilingOf(a))) +
+              ? fact('target', '<b>' + esc(euro(ceilingOf(a))) +
                 '</b> of our work could fit')
               : '') +
             fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
@@ -10982,6 +11074,14 @@
             fact('web', '<a class="s-inline-btn" href="https://' + esc(a.domain) +
               '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>') +
             (REGION[a.region] ? fact('where', esc(REGION[a.region].label)) : '') +
+            /* What they hold, which is the fact the whole page now turns
+               on and which nothing else on it states. A contract without
+               its start date is a subscription of unknown standing, and
+               how long they have stayed is most of what it means. */
+            (isCust(a)
+              ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) + ' · since ' +
+                esc(monthYear(subsAt(a)[0].since)))
+              : '') +
             (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
               esc(sayWhen(a.signal.at))) : '') +
             /* Beside the reasoning, because the two are one thought: this is
@@ -11136,6 +11236,19 @@
   const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome]);
 
   function accSays(a, people, hist) {
+    /* ══ AND AT A CUSTOMER, WHAT HAPPENED TO THEM GOES FIRST ═══════════
+       `signalOf` is the prospecting signal and it is the right first rung
+       for a stranger. At a company that pays us there is a better one, and
+       running both would put two "here is what changed" sentences on one
+       page arguing from different evidence.
+
+       Only where there IS news — `openingAt` answers null otherwise — so
+       an account nothing has happened at keeps the ladder it had: who got
+       through, what opening was heard, what they push back on. The standing
+       fit is on this page already, in its own block under this one, and
+       saying it here as well would be the page making its quietest claim
+       twice in eighty pixels. */
+    if (isMgr() && openingAt(a)) return custSay(a);
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
     if (sig) return signalReading(a, sig, hist);
@@ -12647,9 +12760,15 @@
      AND IT IS NOT WINDOWED. The old cut showed this quarter because won
      deals were the whole of what the product remembered. A company that
      signed three years ago is exactly as much a customer as one that
-     signed in March, so the cut holds the book and no clock narrows it. */
-  const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k,
-    label: x.k === 'won' ? 'Customers' : x.label }));
+     signed in March, so the cut holds the book and no clock narrows it.
+
+     THE WORD IS NOT IN THIS LIST. `cuts` draws the book as a chip of its
+     own, out of the row and past the rule, and that chip carries its own
+     label. This list still has to answer for `won` because a CAMPAIGN
+     draws from it — there the key means the deals that campaign closed,
+     which is a stage and is called Won. Putting Customers here renamed
+     both, and the campaign's version of it is not a book. */
+  const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
   const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
@@ -14104,13 +14223,31 @@
           ' been on your desk two days or more without a warm call: ' + namesSay(cold) + '.',
         cta: 'Show them', ask: 'How do my deals stand?' });
     }
-    const ripe = expansionsOf(null).filter((x) => x.ripe);
-    if (ripe.length) {
-      tasks.push({ id: 'expand', sev: 'p3', type: 'Customers', when: plural(ripe.length, 'account'),
-        body: plural(ripe.length, 'customer') + ' past ninety days on what they bought, ' +
-          'starting with ' + ripe[0].acc.name + ' — ' + SELL[ripe[0].next].name +
-          ' is the one that fits.',
-        cta: 'Show me', ask: ripe[0].acc.name });
+    /* ══ AND THE CUSTOMERS, WHICH IS THE ROW THAT USED TO BE A CALENDAR ══
+       This counted the customers ninety days past what they bought and put
+       the first of them in the bell. It worked while there were three of
+       them. Against the whole book it is twenty-five accounts whose only
+       qualification is that time has passed — the definition of a reminder
+       nobody reads, and it would have pushed the rows that are about
+       something that HAPPENED down the panel underneath it.
+
+       One subject, one row, and it leads with the event. Ninety days is
+       still the standing fit and it is still drawn, on the card of every
+       customer nothing has happened to, which is where a reader has the
+       room to weigh it. It is not news and it does not ring a bell. */
+    const moved = openings();
+    if (moved.length) {
+      const one = moved[0];
+      tasks.push({ id: 'cust-open', sev: 'p2', type: 'Customers',
+        when: plural(moved.length, 'customer') + ' moved',
+        body: one.acc.name + ' ' + one.news.say + ', which makes a case for ' +
+          SELL[one.offer].name + ' — and they do not have it' +
+          (moved.length > 1
+            ? '. ' + plural(moved.length - 1, 'other') +
+              (moved.length === 2 ? ' opened' : ' opened') + ' something too'
+            : '') + '.',
+        cta: 'Show the book',
+        ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }) });
     }
     const quiet = live.filter((c) => {
       if (stageOf(c) !== 'commercial') return false;
@@ -14140,6 +14277,19 @@
   function taskGo(q) {
     if (typeof q !== 'string') return;
     if (q.indexOf('fill:') === 0) { fillBar(q.slice(5)); return; }
+    /* ══ AND A THIRD, WHICH IS A PLACE ════════════════════════════════
+       The two above hand you words or open a sheet. This one navigates,
+       and it exists because the customer book is a CUT rather than a tab:
+       a row about it cannot be answered by a sentence in the canvas and
+       cannot be reached by naming a company, since the point of the row is
+       that nine of them moved. Same payload shape as `data-go`, so the
+       bell and a button on the page say where they are going the same way. */
+    if (q.indexOf('go:') === 0) {
+      let over = null;
+      try { over = JSON.parse(q.slice(3)); } catch (e) { over = null; }
+      if (over) go(Object.assign(cleared(), over));
+      return;
+    }
     if (q.indexOf('prep:') === 0) {
       const c = DB.byCon[q.slice(5)];
       /* Routed by role, the way `data-prep` already routes it. This handed a
@@ -17361,7 +17511,21 @@
     const lst = t.closest('[data-list]');
     if (lst) { go(Object.assign(cleared(), { on: 'lists', list: lst.getAttribute('data-list') })); return; }
     const acc = t.closest('[data-acc]');
-    if (acc) { go(Object.assign(cleared(), { acc: acc.getAttribute('data-acc') })); return; }
+    if (acc) {
+      /* ══ AND WHERE YOU CAME FROM SURVIVES OPENING A COMPANY ═══════════
+         `cleared()` drops every key, `on` and `q` with them, so a customer
+         opened off the book landed on their page with the desk reset to the
+         caller's queue behind it — and `backHere`, which reads exactly those
+         two keys to name the way out, had nothing left to read. Same rule
+         the cut row already keeps: every key that says WHERE you are
+         survives going one level in. */
+      const over = cleared();
+      over.acc = acc.getAttribute('data-acc');
+      if (S.on) over.on = S.on;
+      if (S.q) over.q = S.q;
+      go(over);
+      return;
+    }
 
 
     const nextin = t.closest('[data-callnextin]');
@@ -18242,6 +18406,13 @@
         withPhone: DB.con.filter((c) => c.phone).length,
         touchpoints: DB.touch.length,
         queue: q.length,
+        /* The book, and the part of it that wants somebody this week. Both
+           are derived from a hash over the ids, so a check that the corpus
+           still holds a plausible number of each is a check nothing else
+           can make — the seed does not store either one. */
+        customers: customers().length,
+        customerArr: customers().reduce((n, a) => n + custWorth(a), 0),
+        openings: openings().length,
         due: DB.con.filter((c) => callable(c) && dueToday(c)).length,
         untouched: DB.con.filter((c) => callable(c) && untouched(c)).length,
         steps: stepCounts(DB.con),
@@ -18259,6 +18430,7 @@
     read: readCall,
     meetings: meetings, unrecorded: unrecorded,
     tierOf: tierOf, ceilingOf: ceilingOf,
+    customers: customers, subsAt: subsAt, openingAt: openingAt,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,

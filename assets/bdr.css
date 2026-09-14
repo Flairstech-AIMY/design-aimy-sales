@@ -3956,3 +3956,39 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
      six beside it. */
   line-height: 1.35;
 }
+
+/* ══ 86. THE CHIP THAT IS NOT A FILTER ═════════════════════════════════════
+   Six chips narrow the forty-eight deals and sum to All. This one is
+   thirty-one companies that are not among the forty-eight at all — it does
+   not narrow the row's set, it replaces it — and drawn identically it was
+   the row telling a reader that a customer is a place a deal stands.
+
+   A GROUND WAS THE FIRST IDEA AND IT WAS ALREADY TAKEN. Written as "the
+   chips are outlined and empty until you stand on one, so a fill says this
+   one is different" — measured, `.filter-chip` at rest is a 5% white wash
+   with a 10% edge. It has a fill. The ghost's own note beside it says as
+   much, calling that fill the reason a ghost cannot sit in this row.
+
+   So the difference is the one the doctrine actually ranks with: weight and
+   ink. The six sit at `--d200` at the row's own weight; this sits at `--d50`
+   at bold — a step of ink and a step of weight, which reads before any of
+   the seven words do and survives being glanced at. Plus a mark, which is
+   the glyph this build puts against a company on every other surface, and
+   a rule that says where the arithmetic stops. */
+/* `--card-border` was the first value and it is a 7% white: measured, a
+   0.9px line at 7% beside a chip with a 10% edge of its own is not a rule,
+   it is nothing. `currentColor` takes the page's ink — light on the dark
+   theme, dark on the light one — so one value reads in both, and 0.18 of it
+   is the weight of a divider rather than of a border. */
+.b-cut-split {
+  width: 1px; align-self: stretch; margin: 0 6px;
+  background: currentColor; opacity: 0.18;
+}
+.b-cut-book { gap: 6px; color: var(--d50); font-weight: var(--fw-bold); }
+/* The mark takes the row's own size rather than the 24 it is drawn in: an
+   `<svg>` with no width and no rule reaching it fills its container, which
+   on a chip is the whole chip. */
+.b-cut-book svg { width: 14px; height: 14px; flex-shrink: 0; }
+/* Standing on it, the library's active state owns the ink — two classes
+   against one — and should: a selected chip is a selected chip whatever
+   else it is. The weight and the mark carry the difference from there. */
