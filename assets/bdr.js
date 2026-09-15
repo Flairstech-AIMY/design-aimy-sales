@@ -19315,6 +19315,15 @@
     const calls = callsIn(hist);
     const last = hist[0];
     const sess = DB.call && DB.call.sess;
+    /* ══ THE SAME BRIEF, AND IT IS NOT THE SAME CALL ═══════════════════
+       Everything below was written for a call somebody here decided to
+       place, and two of its parts are false the moment the other end
+       dialled. It is one function with two branches rather than two
+       functions, for the reason the read-back card gives about itself: a
+       second renderer is a second thing that can disagree with the first.
+       Everything not branched below holds either way, because recall is
+       recall whoever pressed the button. */
+    const inbound = !!(DB.call && DB.call.dir === 'in');
     const rg = called[c.checkpoint];
     const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
 
@@ -19339,11 +19348,38 @@
         : '') +
     '</div>';
 
-    /* ── 2. the sentence you say ── */
-    body += '<blockquote class="b-open">' +
-      '<span class="b-open-cap">Open with</span>' +
-      '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
-    '</blockquote>';
+    /* ── 2. the sentence you say, or the reason they are saying one ──
+       An opener is a script for the half-second you control, and on an
+       inbound call you do not have it: they spoke first, they have the
+       agenda, and handing somebody a line to open with after they have
+       already been greeted is the brief describing a call that is not
+       happening.
+
+       What replaces it is the question that IS live in that second — why
+       are they ringing — read by the same function the banner's strip
+       uses, so the sentence somebody decided to answer on is the sentence
+       still in front of them. And it keeps that function's discipline: no
+       reading, no block, rather than a hedge under a caption. */
+    if (inbound) {
+      const why = ringRead(c);
+      if (why) {
+        body += '<blockquote class="b-open">' +
+          /* The caption asks and the sentence answers. It read "Probably
+             calling about" over "Probably chasing...", which hedges the same
+             claim twice — and a reading that hedges harder than it needs to
+             is one nobody calibrates against. The hedge belongs in the
+             sentence, where `ringRead` already puts it or leaves it out
+             depending on whether the line is a guess or a due date. */
+          '<span class="b-open-cap">Why they rang</span>' +
+          '<p class="b-open-say">' + why + '</p>' +
+        '</blockquote>';
+      }
+    } else {
+      body += '<blockquote class="b-open">' +
+        '<span class="b-open-cap">Open with</span>' +
+        '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
+      '</blockquote>';
+    }
 
     /* ── 3. the two or three facts that shape it ── */
     const know = [];
@@ -19404,7 +19440,12 @@
         '</div>';
     }
     openCanvas();
-    say('aimy', answerBlock('Before you speak to ' + c.name, body,
+    /* "Before you speak to" is a tense the inbound call has already left.
+       They are talking now, and a heading that says otherwise is the first
+       line of the brief being wrong about the thing the reader can hear. */
+    say('aimy', answerBlock(
+      (inbound ? 'While you have ' + c.name + ' on the line'
+        : 'Before you speak to ' + c.name), body,
       calls.length ? plural(calls.length, 'call') + ' on the record' : 'nothing on the record yet'));
   }
 
