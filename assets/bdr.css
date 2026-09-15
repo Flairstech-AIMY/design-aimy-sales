@@ -3188,11 +3188,18 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    is separated from the day beside it: an inset rule, not an edge-to-edge
    one — this build draws the dividers between the parts of a panel inside
    the panel's own padding. */
+/* `wrap` and `min-width: 0` are both inert until the row cannot hold the
+   month and its controls on one line, which at this type size is a 376px
+   layout — a 320px phone. Measured there: 120 of month plus 150 of nav plus
+   the gap is 280 in a 278px box, three pixels of a panel hanging over its own
+   card. Nothing above that width moves, because nothing above it overflows. */
 .b-cal-head {
   display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px; padding: 2px 2px 12px; margin-bottom: 10px;
   border-bottom: 1px solid var(--card-border);
 }
+.b-cal-month { min-width: 0; }
 .b-cal-month {
   display: flex; align-items: center; gap: 10px; margin: 0;
   font-size: var(--t-h3); font-weight: var(--fw-bold); color: var(--d50);

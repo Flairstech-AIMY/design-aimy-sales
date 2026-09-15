@@ -6117,7 +6117,21 @@ body.is-calling .overlay-chats { display: none; }
      ABOVE the button, centred, reading as a control belonging to the note.
      Ordered last and given a basis it can share, the two sit on one line with
      End taking everything the 44px circle does not. */
-  .call-tools .call-end { flex: 1 1 auto; }
+  /* ══ AND End IS THE HANDSET, NOT THE WORD ═══════════════════════
+     The note on .call-end says a destructive control states itself, and that
+     is an argument about a panel 300px wide beside a page. Here the panel IS
+     the page and the row it sits in is Record, Mute and Hold — three 44px
+     circles that say what they do with a glyph — so a labelled rectangle in
+     the middle of them is the odd one out, and the word costs the strip the
+     room the name needs. A struck-through handset is not ambiguous, it is the
+     same mark the platform's own call UI ends with, and `aria-label` carries
+     the sentence for anyone who is not looking at it.
+
+     Start call keeps its word: it is not this control, it is affirmative, and
+     it is the only thing on the ready panel to press. */
+  .call-tools .call-end { flex: 0 0 auto; width: 44px; padding: 0; border-radius: 50%; }
+  .call-tools .call-end .call-end-say { display: none; }
+  .call-tools .call-end.call-go { flex: 1 1 auto; width: auto; padding: 8px 12px; border-radius: var(--r-md); }
   .call-min { order: 2; }
   /* The clock is the strip's subject, so it keeps its size while the name
      beside it gives way — a name is a string of unknown length and the only
@@ -6131,7 +6145,9 @@ body.is-calling .overlay-chats { display: none; }
   /* Folded, both controls come down to the strip's own height. 34 is the
      masthead's icon button, which is what this row is beside once the panel
      is a bar under it. */
-  body.is-call-min .call-end { padding: 0 14px; height: 34px; }
+  body.is-call-min .call-end { height: 34px; width: 34px; min-height: 0; }
+  body.is-call-min .call-end svg { width: 15px; height: 15px; }
+  body.is-call-min .call-end.call-go { width: auto; padding: 0 14px; }
   body.is-call-min .call-min { width: 34px; height: 34px; }
   body.is-call-min .call-min svg { width: 16px; height: 16px; }
 }
@@ -8945,7 +8961,12 @@ body.is-figures .filter-tray { display: none; }
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
   margin-right: 4px;
 }
-.s-ask { display: inline-flex; align-items: center; gap: 8px; }
+/* A CHIP MAY NOT BE WIDER THAN THE ROW IT WRAPS IN. `.s-asks` wraps already,
+   which handles three chips and not one chip too long for the line: measured
+   at a 376px layout, the widest of the three asked for 314 in a 308px row and
+   took the block over the edge of the page. `max-width` is inert wherever the
+   chip fits, which is every width above that one. */
+.s-ask { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
 .s-ask svg { color: var(--ai-text); flex-shrink: 0; }
 
 @keyframes s-exec-rise { from { opacity: 0; transform: translateY(8px); } }

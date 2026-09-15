@@ -16391,7 +16391,14 @@
             'Start call</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
             (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
-            (dialing ? 'Stop' : 'End') + '</button>') +
+            /* THE WORD IS IN A SPAN SO A WIDTH CAN TAKE IT. On a phone this
+               control is the handset alone — sales.css decides where — and a
+               bare text node beside the icon is the one thing in this button
+               that cannot be addressed. The button keeps its aria-label either
+               way, so what a screen reader hears does not depend on how wide
+               the panel is. */
+            '<span class="call-end-say">' + (dialing ? 'Stop' : 'End') + '</span>' +
+            '</button>') +
 
         /* ══ AND THE WAY BACK TO THE PAGE, AFTER END ════════════════════
            In this row rather than up in the head, and last in it. The head is
