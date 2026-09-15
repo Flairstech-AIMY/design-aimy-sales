@@ -29,7 +29,7 @@
        four hundred pixels of lettering rendered into sixteen. The filenames
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
-  <link rel="stylesheet" href="assets/aimy-ds.css?v=717" />
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=725" />
   <!-- ══ THE TWO STAMPS MOVE TOGETHER, AND THE BUILD PANEL DEPENDS ON IT ══
 
        `?v=` is what stops a browser serving yesterday's file, and this
@@ -44,7 +44,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=717" />
+  <link rel="stylesheet" href="assets/sales.css?v=725" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -56,9 +56,9 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=717" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=717" />
-  <script src="assets/aimy-viewport.js?v=717"></script>
+  <link rel="stylesheet" href="assets/bdr.css?v=725" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=725" />
+  <script src="assets/aimy-viewport.js?v=725"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -150,6 +150,30 @@
     <div class="topnav-logo-mark">
       <svg width="140" height="43" viewBox="0 0 418.18 147.66" aria-label="AiMY"><use href="#aimy-logo-full"/></svg>
     </div>
+
+    <!-- ══ THE PRODUCTS, WHERE THE STRIP CANNOT STAND ════════════════════
+         Below 720 layout px the tab strip has no line to be on: the flanks
+         take 320 of a 459px layout and leave it 111, which renders as two
+         half-words with the tab you are on scrolled out of sight. The products
+         come off the masthead and hang from the mark instead — one chevron,
+         the list behind it, the one you are on marked.
+
+         FILLED FROM THE STRIP ITSELF, in bdr.js, and that is the point: the
+         ecosystem list is shared chrome and a second copy of it in this file
+         is the copy that goes stale. The strip is the source; this is a
+         second view of it.
+
+         `.b-menu-wrap` and `.b-menu` are the product's own menu, so one open
+         at a time, Escape and the outside click come free, and a menu that
+         would run off an edge already knows to hang the other way. -->
+    <span class="b-menu-wrap prod-anchor">
+      <button class="prod-chev" id="prodChev" type="button"
+              data-pickopen="prodMenu" aria-haspopup="menu" aria-controls="prodMenu"
+              aria-label="Switch product" title="Products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="b-menu" id="prodMenu" role="menu" hidden></div>
+    </span>
   </div>
 
   <!-- ══ THE SPACERS ARE HOW THE STRIP CENTRES, AND THEY ARE QA'S ══════════
@@ -453,6 +477,27 @@
       ══════════════════════════════════════════════════════════════════ -->
       <aside class="overlay-chats" id="overlayChats" aria-label="Conversations"></aside>
 
+      <!-- ══ AND BELOW 900 LAYOUT PX THE COLUMN IS A DRAWER ═══════════════
+           The column above used to be `display: none` under that width, which
+           took New chat and every past thread with it: the canvas could be
+           talked to and not navigated, on the screens with the least room to
+           remember what you had already asked.
+
+           Same answer the rail got two breakpoints up, in the same words —
+           it stops taking room in the row and starts opening over it. Same
+           `is-open` class, same scrim, same button skin, so there is one
+           drawer mechanism in this shell and not two. Both elements exist at
+           every width and are painted at none of them until the drawer does;
+           sales.css decides that, not this markup. -->
+      <button class="ov-chats-toggle" id="ovChatsToggle" type="button"
+              aria-expanded="false" aria-controls="overlayChats"
+              aria-label="Open conversations" title="Conversations">
+        <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>
+        </svg>
+      </button>
+      <div class="ov-chats-scrim" id="ovChatsScrim"></div>
+
       <div class="overlay-main">
         <!-- THE BADGE IS GONE. "AiMY Canvas" floated over the thread naming
              the surface you had just opened, beside an input reading "Ask
@@ -568,6 +613,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/bdr.js?v=717"></script>
+<script src="assets/bdr.js?v=725"></script>
 </body>
 </html>

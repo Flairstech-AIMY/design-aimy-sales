@@ -4703,6 +4703,24 @@
     if (on) { try { byId('appRail').focus({ preventScroll: true }); } catch (e) {} }
   }
 
+  /* The canvas's conversation column, the scrim over the thread behind it and
+     the button that says which way it is — railOpen's shape, deliberately, so
+     this shell has one drawer and not two that drift. Above 765px the drawer
+     rules do not apply and the class does nothing, which is why there is no
+     breakpoint in here either. */
+  function ovChatsOpen(on) {
+    const col = byId('overlayChats');
+    if (!col) return;
+    col.classList.toggle('is-open', on);
+    const s = byId('ovChatsScrim');
+    if (s) s.classList.toggle('is-open', on);
+    const b = byId('ovChatsToggle');
+    if (b) {
+      b.setAttribute('aria-expanded', String(on));
+      b.setAttribute('aria-label', on ? 'Close conversations' : 'Open conversations');
+    }
+  }
+
   function paintRail() {
     const r = railReading();
     const c = r.card;
@@ -16281,14 +16299,6 @@
           : '') +
         (sess ? '<span class="call-of" id="callOf">' + at + ' of ' + sess.ids.length +
           '</span>' : '') +
-        /* Painted only where the call owns the whole width, which is the only
-           place stepping back from it means anything — beside the page there
-           is nothing to step back TO. sales.css decides that, not this. */
-        '<button class="call-min" type="button" data-call-min ' +
-          'aria-expanded="' + (!CALL_MIN) + '" aria-controls="callPanel" aria-label="' +
-          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '" title="' +
-          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '">' +
-          chIcon(CALL_MIN ? 'chev-up' : 'chev-down') + '</button>' +
       '</div>' +
 
       '<div class="call-who-block">' +
@@ -16382,6 +16392,24 @@
           : '<button class="call-end" type="button" data-call-end aria-label="' +
             (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
             (dialing ? 'Stop' : 'End') + '</button>') +
+
+        /* ══ AND THE WAY BACK TO THE PAGE, AFTER END ════════════════════
+           In this row rather than up in the head, and last in it. The head is
+           where the call says what is true — that it is live, and for how
+           long — and a control among those three readings is a control in the
+           one place on this panel nobody is looking for one. Everything you
+           can PRESS during a call is this row; the chevron is one of those
+           things, so it is here, on the far side of End, where the hand
+           already is in both of the panel's forms.
+
+           Painted only where the call owns the whole width, which is the only
+           place stepping back from it means anything — beside the page there
+           is nothing to step back TO. sales.css decides that, not this. */
+        '<button class="call-min" type="button" data-call-min ' +
+          'aria-expanded="' + (!CALL_MIN) + '" aria-controls="callPanel" aria-label="' +
+          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '" title="' +
+          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '">' +
+          chIcon(CALL_MIN ? 'chev-up' : 'chev-down') + '</button>' +
 
       '</div>';
   }
@@ -22031,6 +22059,15 @@
     const railToggle = t.closest('#railToggle');
     if (railToggle) { railOpen(!byId('appRail').classList.contains('is-open')); return; }
     if (t.closest('#railScrim')) { railOpen(false); return; }
+    if (t.closest('#ovChatsToggle')) {
+      ovChatsOpen(!byId('overlayChats').classList.contains('is-open'));
+      return;
+    }
+    if (t.closest('#ovChatsScrim')) { ovChatsOpen(false); return; }
+    /* Every control in the drawer is a way out of it, and a drawer still
+       standing over the thread it just switched to is one you have to dismiss
+       to read what you asked for — go()'s own words about the rail. */
+    if (t.closest('#overlayChats') && t.closest('button, a[href]')) { ovChatsOpen(false); }
 
     const closeC = t.closest('[data-overlay-close]');
     /* Through `closeCanvas`, not straight at the class. This branch removed
@@ -22380,6 +22417,9 @@
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (byId('appRail').classList.contains('is-open')) { railOpen(false); return; }
+    /* Innermost first: a drawer standing over the canvas is closer to hand
+       than the canvas, so Escape takes it before the surface under it. */
+    if (byId('overlayChats').classList.contains('is-open')) { ovChatsOpen(false); return; }
     if (byId('aimyOverlay').classList.contains('open')) { closeCanvas(); return; }
     /* The notifications panel closes itself on Escape — that is QA's code. */
     if (DB.call) { skipCall(); }
@@ -22585,8 +22625,54 @@
 
   /* ══ 9. BOOT ════════════════════════════════════════════════════════════ */
 
+  /* ══ THE PRODUCT MENU IS THE STRIP, READ BACK ═════════════════════
+     Below 720 layout px the ecosystem strip comes off the masthead and hangs
+     from the mark as a menu (sales.css §THE MASTHEAD BELOW 720). What is in it
+     is not typed out again here: the tabs are shared chrome that the three
+     products carry identically, and a second list of them in this file is the
+     list that drifts the first time one is added. The strip in the markup is
+     the source and this is a second view of it — an <a> stays an <a> and keeps
+     its href, a placeholder <button> stays inert rather than becoming a link
+     to nowhere, and the tab marked active becomes the item marked `is-on`.
+
+     Once, at boot: the strip is static markup and nothing repaints it. */
+  function fillProdMenu() {
+    const menu = byId('prodMenu');
+    const strip = document.querySelector('.topnav-tabs-inner');
+    if (!menu || !strip) return;
+    menu.innerHTML = '<span class="b-menu-cap">Products</span>' +
+      Array.prototype.map.call(strip.children, (tab) => {
+        const on = tab.classList.contains('active');
+        const href = tab.getAttribute('href');
+        const name = '<span class="b-menu-line"><span class="b-menu-name">' +
+          esc(tab.textContent.trim()) + '</span></span>';
+        /* THE ONE YOU ARE ON IS MARKED AND IS NOT A LINK. It came out of the
+           branch below as a plain disabled item with nothing to say it was
+           the current product, because Sales is a <button> in the strip — it
+           has no href for the same reason it needs no link. Marked first, so
+           being here is why it does not press rather than an omission.
+           `is-on` is the menu's own word for it, everywhere else in this
+           build.
+
+           The rest with nowhere to go say so by not being pressable. A menu
+           item that answers a press with nothing teaches you to stop pressing,
+           which is .call-tools' own argument about Record in `ready`. */
+        if (on) {
+          return '<button class="b-menu-item is-on" type="button" role="menuitem" ' +
+            'aria-current="page" disabled>' + name + '</button>';
+        }
+        if (!href) {
+          return '<button class="b-menu-item" type="button" role="menuitem" disabled>' +
+            name + '</button>';
+        }
+        return '<a class="b-menu-item" role="menuitem" href="' + esc(href) + '">' +
+          name + '</a>';
+      }).join('');
+  }
+
   loadUI();
   load();
+  fillProdMenu();
   parse();
   paint();
   /* ══ AND A LINK CAN LAND IN ONE ═══════════════════════════════════════

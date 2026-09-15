@@ -1159,16 +1159,52 @@ body {
   .ver-link { display: none; }
 }
 
-/* ══ AND BELOW 720 THE STRIP TAKES A ROW OF ITS OWN ════════════════════
+/* ══ THE CHEVRON ON THE MARK ══════════════════════════════════
+   The account pill's chevron, in its size and its ink, because it makes the
+   same promise: the thing beside me opens. Quiet — no ground and no border —
+   since it hangs off the brand mark and a boxed control there would read as a
+   second logo. Lit while its menu is open, which `.b-menu-wrap:has()` already
+   says for every other opener in the build.
 
+   `display: none` at every width and painted only in the block above: where
+   the strip is standing, a second way to the same five links is one too many. */
+.prod-chev {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 24px; height: 24px; flex-shrink: 0;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--d400);
+  transition: color var(--t-fast), transform var(--t-fast);
+}
+.prod-chev svg { width: 14px; height: 14px; }
+.prod-chev:hover { color: var(--d100); }
+.prod-chev:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-xs); }
+.prod-anchor:has(.b-menu:not([hidden])) .prod-chev { color: var(--d50); transform: rotate(180deg); }
+/* The menu hangs from the mark, not from the chevron's own 24px box — it is
+   the AiMY mark that owns it, and a 216px card starting 150px in from the
+   left edge of a 459px layout would have nowhere to go but back. */
+/* Against .topnav-logo, not against the chevron's own 24px box: the menu
+   belongs to the MARK, and `left: 0` on a relative logo is that edge
+   exactly, where an offset from the chevron would be a number measured
+   once and wrong the next time the wordmark changes size. */
+.topnav-logo:has(.prod-anchor) { position: relative; }
+/* .topnav-logo .prod-anchor, not .prod-anchor: `.b-menu-wrap` declares
+   `position: relative` in bdr.css, which loads after this file, so at
+   equal specificity the wrap wins and the menu hangs off the chevron
+   again — measured, 160px in from the edge it is supposed to share. */
+.topnav-logo .prod-anchor { position: static; }
+.prod-anchor .b-menu { left: 0; right: auto; }
+@media (prefers-reduced-motion: reduce) { .prod-chev { transition: color var(--t-fast); } }
+
+/* ══ THE MASTHEAD BELOW 720, AND THE STRIP IS NOT ON IT ════════════════
    assets/aimy-responsive.css §4 puts the strip back in flow at 1280 layout so
    it cannot collide with the right-hand cluster, and hands it `overflow-x:
    auto` so the flanks can take what they need. That keeps the masthead from
    OVERLAPPING; it does not keep the strip legible. Measured on the queue at a
    459px layout: the flanks took 320 of it and the strip was left an 111px
-   window onto 356px of tabs — which renders as `ct  Talent`, two half-words in
-   the middle of the masthead, with the tab you are actually on scrolled out of
-   sight. A scroller nobody can see the ends of is not navigation.
+   window onto 356px of tabs — which renders as `ct  Talent`, two half-words
+   in the middle of the masthead, with the tab you are actually on scrolled out
+   of sight. A scroller nobody can see the ends of is not navigation.
 
    720 IS MEASURED, NOT CHOSEN. The flanks are 170 (logo) and 150 (the bell,
    the theme control and the pill) and the strip wants 356. Walking the width
@@ -1176,43 +1212,27 @@ body {
    358, at 682 only 334 — so it stops fitting at about 727, and 720 is this
    file's existing word for the width either side of it.
 
-   TWO ROWS RATHER THAN FEWER TABS. Dropping tabs is what the flanks already
-   do — the version link at 1000, the user's name at 1120 — because each of
-   those has a peer that survives it. The ecosystem strip has none: it is five
-   products and the one you are on, and a masthead that hides the other four
-   has stopped saying what it exists to say. On its own row it fits whole at
-   every width down to 376 layout px, with no scroll and nothing cut.
+   IT MOVES, IT DOES NOT GO. The products hang from the mark as a menu instead
+   — the markup and the reasoning are at index.html's .prod-anchor, and the
+   list is read back off this same strip so there is one of it. A row of its
+   own was the first answer and cost 44px of every phone screen for five links
+   that are a chevron away; this one costs 20.
 
-   --topbar-height IS REDECLARED, AND THAT IS THE LOAD-BEARING HALF. The
+   --topbar-height IS UNTOUCHED HERE, and that is the point of the change: the
    overlay, the rail drawer, its scrim and the notifications panel are all
-   `position: fixed` against this token (sales.css:1265, 1375, 5984, 6005). A
-   masthead that grew without it would have all four starting 44px up inside
-   it. 44 = the 38px pill plus the 6px row gap; the sum is written out so it
-   moves when the pill does. */
+   `position: fixed` against it (sales.css:1265, 1375, 5984, 6005), and a
+   masthead that grew would have moved all four. */
 @media (max-width: 611.98px) { /* 720 layout px */
-  :root { --topbar-height: calc(60px + 44px); }
-  .app-topnav {
-    flex-wrap: wrap;
-    align-content: center;
-    row-gap: 6px;
-    padding: 0 16px 6px;
-  }
-  /* The two spacers exist to spread the flanks around a centred strip. With
-     the strip on its own row there is nothing between them to centre, and two
-     `flex: 1 1 0` boxes on a wrapping row are two more things that can take a
-     line. `margin-left: auto` does the one job they were left doing. */
-  .topnav-spacer { display: none; }
-  .topnav-logo { order: 1; padding-right: 0; margin-right: 0; }
-  .topnav-right { order: 2; margin-left: auto; }
-  /* 100% of the line, so it cannot share one. `justify-content: flex-start`
-     because a strip that fits has no centre to find, and a strip that does
-     not must start at the first tab rather than the middle of the third. */
-  .topnav-tabs {
-    order: 3;
-    flex: 1 0 100%;
-    justify-content: flex-start;
-  }
+  .topnav-tabs { display: none; }
+  .prod-chev { display: inline-flex; }
+  /* The strip was the middle of three flex regions and the two spacers exist
+     to hold it there. With it gone they are two `flex: 1 1 0` boxes splitting
+     the masthead between the mark and the cluster, which is the same job done
+     by one of them. */
+  .topnav-spacer + .topnav-spacer { display: none; }
+  .topnav-logo { padding-right: 0; margin-right: 0; }
 }
+
 
 /* ── The notifications panel ───────────────────────────────────────
    What is still waiting on a person, derived from the same model the
@@ -1656,11 +1676,88 @@ body {
 .ov-chat.is-here .ov-chat-agent { color: var(--d400); }
 .ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 0.5rem; }
 
-/* Below this the column and a readable thread cannot both fit, and the
-   thread is what you came for. */
-@media (max-width: 764.98px) { /* 900 layout px */
-  .overlay-chats { display: none; }
+/* ══ THE DRAWER'S DOOR, AND IT IS THE RAIL TOGGLE'S SKIN ════════════════
+   Not a new control shape: `.rail-toggle` is already this shell's "a column
+   opens over the page here", down to the icon. It sits opposite
+   `.overlay-close` on the same top row of the canvas — the way in on the
+   left, the way out on the right — both absolutely positioned so revealing
+   either never shifts the thread.
+
+   `display: none` at every width, painted only in the block above: where the
+   column is already standing in the row, a button offering to reveal it is a
+   button that does nothing. */
+.ov-chats-toggle {
+  display: none;
+  position: absolute; top: 16px; left: 16px; z-index: 40;
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
+.ov-chats-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.ov-chats-toggle:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.ov-chats-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .ov-chats-toggle { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .ov-chats-toggle:hover { background: rgba(16,24,40,0.07); }
+/* Present at every width, painted at none of them until the drawer exists. */
+.ov-chats-scrim { display: none; }
+
+/* ══ BELOW 900 THE COLUMN IS A DRAWER, NOT A DELETION ══════════════════
+   This was `display: none`, on the reasoning that the column and a readable
+   thread cannot both fit and the thread is what you came for. The first half
+   is true and the second does not follow: the column is New chat, the search,
+   the thread belonging to what you have open, and every free-standing session
+   — so removing it left the canvas talkable-to and not navigable, on the
+   screens with the least room to remember what you had already asked.
+
+   THE RAIL ALREADY ANSWERED THIS, at 1080 and in these words: it stops taking
+   room in the row and starts opening over it. Same `is-open` class, same
+   scrim, same button skin, same `visibility` rather than `display` so a shut
+   drawer is out of the tab order and still has something to animate. One
+   drawer mechanism in this shell, not two.
+
+   ABSOLUTE, NOT FIXED, which is the one line that differs from the rail's.
+   `.aimy-overlay` is itself fixed and, below 720, inset under the masthead
+   and any minimised call — so a drawer positioned against the viewport would
+   start above the surface it belongs to. Against its own overlay it cannot. */
+@media (max-width: 764.98px) { /* 900 layout px */
+  .ov-chats-toggle { display: inline-flex; }
+
+  .overlay-chats {
+    position: absolute; z-index: 30;
+    top: 0; bottom: 0; left: 0;
+    /* --vp-w, not 100dvw: inside `zoom: k` a viewport unit is k viewports
+       wide. The 56px it leaves is the strip of thread behind that says the
+       drawer is over something. */
+    width: min(280px, calc(var(--vp-w) - 56px));
+    background: var(--panel-bg);
+    box-shadow: var(--shadow-xl);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transform: translateX(-100%); visibility: hidden;
+  }
+  .overlay-chats.is-open { transform: none; visibility: visible; }
+
+  .ov-chats-scrim {
+    display: block;
+    position: absolute; z-index: 20; inset: 0;
+    background: rgba(10, 14, 18, 0.5);
+    opacity: 0; pointer-events: none;
+  }
+  .ov-chats-scrim.is-open { opacity: 1; pointer-events: auto; }
+}
+:root[data-theme="light"] .ov-chats-scrim { background: rgba(16, 24, 40, 0.28); }
+
+/* The start state lives inside the motion query and the end state outside it
+   — this file's own pattern, and the rail's. */
+@media (prefers-reduced-motion: no-preference) {
+  .overlay-chats { transition: transform 220ms var(--ease-out), visibility 220ms; }
+  .overlay-chats.is-open { transition: transform 220ms var(--ease-out), visibility 0s; }
+  .ov-chats-scrim { transition: opacity 220ms var(--ease-out); }
+}
+
 
 /* Fixed and centred on the WINDOW, not on the main column. Centring inside
    .app-main puts it half the rail's width right of the page's true centre —
@@ -5612,31 +5709,30 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .app-call[hidden] { display: none; }
 
 .call-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-/* ══ THE WAY BACK TO THE PAGE, AND IT IS THE BELL'S SKIN ══════════════════
-   Not a new control shape — .topnav-bell and .rail-toggle are already this
-   product's icon button, and .rail-toggle is already the one that means "a
-   shell region changes form here". Same 34px box, same wash, same border, in
-   both themes. `margin-left: auto` puts it at the end of the head, away from
-   the clock, which is the only thing in that row you read at a glance.
+/* ══ THE WAY BACK TO THE PAGE, AND IT IS .call-tool's SKIN ═══════════════
+   It sits in .call-tools, last, past End — that row is everything you can
+   press during a call, and the head above it is the three things the call is
+   SAYING. So it wears what the rest of that row wears: Record, Mute and Hold
+   are 44px circles for the reason written on .call-tool, which is that a
+   thumb finds a 44px circle without looking, and that reason is not weaker
+   for the control that puts the call away.
 
    `display: none` at every width and painted only in the narrow block below:
    above it the page is beside the call already, and a control offering to
-   reveal something on screen is a control that does nothing. */
+   reveal something already on screen is a control that does nothing. */
 .call-min {
   display: none;
-  margin-left: auto; flex-shrink: 0;
-  width: 34px; height: 34px; border-radius: var(--r-md);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  flex: 0 0 auto;
   align-items: center; justify-content: center;
-  color: var(--d400); cursor: pointer;
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  width: 44px; height: 44px;
+  border-radius: 50%; border: 1px solid var(--card-border);
+  background: none;
+  color: var(--d200); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
 }
-.call-min svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
-.call-min:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.call-min svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+.call-min:hover { background: var(--accent-dim); color: var(--d50); }
 .call-min:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-:root[data-theme="light"] .call-min { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
-:root[data-theme="light"] .call-min:hover { background: rgba(16,24,40,0.07); }
 /* The live dot pulses. It is the one thing on this surface that is true
    right now rather than true as of the last paint, and motion is how that
    reads without a word for it. */
@@ -5955,9 +6051,13 @@ body.is-calling .overlay-chats { display: none; }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   body.is-call-min .call-head { flex: 0 0 auto; flex-wrap: nowrap; }
-  body.is-call-min .call-min { margin-left: 0; }
-  body.is-call-min .call-tools { margin: 0 0 0 auto; flex-wrap: nowrap; }
+  body.is-call-min .call-tools { margin: 0 0 0 auto; flex-wrap: nowrap; gap: 8px; }
+  /* Folded, both controls come down to the strip's own height. 34 is the
+     masthead's icon button, which is what this row is beside once the panel
+     is a bar under it. */
   body.is-call-min .call-end { padding: 0 14px; height: 34px; }
+  body.is-call-min .call-min { width: 34px; height: 34px; }
+  body.is-call-min .call-min svg { width: 16px; height: 16px; }
 }
 
 /* The brief AiMY writes before the call. */
