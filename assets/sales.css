@@ -723,6 +723,13 @@ button {
      green. Jakob's Law, which this build already cites for the handset
      glyphs themselves.
 
+     ANSWER, NOT START. `--answer-fill` is for a phone that is RINGING —
+     the banner's circle, and nothing else so far. `.call-go` in the rail
+     is `--brand` and stays there: you chose that person off a queue and
+     pressed when you were ready, so it borrows no urgency it has not
+     earned. `--hangup-fill` has no such split; ending a live call and
+     refusing one that is ringing are the same red.
+
      Declared here rather than in aimy-ds.css because a product may name
      what it needs and may not re-theme the family — same rule the
      `--accent` revert above states. The library has no green like this
@@ -5719,11 +5726,24 @@ body.is-calling { --fb-reserve: var(--call-width); }
 
    Brand rather than error, because opening a line is not the irreversible
    half. Ending one is. */
-.call-go, .call-go:hover { border-color: var(--answer-fill); }
-.call-go { background: var(--answer-fill); }
-/* Darkens rather than lightens. The green sits close to its contrast
-   floor against the white glyph, so a lighter hover pushes it under. */
-.call-go:hover { background: color-mix(in srgb, var(--answer-fill) 88%, #000); }
+/* ══ DIALLING IS NOT ANSWERING, AND ONLY ONE OF THEM IS GREEN ═══════════
+   This was green for a while, on the argument that answer and start are
+   the same verb in two places. They are not. Green is what a RINGING
+   phone offers — Jakob's Law, the banner's two circles, a decision
+   somebody else started and you have seconds to make. Nothing is ringing
+   here. You picked this person off a queue, read their brief, and pressed
+   a button when you were ready; the pressure is entirely yours and the
+   colour should not borrow urgency the moment does not have.
+
+   So it is back to brand, which is also the note directly above: opening
+   a line is not the irreversible half. Ending one is, and that is the
+   only control in this panel wearing an alarm. */
+.call-go, .call-go:hover { border-color: var(--brand); }
+.call-go { background: var(--brand); }
+/* Darkens rather than lightens. White on brand is 4.56:1 against the
+   14px bold label — over the 4.5 floor and not by much — so the hover
+   this rule used to lighten toward #fff would have taken it under. */
+.call-go:hover { background: color-mix(in srgb, var(--brand) 88%, #000); }
 
 /* ── What the rest of the shell does while a call is up ──
    The canvas clears the panel rather than covering it: the prep thread and

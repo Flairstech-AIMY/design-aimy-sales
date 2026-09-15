@@ -4509,9 +4509,14 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 
    Green answers and red refuses because every phone anybody has held for
    twenty years does, which is the same Jakob's Law argument this component
-   already makes for the handset glyphs themselves. `.call-end` and
-   `.call-go` in the rail were repointed at the same two, so the verb is the
-   colour whether you placed the call or picked it up.
+   already makes for the handset glyphs themselves.
+
+   THE GREEN IS THIS SURFACE'S ALONE, and that is the point of it. `.call-go`
+   in the rail is brand, because dialling somebody you picked off a queue
+   after reading their brief is not the same act as a phone going off in
+   front of you. Green is the colour of a decision somebody else started.
+   `.call-end` IS `--hangup-fill`, though: ending a live call and refusing
+   one that is ringing are the same verb, so they are the same red.
 
    Both live in sales.css beside `--ok-text` and its siblings — product-local
    names, not a re-theme of the family — and both are pinned by contrast
