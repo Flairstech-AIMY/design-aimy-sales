@@ -2302,6 +2302,11 @@
     touchesOf: Object.create(null),
     membersOf: Object.create(null),
     byMgr: Object.create(null),
+    /* The same index read the other way: what a lead is being SOLD, rather
+       than who was handed it. Built beside `byMgr` under the same guard,
+       because a lead nobody has handed over yet is not on anybody's book by
+       either reading. Rebuilt by `reindex`. */
+    byLine: Object.create(null),
     /* digits -> contact id. The only index that goes from a NUMBER to a
        person, and the only one an inbound call can use. Rebuilt by
        `reindex`. */
@@ -2376,6 +2381,7 @@
     DB.membersOf = Object.create(null);
     DB.consOf = Object.create(null);
     DB.byMgr = Object.create(null);
+    DB.byLine = Object.create(null);
     DB.byPhone = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
@@ -2408,11 +2414,14 @@
       if (c.phone) DB.byPhone[phoneKey(c.phone)] = c.id;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
       c.camps.forEach((k) => DB.membersOf[k] && DB.membersOf[k].push(c.id));
-      /* Whose desk it landed on. Only handed-over leads are on one — before
-         that the lead is the caller's and no manager has it yet. */
+      /* Whose desk it landed on, and what it is selling. Only handed-over
+         leads are on either — before that the lead is the caller's, and no
+         manager has it and no product line has earned it. */
       if (c.checkpoint === 'handed-over') {
         const m = mgrOf(c);
         (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
+        const ln = lineOf(dealCamp(c));
+        if (ln) (DB.byLine[ln] || (DB.byLine[ln] = [])).push(c.id);
       }
     });
     DB.touch.forEach((t) => {
@@ -2552,12 +2561,28 @@
     if (!on.length) return null;
     return on.length === 1 ? 'On ' + campName(on[0]) : 'On ' + plural(on.length, 'campaign');
   }
-  /* A BDR is on a campaign; a manager owns it. The same word, because it is
-     the same question — is this mine to work — and every surface that asks it
-     (the switcher's count, the campaign list, the guard on a campaign page,
-     the tag a queue card carries) gets the right answer without knowing who
-     is asking. */
-  const mine = (c) => (onBook() ? c.owner === me().id : c.crew.indexOf(me().id) >= 0);
+  /* ══ WHAT A DESK IS BOUNDED BY ═════════════════════════════════════════
+     A manager's book is who was handed the lead. A stakeholder's is what the
+     campaign was selling — the FIRST thing it sells, and that choice is load
+     bearing: `byLine` groups Financials on exactly that key, so what this
+     desk totals and what the manager's report says about AiMY QA are the
+     same arithmetic and cannot come out different.
+
+     A campaign carrying QA second is therefore NOT his, and that is the
+     trade: the wider reading would be truer to what is being pitched and
+     would put two numbers for one product on two screens of one build. */
+  const myLine = () => me().sell || null;
+  const lineOf = (k) => (k && k.sells && k.sells.length ? k.sells[0] : null);
+  const onLine = (k) => !!myLine() && lineOf(k) === myLine();
+  /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
+     what it sells. The same word for all three, because it is the same
+     question — is this mine to work — and every surface that asks it (the
+     switcher's count, the campaign list, the guard on a campaign page, the
+     tag a queue card carries) gets the right answer without knowing who is
+     asking. */
+  const mine = (c) => (isLine() ? onLine(c)
+    : onBook() ? c.owner === me().id
+    : c.crew.indexOf(me().id) >= 0);
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
   /* ══ PAST ITS END DATE IS CLOSED ═══════════════════════════════════════
      Whatever its state says — the seed's dates drift as real days pass. A
@@ -6563,7 +6588,11 @@
   }
   /* The deals themselves, which is a different question from the scope: the
      book is what he is selling, the scope is everyone the book came out of. */
-  const dealBook = () => (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+  /* The ids this desk's book is made of. Two surfaces read it — the money
+     and the board — and a second spelling of the same ternary is how they
+     would come to disagree about what the book is. */
+  const bookIds = () => (isLine() ? DB.byLine[myLine()] : DB.byMgr[me().id]) || [];
+  const dealBook = () => bookIds().map((id) => DB.byCon[id]).filter(Boolean);
   /* Before the hand-over a lead is the caller's and has no stage, so asking
      `stageOf` about one answers Not met for six hundred people who are
      not deals. This is the guard. */
@@ -14861,7 +14890,7 @@
     return 3;
   }
   function dealQueue(campId, bucket) {
-    let out = (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+    let out = bookIds().map((id) => DB.byCon[id]).filter(Boolean);
     if (campId) out = out.filter((c) => c.camps.indexOf(campId) >= 0);
     if (bucket && bucket !== 'all') out = out.filter((c) => stageOf(c) === bucket);
     /* What is owed, then what it is worth having, then when it lands. The
