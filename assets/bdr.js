@@ -661,6 +661,18 @@
        when a campaign has no owner of its own. */
     { id: 'nadia',  name: 'Nadia Fouad',   initials: 'NF', fn: 'sales-manager' },
     { id: 'hazem',  name: 'Hazem Saad',    initials: 'HS', fn: 'sales-manager' },
+    /* The one person here who does not work a book. A stakeholder owns one
+       of the eight things we sell and answers for it wherever it is sold, so
+       `sell` is the whole of what makes him different — singular, because
+       `c.sell` on a record already means the product this is for and a second
+       spelling would drift.
+
+       APPENDED, LIKE THE TWO ABOVE, BUT FOR A DIFFERENT REASON: this one
+       could go anywhere. Every reader of this array filters on `fn` — `BDRS`,
+       `MANAGERS`, the seed's callers, `workingHeads`, `payrollRows` — and a
+       function none of them names is a row none of them draw. The seed cursor
+       does not move and no count in the corpus changes. */
+    { id: 'sherif', name: 'Sherif Amin',   initials: 'SA', fn: 'stakeholder', sell: 'qa' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -693,27 +705,45 @@
     for (let s = 0; s < seats; s++) MGR_SEATS.push(r);
   });
   const DEFAULT_ME = 'engy';
-  /* ══ TWO DESKS, NINE PEOPLE ════════════════════════════════
+  /* ══ THREE DESKS, TWO READINGS ═════════════════════════════════════════
      The control in the bar is a PERSONA switcher and it was listing a
      roster. Nine names in it claimed the product has nine points of view; it
-     has two — a caller working a queue, and a manager working the book that
-     queue produces — and `isMgr` is the only predicate any surface reads.
+     had two — a caller working a queue, and a manager working the book that
+     queue produces. The third does not add a third READING: a stakeholder
+     works the same book a manager does, bounded by what the campaign was
+     selling rather than by who was handed the lead.
+
      Omar's desk and Mariam's are the same desk as Engy's, rendered with a
      different face, so seven of the nine rows were a promise of variety the
      build cannot keep and the eighth press proved it.
 
-     THE OTHER SEVEN DO NOT GO ANYWHERE. They own campaigns, they fill the
+     THE ONES WITHOUT A DESK DO NOT GO ANYWHERE. They own campaigns, they fill the
      team stacks, their hours are priced in the Financials cost list, their
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina'];
+  const DESKS = ['engy', 'lina', 'sherif'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
-     that queue has already produced. One predicate, read everywhere, so no
-     surface has to be told twice which desk it is being read from. */
+     that queue has already produced. `onBook` is that one predicate, read
+     everywhere, so no surface has to be told twice which half it draws.
+
+     IT WAS CALLED `isMgr`, AND THE RENAME IS THE POINT. A stakeholder
+     answers yes at all seventy of its call sites, and a predicate named for
+     a job title answering yes for somebody who does not hold it is the same
+     silent lie `parse()` refuses two thousand lines down when it says `as`
+     names a desk and not a person.
+
+     `isMgr` is KEPT, strictly, for the two controls that mean the OWNER
+     rather than the reading: the cross that takes you off a campaign's crew,
+     and whose name sits on a campaign that is not yours. A stakeholder owns
+     no campaign, so both answer no for him without being told about him. */
+  const onBook = () => me().fn !== 'bdr';
   const isMgr = () => me().fn === 'sales-manager';
+  /* Which of the two book desks this is. A manager's book is who was handed
+     the lead; a stakeholder's is what the campaign was selling. */
+  const isLine = () => me().fn === 'stakeholder';
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -1969,6 +1999,7 @@
        this come from" had two possible answers and needed three. */
     {
       const HIST_N = 22;
+      const QA_N = 8;
       const of = (arr, h) => arr[Math.abs(h) % arr.length];
       /* Finished campaigns first: old business belongs to a campaign that
          has ended. Never one the caller is crewed on. */
@@ -1977,9 +2008,66 @@
       const homes = shut.length ? shut.concat(notHers) : (notHers.length ? notHers : camp);
       const callers = REPS.filter((x) => x.fn === 'bdr');
 
-      for (let i = 0; i < HIST_N; i++) {
+      /* ══ ONE PRODUCT LINE HAD TO HAVE A SECOND CAMPAIGN ════════════════
+         Ten campaigns over eight things to sell leaves three of the eight
+         with no campaign at all, and which three is the dice: on this seed
+         AiMY Voice, managed support and the back office are sold nowhere,
+         and AiMY QA is sold on exactly one. A desk that answers for a
+         product cannot be shown on a corpus where the product might not be
+         sold, and one campaign is a line with nothing to compare against.
+
+         THE FIX IS NOT TO RE-ROLL. Raising the campaign count or weighting
+         the draw fixes the same thing and moves every count on both working
+         desks to do it. So this is one campaign, appended, on exactly the
+         terms the deals below it are already appended on: keyed on `hash`,
+         `r()` not called once, so everything above this line is what it was.
+
+         It is drawn AFTER `homes`, which is a filtered copy rather than a
+         view — so the twenty-two deals that were landing on the old
+         campaigns still land on exactly those, and the hash is keyed per
+         iteration, so adding iterations cannot move the ones before them.
+
+         Hazem owns it and Engy is not on the crew, which is what keeps the
+         two desks somebody reads at the counts they had: `mine()` is
+         ownership on one and crew on the other, and this answers no to
+         both. It is old business rather than a calling campaign — its
+         people arrive below as deals already handed over, which is what a
+         product owner has a second campaign FOR. */
+      const qaOwner = MANAGERS[MANAGERS.length - 1];
+      const qaHome = {
+        id: 'c' + camp.length,
+        name: SELL.qa.name + ' — Benelux',
+        client: null,
+        target: { n: 18, noun: 'meeting' },
+        persona: {
+          who: ASK_OF.qa,
+          at: 'software companies with more than 500 staff in Benelux',
+          why: WHY_NOW.qa,
+        },
+        goal: 'A scoping call with ' + ASK_OF.qa + ', with somebody in the room who can sign',
+        pitch: 'They are in Benelux, and they are running this with people rather than with '
+          + 'a system. ' + SELL.qa.name + ' is ' + SELL.qa.blurb + '. Open on what it costs '
+          + 'them today, not on what we do.',
+        sells: ['qa'],
+        objections: ['pricing', 'timing'].map((x) => ({ k: x, say: ANSWERS[x] })),
+        resources: [
+          { name: SELL.qa.name + ' — one pager', kind: 'deck' },
+          { name: 'What it costs, and against what', kind: 'pricing' },
+          { name: 'Software case study', kind: 'case' },
+        ],
+        from: dayAdd(-148),
+        to: dayAdd(44),
+        owner: qaOwner.id,
+        crew: BDRS.filter((b) => b.id !== DEFAULT_ME).slice(0, 2).map((b) => b.id),
+        state: 'running',
+        industry: 'software',
+        region: 'benelux',
+      };
+      camp.push(qaHome);
+
+      for (let i = 0; i < HIST_N + QA_N; i++) {
         const h = Math.abs(hash('hist:' + i));
-        const k = of(homes, h);
+        const k = i < HIST_N ? of(homes, h) : qaHome;
         const a = of(acc, h >> 3);
         const mgr = k.owner || MANAGERS[0].id;
         /* Two to nine months back, which is the window his own book's
@@ -2272,6 +2360,11 @@
     touchesOf: Object.create(null),
     membersOf: Object.create(null),
     byMgr: Object.create(null),
+    /* The same index read the other way: what a lead is being SOLD, rather
+       than who was handed it. Built beside `byMgr` under the same guard,
+       because a lead nobody has handed over yet is not on anybody's book by
+       either reading. Rebuilt by `reindex`. */
+    byLine: Object.create(null),
     /* digits -> contact id. The only index that goes from a NUMBER to a
        person, and the only one an inbound call can use. Rebuilt by
        `reindex`. */
@@ -2346,6 +2439,7 @@
     DB.membersOf = Object.create(null);
     DB.consOf = Object.create(null);
     DB.byMgr = Object.create(null);
+    DB.byLine = Object.create(null);
     DB.byPhone = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
@@ -2378,11 +2472,14 @@
       if (c.phone) DB.byPhone[phoneKey(c.phone)] = c.id;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
       c.camps.forEach((k) => DB.membersOf[k] && DB.membersOf[k].push(c.id));
-      /* Whose desk it landed on. Only handed-over leads are on one — before
-         that the lead is the caller's and no manager has it yet. */
+      /* Whose desk it landed on, and what it is selling. Only handed-over
+         leads are on either — before that the lead is the caller's, and no
+         manager has it and no product line has earned it. */
       if (c.checkpoint === 'handed-over') {
         const m = mgrOf(c);
         (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
+        const ln = lineOf(dealCamp(c));
+        if (ln) (DB.byLine[ln] || (DB.byLine[ln] = [])).push(c.id);
       }
     });
     DB.touch.forEach((t) => {
@@ -2522,12 +2619,33 @@
     if (!on.length) return null;
     return on.length === 1 ? 'On ' + campName(on[0]) : 'On ' + plural(on.length, 'campaign');
   }
-  /* A BDR is on a campaign; a manager owns it. The same word, because it is
-     the same question — is this mine to work — and every surface that asks it
-     (the switcher's count, the campaign list, the guard on a campaign page,
-     the tag a queue card carries) gets the right answer without knowing who
-     is asking. */
-  const mine = (c) => (isMgr() ? c.owner === me().id : c.crew.indexOf(me().id) >= 0);
+  /* ══ WHAT A DESK IS BOUNDED BY ═════════════════════════════════════════
+     A manager's book is who was handed the lead. A stakeholder's is what the
+     campaign was selling — the FIRST thing it sells, and that choice is load
+     bearing: `byLine` groups Financials on exactly that key, so what this
+     desk totals and what the manager's report says about AiMY QA are the
+     same arithmetic and cannot come out different.
+
+     A campaign carrying QA second is therefore NOT his, and that is the
+     trade: the wider reading would be truer to what is being pitched and
+     would put two numbers for one product on two screens of one build. */
+  const myLine = () => me().sell || null;
+  const lineOf = (k) => (k && k.sells && k.sells.length ? k.sells[0] : null);
+  const onLine = (k) => !!myLine() && lineOf(k) === myLine();
+  /* Whose these are, in the desk's own terms. A manager runs them; a
+     stakeholder is answering for what they sell, and "you are running" on
+     his desk is a claim about somebody else's work. Written once, because
+     three surfaces say it and three spellings would drift. */
+  const bookWhose = () => (isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
+  /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
+     what it sells. The same word for all three, because it is the same
+     question — is this mine to work — and every surface that asks it (the
+     switcher's count, the campaign list, the guard on a campaign page, the
+     tag a queue card carries) gets the right answer without knowing who is
+     asking. */
+  const mine = (c) => (isLine() ? onLine(c)
+    : onBook() ? c.owner === me().id
+    : c.crew.indexOf(me().id) >= 0);
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
   /* ══ PAST ITS END DATE IS CLOSED ═══════════════════════════════════════
      Whatever its state says — the seed's dates drift as real days pass. A
@@ -2575,7 +2693,7 @@
      a comment saying exactly this; it is a function now, so the two desks
      cannot drift apart again. */
   const ringable = (c) => !!c.phone && !c.dnc;
-  const canRing = (c) => (isMgr() ? ringable(c) : callable(c));
+  const canRing = (c) => (onBook() ? ringable(c) : callable(c));
 
   /* ══ A MEETING THAT HAS PASSED IS A QUESTION ═══════════════════════════
      Once a meeting is booked they leave the queue; once its day has gone
@@ -2634,9 +2752,10 @@
        agree — a key that silently means something other than what it says is
        the thing this whole scheme exists to avoid. */
     if (S.as && DESKS.indexOf(S.as) < 0) {
-      S.as = (REP[S.as] || {}).fn === 'sales-manager' ? 'lina' : '';
+      const fn = (REP[S.as] || {}).fn;
+      S.as = fn === 'sales-manager' ? 'lina' : fn === 'stakeholder' ? 'sherif' : '';
     }
-    if (S.on === 'deals' && !isMgr()) S.on = 'calls';
+    if (S.on === 'deals' && !onBook()) S.on = 'calls';
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -2864,7 +2983,7 @@
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
     /* At the caller's desk the tag is the step; at the manager's it is the
        stage, because the step stopped moving at the hand-over. */
-    const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
+    const r = onBook() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
        in order, 30ms apart, capped at the eighth so the last of fifteen is
        not made to wait a quarter of a second — and a repaint never runs the
@@ -2888,7 +3007,7 @@
       '<div class="b-qcard-top">' +
         '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
           esc(c.name) + '</button>' +
-        (isMgr() && a ? tierMark(a) : '') +
+        (onBook() && a ? tierMark(a) : '') +
       '</div>' +
       /* Two elements, not one with a break in it. Who they are and where they
          work are different ranks — the role is the thing you open on, the
@@ -2952,7 +3071,7 @@
          board made and for the same reason: a ranked sentence with its own
          verb underneath does not also need to name the table it read. */
       (function () {
-        if (isMgr()) return aimyBlock(dealSays(c), true);
+        if (onBook()) return aimyBlock(dealSays(c), true);
         const said = aimySays(c);
         const why = whyLine(c);
         if (!said) return why ? aimyBlock({ text: why + '.' }, true) : '';
@@ -2977,14 +3096,14 @@
            a target instead of one at a time.
 
            The caller's number stays: a phone number IS the next press. */
-        (isMgr() ? ''
+        (onBook() ? ''
           : '<span class="b-qcard-num b-fact">' + chIcon('phone') + '<span>' +
             (c.phone ? esc(c.phone) : 'No number') + '</span></span>') +
         /* Only the first card is filled. Fifteen identical primaries is
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
            the only filled thing on the surface. */
-        (isMgr()
+        (onBook()
           /* The verb that answers the reading above it, rather than Open on
              every card — which is what pressing the card already does. */
           ? (function () {
@@ -4034,7 +4153,7 @@
     }
     const q = queue();
     const camps = myCampaigns();
-    if (isMgr()) {
+    if (onBook()) {
       const live = q.filter(dealLive);
       const now = live.filter((c) => dealRank(c) <= 2);
       /* What is in the diary between now and this day next week. The pill
@@ -4047,7 +4166,7 @@
           state: now.length ? 'staged' : 'detected',
           text: now.length
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
-              ' something today, out of the <b>' + commas(live.length) + '</b> you are running.'
+              ' something today, out of the <b>' + commas(live.length) + '</b> ' + bookWhose() + '.'
             : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
           evidence: [{ val: commas(week), cap: 'in the diary this week' },
             { val: camps.length, cap: 'campaigns' }],
@@ -4419,7 +4538,7 @@
       (n === null ? '' :
         '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
     return '<h2 class="b-switch">' +
-      (isMgr()
+      (onBook()
         /* ══ BOTH, BECAUSE THEY ARE TWO DIFFERENT QUESTIONS ═════════════
            The gate under Today answers "what is on today" without leaving
            the page, which is the right shape for a glance and the reason it
@@ -4503,7 +4622,7 @@
         '</div>' +
       '</div>' +
       /* Only this desk has a day and a book to stand here. */
-      (isMgr() ? railDoors() : '') +
+      (onBook() ? railDoors() : '') +
       /* ══ THE QUIETER OF THE TWO WAYS INTO THE CONSOLE ══════════════════
          Knowledge's own note on the same control: the corner button is the
          one that gets found, this is the one that gets used, because it sits
@@ -4557,7 +4676,7 @@
     const p = me();
     byId('userAvatar').innerHTML = faceOf(p.id, 28);
     byId('userName').textContent = p.name;
-    byId('userRole').textContent = JOB[p.fn];
+    byId('userRole').textContent = jobSay(p);
     byId('asPanel').innerHTML = '<span class="b-menu-cap">Looking as</span>' +
       /* A TICK IS FOR THINGS YOU CHOOSE SEVERAL OF. This is one desk at a
          time — you are either at it or you are not — so the row you are on
@@ -4570,7 +4689,7 @@
           faceOf(r.id, 24) +
           '<span class="b-menu-line">' +
             '<span class="b-menu-name">' + esc(r.name) + '</span>' +
-            '<span class="b-menu-sub">' + esc(JOB[r.fn]) + '</span>' +
+            '<span class="b-menu-sub">' + esc(jobSay(r)) + '</span>' +
           '</span>' +
         '</button>').join('');
   }
@@ -4784,7 +4903,7 @@
               '<span class="b-owed-go">' + esc(t.cta) + '</span>' +
             '</button>').join('') + '</div>'
         : '<p class="s-block-sub">Nothing is waiting on you. The board has the ' +
-          plural(live.length, 'deal') + ' you are running.</p>') +
+          plural(live.length, 'deal') + ' ' + bookWhose() + '.</p>') +
     '</section>';
   }
 
@@ -4797,7 +4916,7 @@
   }
 
   function homePage() {
-    if (isMgr()) return mgrHome();
+    if (onBook()) return mgrHome();
     const q = queue();
     const all = queue(null, 'all');
     const camps = myCampaigns();
@@ -4849,7 +4968,7 @@
       '<div class="s-lead-line">' +
         '<span class="s-lead-n">' + esc(euro(sum(live))) + '</span>' +
         '<span class="s-lead-say">still open, across <span class="s-lead-of">' +
-          commas(live.length) + '</span> deals you are running.</span>' +
+          commas(live.length) + '</span> deals ' + bookWhose() + '.</span>' +
       '</div>' +
       '<p class="s-lead-deck">' +
         (bits.length ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.'
@@ -4985,7 +5104,7 @@
   let MGR_UNREC = Object.create(null);
   function unrecIndex() {
     MGR_UNREC = Object.create(null);
-    if (isMgr()) unrecorded().forEach((m) => { if (m.con) MGR_UNREC[m.con.id] = m; });
+    if (onBook()) unrecorded().forEach((m) => { if (m.con) MGR_UNREC[m.con.id] = m; });
   }
 
   /* ══ A TALLY IS NOT A THING TO DO ══════════════════════════════════════
@@ -6080,7 +6199,23 @@
   let CUST_CACHE = null;
   function customers() {
     if (CUST_CACHE) return CUST_CACHE;
-    CUST_CACHE = DB.acc.filter(isCust)
+    /* ══ A LINE'S BOOK IS WHO BOUGHT THAT LINE ════════════════════
+       The chip read 33 on a QA owner's board — every customer the company
+       has, most of them running things he does not answer for. Who renews
+       managed support is not his to chase.
+
+       `subsAt` is deliberately NOT scoped with it. It is the truth about
+       what a company runs, and every account page, the cross-sell and
+       `openingAt` read it — hide the rest of what they buy and the page
+       starts offering them something they already have. So the BOOK is
+       filtered and the record stays whole, which also means the worth on a
+       card is what the company pays us in total rather than what it pays
+       for this line. That is a fact about the company, said on a shelf of
+       companies that all run his product. */
+    const inBook = isLine()
+      ? (a) => subsAt(a).some((s) => s.sell === myLine())
+      : isCust;
+    CUST_CACHE = DB.acc.filter(inBook)
       .sort((x, y) => custRank(x) - custRank(y) || custWorth(y) - custWorth(x));
     return CUST_CACHE;
   }
@@ -6532,7 +6667,11 @@
   }
   /* The deals themselves, which is a different question from the scope: the
      book is what he is selling, the scope is everyone the book came out of. */
-  const dealBook = () => (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+  /* The ids this desk's book is made of. Two surfaces read it — the money
+     and the board — and a second spelling of the same ternary is how they
+     would come to disagree about what the book is. */
+  const bookIds = () => (isLine() ? DB.byLine[myLine()] : DB.byMgr[me().id]) || [];
+  const dealBook = () => bookIds().map((id) => DB.byCon[id]).filter(Boolean);
   /* Before the hand-over a lead is the caller's and has no stage, so asking
      `stageOf` about one answers Not met for six hundred people who are
      not deals. This is the guard. */
@@ -6787,14 +6926,32 @@
      learned something they cannot get anywhere else. Stated, never quietly
      rolled into a total. */
   function unlogged(p, heads) {
-    const rows = heads === 0 ? [] : payrollRows(p);
-    const payroll = rows.reduce((n, r) => n + r.cost, 0);
     const on = Object.create(null);
     campaignCosts(p).forEach((c) => c.crew.forEach((m) => {
       const r = on[m.id] || (on[m.id] = { hours: 0, cost: 0 });
       r.hours += m.hours; r.cost += m.cost;
     }));
     const logged = Object.keys(on).reduce((n, k) => n + on[k].cost, 0);
+    /* ══ A LINE HAS NO PAYROLL. IT HAS HOURS. ════════════════════════════
+       A desk pays the floor whether or not it is working, which is why the
+       group this feeds is what people are PAID and its sub-line says how
+       much of that landed on campaigns. Nobody is paid to be on a product.
+       What a line costs in people is the hours that went on it, priced — so
+       the rows are whoever worked it rather than the whole roster, and the
+       two figures a manager's block holds apart are one figure here.
+
+       It returns rows now where it used to return none. `heads === 0` has
+       meant "labour is the logged hours and not a payroll" since
+       `bookMoney` read it that way; this is the same sentence said about
+       the people rather than about the total, and it is what puts the
+       Salaries block back on a product desk instead of removing it. */
+    const rows = heads === 0
+      ? Object.keys(on).map((id) => ({ id: id, name: actor(id).name,
+        fn: (REP[id] || {}).fn, rate: RATE[(REP[id] || {}).fn] || 0,
+        hours: on[id].hours, cost: on[id].cost }))
+        .filter((r) => r.fn && r.cost > 0).sort((a, b) => b.cost - a.cost)
+      : payrollRows(p);
+    const payroll = rows.reduce((n, r) => n + r.cost, 0);
     return {
       payroll: payroll, logged: logged, pc: payroll ? logged / payroll : null,
       people: rows.map((r) => Object.assign({}, r, { onCamp: on[r.id] || { hours: 0, cost: 0 } })),
@@ -6957,8 +7114,33 @@
      because a target is a commitment and a commitment is not a consequence
      of the work. */
   const TARGET_QUARTER = 300e3;
+
+  /* ══ THE SAME POT, CUT THE OTHER WAY ═══════════════════════════════════
+     A desk's target is what one person carries. A product line's is what
+     one thing is expected to sell, and it is the same money counted along
+     the other axis — the eight below sum to €900k, which is the three desks
+     at €300k each. Whoever sold it and whatever it was, the quarter is one
+     commitment, and `byLine` against `byMgr` is that duality everywhere
+     else in this file.
+
+     SET, NOT DERIVED, for the reason stated directly above: a target is a
+     commitment and a commitment is not a consequence of the work. These
+     are eight decisions. They sit in the order of the price book and they
+     rank with it — engineering teams carry the most because they cost the
+     most, Knowledge the least — but no line of code derives one from the
+     other, because the day finance moves one it moves alone.
+
+     This is what lets a product desk draw the bar, the shortfall and the
+     pace the manager's desk draws. Without it those four figures were
+     measuring one of eight lines against a whole desk's number, which is
+     why they were not drawn at all. */
+  const TARGET_LINE = {
+    voice: 100e3, qa: 85e3, know: 70e3, support: 140e3,
+    test: 115e3, eng: 195e3, data: 90e3, back: 105e3,
+  };
   const PERIOD_QUARTERS = { q: 1, lq: 1, y: 4, r12: 4 };
-  const targetFor = (p) => TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
+  const targetFor = (p) => (isLine() && TARGET_LINE[myLine()] != null
+    ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
 
   /* Attainment is measured against the WHOLE period's target even when the
      period is part-finished — you are judged on the quarter, not on the
@@ -7270,7 +7452,7 @@
        A book and a target are things a desk is given. This one has neither,
        and the honest page says so and points at the work she does have —
        the same shape a campaign uses for somebody who is not on it. */
-    if (!isMgr()) {
+    if (!onBook()) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">Financials</h2>' +
         '<div class="s-rec-body">' +
@@ -7285,7 +7467,19 @@
     const p = periodOf(S.period);
     const scope = bookScope();
     const deals = dealBook();
-    const heads = workingHeads();
+    /* ══ A PRODUCT LINE DOES NOT PAY THE SALES FLOOR ═════════════════════
+       `spend.team` is what every BDR and manager on the roster is paid, and
+       charging the whole of it to one of eight product lines told a QA owner
+       he had spent €281k to gain nothing. He did not: the floor is paid
+       whether or not his line is sold.
+
+       There is already a branch for this and it needed no new arithmetic.
+       At `heads === 0` the labour cost falls back to `spend.human` — the
+       hours actually logged against these campaigns — which is exactly what
+       a line costs. `unlogged` goes quiet with it, because the share of a
+       payroll that lands on campaigns is a question about the floor and not
+       about a product. */
+    const heads = isLine() ? 0 : workingHeads();
     const now = bookMoney(scope, p, heads);
     const pipe = pipelineOf(deals);
     const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
@@ -7477,8 +7671,14 @@
            above and in AiMY's reading below — this was its third telling, in
            the least readable of the three places. The children say what a
            role cost, which is what they are for. */
+        /* The manager's sub-line contrasts what the floor is paid against
+           what of it landed on a campaign. On a line those are the same
+           number, so it would print one figure twice; what it has instead
+           is the hours the money is made of. */
         sub: plural(un.people.length, 'person') + ' · ' +
-          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' logged on campaigns',
+          (isLine()
+            ? roles.reduce((n, r) => n + r.hours, 0).toFixed(1) + ' hours on these campaigns'
+            : fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' logged on campaigns'),
         rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''), note: '',
           v: r.cost })) },
       { k: 'supp', say: 'Resources', v: now.spend.src + now.spend.enrich,
@@ -8392,8 +8592,21 @@
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
-      if (!camps.length) return 'You are on no campaign, so there is nobody to call.';
-      return plural(camps.length, 'campaign') + ' are yours. <b>' + esc(busiest.name) +
+      if (!camps.length) {
+        return isLine() ? 'No campaign sells ' + esc(sellSay(myLine())) + ' at the moment.'
+          : 'You are on no campaign, so there is nobody to call.';
+      }
+      /* ══ AND "1 CAMPAIGN ARE YOURS" WAS ALREADY WRONG ═══════════════
+         `plural` inflects the noun and the verb beside it was a literal, so
+         this read "1 campaign are yours" for any desk holding one. No desk
+         held one until now, which is the whole reason it survived. Fixed
+         rather than carried across, and named here because it is not this
+         change's bug. */
+      return (isLine()
+        ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' sells ' : ' sell ') +
+          esc(sellSay(myLine())) + '.'
+        : plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') + ' yours.') +
+        ' <b>' + esc(busiest.name) +
         '</b> has the most left to call at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
         esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
     }
@@ -8414,7 +8627,7 @@
           '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is in your queue'
             : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
     }
-    if (isMgr()) {
+    if (onBook()) {
       /* ══ A DESK THAT IS IN MEETINGS ALL DAY IS TOLD ABOUT THE MEETINGS ══
          The sentence counted leads and campaigns and said nothing at all
          about the day, on the one desk that spends most of it in rooms with
@@ -8434,10 +8647,17 @@
           esc(plural(un, 'meeting')) + '</button> ' + (un === 1 ? 'has' : 'have') +
           ' been and gone with nothing said about ' + (un === 1 ? 'it' : 'them') + '.'
         : '';
+      /* A stakeholder was never handed anything and owns no campaign. The
+         same two facts are true of his desk said the other way round: what
+         has reached the director on the campaigns that sell his product. */
       const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
-          ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
-        : 'Nothing has been handed to you yet.';
+          (isLine()
+            ? ' been handed over on <b>' + plural(camps.length, 'campaign') + '</b> selling ' +
+              esc(sellSay(myLine())) + '.'
+            : ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.')
+        : (isLine() ? 'Nothing has been handed over on ' + esc(sellSay(myLine())) + ' yet.'
+          : 'Nothing has been handed to you yet.');
       /* The surface is called Diary — on the tab, on the rail door and on
          the block this paragraph now sits above. Two words for one place,
          eighty pixels apart, is the reader doing translation. */
@@ -8591,7 +8811,7 @@
         : 'the way anybody new reaches your queue' };
 
     let opens;
-    if (isMgr()) {
+    if (onBook()) {
       /* Four verbs, and every one of them is something this desk actually
          does: the phone for a warm call, the brief before a meeting, the
          board for where the money is, and the builder — a manager sources
@@ -8766,7 +8986,7 @@
 
        On a campaign there is no book and the loop keeps its seventh chip,
        labelled Won, meaning the deals that campaign closed. */
-    const book = isMgr() && !S.camp;
+    const book = onBook() && !S.camp;
     const bookChip = () =>
       '<button class="filter-chip b-cut-book' + (on === 'won' ? ' active' : '') + '" ' +
       'type="button" data-q="won">' + chIcon('company') + 'Customers' +
@@ -8780,7 +9000,7 @@
     /* The run sits at the end of the row it acts on: these cuts, this page.
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
-      (isMgr() ? MGR_BUCKETS : BUCKETS).filter((b) => !(book && b.k === 'won'))
+      (onBook() ? MGR_BUCKETS : BUCKETS).filter((b) => !(book && b.k === 'won'))
         .map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
       /* ══ THE VERB THAT STARTS A RUN IS A BUTTON ═══════════════════════════
          It was `.s-inline-btn` — accent words with no ground, no border and
@@ -8888,7 +9108,7 @@
        `!S.camp`, because a campaign's `won` is the deals that campaign
        closed. That is a real set and it belongs to the campaign; the book
        belongs to the desk. */
-    const book = isMgr() && !S.camp && S.q === 'won';
+    const book = onBook() && !S.camp && S.q === 'won';
     /* Narrowed BEFORE paging, so the foot line counts what matched rather
        than what page fifteen of the unsearched list happens to hold. */
     const pg = book
@@ -8912,8 +9132,8 @@
       '<div class="s-camp-list-head">' +
         (S.camp
           ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting'
-            : isMgr() ? 'The deals on it' : 'To call') + '</h2>'
-          : switcher(here || (isMgr() ? 'today' : 'calls'))) +
+            : onBook() ? 'The deals on it' : 'To call') + '</h2>'
+          : switcher(here || (onBook() ? 'today' : 'calls'))) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
@@ -8925,7 +9145,7 @@
          of the heading's row, which is where a section's actions live —
          so the one figure the chips add up to read as a control. */
       (S.camp
-        ? '<p class="b-tocall">' + (isMgr()
+        ? '<p class="b-tocall">' + (onBook()
             ? '<b>' + commas(all.length) + '</b> handed to you on this campaign'
             : S.q === 'after'
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
@@ -11131,7 +11351,12 @@
      campaign — owns it, calling — which is a sentence about the campaign
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
-  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR', stakeholder: 'Stakeholder' };
+  /* "Stakeholder" names a job and not a book, and on the one desk where the
+     book IS the job that is half a label. The product goes with it wherever a
+     person is introduced — the bar, and the row you press to get there. */
+  const jobSay = (p) => (p && JOB[p.fn] ? JOB[p.fn] : '') +
+    (p && p.sell && SELL[p.sell] ? ' · ' + SELL[p.sell].name : '');
   /* ══ ONE ROW, THREE BLOCKS ═════════════════════════════════════════════
      A campaign's team, a lead's team and a list's were three copies of the
      same nine lines of markup, and they had already started to drift: the
@@ -12026,8 +12251,8 @@
        The cold queue is the caller's job, so the claim about it is only made
        on the caller's desk. The manager gets what the other two tiles give
        him — the count against the roster it came out of. */
-    const callNew = isMgr() ? 0 : queue(k.id, 'not-called').length;
-    const callNo = isMgr() ? 0 : queue(k.id, 'no-answer').length;
+    const callNew = onBook() ? 0 : queue(k.id, 'not-called').length;
+    const callNo = onBook() ? 0 : queue(k.id, 'no-answer').length;
     /* ══ TWO OF THESE NEST, AND THE ROW NEVER SAID SO ════════════
        "29 people on this campaign" sits directly above four figures reading
        15, 3, 10 and 8, which add to 36. Two of them are exclusive — a
@@ -12060,11 +12285,11 @@
            row would say one thing three times. The ladder defines each step
            once and every surface reads that definition. */
         fig('Never called', n['not-called'] || 0,
-          isMgr() ? called['not-called'].say
+          onBook() ? called['not-called'].say
             : callNew ? commas(callNew) + ' of them you can call now →' : 'none of them callable now',
           null, callNew ? 'not-called' : null) +
         fig('Called, no answer', n['no-answer'] || 0,
-          isMgr() ? called['no-answer'].say
+          onBook() ? called['no-answer'].say
             : callNo ? commas(callNo) + ' of them you can call now →' : 'none of them callable now',
           null, callNo ? 'no-answer' : null) +
         /* NAMED THE WAY THE LADDER NAMES IT. This said "Reached" over the
@@ -12573,7 +12798,7 @@
        amber chip — so the masthead was the fourth telling, and the longest:
        "Worth a check-in every three weeks, and nothing has been said here
        yet" sitting above a sentence that says the same two things. */
-    const ci = isMgr() && !isCust(a) ? checkinSay(a, hist) : null;
+    const ci = onBook() && !isCust(a) ? checkinSay(a, hist) : null;
 
     /* The furthest anyone here has got, as the chip beside the name. Below
        `answered` nobody has been reached, and that is the chip's whole
@@ -12629,7 +12854,7 @@
              own line rather than down among the facts — and at the end of
              it, so that opening one account after another puts it in the
              same place every time. */
-          (isMgr() ? tierMark(a, 1) : '') +
+          (onBook() ? tierMark(a, 1) : '') +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -12652,10 +12877,10 @@
                ranked them backwards. Both are drawn, because the pair IS
                the account management question: this is what they buy, and
                this is how much of us they could. */
-            (isMgr() && isCust(a)
+            (onBook() && isCust(a)
               ? fact('money', '<b>' + esc(euro(custWorth(a))) + '</b> a year today')
               : '') +
-            (isMgr()
+            (onBook()
               ? fact('target', '<b>' + esc(euro(ceilingOf(a))) +
                 '</b> of our work could fit')
               : '') +
@@ -12733,7 +12958,7 @@
         '</div>' +
       '</section>' +
 
-      storyBlock(isMgr() && isCust(a) ? custStory(a) : accStory(a, people, hist)) +
+      storyBlock(onBook() && isCust(a) ? custStory(a) : accStory(a, people, hist)) +
       accLead(a, people, hist, call, free) +
       /* `fitBlock` stood here. It answered the same question the reading
          above answers, from the other end, under its own heading with its
@@ -12759,11 +12984,11 @@
          own location and headcount repeated under every name, already in the
          masthead, and the tier shield repeated beside them.
 
-         `isMgr()` for the same reason the two blocks below it carry it, in
+         `onBook()` for the same reason the two blocks below it carry it, in
          that margin's own words: a caller at this company is not looking at
          a customer, she is prospecting the departments we have not sold to,
          and a queue of them ranked by who picks up is exactly her page. */
-      (isMgr() && isCust(a) ? '' :
+      (onBook() && isCust(a) ? '' :
         '<section class="s-block s-block-wide" aria-label="Who is here">' +
           '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
             '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
@@ -12802,10 +13027,10 @@
          buy, what it is worth a year, how long they have been with us, when
          we last said anything.
 
-         `isMgr()` as well as `isCust`, because a caller at this company is
+         `onBook()` as well as `isCust`, because a caller at this company is
          not looking at a customer. She is prospecting the departments we
          have not sold to, and both blocks are exactly right for that. */
-      (isMgr() && isCust(a) ? '' :
+      (onBook() && isCust(a) ? '' :
         '<section class="s-block s-block-wide" aria-label="Where they stand">' +
           '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
             '<span class="s-block-say">' + esc(plural(callsIn(hist).length, 'call')) +
@@ -12859,7 +13084,7 @@
        It keeps its place everywhere else, which is where it earns one: on a
        company nobody has sold to, how many ways in you have and whether
        they have ever bought is the whole of what this desk knows. */
-    const why = isMgr() && !(isCust(a) && said && said.thens && said.thens.length)
+    const why = onBook() && !(isCust(a) && said && said.thens && said.thens.length)
       ? tierWhy(a) : '';
     const thin = !said || said.from === 'the account itself';
     if (thin && !why) return '';
@@ -12896,7 +13121,7 @@
        from it, so the record and the card now name the same person instead
        of two. Where it finds nobody the chain above stands: that branch
        ends in "Open the account", and the account is this page. */
-    if (isMgr() && isCust(a)) {
+    if (onBook() && isCust(a)) {
       const act = custAct(a);
       if (act.who) {
         door = '<button class="s-insight-lnk" type="button" ' + act.attr + '>' +
@@ -13030,7 +13255,7 @@
        they have run it, or the clock the tier bought them — and the ladder
        below is about getting through to a stranger on the phone, which is
        not what anybody opens a customer's page to find out. */
-    if (isMgr() && isCust(a)) return custSay(a);
+    if (onBook() && isCust(a)) return custSay(a);
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
     if (sig) return signalReading(a, sig, hist);
@@ -13224,7 +13449,7 @@
        "Handed over" for ever — so at the manager's desk the status is the
        stage, which is the thing that is actually still moving. */
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
-    const rg = (isMgr() && c.checkpoint === 'handed-over')
+    const rg = (onBook() && c.checkpoint === 'handed-over')
       ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     const n = (DB.touchesOf[c.id] || []).length;
 
@@ -13257,7 +13482,7 @@
           /* The same rank, on the record the card opens. A mark that is on
              the card and gone from the page behind it reads as something
              the list made up. */
-          (isMgr() && accOf(c) ? tierMark(accOf(c), 1) : '') +
+          (onBook() && accOf(c) ? tierMark(accOf(c), 1) : '') +
         '</div>' +
         /* ══ A RANK THAT WRAPS IS NOT A RANK ═══════════════════════════════
            Two ranks are drawn here — the first at lead size, the second a
@@ -13295,7 +13520,7 @@
                 Only where there is a deal. A lead nobody has handed over is
                 not being sold anything yet, and the campaign beside it
                 already says what it would be. */
-            (isMgr() && c.checkpoint === 'handed-over'
+            (onBook() && c.checkpoint === 'handed-over'
               ? fact('sell', esc((SELL[sellOf(c)] || {}).name || 'nothing named yet'))
               : '') +
             fact('role', esc(c.title)) +
@@ -13332,7 +13557,7 @@
             /* Not at the manager's own desk: "Managed by Lina Haddad" read
                by Lina is the page telling her who she is. Where it came from
                is the useful provenance there, and the deal block carries it. */
-            (!isMgr() && c.manager && REP[c.manager]
+            (!onBook() && c.manager && REP[c.manager]
               ? '<span class="b-managed">Managed by <b>' + esc(REP[c.manager].name) + '</b></span>'
               : '') +
           '</div>' +
@@ -13388,7 +13613,7 @@
      same gate, same undo — only the words differ, because the two acts are
      the same act at different points of the same story. */
   function endGate(c) {
-    const mgr = isMgr() && c.checkpoint === 'handed-over';
+    const mgr = onBook() && c.checkpoint === 'handed-over';
     const endable = mgr ? dealLive(c)
       : (!isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
         rank(c.checkpoint) >= rank('callback'));
@@ -13444,7 +13669,7 @@
        than a line under the verbs. `askBlock` draws it. What a STEP did
        stays here: a caller records one on every call, so it is part of the
        row rather than news. */
-    const moves = (isMgr() && c.checkpoint === 'handed-over')
+    const moves = (onBook() && c.checkpoint === 'handed-over')
       ? []
       : movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
         .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
@@ -13464,7 +13689,7 @@
     if (c.checkpoint === 'handed-over') {
       const ph = phasesOf(c);
       const fin = ph.length ? ph[ph.length - 1] : null;
-      if (isMgr()) {
+      if (onBook()) {
         /* It is on this desk, so the phone is the verb rather than a note
            about who has it. A decided deal keeps the sentence and loses it.
            The brief stands beside the phone because a manager walks into a
@@ -13516,7 +13741,7 @@
        this one because it is this one; "Next in the queue" told him there
        was an order he was supposed to be following and named a stranger as
        the next step. */
-    const next = isMgr() ? null : queue(null, 'all').filter((x) => x.id !== c.id)[0];
+    const next = onBook() ? null : queue(null, 'all').filter((x) => x.id !== c.id)[0];
     return '<div class="s-rec-actions">' +
       list.map((b, i) =>
         '<button class="' + (i === 0 ? 's-insight-lnk primary' : 's-inline-btn') + '" type="button" ' +
@@ -13594,7 +13819,7 @@
     const ph = phasesOf(c);
     const last = ph.length ? ph[ph.length - 1] : null;
     if (!last) return '';
-    const mine = isMgr();
+    const mine = onBook();
     const k = mine ? stageOf(c) : (last.decision || '');
     const when = esc(sayWhen(last.at.slice(0, 10)));
 
@@ -14044,6 +14269,10 @@
     /* Whose it is depends on who is reading. To the caller who produced it
        the news is that somebody else is running it; to the manager running
        it the news is which meeting comes next. */
+    /* `isMgr` and not `onBook`, because this is the second-person one: the
+       director holding the deal is the reader on one book desk and somebody
+       else on the other. A stakeholder is told whose it is, the way a caller
+       is — the four meetings belong to Nadia either way. */
     const who = isMgr() ? 'You have it' : d.name + ' has it';
     const had = isMgr() ? 'You had it' : d.name + ' had it';
     const notYours = isMgr() ? '' : ', and none of them are yours';
@@ -14060,7 +14289,7 @@
     const nextPh = PHASES[ph.length];
     return who + '. ' + done + '. Next: ' +
       (nextPh ? nextPh.label.toLowerCase() : 'resolution') +
-      (isMgr() ? '.' : ', and it is not yours.');
+      (onBook() ? '.' : ', and it is not yours.');
   }
 
   /* ══ THE DIARY ═════════════════════════════════════════════════════════
@@ -14732,7 +14961,7 @@
      which is a stage and is called Won. Putting Customers here renamed
      both, and the campaign's version of it is not a book. */
   const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
-  const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
+  const cutOf = (c) => (onBook() ? stageOf(c) : bucketOf(c));
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
 
@@ -14825,7 +15054,7 @@
     return 3;
   }
   function dealQueue(campId, bucket) {
-    let out = (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+    let out = bookIds().map((id) => DB.byCon[id]).filter(Boolean);
     if (campId) out = out.filter((c) => c.camps.indexOf(campId) >= 0);
     if (bucket && bucket !== 'all') out = out.filter((c) => stageOf(c) === bucket);
     /* What is owed, then what it is worth having, then when it lands. The
@@ -14838,7 +15067,7 @@
   }
 
   function queue(campId, bucket) {
-    if (isMgr()) return dealQueue(campId, bucket);
+    if (onBook()) return dealQueue(campId, bucket);
     const meId = me().id;
     const mineCamps = Object.create(null);
     myCampaigns().filter(campOpen).forEach((c) => (mineCamps[c.id] = 1));
@@ -16746,7 +16975,7 @@
 
   function refreshTasks() {
     AIMY_TASKS.length = 0;
-    (isMgr() ? mgrTasks() : bdrTasks()).forEach((t) => AIMY_TASKS.push(t));
+    (onBook() ? mgrTasks() : bdrTasks()).forEach((t) => AIMY_TASKS.push(t));
     if (window.aimyNtfRender) window.aimyNtfRender();
   }
   /* ══ WHAT A ROW DOES WHEN YOU PRESS IT ═════════════════════════════════
@@ -16777,7 +17006,7 @@
          manager the caller's brief — the openers and the step — for a
          meeting they are about to walk into, because the branch existed on
          one of the two doors onto the same sheet and not on the other. */
-      if (c) { if (isMgr() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
+      if (c) { if (onBook() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
       return;
     }
     runInput(q);
@@ -17389,7 +17618,7 @@
        It was greeting every desk, and the default desk is a BDR's, so the
        first thing the product said to the person it is named for was an
        offer to do somebody else's job. */
-    if (!isMgr()) return;
+    if (!onBook()) return;
     if (REACH_SAID) return;
     const hit = reachTop();
     if (!hit) return;
@@ -18852,7 +19081,7 @@
          about a phone: "had a demo with Kate, they want pricing" is a
          meeting, and reading it as a call would write a touchpoint that
          says a phone call happened. */
-      if (isMgr()) {
+      if (onBook()) {
         /* Booking first: "add to calendar" is unambiguous and `readMeet`
            would otherwise take the same sentence and guess a stage from it. */
         const bk = readBook(t);
@@ -19078,9 +19307,9 @@
        The bell's own footer asks it, and got the fallback. The bell's rows
        are already in order; the answer says so and hands each one on. */
     if (/do first|first and why|what should i do|where do i start|start with|priorit/.test(q)) {
-      const tasks = isMgr() ? mgrTasks() : bdrTasks();
+      const tasks = onBook() ? mgrTasks() : bdrTasks();
       if (!tasks.length) {
-        return isMgr() ? 'Nothing is waiting on you. The diary is clear.'
+        return onBook() ? 'Nothing is waiting on you. The diary is clear.'
           : 'Nothing is waiting on you. call the next one.';
       }
       /* ══ THE SECOND THING IS WORTH A SENTENCE TOO ═══════════════════
@@ -19135,7 +19364,7 @@
        out are the ones a manager uses most.
 
        Gated, because they are gated. `readMeet` and `readBook` are both
-       behind `isMgr()` in `runInput`, so telling a caller their sentence
+       behind `onBook()` in `runInput`, so telling a caller their sentence
        moves a deal would be this page describing a route it will not take.
        The desk that has them is told about them. */
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
@@ -19143,7 +19372,7 @@
       'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
       'what to do first. Name a person or a campaign to go there, and describe who to look for ' +
       'to get a list back. A sentence about a call logs it' +
-      (isMgr() ? ', a sentence about a meeting moves the deal, and a sentence with a day in it ' +
+      (onBook() ? ', a sentence about a meeting moves the deal, and a sentence with a day in it ' +
         'books the meeting' : '') + '.';
   }
 
@@ -20151,7 +20380,7 @@
   }
 
   function cbuildStart() {
-    if (!isMgr()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
+    if (!onBook()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
     DRAFT = null;
     CBUILD = { step: 'way', sell: null, industry: null, region: null,
@@ -20349,6 +20578,14 @@
 
      It is a draft from the moment it exists, because a campaign that is half
      filled in is not a campaign anybody should be dialling. */
+  /* ══ A CAMPAIGN IS OWNED BY SOMEBODY WHO RUNS ONE ══════════════════
+     A stakeholder may build one — it is his product being sold — but he runs
+     no floor, and `owner` is the field every manager's `mine()` reads. Left
+     as `me()` it made a campaign belonging to nobody with a desk to work it:
+     invisible to all three managers, and to the builder too the moment he
+     picked a product that was not his. It goes to the manager every
+     ownerless campaign in this build already falls back to. */
+  const campOwner = () => (isLine() ? MANAGERS[0].id : me().id);
   function emptyCamp() {
     const id = 'k' + Date.now().toString(36);
     const k = {
@@ -20358,7 +20595,7 @@
       goal: '', pitch: '',
       sells: [], objections: [], resources: [],
       from: TODAY_ISO, to: dayAdd(42),
-      owner: me().id, crew: [], state: 'draft',
+      owner: campOwner(), crew: [], state: 'draft',
       industry: '', region: '', lists: [],
     };
     DB.camp.push(k);
@@ -20473,7 +20710,7 @@
         { name: 'What it costs, and against what', kind: 'pricing' },
       ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
       from: TODAY_ISO, to: dayAdd(b.weeks * 7),
-      owner: me().id,
+      owner: campOwner(),
       /* Somebody has to work it, and there is one desk that calls. */
       crew: BDRS.map((r) => r.id),
       state: 'running',
@@ -20963,11 +21200,11 @@
         /* A manager's next call is the deal at the top of his own ranking —
            nobody on it is `callable`, because callable means the caller has
            not finished with them, and on this desk they have. */
-        const first = isMgr()
+        const first = onBook()
           ? queue(null, S.q).filter((c) => c.phone && !c.dnc && dealLive(c))[0]
           : queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
-        else toast(isMgr() ? 'No deal is waiting on a call.' : 'Nobody in this cut has a number to call.');
+        else toast(onBook() ? 'No deal is waiting on a call.' : 'Nobody in this cut has a number to call.');
       } else if (k === 'lists') {
         go(Object.assign(cleared(), { on: 'lists' }));
       } else if (k === 'camps') {
@@ -21286,12 +21523,33 @@
            stylesheet already chose, so a menu that fits today is untouched. */
         const bar = document.querySelector('.aimy-float-wrap');
         const floor = bar ? bar.getBoundingClientRect().top - 12 : window.innerHeight - 16;
+        /* ══ AND THE CEILING IS THE TOPNAV, FOR THE FLOOR'S OWN REASON ═════
+           The floor stopped being the viewport when the composer turned out
+           to sit over it; the ceiling never got the same treatment and has
+           the identical fault at the other end. `.app-topnav` holds the top
+           51px at z-index 100 against this menu's 40, so a menu hung above
+           its button and allowed to reach y=16 puts its first rows — the
+           caption and the name under it — behind the bar, unreadable and
+           unclickable. Nour hit it on a campaign's team stack. */
+        const nav = document.querySelector('.app-topnav');
+        const ceil = (nav ? nav.getBoundingClientRect().bottom : 0) + 8;
         const seat = po.getBoundingClientRect();
         const under = floor - seat.bottom - 8;
-        const over = seat.top - 8 - 16;
+        const over = seat.top - 8 - ceil;
         if (panel.getBoundingClientRect().bottom > floor && over > under) panel.classList.add('is-up');
         const room = panel.classList.contains('is-up') ? over : under;
-        panel.style.maxHeight = Math.max(160, Math.min(328, Math.round(room))) + 'px';
+        /* ══ THE ROOM IS MEASURED IN ONE UNIT AND SPENT IN ANOTHER ═══════
+           `<body>` carries `zoom`, so every rect above is in VISUAL pixels
+           while `max-height` inside that subtree is a CSS pixel the browser
+           then scales. Assigning the one to the other is the windowed list's
+           own bug in a second place: at the 0.85 this shell uses below the
+           1536 anchor the cap came out 15% short, which only ever scrolled a
+           menu that had room — and that shortfall was the ONLY thing keeping
+           the menu off the topnav. At 1536 and wider the zoom is 1, the
+           slack is gone, and the menu reached the ceiling it should never
+           have been given. Divide back out, so the cap is the room. */
+        const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+        panel.style.maxHeight = Math.max(160, Math.min(328, Math.round(room / z))) + 'px';
       }
       return;
     }
@@ -21324,7 +21582,7 @@
     const prp = t.closest('[data-prep]');
     if (prp) {
       const c = DB.byCon[prp.getAttribute('data-prep')];
-      if (c) { if (isMgr() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
+      if (c) { if (onBook() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
       return;
     }
 
@@ -21833,14 +22091,14 @@
      queue. */
   function voiceSubject() {
     if (S.con && DB.byCon[S.con]) return DB.byCon[S.con];
-    if (isMgr()) {
+    if (onBook()) {
       const u = unrecorded()[0];
       if (u) return u.con;
     }
     return queue()[0] || null;
   }
   function voiceScript(c) {
-    const pool = VOICE_SAY[isMgr() ? 'mgr' : 'bdr'];
+    const pool = VOICE_SAY[onBook() ? 'mgr' : 'bdr'];
     const a = c ? accOf(c) : null;
     const pick2 = pool[Math.abs(hash((c ? c.id : 'none') + ':voice')) % pool.length];
     return pick2.split('{name}').join(c ? c.name : 'them')
