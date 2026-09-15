@@ -6926,14 +6926,32 @@
      learned something they cannot get anywhere else. Stated, never quietly
      rolled into a total. */
   function unlogged(p, heads) {
-    const rows = heads === 0 ? [] : payrollRows(p);
-    const payroll = rows.reduce((n, r) => n + r.cost, 0);
     const on = Object.create(null);
     campaignCosts(p).forEach((c) => c.crew.forEach((m) => {
       const r = on[m.id] || (on[m.id] = { hours: 0, cost: 0 });
       r.hours += m.hours; r.cost += m.cost;
     }));
     const logged = Object.keys(on).reduce((n, k) => n + on[k].cost, 0);
+    /* ══ A LINE HAS NO PAYROLL. IT HAS HOURS. ════════════════════════════
+       A desk pays the floor whether or not it is working, which is why the
+       group this feeds is what people are PAID and its sub-line says how
+       much of that landed on campaigns. Nobody is paid to be on a product.
+       What a line costs in people is the hours that went on it, priced — so
+       the rows are whoever worked it rather than the whole roster, and the
+       two figures a manager's block holds apart are one figure here.
+
+       It returns rows now where it used to return none. `heads === 0` has
+       meant "labour is the logged hours and not a payroll" since
+       `bookMoney` read it that way; this is the same sentence said about
+       the people rather than about the total, and it is what puts the
+       Salaries block back on a product desk instead of removing it. */
+    const rows = heads === 0
+      ? Object.keys(on).map((id) => ({ id: id, name: actor(id).name,
+        fn: (REP[id] || {}).fn, rate: RATE[(REP[id] || {}).fn] || 0,
+        hours: on[id].hours, cost: on[id].cost }))
+        .filter((r) => r.fn && r.cost > 0).sort((a, b) => b.cost - a.cost)
+      : payrollRows(p);
+    const payroll = rows.reduce((n, r) => n + r.cost, 0);
     return {
       payroll: payroll, logged: logged, pc: payroll ? logged / payroll : null,
       people: rows.map((r) => Object.assign({}, r, { onCamp: on[r.id] || { hours: 0, cost: 0 } })),
@@ -7653,8 +7671,14 @@
            above and in AiMY's reading below — this was its third telling, in
            the least readable of the three places. The children say what a
            role cost, which is what they are for. */
+        /* The manager's sub-line contrasts what the floor is paid against
+           what of it landed on a campaign. On a line those are the same
+           number, so it would print one figure twice; what it has instead
+           is the hours the money is made of. */
         sub: plural(un.people.length, 'person') + ' · ' +
-          fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' logged on campaigns',
+          (isLine()
+            ? roles.reduce((n, r) => n + r.hours, 0).toFixed(1) + ' hours on these campaigns'
+            : fmtMoney(roles.reduce((n, r) => n + r.onCost, 0)) + ' logged on campaigns'),
         rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''), note: '',
           v: r.cost })) },
       { k: 'supp', say: 'Resources', v: now.spend.src + now.spend.enrich,
