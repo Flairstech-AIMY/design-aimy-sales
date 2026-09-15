@@ -13850,7 +13850,7 @@
      says "with the director" — which is the news at that desk and nonsense
      at the director's own, where it tells her a lead is with somebody else
      when the somebody else is her. */
-  const stepSay = (c) => ((onBook() && c.checkpoint === 'handed-over')
+  const stepSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
     ? (addedByHand(c) ? 'you added them yourself' : 'yours to close')
     : (called[c.checkpoint] || {}).say || 'they have left the ladder');
 
@@ -14250,9 +14250,13 @@
     /* Whose it is depends on who is reading. To the caller who produced it
        the news is that somebody else is running it; to the manager running
        it the news is which meeting comes next. */
-    const who = onBook() ? 'You have it' : d.name + ' has it';
-    const had = onBook() ? 'You had it' : d.name + ' had it';
-    const notYours = onBook() ? '' : ', and none of them are yours';
+    /* `isMgr` and not `onBook`, because this is the second-person one: the
+       director holding the deal is the reader on one book desk and somebody
+       else on the other. A stakeholder is told whose it is, the way a caller
+       is — the four meetings belong to Nadia either way. */
+    const who = isMgr() ? 'You have it' : d.name + ' has it';
+    const had = isMgr() ? 'You had it' : d.name + ' had it';
+    const notYours = isMgr() ? '' : ', and none of them are yours';
     /* the ladder line above already carries the date */
     if (!ph.length) {
       return who + '. Discovery is the first of four meetings' + notYours + '.';
@@ -20555,6 +20559,14 @@
 
      It is a draft from the moment it exists, because a campaign that is half
      filled in is not a campaign anybody should be dialling. */
+  /* ══ A CAMPAIGN IS OWNED BY SOMEBODY WHO RUNS ONE ══════════════════
+     A stakeholder may build one — it is his product being sold — but he runs
+     no floor, and `owner` is the field every manager's `mine()` reads. Left
+     as `me()` it made a campaign belonging to nobody with a desk to work it:
+     invisible to all three managers, and to the builder too the moment he
+     picked a product that was not his. It goes to the manager every
+     ownerless campaign in this build already falls back to. */
+  const campOwner = () => (isLine() ? MANAGERS[0].id : me().id);
   function emptyCamp() {
     const id = 'k' + Date.now().toString(36);
     const k = {
@@ -20564,7 +20576,7 @@
       goal: '', pitch: '',
       sells: [], objections: [], resources: [],
       from: TODAY_ISO, to: dayAdd(42),
-      owner: me().id, crew: [], state: 'draft',
+      owner: campOwner(), crew: [], state: 'draft',
       industry: '', region: '', lists: [],
     };
     DB.camp.push(k);
@@ -20679,7 +20691,7 @@
         { name: 'What it costs, and against what', kind: 'pricing' },
       ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
       from: TODAY_ISO, to: dayAdd(b.weeks * 7),
-      owner: me().id,
+      owner: campOwner(),
       /* Somebody has to work it, and there is one desk that calls. */
       crew: BDRS.map((r) => r.id),
       state: 'running',
