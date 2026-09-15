@@ -15595,10 +15595,23 @@
     const disp = impliedDisp((noted && noted.disp) || heard.disp,
       noted && noted.props.length ? noted.props : heard.props,
       noted && noted.objs.length ? noted.objs : heard.objs);
+    /* ══ THE HONEST DEFAULT INVERTS ON AN INBOUND CALL ═════════════════
+       `no-answer` is the right fallback outbound, and the reason is in the
+       note below: the first line of every outbound script is the CALLER'S
+       own opening, so claiming contact off it claims you reached somebody
+       out of you asking to.
+
+       Inbound it is the opposite, and reading nothing is not the same as
+       nothing happening. They dialled, the phone rang, and somebody picked
+       it up — `answerInbound` is the only way to reach this line with
+       `dir === 'in'`. Contact is not an inference there, it is the
+       precondition, and logging it as No answer would put a false record
+       on a conversation that demonstrably took place. */
+    const nothingHeard = c.dir === 'in' ? 'reached' : 'no-answer';
     PENDING = {
       con: c.con, camp: c.camp, secs: c.secs, sess: c.sess, auto: c.auto,
       lines: c.script.slice(0, c.shown).map((l) => ({ who: l[0], text: l[1] })),
-      note: c.note, read: heard, outcome: disp || 'no-answer',
+      note: c.note, read: heard, outcome: disp || nothingHeard,
       guessed: !disp, when: (noted && noted.when) || heard.when || 1,
       /* Who rang whom, the number it came from, and the caller-shaped
          object standing in for a person we do not hold. All three are
@@ -15711,8 +15724,18 @@
       id: 't' + (Date.now().toString(36)) + Math.floor(Math.random() * 1000),
       con: c.id, camp: call.camp, by: me().id, at: now,
       secs: call.secs, outcome: outcome, auto: !!call.auto,
+      /* WHO RANG WHOM, ON THE RECORD. Every touchpoint this build had ever
+         written was a call somebody here placed, so the direction was true
+         by construction and never stored. It is not any more. */
+      dir: call.dir || 'out',
       proposals: props, objections: objs, openings: opps,
-      note: call.note || (heard.disp ? 'Logged from the call.' : 'No answer.'),
+      /* The fallback note said "No answer." on any call AiMY read nothing
+         out of — which is a sentence about an outbound call nobody picked
+         up, printed under an inbound one that was answered and spoken on.
+         The row prints this note, so it is also where the direction becomes
+         visible without a shared renderer having to learn a new field. */
+      note: call.note || (call.dir === 'in' ? 'They rang in.'
+        : heard.disp ? 'Logged from the call.' : 'No answer.'),
       lines: call.lines || [],
       next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
@@ -16030,7 +16053,10 @@
      it" are the two things AiMY has to be able to say here, and a reader
      that always returns something can say neither. */
   const READ_WHO = [
-    ['name', /(?:my name is|this is|you are speaking to|it is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z'-]+){1,2})/],
+    /* The frame is spelled both ways and the capture is not. A single /i
+       flag would relax the capture too, and "My name" would come back as
+       the name — which is exactly the guess this reader refuses. */
+    ['name', /(?:[Mm]y name is|[Tt]his is|[Yy]ou are speaking to|[Ii]t is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z'-]+){1,2})/],
     ['name', /^([A-Z][a-z]+(?:\s+[A-Z][a-z'-]+){1,2})[.,]/],
     ['co', /\b(?:i(?:'m| am)? (?:at|with|from)|i run [a-z ]{3,24} at|we are|calling from|over at)\s+([A-Z][A-Za-z&.-]*(?:\s+[A-Z][A-Za-z&.-]*){0,2})/],
     ['co', /\bat\s+([A-Z][A-Za-z&.-]*(?:\s+[A-Z][A-Za-z&.-]*){0,2})\b/],
@@ -16151,9 +16177,12 @@
        sitting next to "Connecting". */
     const sub = live
       ? 'Connected'
+      /* A stranger IS their number, so the number is the name and there is
+         no second line to put it on. It printed in both and read as two
+         facts, which is the one thing this card has no room for. */
       : c
         ? esc((a ? a.name + ' · ' : '') + (c.phone || r.phone))
-        : esc(r.phone);
+        : null;
 
     return '<div class="b-ring" data-state="' + (live ? 'live' : 'ringing') + '" ' +
         'role="alertdialog" aria-live="assertive" ' +
@@ -16163,7 +16192,7 @@
           (c ? esc(initialsOf(c.name)) : '?') + '</span>' +
         '<span class="b-ring-id">' +
           '<span class="b-ring-name">' + esc(who) + '</span>' +
-          '<span class="b-ring-sub">' + sub + '</span>' +
+          (sub ? '<span class="b-ring-sub">' + sub + '</span>' : '') +
           (live ? '' : '<span class="b-ring-state">' +
             (c ? 'Incoming call' : 'Not in the book') + '</span>') +
         '</span>' +
@@ -16317,10 +16346,15 @@
     return mine.slice().sort((a, b) => score(a) - score(b))[0];
   }
 
-  function declineInbound() { ringEnded('declined', 'You declined'); }
-  function ringMissed() { ringEnded('no-answer', 'You missed'); }
+  /* Both are `no-answer` and neither is a word of its own. It is the one
+     outcome that asserts no contact, which is exactly what a phone that
+     rang and was not picked up asserts — and inventing an eighth outcome
+     for it would put a key in the record that no filter, count or lexicon
+     in the build can read. Which of the two it was is in the note. */
+  function declineInbound() { ringEnded('You declined'); }
+  function ringMissed() { ringEnded('You missed'); }
 
-  function ringEnded(outcome, verb) {
+  function ringEnded(verb) {
     const r = RINGING;
     if (!r || r.state === 'live') return;
     const c = r.con ? DB.byCon[r.con] : null;
@@ -16330,7 +16364,7 @@
     const t = {
       id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
-      outcome: outcome, auto: false, dir: 'in',
+      outcome: 'no-answer', auto: false, dir: 'in',
       proposals: [], objections: [], openings: [],
       note: verb + ' their call.', lines: [], next: null, moved: null,
       called: c.checkpoint,
@@ -19444,7 +19478,15 @@
   function logSay(call) {
     const h = logHeard(call);
     const d = OUTCOME[call.outcome];
-    const bits = [d ? 'I read that as ' + d.label.toLowerCase() + '.'
+    /* "I read that as connected" on a call with no transcript claims a
+       reading that did not happen. Inbound, the outcome there comes from the
+       call having been ANSWERED rather than from anything said, so it says
+       so — the claim is the same and the basis is stated, which is the
+       difference between a reading and an assertion. */
+    const bits = [d
+      ? (call.dir === 'in' && call.guessed
+        ? 'Nothing was written down, so all I have is that you spoke.'
+        : 'I read that as ' + d.label.toLowerCase() + '.')
       : 'I could not tell how that one ended.'];
     if (h.objs.length) {
       bits.push(listSay(h.objs.map((k) => OBJECTION[k].label)) +
@@ -19573,10 +19615,14 @@
     const num = call.phone || 'that number';
     call.who = who;
 
+    /* Their role and their company are ONE fact — "runs facilities at
+       Kuijpers" — and pushing them separately made the list read "they run
+       facilities and at Kuijpers". A list joins things that stand alone. */
     const said = [];
     if (who.name) said.push('they gave their name as ' + who.name);
-    if (who.title) said.push('they said they run ' + who.title);
-    if (who.co) said.push((who.title ? 'at ' : 'they mentioned ') + who.co);
+    if (who.title && who.co) said.push('they run ' + who.title + ' at ' + who.co);
+    else if (who.title) said.push('they run ' + who.title);
+    else if (who.co) said.push('they mentioned ' + who.co);
 
     lbuildSpend();
     TURNS.push({
@@ -19642,7 +19688,7 @@
     TURNS.push({
       who: 'aimy',
       html: esc(f.name) + (f.title ? ', ' + esc(f.title) : '') +
-        (f.co ? ', at ' + esc(f.co) : ', at no company you named') +
+        (f.co ? ' at ' + esc(f.co) : ', at no company you named') +
         '. Opening that and logging the call against them.',
       hint: f.co ? '' : 'Without a company they land on your board on their own.',
       step: 'whoismake',
@@ -19718,7 +19764,16 @@
          Outside a run the read-back ended with "Log it" and the queue.
          The queue's next person is one press away now — the same ranking
          the page shows — and plain "Log it" stays for when it is not. */
-      opts: sess
+      /* ══ AN INBOUND CALL IS NOT A RUN ═══════════════════════════════
+         "Log it and call Evie" is the queue's next person, and the queue is
+         a list of people the caller CHOSE to ring. Somebody ringing in did
+         not put anybody in a run and does not hand you the next one, so the
+         only thing to do with the call that just happened is write it down.
+         Offering the queue here would turn answering the phone into the
+         start of a session nobody asked to begin. */
+      opts: call.dir === 'in'
+        ? [{ k: 'go', label: 'Log it' }]
+        : sess
         ? [{ k: 'go', label: nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish' }]
         : (function () {
             /* the scope you are working: on a campaign page, its queue */
