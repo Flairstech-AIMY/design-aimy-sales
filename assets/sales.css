@@ -735,27 +735,29 @@ button {
      `--accent` revert above states. The library has no green like this
      and that is a gap to raise there, not a literal to edit in.
 
-     FILLS, NEVER INK, AND PINNED BY THE WORD RATHER THAN THE GLYPH.
-     These first cleared 3:1, which is the floor for an icon and is what
-     the banner's two circles carry — nothing on them but a handset. The
-     rail's are not circles: `.call-end` and `.call-go` are wide buttons
-     with a WORD on them, set 14px bold. WCAG's large-text allowance
-     starts at 18.66px bold, so 14px is ordinary text and owes 4.5:1 —
-     and at the brighter pair those two labels sat at 3.05:1 and 4.27:1.
-     Both failed, and the green failed badly enough to see.
+     FILLS, NEVER INK — AND THE TWO OWE DIFFERENT FLOORS, BECAUSE ONE OF
+     THEM CARRIES A WORD AND THE OTHER DOES NOT.
 
-     So both are deeper now, and there is still ONE pair rather than a
-     bright one for icons and a dark one for labels: a second green for
-     the same verb is the fragmentation these tokens were consolidated to
-     end, and the stricter bar is a legible colour everywhere while the
-     looser one is not. Deeper is not duller: both sit near 90% HSL
-     saturation, above the pair they replaced.
+     `--hangup-fill` is on `.call-end`, a wide button with END written
+     across it at 14px bold. WCAG's large-text allowance starts at
+     18.66px bold, so 14px is ordinary text and owes 4.5:1. That is what
+     pins this red, and it is why it is as deep as it is.
 
-     Measured in the browser, dark and light. Set either as small text
-     and it still fails the way `--ok` and `--err` do; that is what
+     `--answer-fill` is on one 40px circle with a handset in it and no
+     text anywhere, so its floor is 3:1 — the non-text floor, which
+     governs both the white glyph on the fill and the fill's own edge
+     against a white card. It was briefly pinned at 4.5:1 too, back when
+     `.call-go` was green and did carry a word. `.call-go` is brand
+     again, so nothing labelled uses this green any more and the
+     stricter floor was buying nothing but a darker button. It sits just
+     under the 3:1 ceiling now, which is as bright as a white glyph on
+     it can legibly get.
+
+     Both measured in the browser, dark and light. Set either as small
+     text and it fails the way `--ok` and `--err` do; that is what
      `--ok-text` and `--err-text` above are for. */
-  --answer-fill: #0a8552;
-  --hangup-fill: #dc2f22;
+  --answer-fill: #18a955;   /* 3.07:1 on white — at the non-text ceiling */
+  --hangup-fill: #dc2f22;   /* 4.70:1 on white — it has END written on it */
 }
 :root[data-theme="light"] {
   /* The three status inks have no light entry any more. They alias --ok /
