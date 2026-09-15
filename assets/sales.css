@@ -1194,6 +1194,30 @@ body {
    again — measured, 160px in from the edge it is supposed to share. */
 .topnav-logo .prod-anchor { position: static; }
 .prod-anchor .b-menu { left: 0; right: auto; }
+
+/* ══ AND THE ITEMS ARE THE PILLS ════════════════════════════════
+   This list is the strip, read back, so the one you are on looks here the way
+   it looks there: the AiMY glyph and the name in accent. `.topnav-tab.active`
+   is that rule in one declaration and this is the same one — not the menu's
+   own `is-on` ground, which is how a MENU says "this one" and would say it a
+   second time, in a second language, over a mark already saying it.
+
+   The mark keeps the strip's size rather than the menu's gap-10 icon slot,
+   because it is the same mark at the same rank.
+
+   AND NO UNDERLINES. Two of these entries are real <a>s to deployed products
+   and three are not, so the underline the user agent gives an anchor drew a
+   line under exactly two of five items in a list where every row is the same
+   kind of thing. The strip has the same mix and has never underlined any of
+   them. */
+.prod-anchor .b-menu-item { text-decoration: none; gap: 8px; }
+.prod-anchor .b-menu-item svg { width: 13px; height: 14px; flex-shrink: 0; }
+.prod-anchor .b-menu-item.is-on,
+.prod-anchor .b-menu-item.is-on:hover { background: none; color: var(--accent); }
+/* The ones with nowhere to go are quiet rather than struck through: a product
+   that is not built yet is not an error. */
+.prod-anchor .b-menu-item[disabled]:not(.is-on) { color: var(--ink-muted); cursor: default; }
+.prod-anchor .b-menu-item[disabled]:hover { background: none; }
 @media (prefers-reduced-motion: reduce) { .prod-chev { transition: color var(--t-fast); } }
 
 /* ══ THE MASTHEAD BELOW 720, AND THE STRIP IS NOT ON IT ════════════════
@@ -1701,6 +1725,20 @@ body {
 .ov-chats-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 :root[data-theme="light"] .ov-chats-toggle { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
 :root[data-theme="light"] .ov-chats-toggle:hover { background: rgba(16,24,40,0.07); }
+/* ══ AND THE WAY OUT IS ABOVE WHAT IT CLOSES ═══════════════════════
+   `.overlay-close` is absolute with no z-index, so it paints in the positioned
+   layer at 0 and every bubble in the thread that reaches its corner paints
+   over it. Hit-tested at the centre of the button: at a 1412px layout the
+   thread is narrow enough that the button answers, at 894 and at 459 the
+   element under the cursor is `.msg-bubble` — the control is drawn, fully
+   visible, and cannot be pressed.
+
+   A stacking number, not a design change: above 1100 layout px nothing
+   reaches that corner and this moves nothing that can be seen. 10 is under
+   the conversation drawer's scrim, which is right — a drawer standing over
+   the canvas covers the canvas's own controls with it. */
+.overlay-close { z-index: 10; }
+
 /* Present at every width, painted at none of them until the drawer exists. */
 .ov-chats-scrim { display: none; }
 
@@ -5976,7 +6014,20 @@ body.is-calling .overlay-chats { display: none; }
    use during a call is a mistake is absent rather than disabled. */
 @media (max-width: 611.98px) { /* 720 layout px */
   :root { --call-width: 100%; }
-  body.is-calling .app-main { display: none; }
+  /* ══ .page-scroll, NOT .app-main — THE CANVAS LIVES IN THERE ══════════
+     `.aimy-overlay` is a child of .app-main (index.html), so hiding the
+     column took the canvas with it: at a 459px layout with a call up, the
+     overlay computed `position: fixed; top: 60px; left: 0; right: 0` and
+     measured 0x0, because `display: none` on an ancestor removes a fixed
+     descendant like any other. The brief AiMY posts at call time was there
+     and unreachable, and so was the control that closes it.
+
+     The scroll column is the thing that must not stay behind a full-width
+     call — it still scrolls, still takes focus and still answers the keyboard
+     at zero width — and it is the thing that is named. .app-main keeps its
+     box, collapses to nothing beside a 100% call panel, and goes on hosting
+     the canvas, which is fixed and does not care what its parent measures. */
+  body.is-calling .page-scroll { display: none; }
   .app-call { border-left: 0; }
   /* The reserve exists to keep the composer off a panel parked on the right.
      There is no right-hand panel here — the call IS the surface — so the
@@ -6009,7 +6060,7 @@ body.is-calling .overlay-chats { display: none; }
      stays where the thumb already is. */
   .call-min { display: inline-flex; }
 
-  body.is-call-min .app-main { display: flex; }
+  body.is-call-min .page-scroll { display: block; }
   body.is-call-min .aimy-float-wrap { display: flex; }
   /* A TOKEN, BECAUSE THREE THINGS READ THIS HEIGHT and they must not drift:
      the strip is this tall, the canvas starts under it, and anything fixed to
@@ -6043,6 +6094,24 @@ body.is-calling .overlay-chats { display: none; }
   }
   body.is-call-min .call-who-block > :not(.call-name) { display: none; }
   body.is-call-min .call-tool { display: none; }
+
+  /* ══ THE NOTE TAKES THE PANEL'S WIDTH ═════════════════════════
+     `.ds-field` caps at 380 and `.ds-textarea` at 420, which are measures for
+     a field in a form on a page and never bit while this panel was 300px
+     wide. Full width, they left a 380px box in a 427px column with 47px of
+     nothing down one side — the only ragged edge on the surface. A note taken
+     during a call is not prose with a measure; it is as wide as the thing it
+     is written on. */
+  .call-note-field, .call-note-field .ds-textarea { max-width: none; }
+
+  /* ══ AND THE WAY BACK SITS BESIDE End, NOT UNDER IT ════════════════
+     `.call-end` is `flex: 1 1 100%; order: 1`, so it takes a line of its own
+     and sorts after anything at order 0 — which put the chevron on the line
+     ABOVE the button, centred, reading as a control belonging to the note.
+     Ordered last and given a basis it can share, the two sit on one line with
+     End taking everything the 44px circle does not. */
+  .call-tools .call-end { flex: 1 1 auto; }
+  .call-min { order: 2; }
   /* The clock is the strip's subject, so it keeps its size while the name
      beside it gives way — a name is a string of unknown length and the only
      thing here that can be trusted to end. */
@@ -9007,6 +9076,14 @@ body.is-figures .filter-tray { display: none; }
      z-index of 500 drops under .app-body's 1; the masthead's 100 stays above
      both, which is the order that was wanted here in the first place. */
   body.is-calling:not(.is-call-min) .aimy-overlay { z-index: 0; }
+  /* AND THE PANEL HAS TO BE POSITIONED TO BE IN FRONT OF A ZERO. `.app-call`
+     is static, and a static box paints in the block layer — under every
+     positioned sibling in the stacking context, `z-index: 0` included. So
+     dropping the canvas to 0 was not enough on its own: the canvas still
+     covered the call, measured, with the panel correct at 459 wide behind it.
+     One step up puts it in the positioned layer, above the 0 and below the
+     masthead's 100. */
+  body.is-calling:not(.is-call-min) .app-call { position: relative; z-index: 1; }
   .s-work, .s-work-body { min-width: 0; }
 }
 

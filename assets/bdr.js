@@ -22640,11 +22640,22 @@
     const menu = byId('prodMenu');
     const strip = document.querySelector('.topnav-tabs-inner');
     if (!menu || !strip) return;
-    menu.innerHTML = '<span class="b-menu-cap">Products</span>' +
+    /* NO CAPTION. A menu hanging off the AiMY mark, listing the AiMY
+       products, does not also need a line saying Products — the same
+       argument .overlay-badge lost, and the same one the rail's scope block
+       lost: a label for what the next line already is. */
+    menu.innerHTML =
       Array.prototype.map.call(strip.children, (tab) => {
         const on = tab.classList.contains('active');
         const href = tab.getAttribute('href');
-        const name = '<span class="b-menu-line"><span class="b-menu-name">' +
+        /* THE TAB'S OWN MARK COMES WITH IT. The strip draws the product you
+           are on as the AiMY glyph and its name in accent, and this list is a
+           second view of that strip — so it carries whatever mark the tab
+           carries rather than deciding for itself which entries have one. The
+           size is CSS's, next to .prod-anchor. */
+        const mark = tab.querySelector('svg');
+        const name = (mark ? mark.outerHTML : '') +
+          '<span class="b-menu-line"><span class="b-menu-name">' +
           esc(tab.textContent.trim()) + '</span></span>';
         /* THE ONE YOU ARE ON IS MARKED AND IS NOT A LINK. It came out of the
            branch below as a plain disabled item with nothing to say it was
