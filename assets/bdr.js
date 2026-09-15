@@ -6215,7 +6215,23 @@
   let CUST_CACHE = null;
   function customers() {
     if (CUST_CACHE) return CUST_CACHE;
-    CUST_CACHE = DB.acc.filter(isCust)
+    /* ══ A LINE'S BOOK IS WHO BOUGHT THAT LINE ════════════════════
+       The chip read 33 on a QA owner's board — every customer the company
+       has, most of them running things he does not answer for. Who renews
+       managed support is not his to chase.
+
+       `subsAt` is deliberately NOT scoped with it. It is the truth about
+       what a company runs, and every account page, the cross-sell and
+       `openingAt` read it — hide the rest of what they buy and the page
+       starts offering them something they already have. So the BOOK is
+       filtered and the record stays whole, which also means the worth on a
+       card is what the company pays us in total rather than what it pays
+       for this line. That is a fact about the company, said on a shelf of
+       companies that all run his product. */
+    const inBook = isLine()
+      ? (a) => subsAt(a).some((s) => s.sell === myLine())
+      : isCust;
+    CUST_CACHE = DB.acc.filter(inBook)
       .sort((x, y) => custRank(x) - custRank(y) || custWorth(y) - custWorth(x));
     return CUST_CACHE;
   }
