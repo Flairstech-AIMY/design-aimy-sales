@@ -1920,7 +1920,21 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 }
 @media (max-width: 611.98px) { /* 720 layout px */
   .b-back-row { grid-template-columns: 1fr; }
-  .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
+  /* ══ THE LABEL IS NOT A SHARE OF THE ROW, IT IS THE ROW'S SUBJECT ══════
+     This was `minmax(80px, 1fr) 2fr`, which gave the BAR twice what it gave
+     the step it belongs to: measured at a 620px layout, the label got 114 and
+     `On the record here` folded to two lines while 229px of bar sat beside it
+     saying nothing the row's own figures do not. max-content is what the
+     default tier above already gives this column; the bar keeps the rest. */
+  .b-funnel { grid-template-columns: max-content minmax(40px, 1fr) auto auto; }
+  /* AND max-content NEEDS A CEILING, because this label is not always a step:
+     the first row takes the campaign's or the account's own name, which is
+     unbounded. Stress-tested at a 376px layout with a 51-character one —
+     uncapped the column asked for 331px inside a 308px block and took the
+     table off the card. 22ch wraps that name and is wider than every step in
+     the ladder, so the ordinary row is untouched: measured identical, 117px
+     and one line, with the cap on and off. */
+  .b-fn-name { max-width: 22ch; }
 }
 
 /* ══ AND BELOW 560 THE BAR IS THE COLUMN THAT GOES ═════════════════════
@@ -1936,7 +1950,14 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    this costs a picture of a fact. The label then takes what the bar was
    holding and every cell is one line again. */
 @media (max-width: 475.98px) { /* 560 layout px */
-  .b-funnel { grid-template-columns: minmax(0, 1fr) auto auto; }
+  /* max-content, so the LABEL wins the contest for the last pixels and the
+     column caption gives way. At a 376px layout `minmax(0, 1fr)` left the
+     label 113 against the 117 it needs and wrapped `On the record here`,
+     while `of the one above` held 120 for a heading over two figures. Now the
+     heading takes the two lines and every row is one — which is the right way
+     round: a caption folding is what captions do, a row label folding in a
+     three-row table reads as the table having broken. */
+  .b-funnel { grid-template-columns: max-content auto auto; }
   .b-fn-bar, .b-fn-barh { display: none; }
 }
 
