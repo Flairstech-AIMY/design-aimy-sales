@@ -1999,6 +1999,7 @@
        this come from" had two possible answers and needed three. */
     {
       const HIST_N = 22;
+      const QA_N = 8;
       const of = (arr, h) => arr[Math.abs(h) % arr.length];
       /* Finished campaigns first: old business belongs to a campaign that
          has ended. Never one the caller is crewed on. */
@@ -2007,9 +2008,66 @@
       const homes = shut.length ? shut.concat(notHers) : (notHers.length ? notHers : camp);
       const callers = REPS.filter((x) => x.fn === 'bdr');
 
-      for (let i = 0; i < HIST_N; i++) {
+      /* ══ ONE PRODUCT LINE HAD TO HAVE A SECOND CAMPAIGN ════════════════
+         Ten campaigns over eight things to sell leaves three of the eight
+         with no campaign at all, and which three is the dice: on this seed
+         AiMY Voice, managed support and the back office are sold nowhere,
+         and AiMY QA is sold on exactly one. A desk that answers for a
+         product cannot be shown on a corpus where the product might not be
+         sold, and one campaign is a line with nothing to compare against.
+
+         THE FIX IS NOT TO RE-ROLL. Raising the campaign count or weighting
+         the draw fixes the same thing and moves every count on both working
+         desks to do it. So this is one campaign, appended, on exactly the
+         terms the deals below it are already appended on: keyed on `hash`,
+         `r()` not called once, so everything above this line is what it was.
+
+         It is drawn AFTER `homes`, which is a filtered copy rather than a
+         view — so the twenty-two deals that were landing on the old
+         campaigns still land on exactly those, and the hash is keyed per
+         iteration, so adding iterations cannot move the ones before them.
+
+         Hazem owns it and Engy is not on the crew, which is what keeps the
+         two desks somebody reads at the counts they had: `mine()` is
+         ownership on one and crew on the other, and this answers no to
+         both. It is old business rather than a calling campaign — its
+         people arrive below as deals already handed over, which is what a
+         product owner has a second campaign FOR. */
+      const qaOwner = MANAGERS[MANAGERS.length - 1];
+      const qaHome = {
+        id: 'c' + camp.length,
+        name: SELL.qa.name + ' — Benelux',
+        client: null,
+        target: { n: 18, noun: 'meeting' },
+        persona: {
+          who: ASK_OF.qa,
+          at: 'software companies with more than 500 staff in Benelux',
+          why: WHY_NOW.qa,
+        },
+        goal: 'A scoping call with ' + ASK_OF.qa + ', with somebody in the room who can sign',
+        pitch: 'They are in Benelux, and they are running this with people rather than with '
+          + 'a system. ' + SELL.qa.name + ' is ' + SELL.qa.blurb + '. Open on what it costs '
+          + 'them today, not on what we do.',
+        sells: ['qa'],
+        objections: ['pricing', 'timing'].map((x) => ({ k: x, say: ANSWERS[x] })),
+        resources: [
+          { name: SELL.qa.name + ' — one pager', kind: 'deck' },
+          { name: 'What it costs, and against what', kind: 'pricing' },
+          { name: 'Software case study', kind: 'case' },
+        ],
+        from: dayAdd(-148),
+        to: dayAdd(44),
+        owner: qaOwner.id,
+        crew: BDRS.filter((b) => b.id !== DEFAULT_ME).slice(0, 2).map((b) => b.id),
+        state: 'running',
+        industry: 'software',
+        region: 'benelux',
+      };
+      camp.push(qaHome);
+
+      for (let i = 0; i < HIST_N + QA_N; i++) {
         const h = Math.abs(hash('hist:' + i));
-        const k = of(homes, h);
+        const k = i < HIST_N ? of(homes, h) : qaHome;
         const a = of(acc, h >> 3);
         const mgr = k.owner || MANAGERS[0].id;
         /* Two to nine months back, which is the window his own book's
