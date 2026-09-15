@@ -15133,15 +15133,10 @@
           'Somebody on the board rings in</button>' +
         '<button class="proto-link" type="button" data-inbound="unknown">' +
           'A number we do not have rings in</button>' +
-        '<div class="proto-build">The first resolves to a real person with a real ' +
-          'number, ranked by what AiMY has to say about them. The second is a ' +
-          'number checked against the book until it misses.</div>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
         '<button class="proto-link" type="button" data-reset>Reset to seed</button>' +
-        '<div class="proto-build">Every ring you answer, decline or let go writes to ' +
-          'the record. This puts the corpus back to the seed it is built from.</div>' +
       '</div>';
   }
 

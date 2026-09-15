@@ -8634,16 +8634,11 @@ body.is-figures .filter-tray { display: none; }
 
 /* `.s-aud-names` went with the audience read-out it wrapped. */
 
-/* The build stamp in the prototype panel — which file the browser actually
-   loaded, not which file is on disk. Small, quiet, and the first thing to
-   read when a report cannot be reproduced. */
-.proto-build {
-  padding: var(--sp-2) 0 var(--sp-3);
-  margin-bottom: var(--sp-2);
-  border-bottom: 1px solid var(--hairline);
-  font-size: var(--fs-2xs); color: var(--ink-muted);
-}
-.proto-build strong { color: var(--d200); font-weight: var(--fw-bold); }
+/* `.proto-build` went with the last three things that used it: the build
+   stamp, which reads out of the console now, and the two explainers under
+   the panel's remaining sections. Nothing renders it, so the rule would be
+   dead CSS — and dead CSS is the one kind of wrong the audit cannot see,
+   because it only checks that a class USED has a rule, never the reverse. */
 
 /* ══ WHAT HAPPENED, IN THE RAIL ═══════════════════════════════════════════
    A campaign's history, in the same region and the same vocabulary a record's
