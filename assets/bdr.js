@@ -661,6 +661,18 @@
        when a campaign has no owner of its own. */
     { id: 'nadia',  name: 'Nadia Fouad',   initials: 'NF', fn: 'sales-manager' },
     { id: 'hazem',  name: 'Hazem Saad',    initials: 'HS', fn: 'sales-manager' },
+    /* The one person here who does not work a book. A stakeholder owns one
+       of the eight things we sell and answers for it wherever it is sold, so
+       `sell` is the whole of what makes him different — singular, because
+       `c.sell` on a record already means the product this is for and a second
+       spelling would drift.
+
+       APPENDED, LIKE THE TWO ABOVE, BUT FOR A DIFFERENT REASON: this one
+       could go anywhere. Every reader of this array filters on `fn` — `BDRS`,
+       `MANAGERS`, the seed's callers, `workingHeads`, `payrollRows` — and a
+       function none of them names is a row none of them draw. The seed cursor
+       does not move and no count in the corpus changes. */
+    { id: 'sherif', name: 'Sherif Amin',   initials: 'SA', fn: 'stakeholder', sell: 'qa' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -710,7 +722,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina'];
+  const DESKS = ['engy', 'lina', 'sherif'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -2652,7 +2664,8 @@
        agree — a key that silently means something other than what it says is
        the thing this whole scheme exists to avoid. */
     if (S.as && DESKS.indexOf(S.as) < 0) {
-      S.as = (REP[S.as] || {}).fn === 'sales-manager' ? 'lina' : '';
+      const fn = (REP[S.as] || {}).fn;
+      S.as = fn === 'sales-manager' ? 'lina' : fn === 'stakeholder' ? 'sherif' : '';
     }
     if (S.on === 'deals' && !onBook()) S.on = 'calls';
   }
@@ -4575,7 +4588,7 @@
     const p = me();
     byId('userAvatar').innerHTML = faceOf(p.id, 28);
     byId('userName').textContent = p.name;
-    byId('userRole').textContent = JOB[p.fn];
+    byId('userRole').textContent = jobSay(p);
     byId('asPanel').innerHTML = '<span class="b-menu-cap">Looking as</span>' +
       /* A TICK IS FOR THINGS YOU CHOOSE SEVERAL OF. This is one desk at a
          time — you are either at it or you are not — so the row you are on
@@ -4588,7 +4601,7 @@
           faceOf(r.id, 24) +
           '<span class="b-menu-line">' +
             '<span class="b-menu-name">' + esc(r.name) + '</span>' +
-            '<span class="b-menu-sub">' + esc(JOB[r.fn]) + '</span>' +
+            '<span class="b-menu-sub">' + esc(jobSay(r)) + '</span>' +
           '</span>' +
         '</button>').join('');
   }
@@ -11149,7 +11162,12 @@
      campaign — owns it, calling — which is a sentence about the campaign
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
-  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR', stakeholder: 'Stakeholder' };
+  /* "Stakeholder" names a job and not a book, and on the one desk where the
+     book IS the job that is half a label. The product goes with it wherever a
+     person is introduced — the bar, and the row you press to get there. */
+  const jobSay = (p) => (p && JOB[p.fn] ? JOB[p.fn] : '') +
+    (p && p.sell && SELL[p.sell] ? ' · ' + SELL[p.sell].name : '');
   /* ══ ONE ROW, THREE BLOCKS ═════════════════════════════════════════════
      A campaign's team, a lead's team and a list's were three copies of the
      same nine lines of markup, and they had already started to drift: the
