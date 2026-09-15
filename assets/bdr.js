@@ -5537,11 +5537,17 @@
      every campaign and this runs on every paint of every surface. */
   function bookAttain() {
     const p = periodOf(S.period);
-    const booked = dealBook()
+    const all = dealBook();
+    const booked = all
       .filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); })
       .reduce((n, c) => n + acvOf(c).value, 0);
     const target = targetFor(p);
+    /* What is still in play. A desk with a target is read against the
+       target; a product line has none, and this is the only other thing a
+       figure on this door can honestly be read against. Same pass. */
+    const live = all.filter(dealLive);
     return { booked: booked, target: target, elapsed: p.elapsed,
+      open: live.reduce((n, c) => n + acvOf(c).value, 0), openN: live.length,
       pc: target ? booked / target : null,
       pace: p.elapsed != null && target ? (booked / target) - p.elapsed : null,
       paceMoney: p.elapsed != null && target ? booked - target * p.elapsed : null };
@@ -5550,12 +5556,16 @@
     const a = bookAttain();
     /* The same reserve the report's own bar keeps, for the same reason and
        so the door and the page draw one shape. */
-    const scale = Math.max(a.target * 1.2, a.booked) || 1;
+    /* On a line the bar is what is signed of what the line has in play, and
+       there is no mark on it, because a mark with no target under it is a
+       line drawn at a number nobody set. */
+    const scale = (isLine() ? Math.max(a.booked + a.open, a.booked)
+      : Math.max(a.target * 1.2, a.booked)) || 1;
     const pc = Math.max(0, Math.min(100, (a.booked / scale) * 100));
     const at = Math.max(0, Math.min(100, (a.target / scale) * 100));
     return '<span class="b-door-bar">' +
       (a.booked ? '<span class="b-door-seg is-won" style="width:' + pc.toFixed(1) + '%"></span>' : '') +
-      '<span class="b-door-mark" style="left:' + at.toFixed(1) + '%"></span>' +
+      (isLine() ? '' : '<span class="b-door-mark" style="left:' + at.toFixed(1) + '%"></span>') +
     '</span>';
   }
 
@@ -5579,6 +5589,12 @@
      the report's own legend uses for the mark on its bar. */
   function bookSay() {
     const a = bookAttain();
+    /* A line is read against what it still has in play rather than against a
+       target it was never given. */
+    if (isLine()) {
+      return a.open ? euro(a.open) + ' still open across ' + plural(a.openN, 'deal')
+        : 'nothing still open';
+    }
     const of = 'of a ' + euro(a.target) + ' target';
     /* ══ A FINISHED WINDOW HAS NO PACE TO BE BEHIND ═════════════════════
        "€300k behind where you should be today" about a quarter that ended
@@ -7295,7 +7311,15 @@
         esc(Math.round(a.elapsed * 100)) + '% of the time gone, so you are <b>' +
         esc(fmtMoney(Math.abs(a.paceMoney))) + ' ' +
         (a.paceMoney >= 0 ? 'ahead of' : 'behind') + '</b> where you should be today.';
-    bits.push(money + pace);
+    /* A line has no target to be judged against, so it is judged on the two
+       figures it does have. Same slot, same first position — the reader of
+       this desk opened it for what his product did, the way a manager opens
+       it for whether he will make the number. */
+    bits.push(isLine()
+      ? '<b>' + esc(sellSay(myLine())) + '</b> gained <b>' +
+        esc(now.arr ? fmtMoney(now.arr) : 'nothing') + '</b> and cost <b>' +
+        esc(fmtMoney(now.spend.total)) + '</b>.'
+      : money + pace);
 
     /* ══ THE ONE CLAUSE HERE WITH A VERB IN IT FOR THE READER ═══════════
        Everything else on this page is a reading of a quarter that has
@@ -7403,7 +7427,19 @@
     const p = periodOf(S.period);
     const scope = bookScope();
     const deals = dealBook();
-    const heads = workingHeads();
+    /* ══ A PRODUCT LINE DOES NOT PAY THE SALES FLOOR ═════════════════════
+       `spend.team` is what every BDR and manager on the roster is paid, and
+       charging the whole of it to one of eight product lines told a QA owner
+       he had spent €281k to gain nothing. He did not: the floor is paid
+       whether or not his line is sold.
+
+       There is already a branch for this and it needed no new arithmetic.
+       At `heads === 0` the labour cost falls back to `spend.human` — the
+       hours actually logged against these campaigns — which is exactly what
+       a line costs. `unlogged` goes quiet with it, because the share of a
+       payroll that lands on campaigns is a question about the floor and not
+       about a product. */
+    const heads = isLine() ? 0 : workingHeads();
     const now = bookMoney(scope, p, heads);
     const pipe = pipelineOf(deals);
     const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
@@ -7663,7 +7699,7 @@
         '</div>' +
       '</section>' +
 
-      '<div class="s-att">' +
+      (isLine() ? '' : '<div class="s-att">' +
         '<div class="s-att-head">' +
           '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
             ' <span class="s-att-of">of ' + esc(fmtMoney(a.target)) + '</span></span>' +
@@ -7735,7 +7771,7 @@
           (done || pacePc == null ? ''
             : '<span class="s-att-key is-pace">Where you should be today</span>') +
         '</div>' +
-      '</div>' +
+      '</div>') +
 
       '<div class="s-afs">' +
         /* ══ THE FIRST TILE HAS TO POINT BACK AT THE HEADLINE ═══════════
@@ -7743,11 +7779,17 @@
            two numbers, named the same way twice. It said "Still to sell" for
            a while, which is an action with no object on the one tile whose
            whole job is to say what is left of the figure directly above. */
-        attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
-          a.gap ? (done ? 'the window is closed'
-            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
-            : 'the target is already met',
-          a.gap ? null : 'ok') +
+        /* ON A LINE THE FIRST TILE IS WHAT CAME IN, because the headline it
+           used to point back at is the attainment bar, and there is none. */
+        (isLine()
+          ? attFig('Gained', now.arr ? fmtMoney(now.arr) : 'Nothing',
+            now.wins.length ? plural(now.wins.length, 'deal') + ' signed'
+              : 'nothing signed in this window', now.arr ? 'ok' : null)
+          : attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
+            a.gap ? (done ? 'the window is closed'
+              : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
+              : 'the target is already met',
+            a.gap ? null : 'ok')) +
         /* ══ A WEIGHTED FIGURE NEEDS ITS DENOMINATOR ═════════════════════
            "Likely to close · €351k" could be read three ways: the whole open
            book, a date, or an expected value. It is the third — every open
@@ -7812,7 +7854,7 @@
            "behind" has its referent directly underneath it. A closed window
            has no pace left to be behind, and its shortfall is the tile at
            the front of this row, so it reports where it finished instead. */
-        attFig('Ahead or behind',
+        (isLine() ? '' : attFig('Ahead or behind',
           done ? Math.round(a.pc * 100) + '% of target'
             : a.paceMoney == null ? '—'
             : fmtMoney(Math.abs(a.paceMoney)) + ' ' + (ahead ? 'ahead' : 'behind'),
@@ -7830,7 +7872,7 @@
              Behind takes the negative pole and ahead the positive, so the
              figure, the word and the colour say one thing. It is the only
              coloured figure in the row now, which is what makes it read. */
-          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err') +
+          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err')) +
         /* "PAID OFF" NEVER SAID WHAT WAS BEING PAID OFF. It is the cost of
            winning one customer, and how long that customer takes to earn it
            back — a different sentence from the one the two words were
