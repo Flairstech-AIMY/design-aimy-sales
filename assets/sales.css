@@ -3893,7 +3893,20 @@ body.is-calling { --fb-reserve: var(--call-width); }
    next line on the way back from the end of the last. */
 .s-home {
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), NOT 1fr, AND THE DIFFERENCE IS WHETHER THE PAGE CAN BE
+     PUSHED. `1fr` is `minmax(auto, 1fr)`, and that auto minimum is the
+     largest min-content among the blocks in the track — so one block that
+     cannot narrow does not overflow its own box, it WIDENS THE COLUMN, and
+     every sibling stretches to the new width with it. Measured on the
+     manager's campaign at a 391px layout: `.b-cmeta` reported 792px of
+     min-content and the back link, the title and four blocks that each fit
+     perfectly well were all drawn 792 wide and cut off at 391.
+
+     The block that could not narrow is fixed where it lives (bdr.css §56).
+     This is the guard that keeps the next one from doing the same thing to
+     the whole page: a track here may never be wider than the column it is
+     in, and a block that overruns overruns alone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   align-items: start;
 
@@ -3914,7 +3927,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   margin-inline: auto;
 }
 @media (min-width: 935px) { /* 1100 layout px */
-  .s-home { grid-template-columns: 1fr 1fr; }
+  .s-home { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 .s-block { display: flex; flex-direction: column; min-width: 0; }
 /* ══ EVERY HOME BLOCK IS WIDE, AND THAT IS CORRECT ═══════════════════════

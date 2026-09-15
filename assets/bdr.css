@@ -2587,7 +2587,24 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    caption above each is already the separator and a rule would make three
    facts read as three objects. */
 .b-cmeta {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  /* ══ THE 232 GIVES WAY WHEN THERE IS NOT 232 ═══════════════════════
+     `minmax(232px, 1fr)` reads like a preference and behaves like a floor:
+     the track cannot go under 232 whatever the container does, so a grid of N
+     parts reports a min-content of N x 232 and the block sizes the PAGE
+     instead of the page sizing the block. `.b-draft-meta` below hit this and
+     was answered by counting columns per breakpoint; this is the same defect
+     at its source, and it showed on the manager's campaign, where four parts
+     made 792px of min-content inside a 391px layout and took the back link,
+     the title, the team and every block below them off the right of the
+     screen by 380px.
+
+     `min(232px, 100%)` is the same preference written so it can lose. The
+     column still asks for 232 and auto-fit still decides how many fit; when
+     the container is narrower than one column, the floor becomes the
+     container and the grid folds to one part per row instead of overflowing.
+     No breakpoint, and it answers every width rather than the ones somebody
+     thought to write down. */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(232px, 100%), 1fr));
   column-gap: 48px; row-gap: 24px; margin: 22px 0 0; max-width: 1080px;
 }
 .b-cmeta-part { min-width: 0; }
