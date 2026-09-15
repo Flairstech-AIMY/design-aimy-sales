@@ -5230,8 +5230,30 @@ body.is-calling { --fb-reserve: var(--call-width); }
    now, where every other thing AiMY offers about a list already lives, and a
    row there comes with its own press. */
 
+/* ══ STACKED, AND ALL FOUR ACTUALLY STACKED ════════════════════════
+   `column` + `align-items: stretch` was half the job and read as none of it.
+   Two of these four are bare buttons and stretch — with their labels centred,
+   because that is what a button does with a label it has room for. The other
+   two are wrapped in `.b-menu-wrap`, which is `inline-flex`, so they took
+   their natural width and sat left. Four controls at four different
+   horizontal positions, none of them lining up with anything: Add to campaign
+   on the left, Save as draft near the middle, Assign people back on the left,
+   Discard near the middle again.
+
+   ONE LEFT EDGE FOR THE THREE THAT ARE WORDS, and the primary keeps the
+   centred label a filled button wants. That is the only difference between
+   them here, and it is the one that says which is which. */
 @media (max-width: 611.98px) { /* 720 layout px */
-  .s-build-foot { flex-direction: column; align-items: stretch; }
+  .s-build-foot { flex-direction: column; align-items: stretch; gap: 12px; }
+  /* The wrapper has to stretch before the control inside it can. It is
+     `inline-flex` for the menu it anchors, which is right everywhere the
+     foot is a row and wrong the moment it is a column. */
+  .s-build-foot > .b-menu-wrap { display: flex; }
+  .s-build-foot > .b-menu-wrap > .b-menu-open { width: 100%; }
+  .s-build-foot .s-inline-btn,
+  .s-build-foot .b-menu-open:not(.s-build-go) {
+    justify-content: flex-start; text-align: left;
+  }
 }
 
 

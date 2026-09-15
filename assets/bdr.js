@@ -10789,6 +10789,59 @@
      so the menu toggles and stays open until you look away from it. */
   const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
     ? DRAFT.assign : [me().id]);
+
+  /* Untouched, it is the verb; touched, it is the answer. The campaign button
+     beside it works the same way, and "You are calling them" read as a fact
+     somebody was telling you rather than a control.
+
+     Names, while there are few enough to name. "Split between 2" makes you
+     open the menu to find out which two.
+
+     ITS OWN FUNCTION BECAUSE TWO THINGS SAY IT NOW — the renderer that draws
+     the control and assignSync(), which relabels it in place when a name is
+     ticked. Two copies of this ladder is two places for the wording to drift. */
+  function assignSay(who, set) {
+    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
+    if (!set) return 'Assign people';
+    if (who.length === 1) {
+      return who[0] === me().id ? 'You are calling them'
+        : actor(who[0]).name + ' is calling them';
+    }
+    if (who.length <= 3) return 'Split between ' + listSay(who.map(first));
+    return 'Split between ' + commas(who.length) + ' of you';
+  }
+
+  /* ══ A MULTIPLE CHOICE DOES NOT REPAINT THE PAGE UNDER ITSELF ═══════════
+     Ticking a caller called paint(), which rebuilds the surface from a string
+     — so the open menu was destroyed and a new one built in its place on every
+     press. It came back because the handler re-showed it by id, and it came
+     back NEW: the entrance animation replayed, the search box lost what was
+     typed in it and the focus ring went with the element it was on. Four names
+     is four flashes.
+
+     The rule is already written at [data-pickopen]: opening, choosing and
+     filtering happen in the DOM, and only the confirm writes. This is the
+     choosing. Nothing else on the page reads the assignment — saveList()
+     reads it at commit time, and that is a write, which repaints — so the
+     two things that show it are the ticks and the opener's own label. */
+  function assignSync() {
+    const who = assignedTo();
+    const set = !!(DRAFT && DRAFT.assign);
+    const menu = byId('assignPick');
+    if (menu) {
+      menu.querySelectorAll('[data-pickrep]').forEach((b) => {
+        const on = who.indexOf(b.getAttribute('data-pickrep')) >= 0;
+        b.setAttribute('aria-pressed', String(on));
+        const tick = b.querySelector('.b-menu-tick');
+        if (tick) tick.classList.toggle('is-on', on);
+      });
+    }
+    const opener = document.querySelector('[data-pickopen="assignPick"]');
+    if (opener) {
+      opener.classList.toggle('is-set', set);
+      opener.textContent = assignSay(who, set);
+    }
+  }
   /* ══ A LIST ON NO CAMPAIGN IS A LIST NOBODY IS WORKING ═════════════════
      Save led and the campaign hung off it as a second thought, so the easy
      press produced a set of five hundred people sitting in a drawer. Putting
@@ -10818,20 +10871,8 @@
   };
   const assignPickMenu = () => {
     const who = assignedTo();
-    /* Untouched, it is the verb; touched, it is the answer. The campaign
-       button beside it works the same way, and "You are calling them" read
-       as a fact somebody was telling you rather than a control. */
     const set = !!(DRAFT && DRAFT.assign);
-    /* Names, while there are few enough to name. "Split between 2" makes
-       you open the menu to find out which two. */
-    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
-    const say = !set
-      ? 'Assign people'
-      : who.length === 1
-        ? (who[0] === me().id ? 'You are calling them' : actor(who[0]).name + ' is calling them')
-        : who.length <= 3
-          ? 'Split between ' + listSay(who.map(first))
-          : 'Split between ' + commas(who.length) + ' of you';
+    const say = assignSay(who, set);
     return '<span class="b-menu-wrap">' +
       '<button class="s-inline-btn b-menu-open' + (set ? ' is-set' : '') + '" ' +
         'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
@@ -15282,11 +15323,12 @@
   function vlist(o) {
     const host = o.host;
     const scroller = byId('pageScroll');
-    const rowH = o.rowH;
     const overscan = o.overscan == null ? 8 : o.overscan;
     const self = {
       host: host, items: o.items || [], cursor: -1,
       first: -1, last: -1,
+      /* What the caller says a row is, until a row says otherwise. */
+      rowH: o.rowH,
     };
 
     host.classList.add('b-vlist');
@@ -15301,8 +15343,53 @@
       return t;
     }
 
+    /* ══ THE ROW HEIGHT IS MEASURED, NOT DECLARED ═════════════════════
+       Every row here is pinned to `rowH` and placed at `i * rowH`, so a number
+       that does not match what the CSS produces is not a rounding error — it
+       is every row overlapping the next one by the difference, for the whole
+       list.
+
+       `.s-brow` was told 132. Measured on the builder's result: 134 at a
+       1412px layout, and 246 at 459, because below 720 the figures column
+       moves under the name instead of beside it. Two pixels of overlap on a
+       desktop nobody would report, and a hundred and fourteen on a phone,
+       where the staff count and the tag of one company were drawn across the
+       name of the next.
+
+       A TABLE OF BREAKPOINT CONSTANTS WOULD BE WRONG AGAIN THE NEXT TIME THE
+       ROW CHANGES, and would have to list every width somebody thought of.
+       One row is rendered with its height let go, read, and thrown away — so
+       the number comes from the same CSS that draws the list, at whatever
+       width the list is actually at.
+
+       IN LAYOUT PIXELS. The shell carries `zoom` on <body>, so a rect is the
+       layout value times the scale while `rowH` is a CSS length; mixing them
+       puts the window out by a factor on every screen that is not the 1536
+       anchor. The README states this about `offsetTop` and `clientHeight`,
+       and it is the same trap one measurement further along.
+
+       ONLY ON A FORCED RENDER — mount, update, resize — never on scroll,
+       which is the frame-rate path. */
+    function measure() {
+      if (!self.items.length) return;
+      const S = parseFloat(getComputedStyle(document.documentElement)
+        .getPropertyValue('--ui-scale')) || 1;
+      const probe = document.createElement('article');
+      probe.className = (o.rowClass ? o.rowClass + ' ' : '') + 'b-vrow';
+      probe.style.cssText =
+        'position:absolute;left:0;right:0;top:0;height:auto;transform:none;visibility:hidden';
+      probe.setAttribute('aria-hidden', 'true');
+      probe.innerHTML = o.row(self.items[0], 0, false);
+      host.appendChild(probe);
+      const h = Math.round(probe.getBoundingClientRect().height / S);
+      probe.remove();
+      if (h > 0) self.rowH = h;
+    }
+
     function render(force) {
       const n = self.items.length;
+      if (force) measure();
+      const rowH = self.rowH;
       host.style.height = (n * rowH) + 'px';
       if (!n) {
         host.innerHTML = o.empty ? '<div class="b-vfoot">' + esc(o.empty) + '</div>' : '';
@@ -15365,13 +15452,13 @@
       if (i >= n) i = n - 1;
       self.cursor = i;
       const top = topOf();
-      const want = top + i * rowH;
+      const want = top + i * self.rowH;
       const st = scroller.scrollTop;
       const vh = scroller.clientHeight;
       /* Only scroll when the row is not already whole on screen. A list that
          re-centres on every keypress makes the eye chase the cursor. */
-      if (want < st) scroller.scrollTop = want - rowH;
-      else if (want + rowH > st + vh - 96) scroller.scrollTop = want + rowH + 96 - vh;
+      if (want < st) scroller.scrollTop = want - self.rowH;
+      else if (want + self.rowH > st + vh - 96) scroller.scrollTop = want + self.rowH + 96 - vh;
       render(true);
       if (o.onCursor) o.onCursor(self.items[i], i);
     };
@@ -15397,9 +15484,15 @@
     });
   }
   byId('pageScroll').addEventListener('scroll', vscroll, { passive: true });
-  window.addEventListener('resize', () => {
+  function vremeasure() {
     for (let i = 0; i < VLISTS.length; i++) VLISTS[i].render(true);
-  }, { passive: true });
+  }
+  window.addEventListener('resize', vremeasure, { passive: true });
+  /* AND ON THE VIEWPORT CHANGES `resize` DOES NOT ANNOUNCE. Changing browser
+     zoom moves the viewport with no resize event — assets/aimy-viewport.js
+     measured that and publishes this for it. It matters here because the row
+     height is measured from the CSS, and the CSS answers the width. */
+  window.addEventListener('aimy:viewport', vremeasure, { passive: true });
 
   /* Every repaint drops the lists that were on the previous surface. A list
      left in the registry keeps rendering into a host that is no longer in the
@@ -21490,10 +21583,9 @@
       const at = now.indexOf(id);
       if (at >= 0) { if (now.length > 1) now.splice(at, 1); } else now.push(id);
       DRAFT.assign = now;
-      paint();
-      /* The menu is a multiple choice, so it stays where it was. */
-      const m = byId('assignPick');
-      if (m) m.hidden = false;
+      /* In place. The menu is a multiple choice and stays where it was — the
+         same element, not a new one wearing its id. See assignSync. */
+      assignSync();
       return;
     }
     if (t.closest('[data-discard]')) {
