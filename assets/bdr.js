@@ -50,6 +50,14 @@
     const m = t && /[?&]v=([^&]+)/.exec(t.getAttribute("src") || "");
     return m ? "v" + m[1] : "unstamped";
   })();
+  /* The panel used to print this and does not any more. It is still the
+     only thing that can tell a stale page from a live one — the `?v=`
+     stamp makes every asset immutable, so a browser that loaded before a
+     bump serves the old stylesheet with nothing on screen saying why — so
+     it says it where it costs no pixels. Read off the script's own src,
+     so it cannot claim a version it is not. */
+  try { console.info('AiMY Sales ' + BUILD); } catch (e) {}
+
   const byId = (id) => document.getElementById(id);
 
   /* Deterministic PRNG (mulberry32), carried over from the V3 build.
@@ -2465,6 +2473,10 @@
 
   /* Small persisted preferences that are not corpus: theme is its own key
      because it is read before this script exists. */
+  /* `cap` has had no control since the prototype panel was cut back to the
+     phone: it stays 0, which is the uncapped queue everybody who never
+     opened that panel already had. `UI` itself stays as the place a
+     persisted preference goes, which is what it was named for. */
   let UI = { cap: 0 };
   function loadUI() {
     try { UI = Object.assign(UI, JSON.parse(localStorage.getItem(KEY_UI) || '{}')); } catch (e) {}
@@ -15088,40 +15100,33 @@
     paintProto();
   }
 
+  /* ══ CUT TO THE ONE SCENARIO IT IS FOR ═════════════════════════════════
+     This panel held six sections: the build stamp, the corpus counts, a desk
+     switcher, the queue cap, the phone, and the reset. Five of them were
+     orientation for somebody reading the whole product, and this build is
+     being shown for one thing.
+
+     WHAT WENT, AND WHERE IT WENT TO. `data-as` was a shortcut to a URL that
+     already works — `?as=lina` is in `SCALAR`, so every desk is still one
+     address away and nothing is unreachable. `data-cap` left the queue on
+     its default, which is the state anybody who never opened this panel was
+     already in. The build stamp and the corpus counts were readouts, so they
+     took nothing with them.
+
+     THE RESET STAYED, AND IT IS THE ONE THAT COULD NOT GO. `reset()` has no
+     other caller anywhere in the build, and walking the inbound scenario
+     writes a touchpoint every time — decline one, miss one, log one, and the
+     corpus a demo starts from is not the corpus the last demo started from.
+     Without this the only way back to the seed is clearing localStorage by
+     hand, which is not a thing to ask of somebody mid-sentence.
+
+     Their two handlers went with them. The audit fails a router branch that
+     nothing renders, which is the check that keeps a panel like this from
+     quietly becoming a list of controls that used to exist. */
   function paintProto() {
     const p = byId('protoPanel');
     if (p.hidden) return;
-    let bytes = 0;
-    try { bytes = (localStorage.getItem(KEY_DB) || '').length; } catch (e) {}
     p.innerHTML =
-      '<div class="proto-sec">' +
-        '<div class="proto-h">Build</div>' +
-        /* WHICH VERSION OF THE FILES YOU ARE ACTUALLY LOOKING AT. The `?v=`
-           stamp makes every asset immutable, so a browser that loaded the
-           page before a bump keeps serving the old stylesheet — and a defect
-           fixed an hour ago is still on the screen with nothing saying why.
-           Read off the script's own src, so it cannot claim a version it is
-           not. If this number is behind, hard-reload. */
-        '<div class="proto-build">' + esc(BUILD) + '</div>' +
-      '</div>' +
-      '<div class="proto-sec">' +
-        '<div class="proto-h">What the corpus holds</div>' +
-        '<div class="proto-build">' + commas(DB.con.length) + ' people · ' +
-          commas(DB.touch.length) + ' calls · ' + commas(bytes) + ' bytes of your changes</div>' +
-      '</div>' +
-      '<div class="proto-sec">' +
-        '<div class="proto-h">Looking as</div>' +
-        DESKS.map((id) => REP[id]).map((x) =>
-          '<button class="proto-link" type="button" data-as="' + esc(x.id) + '">' +
-          esc(x.name) + ' · ' + esc(JOB[x.fn]) +
-          (x.id === me().id ? ' — you' : '') + '</button>').join('') +
-      '</div>' +
-      '<div class="proto-sec">' +
-        '<div class="proto-h">Queue</div>' +
-        '<button class="proto-link" type="button" data-cap="3">Cap it at 3</button>' +
-        '<button class="proto-link" type="button" data-cap="0">No cap' +
-          (UI.cap ? '' : ' — on') + '</button>' +
-      '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Make the phone ring</div>' +
         '<button class="proto-link" type="button" data-inbound="known">' +
@@ -15135,9 +15140,8 @@
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
         '<button class="proto-link" type="button" data-reset>Reset to seed</button>' +
-        '<a class="proto-link" href="old/" target="_blank" rel="noopener">The V3 build</a>' +
-        '<div class="proto-build">Your changes live in this browser. The corpus itself is ' +
-          'rebuilt from one seed on every load.</div>' +
+        '<div class="proto-build">Every ring you answer, decline or let go writes to ' +
+          'the record. This puts the corpus back to the seed it is built from.</div>' +
       '</div>';
   }
 
@@ -21233,9 +21237,14 @@
     const undoEl = t.closest('[data-undo]');
     if (undoEl) { const fn = UNDO; toastGone(); if (fn) fn(); return; }
 
-    const cap = t.closest('[data-cap]');
-    if (cap) { UI.cap = Number(cap.getAttribute('data-cap')) || 0; saveUI(); paint(); return; }
+    /* `data-cap` was the queue cap and went with the prototype panel's
+       other sections; nothing else rendered it and its branch went too.
 
+       `data-as` STAYS, and the audit is why I know. The panel's desk
+       switcher was a second copy of a control the product already has —
+       `#asPanel`, the Looking as menu under the user chip in the topnav.
+       Dropping the branch with the buttons broke the real one, and the
+       drawn-not-wired check caught it in the same second. */
     const as = t.closest('[data-as]');
     if (as) {
       shutMenus(null);

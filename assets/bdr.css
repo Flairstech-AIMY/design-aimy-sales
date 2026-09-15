@@ -4501,23 +4501,42 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    the build and a ghost button on a card that is already floating reads as
    optional. The SIGNAL COLOURS ARE FILLS HERE and never text: `--ok` and
    `--err` measure 4.37:1 and 3.82:1 as small type, which is under the floor,
-   so the glyph on top is white and every word on this card is neutral. */
+   so the glyph on top is white and every word on this card is neutral.
+
+   THE PAIR IS THE ONE THE RAIL ALREADY USES, and it took a second look to
+   find it. This was `--ok` over `--err` — a mint and a salmon, the two
+   quietest things in the palette, on the two loudest presses in the build.
+
+   `--err-strong` exists FOR THIS. Its own note in aimy-ds.css says so:
+   "stops something already IN FLIGHT — hanging up on a call mid-progress is
+   the case it exists for". `.call-end` in the rail is already drawn with it.
+
+   And answer is `--brand`, not a green, for the reason `.call-go` gives
+   beside it: opening a line is not the irreversible half, ending one is. So
+   the same two verbs are the same two colours whether you are placing the
+   call or picking it up, which is the thing a second surface doing the same
+   job most easily gets wrong.
+
+   There is no saturated green in this system to reach for instead — `--ok`
+   is the only one and it is a mint. A phone-green would be a new token, so
+   it is a gap to raise rather than a literal to drop in here. */
 .b-ring-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .b-ring-btn {
   width: 40px; height: 40px; border-radius: 50%; border: 0;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; color: #fff; padding: 0;
   transition: transform var(--t-press) var(--ease-out),
-              filter var(--t-press) var(--ease-out);
+              background-color var(--t-fast) var(--ease-out);
 }
 .b-ring-btn svg { width: 19px; height: 19px; display: block; }
-.b-ring-btn.is-no { background: var(--err); }
+.b-ring-btn.is-no { background: var(--err-strong); }
 /* The handset turned down, which is what declining looks like on every
    phone anybody has held. Rotating the same glyph rather than drawing a
    second one keeps the two buttons visibly one pair. */
 .b-ring-btn.is-no svg { transform: rotate(134deg); }
-.b-ring-btn.is-yes { background: var(--ok); }
-.b-ring-btn:hover { filter: brightness(1.08); }
+.b-ring-btn.is-yes { background: var(--brand); }
+.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--err-strong) 88%, #000); }
+.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--brand) 88%, #fff); }
 .b-ring-btn:active { transform: scale(0.94); }
 .b-ring-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
