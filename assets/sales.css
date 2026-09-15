@@ -1159,6 +1159,105 @@ body {
   .ver-link { display: none; }
 }
 
+/* ══ THE CHEVRON ON THE MARK ══════════════════════════════════
+   The account pill's chevron, in its size and its ink, because it makes the
+   same promise: the thing beside me opens. Quiet — no ground and no border —
+   since it hangs off the brand mark and a boxed control there would read as a
+   second logo. Lit while its menu is open, which `.b-menu-wrap:has()` already
+   says for every other opener in the build.
+
+   `display: none` at every width and painted only in the block above: where
+   the strip is standing, a second way to the same five links is one too many. */
+.prod-chev {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 24px; height: 24px; flex-shrink: 0;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--d400);
+  transition: color var(--t-fast), transform var(--t-fast);
+}
+.prod-chev svg { width: 14px; height: 14px; }
+.prod-chev:hover { color: var(--d100); }
+.prod-chev:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-xs); }
+.prod-anchor:has(.b-menu:not([hidden])) .prod-chev { color: var(--d50); transform: rotate(180deg); }
+/* The menu hangs from the mark, not from the chevron's own 24px box — it is
+   the AiMY mark that owns it, and a 216px card starting 150px in from the
+   left edge of a 459px layout would have nowhere to go but back. */
+/* Against .topnav-logo, not against the chevron's own 24px box: the menu
+   belongs to the MARK, and `left: 0` on a relative logo is that edge
+   exactly, where an offset from the chevron would be a number measured
+   once and wrong the next time the wordmark changes size. */
+.topnav-logo:has(.prod-anchor) { position: relative; }
+/* .topnav-logo .prod-anchor, not .prod-anchor: `.b-menu-wrap` declares
+   `position: relative` in bdr.css, which loads after this file, so at
+   equal specificity the wrap wins and the menu hangs off the chevron
+   again — measured, 160px in from the edge it is supposed to share. */
+.topnav-logo .prod-anchor { position: static; }
+.prod-anchor .b-menu { left: 0; right: auto; }
+
+/* ══ AND THE ITEMS ARE THE PILLS ════════════════════════════════
+   This list is the strip, read back, so the one you are on looks here the way
+   it looks there: the AiMY glyph and the name in accent. `.topnav-tab.active`
+   is that rule in one declaration and this is the same one — not the menu's
+   own `is-on` ground, which is how a MENU says "this one" and would say it a
+   second time, in a second language, over a mark already saying it.
+
+   The mark keeps the strip's size rather than the menu's gap-10 icon slot,
+   because it is the same mark at the same rank.
+
+   AND NO UNDERLINES. Two of these entries are real <a>s to deployed products
+   and three are not, so the underline the user agent gives an anchor drew a
+   line under exactly two of five items in a list where every row is the same
+   kind of thing. The strip has the same mix and has never underlined any of
+   them. */
+.prod-anchor .b-menu-item { text-decoration: none; gap: 8px; }
+.prod-anchor .b-menu-item svg { width: 13px; height: 14px; flex-shrink: 0; }
+.prod-anchor .b-menu-item.is-on,
+.prod-anchor .b-menu-item.is-on:hover { background: none; color: var(--accent); }
+/* The ones with nowhere to go are quiet rather than struck through: a product
+   that is not built yet is not an error. */
+.prod-anchor .b-menu-item[disabled]:not(.is-on) { color: var(--ink-muted); cursor: default; }
+.prod-anchor .b-menu-item[disabled]:hover { background: none; }
+@media (prefers-reduced-motion: reduce) { .prod-chev { transition: color var(--t-fast); } }
+
+/* ══ THE MASTHEAD BELOW 720, AND THE STRIP IS NOT ON IT ════════════════
+   assets/aimy-responsive.css §4 puts the strip back in flow at 1280 layout so
+   it cannot collide with the right-hand cluster, and hands it `overflow-x:
+   auto` so the flanks can take what they need. That keeps the masthead from
+   OVERLAPPING; it does not keep the strip legible. Measured on the queue at a
+   459px layout: the flanks took 320 of it and the strip was left an 111px
+   window onto 356px of tabs — which renders as `ct  Talent`, two half-words
+   in the middle of the masthead, with the tab you are actually on scrolled out
+   of sight. A scroller nobody can see the ends of is not navigation.
+
+   720 IS MEASURED, NOT CHOSEN. The flanks are 170 (logo) and 150 (the bell,
+   the theme control and the pill) and the strip wants 356. Walking the width
+   down: at a 776px layout the strip got 358 of the 356 it needs, at 729 still
+   358, at 682 only 334 — so it stops fitting at about 727, and 720 is this
+   file's existing word for the width either side of it.
+
+   IT MOVES, IT DOES NOT GO. The products hang from the mark as a menu instead
+   — the markup and the reasoning are at index.html's .prod-anchor, and the
+   list is read back off this same strip so there is one of it. A row of its
+   own was the first answer and cost 44px of every phone screen for five links
+   that are a chevron away; this one costs 20.
+
+   --topbar-height IS UNTOUCHED HERE, and that is the point of the change: the
+   overlay, the rail drawer, its scrim and the notifications panel are all
+   `position: fixed` against it (sales.css:1265, 1375, 5984, 6005), and a
+   masthead that grew would have moved all four. */
+@media (max-width: 611.98px) { /* 720 layout px */
+  .topnav-tabs { display: none; }
+  .prod-chev { display: inline-flex; }
+  /* The strip was the middle of three flex regions and the two spacers exist
+     to hold it there. With it gone they are two `flex: 1 1 0` boxes splitting
+     the masthead between the mark and the cluster, which is the same job done
+     by one of them. */
+  .topnav-spacer + .topnav-spacer { display: none; }
+  .topnav-logo { padding-right: 0; margin-right: 0; }
+}
+
+
 /* ── The notifications panel ───────────────────────────────────────
    What is still waiting on a person, derived from the same model the
    briefing rail and the Status filter read — so the three cannot disagree.
@@ -1258,15 +1357,14 @@ body {
 /* The bell sits ~90px in from the window edge, so a 360px card anchored to
    it runs off the LEFT of the screen before the viewport is narrow enough
    for max-width to catch it — the constraint is measured from the wrong
-   side. Below that width, pin the panel to the window instead. */
-@media (max-width: 441.98px) { /* 520 layout px */
-  .ntf-panel {
-    position: fixed;
-    top: calc(var(--topbar-height) + 4px);
-    right: 12px; left: 12px;
-    width: auto; max-width: none;
-  }
-}
+   side. Below that width the panel is pinned to the window instead, AND THAT
+   RULE IS IN bdr.css, not here: bdr.css carries a second, complete definition
+   of .ntf-panel at this same specificity and loads after this file, so its
+   unconditional `position: absolute; right: 0` beat this file's media query
+   — a media query adds no specificity. Measured at a 459px layout before the
+   move: only `left: 12px` survived, which resolved against `.ntf-anchor`
+   rather than the window and pushed the panel 255px off the right edge, its
+   text cut mid-word. The rule lives beside the definition that wins. */
 
 @media (prefers-reduced-motion: reduce) {
   .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
@@ -1602,11 +1700,109 @@ body {
 .ov-chat.is-here .ov-chat-agent { color: var(--d400); }
 .ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 0.5rem; }
 
-/* Below this the column and a readable thread cannot both fit, and the
-   thread is what you came for. */
-@media (max-width: 764.98px) { /* 900 layout px */
-  .overlay-chats { display: none; }
+/* ══ THE DRAWER'S DOOR, AND IT IS THE RAIL TOGGLE'S SKIN ════════════════
+   Not a new control shape: `.rail-toggle` is already this shell's "a column
+   opens over the page here", down to the icon. It sits opposite
+   `.overlay-close` on the same top row of the canvas — the way in on the
+   left, the way out on the right — both absolutely positioned so revealing
+   either never shifts the thread.
+
+   `display: none` at every width, painted only in the block above: where the
+   column is already standing in the row, a button offering to reveal it is a
+   button that does nothing. */
+.ov-chats-toggle {
+  display: none;
+  position: absolute; top: 16px; left: 16px; z-index: 40;
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
+.ov-chats-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.ov-chats-toggle:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.ov-chats-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .ov-chats-toggle { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .ov-chats-toggle:hover { background: rgba(16,24,40,0.07); }
+/* ══ AND THE WAY OUT IS ABOVE WHAT IT CLOSES ═══════════════════════
+   `.overlay-close` is absolute with no z-index, so it paints in the positioned
+   layer at 0 and every bubble in the thread that reaches its corner paints
+   over it. Hit-tested at the centre of the button: at a 1412px layout the
+   thread is narrow enough that the button answers, at 894 and at 459 the
+   element under the cursor is `.msg-bubble` — the control is drawn, fully
+   visible, and cannot be pressed.
+
+   A stacking number, not a design change: above 1100 layout px nothing
+   reaches that corner and this moves nothing that can be seen. 10 is under
+   the conversation drawer's scrim, which is right — a drawer standing over
+   the canvas covers the canvas's own controls with it. */
+.overlay-close { z-index: 10; }
+
+/* Present at every width, painted at none of them until the drawer exists. */
+.ov-chats-scrim { display: none; }
+
+/* ══ BELOW 900 THE COLUMN IS A DRAWER, NOT A DELETION ══════════════════
+   This was `display: none`, on the reasoning that the column and a readable
+   thread cannot both fit and the thread is what you came for. The first half
+   is true and the second does not follow: the column is New chat, the search,
+   the thread belonging to what you have open, and every free-standing session
+   — so removing it left the canvas talkable-to and not navigable, on the
+   screens with the least room to remember what you had already asked.
+
+   THE RAIL ALREADY ANSWERED THIS, at 1080 and in these words: it stops taking
+   room in the row and starts opening over it. Same `is-open` class, same
+   scrim, same button skin, same `visibility` rather than `display` so a shut
+   drawer is out of the tab order and still has something to animate. One
+   drawer mechanism in this shell, not two.
+
+   ABSOLUTE, NOT FIXED, which is the one line that differs from the rail's.
+   `.aimy-overlay` is itself fixed and, below 720, inset under the masthead
+   and any minimised call — so a drawer positioned against the viewport would
+   start above the surface it belongs to. Against its own overlay it cannot. */
+@media (max-width: 764.98px) { /* 900 layout px */
+  .ov-chats-toggle { display: inline-flex; }
+
+  .overlay-chats {
+    position: absolute; z-index: 30;
+    top: 0; bottom: 0; left: 0;
+    /* --vp-w, not 100dvw: inside `zoom: k` a viewport unit is k viewports
+       wide. The 56px it leaves is the strip of thread behind that says the
+       drawer is over something. */
+    width: min(280px, calc(var(--vp-w) - 56px));
+    /* THE DOOR STAYS ON TOP OF WHAT IT OPENED, so the drawer starts below it.
+       The toggle is 34px at 16 from the top and sits at z-index 40 against the
+       drawer's 30 — correct, because while the drawer is open that button is
+       how you shut it — but the column's own 20px padding put New conversation
+       straight underneath it. 58 = 16 + 34 + 8, which reads as the drawer's
+       head with its control in it rather than as a gap. */
+    padding-top: 58px;
+    background: var(--panel-bg);
+    box-shadow: var(--shadow-xl);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transform: translateX(-100%); visibility: hidden;
+  }
+  .overlay-chats.is-open { transform: none; visibility: visible; }
+
+  .ov-chats-scrim {
+    display: block;
+    position: absolute; z-index: 20; inset: 0;
+    background: rgba(10, 14, 18, 0.5);
+    opacity: 0; pointer-events: none;
+  }
+  .ov-chats-scrim.is-open { opacity: 1; pointer-events: auto; }
+}
+:root[data-theme="light"] .ov-chats-scrim { background: rgba(16, 24, 40, 0.28); }
+
+/* The start state lives inside the motion query and the end state outside it
+   — this file's own pattern, and the rail's. */
+@media (prefers-reduced-motion: no-preference) {
+  .overlay-chats { transition: transform 220ms var(--ease-out), visibility 220ms; }
+  .overlay-chats.is-open { transition: transform 220ms var(--ease-out), visibility 0s; }
+  .ov-chats-scrim { transition: opacity 220ms var(--ease-out); }
+}
+
 
 /* Fixed and centred on the WINDOW, not on the main column. Centring inside
    .app-main puts it half the rail's width right of the page's true centre —
@@ -1665,6 +1861,10 @@ body {
    live, so the whole clamp above collapses to the centring on every ordinary
    screen. */
 :root { --fb-reserve: 0px; }
+/* And what is parked at the TOP, which only a phone has: the strip a call
+   folds into below 720 layout px. Zero everywhere else, so the expressions
+   that add it resolve to the offset they had before it existed. */
+:root { --call-strip: 0px; }
 body.is-calling { --fb-reserve: var(--call-width); }
 
 /* The scope tray belongs TO the float bar — it is the bar's scope, not a
@@ -3839,7 +4039,20 @@ body.is-calling { --fb-reserve: var(--call-width); }
    next line on the way back from the end of the last. */
 .s-home {
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), NOT 1fr, AND THE DIFFERENCE IS WHETHER THE PAGE CAN BE
+     PUSHED. `1fr` is `minmax(auto, 1fr)`, and that auto minimum is the
+     largest min-content among the blocks in the track — so one block that
+     cannot narrow does not overflow its own box, it WIDENS THE COLUMN, and
+     every sibling stretches to the new width with it. Measured on the
+     manager's campaign at a 391px layout: `.b-cmeta` reported 792px of
+     min-content and the back link, the title and four blocks that each fit
+     perfectly well were all drawn 792 wide and cut off at 391.
+
+     The block that could not narrow is fixed where it lives (bdr.css §56).
+     This is the guard that keeps the next one from doing the same thing to
+     the whole page: a track here may never be wider than the column it is
+     in, and a block that overruns overruns alone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   align-items: start;
 
@@ -3860,7 +4073,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   margin-inline: auto;
 }
 @media (min-width: 935px) { /* 1100 layout px */
-  .s-home { grid-template-columns: 1fr 1fr; }
+  .s-home { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 .s-block { display: flex; flex-direction: column; min-width: 0; }
 /* ══ EVERY HOME BLOCK IS WIDE, AND THAT IS CORRECT ═══════════════════════
@@ -5017,8 +5230,30 @@ body.is-calling { --fb-reserve: var(--call-width); }
    now, where every other thing AiMY offers about a list already lives, and a
    row there comes with its own press. */
 
+/* ══ STACKED, AND ALL FOUR ACTUALLY STACKED ════════════════════════
+   `column` + `align-items: stretch` was half the job and read as none of it.
+   Two of these four are bare buttons and stretch — with their labels centred,
+   because that is what a button does with a label it has room for. The other
+   two are wrapped in `.b-menu-wrap`, which is `inline-flex`, so they took
+   their natural width and sat left. Four controls at four different
+   horizontal positions, none of them lining up with anything: Add to campaign
+   on the left, Save as draft near the middle, Assign people back on the left,
+   Discard near the middle again.
+
+   ONE LEFT EDGE FOR THE THREE THAT ARE WORDS, and the primary keeps the
+   centred label a filled button wants. That is the only difference between
+   them here, and it is the one that says which is which. */
 @media (max-width: 611.98px) { /* 720 layout px */
-  .s-build-foot { flex-direction: column; align-items: stretch; }
+  .s-build-foot { flex-direction: column; align-items: stretch; gap: 12px; }
+  /* The wrapper has to stretch before the control inside it can. It is
+     `inline-flex` for the menu it anchors, which is right everywhere the
+     foot is a row and wrong the moment it is a column. */
+  .s-build-foot > .b-menu-wrap { display: flex; }
+  .s-build-foot > .b-menu-wrap > .b-menu-open { width: 100%; }
+  .s-build-foot .s-inline-btn,
+  .s-build-foot .b-menu-open:not(.s-build-go) {
+    justify-content: flex-start; text-align: left;
+  }
 }
 
 
@@ -5541,6 +5776,30 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .app-call[hidden] { display: none; }
 
 .call-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* ══ THE WAY BACK TO THE PAGE, AND IT IS .call-tool's SKIN ═══════════════
+   It sits in .call-tools, last, past End — that row is everything you can
+   press during a call, and the head above it is the three things the call is
+   SAYING. So it wears what the rest of that row wears: Record, Mute and Hold
+   are 44px circles for the reason written on .call-tool, which is that a
+   thumb finds a 44px circle without looking, and that reason is not weaker
+   for the control that puts the call away.
+
+   `display: none` at every width and painted only in the narrow block below:
+   above it the page is beside the call already, and a control offering to
+   reveal something already on screen is a control that does nothing. */
+.call-min {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 50%; border: 1px solid var(--card-border);
+  background: none;
+  color: var(--d200); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+.call-min svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+.call-min:hover { background: var(--accent-dim); color: var(--d50); }
+.call-min:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* The live dot pulses. It is the one thing on this surface that is true
    right now rather than true as of the last paint, and motion is how that
    reads without a word for it. */
@@ -5758,6 +6017,162 @@ body.is-calling .aimy-overlay { right: var(--call-width); }
    still invites the click that has to be refused. The only honest state for
    a control whose every use during a call is a mistake is absent. */
 body.is-calling .overlay-chats { display: none; }
+
+/* ══ AND BELOW 720 LAYOUT PX THE CALL IS THE WHOLE WIDTH ════════════════
+
+   `.app-call` is 300px and `flex-shrink: 0`, so what the page column gets is
+   whatever is left — and on a phone that is nothing. Measured at a 459px
+   layout (a 390px phone at the 0.85 floor) with a call up: the main column was
+   159 layout px wide, every line in it cut mid-word, and the float bar's own
+   clamp — correct arithmetic on a false premise — resolved --fb-w to 111px, so
+   the composer was a pill with three icons and no room to type in. The call's
+   own Start control and that composer then overlapped, which is the one
+   collision this panel's rules exist to prevent.
+
+   720 IS WHERE THE COLUMN STOPS BEING A COLUMN, and it is already this file's
+   word for that. What the page is FOR beside a live call is reading — the
+   record, the brief, what was said last time — and reading wants 45 to 75
+   characters, which at this body size is about 420px. 420 + 300 + the gutters
+   is 720, and at 719 the column would be under its own measure. So above this
+   they sit side by side, and below it the call takes the surface.
+
+   THE PAGE IS HIDDEN, NOT SQUEEZED. A zero-width flex sibling still scrolls,
+   still takes focus and still answers the keyboard, so leaving it in place
+   trades a visible defect for an invisible one. `display: none` is also what
+   .overlay-chats above gets, and for the same reason: a surface whose every
+   use during a call is a mistake is absent rather than disabled. */
+@media (max-width: 611.98px) { /* 720 layout px */
+  :root { --call-width: 100%; }
+  /* ══ .page-scroll, NOT .app-main — THE CANVAS LIVES IN THERE ══════════
+     `.aimy-overlay` is a child of .app-main (index.html), so hiding the
+     column took the canvas with it: at a 459px layout with a call up, the
+     overlay computed `position: fixed; top: 60px; left: 0; right: 0` and
+     measured 0x0, because `display: none` on an ancestor removes a fixed
+     descendant like any other. The brief AiMY posts at call time was there
+     and unreachable, and so was the control that closes it.
+
+     The scroll column is the thing that must not stay behind a full-width
+     call — it still scrolls, still takes focus and still answers the keyboard
+     at zero width — and it is the thing that is named. .app-main keeps its
+     box, collapses to nothing beside a 100% call panel, and goes on hosting
+     the canvas, which is fixed and does not care what its parent measures. */
+  body.is-calling .page-scroll { display: none; }
+  .app-call { border-left: 0; }
+  /* The reserve exists to keep the composer off a panel parked on the right.
+     There is no right-hand panel here — the call IS the surface — so the
+     reserve would clamp --fb-w to nothing. */
+  body.is-calling { --fb-reserve: 0px; }
+  /* AND THE COMPOSER GOES WITH THE COLUMN IT BELONGED TO. `End` is pinned to
+     the bottom of this panel by `.call-tools { margin-top: auto }`, and a
+     fixed bar at `bottom: 20px` lands on it — the one control here whose
+     mispress costs you the call, under a bar you did not ask for. */
+  body.is-calling .aimy-float-wrap { display: none; }
+  body.is-calling .aimy-overlay { right: 0; }
+
+  /* ══ AND THE CALL CAN STEP BACK, SO THE PAGE IS NEVER GONE ═════════════
+     Taking the whole width is right and it is not the whole answer: a caller
+     opens the record, checks the brief and reads what was said last time
+     DURING the call — that is the reason this is a shell region rather than
+     a modal — and none of it was reachable once the column stepped aside.
+
+     So the region has a second form at this width instead of one form and a
+     hole. Minimised it is a strip under the masthead: the live dot, the
+     clock, the name, and End. The page is underneath, whole, with its own
+     composer back. Nothing is removed — the rest of the panel is one press
+     on the same chevron away, and the three things a live call has to keep
+     saying are the three the strip carries.
+
+     `flex-direction: row` is the whole mechanism: .app-call is already a flex
+     column with `margin-top: auto` pinning End to the bottom of a full-height
+     panel, and turning the axis makes that same rule pin End to the RIGHT of
+     a strip. One declaration, and the control that must never be hunted for
+     stays where the thumb already is. */
+  .call-min { display: inline-flex; }
+
+  body.is-call-min .page-scroll { display: block; }
+  body.is-call-min .aimy-float-wrap { display: flex; }
+  /* A TOKEN, BECAUSE THREE THINGS READ THIS HEIGHT and they must not drift:
+     the strip is this tall, the canvas starts under it, and anything fixed to
+     the top of the column after them has to clear both. Declared at 0 on
+     :root above so every other state gets the arithmetic for free. */
+  body.is-call-min { --call-strip: 60px; }
+  body.is-call-min .app-call {
+    flex: 0 0 auto;
+    height: var(--call-strip);
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  /* The panel stacks ABOVE the page rather than beside it. .app-body is a
+     flex row; `wrap` plus a full-width basis is what makes a row into two,
+     and `order` is what decides which is on top. */
+  body.is-call-min .app-body { flex-wrap: wrap; align-content: flex-start; }
+  body.is-call-min .app-call { order: -1; width: 100%; }
+  body.is-call-min .app-main { flex: 1 1 100%; min-height: 0; }
+
+  /* What the strip does not carry, said as what it DOES. Naming the parts to
+     hide means naming them again every time the panel grows one — and the
+     first draft of this rule named four that do not exist, leaving the
+     transcript and the note standing in a row 190px tall. Three children are
+     the strip; everything else folds. Still in the tree, still one press away
+     on the same chevron: this is the panel folded, not the panel cut. */
+  body.is-call-min .app-call > :not(.call-head):not(.call-who-block):not(.call-tools) {
+    display: none;
+  }
+  body.is-call-min .call-who-block > :not(.call-name) { display: none; }
+  body.is-call-min .call-tool { display: none; }
+
+  /* ══ THE NOTE TAKES THE PANEL'S WIDTH ═════════════════════════
+     `.ds-field` caps at 380 and `.ds-textarea` at 420, which are measures for
+     a field in a form on a page and never bit while this panel was 300px
+     wide. Full width, they left a 380px box in a 427px column with 47px of
+     nothing down one side — the only ragged edge on the surface. A note taken
+     during a call is not prose with a measure; it is as wide as the thing it
+     is written on. */
+  .call-note-field, .call-note-field .ds-textarea { max-width: none; }
+
+  /* ══ AND THE WAY BACK SITS BESIDE End, NOT UNDER IT ════════════════
+     `.call-end` is `flex: 1 1 100%; order: 1`, so it takes a line of its own
+     and sorts after anything at order 0 — which put the chevron on the line
+     ABOVE the button, centred, reading as a control belonging to the note.
+     Ordered last and given a basis it can share, the two sit on one line with
+     End taking everything the 44px circle does not. */
+  /* ══ AND End IS THE HANDSET, NOT THE WORD ═══════════════════════
+     The note on .call-end says a destructive control states itself, and that
+     is an argument about a panel 300px wide beside a page. Here the panel IS
+     the page and the row it sits in is Record, Mute and Hold — three 44px
+     circles that say what they do with a glyph — so a labelled rectangle in
+     the middle of them is the odd one out, and the word costs the strip the
+     room the name needs. A struck-through handset is not ambiguous, it is the
+     same mark the platform's own call UI ends with, and `aria-label` carries
+     the sentence for anyone who is not looking at it.
+
+     Start call keeps its word: it is not this control, it is affirmative, and
+     it is the only thing on the ready panel to press. */
+  .call-tools .call-end { flex: 0 0 auto; width: 44px; padding: 0; border-radius: 50%; }
+  .call-tools .call-end .call-end-say { display: none; }
+  .call-tools .call-end.call-go { flex: 1 1 auto; width: auto; padding: 8px 12px; border-radius: var(--r-md); }
+  .call-min { order: 2; }
+  /* The clock is the strip's subject, so it keeps its size while the name
+     beside it gives way — a name is a string of unknown length and the only
+     thing here that can be trusted to end. */
+  body.is-call-min .call-who-block { min-width: 0; flex: 1 1 auto; }
+  body.is-call-min .call-name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.is-call-min .call-head { flex: 0 0 auto; flex-wrap: nowrap; }
+  body.is-call-min .call-tools { margin: 0 0 0 auto; flex-wrap: nowrap; gap: 8px; }
+  /* Folded, both controls come down to the strip's own height. 34 is the
+     masthead's icon button, which is what this row is beside once the panel
+     is a bar under it. */
+  body.is-call-min .call-end { height: 34px; width: 34px; min-height: 0; }
+  body.is-call-min .call-end svg { width: 15px; height: 15px; }
+  body.is-call-min .call-end.call-go { width: auto; padding: 0 14px; }
+  body.is-call-min .call-min { width: 34px; height: 34px; }
+  body.is-call-min .call-min svg { width: 16px; height: 16px; }
+}
 
 /* The brief AiMY writes before the call. */
 .s-brief-call { display: flex; flex-direction: column; gap: 8px; }
@@ -8568,7 +8983,12 @@ body.is-figures .filter-tray { display: none; }
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
   margin-right: 4px;
 }
-.s-ask { display: inline-flex; align-items: center; gap: 8px; }
+/* A CHIP MAY NOT BE WIDER THAN THE ROW IT WRAPS IN. `.s-asks` wraps already,
+   which handles three chips and not one chip too long for the line: measured
+   at a 376px layout, the widest of the three asked for 314 in a 308px row and
+   took the block over the edge of the page. `max-width` is inert wherever the
+   chip fits, which is every width above that one. */
+.s-ask { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
 .s-ask svg { color: var(--ai-text); flex-shrink: 0; }
 
 @keyframes s-exec-rise { from { opacity: 0; transform: translateY(8px); } }
@@ -8680,7 +9100,40 @@ body.is-figures .filter-tray { display: none; }
    block. It now holds the main flow in the product, so it gets a real box.
    Fixed to the VIEWPORT, because a canvas you cannot read is not a surface. ══ */
 @media (max-width: 611.98px) { /* 720 layout px */
-  .aimy-overlay { position: fixed; inset: 0; }
+  /* ══ UNDER THE MASTHEAD, NOT OVER IT ════════════════════════════
+     `inset: 0` was the answer to a 155px thread inside a 375px viewport, and
+     the half of it that did that work is left and right. The top was
+     collateral: the canvas is translucent with a backdrop blur, so covering
+     the masthead did not hide it — it drew the canvas's own context chips
+     THROUGH the tab strip, two rows of different things on the same pixels,
+     and left the logo, the bell and the account pill lit but unreachable.
+
+     It now starts below the masthead, and below a minimised call as well: a
+     live call's strip is the one thing on this screen that is true right now,
+     and a surface that opens over it takes away the only evidence the line is
+     still open. --call-strip is 0 unless one is minimised. */
+  .aimy-overlay { position: fixed; inset: calc(var(--topbar-height) + var(--call-strip)) 0 0; }
+  /* ══ AND AN EXPANDED CALL IS IN FRONT OF IT ════════════════════════
+     Starting a call posts the brief, and posting to the canvas opens it
+     (bdr.js, callPrep) — which above this width lands beside the call and at
+     this width lands ON it, so pressing Call showed you a brief for a call you
+     could no longer see. Two full-width surfaces cannot both be the screen.
+
+     The canvas goes BEHIND rather than away: it is still open, still holding
+     the brief, and one press of the chevron puts the call back to a strip and
+     reveals it. Lowering the canvas is what makes that reversible — hiding it
+     would need a second rule to bring it back and a third to decide when. Its
+     z-index of 500 drops under .app-body's 1; the masthead's 100 stays above
+     both, which is the order that was wanted here in the first place. */
+  body.is-calling:not(.is-call-min) .aimy-overlay { z-index: 0; }
+  /* AND THE PANEL HAS TO BE POSITIONED TO BE IN FRONT OF A ZERO. `.app-call`
+     is static, and a static box paints in the block layer — under every
+     positioned sibling in the stacking context, `z-index: 0` included. So
+     dropping the canvas to 0 was not enough on its own: the canvas still
+     covered the call, measured, with the panel correct at 459 wide behind it.
+     One step up puts it in the positioned layer, above the 0 and below the
+     masthead's 100. */
+  body.is-calling:not(.is-call-min) .app-call { position: relative; z-index: 1; }
   .s-work, .s-work-body { min-width: 0; }
 }
 

@@ -27,6 +27,26 @@
 
    Everything else here is a small variant of something in sales.css and says
    which one.
+
+   ── AND EVERY WIDTH BREAKPOINT HERE IS MULTIPLIED BY 0.85 ───────────────
+
+   Same contract as sales.css's, which states the derivation in full at its
+   own breakpoint block — the shell carries `zoom` on <body> and a media query
+   reads the REAL viewport, so a threshold reasoned about in LAYOUT px has to
+   be converted into the viewport width that produces that layout. Below a
+   real 1306 the scale is exactly 0.85, so the conversion is one exact
+   multiplication and every threshold in this file lands inside that region.
+
+   THIS FILE DID NOT FOLLOW IT, AND HALF OF IT SHOWED. Two thresholds were
+   converted (1087.98 and 611.98) and eight were written against the real
+   viewport, which fired each of those eight about eighteen percent early:
+   `max-width: 720px` on `.b-grid` dropped the queue to one column at an
+   847px layout, where two columns of 380 still fit, and the single card it
+   left was 773px wide. Both spellings of 720 were in the file at once.
+
+   The trailing comment on each query is the number that was reasoned about;
+   the number in the parentheses is machinery. The .98 clears the fractional
+   viewport Windows reports at 125% display scaling.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 
@@ -200,8 +220,12 @@
   gap: 12px;
   align-items: stretch;
 }
-@media (max-width: 1087.98px) { .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 719.98px)  { .b-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1087.98px) { /* 1280 layout px */ .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Measured on the queue: at a 729px layout two columns are 324px each and a
+   card holds its step, its campaign, four facts, the AiMY note and the
+   number without crowding; the one column this used to give at 841 was 773px
+   wide, with the note running ninety characters to the line. */
+@media (max-width: 611.98px)  { /* 720 layout px */ .b-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* ── NO FIXED HEIGHT, OR A TALL CARD LOSES ITS BOTTOM ─────────────────────
    This was `height: 100%`, which pins the card to the height the grid row
@@ -678,7 +702,7 @@
    And the answers are capped at 58ch. They ran the full block — measured at
    800px, about 130 characters — which is roughly twice the width anybody
    tracks a line back across. */
-@media (max-width: 611.98px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   /* Below this the label column costs more than the alignment is worth. */
 }
 
@@ -1150,8 +1174,17 @@
   right: 0;
   z-index: 300;
   width: 360px;
-  max-width: calc(100vw - 32px);
-  max-height: min(70vh, 520px);
+  /* ══ --vp-w/--vp-h, NOT vw/vh, AND THE DIFFERENCE IS A FACTOR ═══════════
+     The shell carries `zoom` on <body> (assets/aimy-responsive.css), and
+     inside a zoomed subtree `100vw` resolves to the raw viewport in LAYOUT px
+     and is then multiplied by the scale on the way to the screen — so this cap
+     was --ui-scale times wrong at every width that is not the 1536 anchor.
+     Above the anchor it never bit at all: at a scale of 1.667 `calc(100vw -
+     32px)` was 1.667 viewports wide. The tokens are the same expression with
+     the scale divided back out; they are declared on :root in the responsive
+     sheet for exactly this. */
+  max-width: calc(var(--vp-w) - 32px);
+  max-height: min(calc(var(--vp-h) * 0.7), 520px);
   overflow-y: auto;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -1162,6 +1195,31 @@
   text-align: left;
 }
 .ntf-panel[hidden] { display: none; }
+
+/* ══ AND BELOW 520 LAYOUT PX IT IS PINNED TO THE WINDOW ═════════════════
+   The bell sits about 90px in from the window edge, so a 360px card hung from
+   it runs off the LEFT before `max-width` — which measures from the other
+   side — is narrow enough to catch it. Below that width the card stops being
+   a dropdown and becomes a sheet under the masthead, which is the only
+   position that can hold 360px of text on a 459px layout.
+
+   IT IS HERE AND NOT IN sales.css, WHICH IS WHERE IT WAS. That file defines
+   .ntf-panel too, at this same (0,1,0) and earlier in the document, so its
+   copy of this block lost to the four positional declarations above — a media
+   query carries no extra specificity. All that got through was `left: 12px`,
+   resolved against the `position: relative` .ntf-anchor rather than the
+   window, which pushed the panel 255px off the right edge of a 390px phone
+   with every line cut mid-word. TWO DEFINITIONS OF ONE COMPONENT IS THE
+   DEFECT; this block is the half that has to sit with the winner until they
+   are one. */
+@media (max-width: 441.98px) { /* 520 layout px */
+  .ntf-panel {
+    position: fixed;
+    top: calc(var(--topbar-height) + 4px);
+    right: 12px; left: 12px;
+    width: auto; max-width: none;
+  }
+}
 
 /* Scrollbar, matching .dashboard-scroll / .overlay-thread rather than
    leaving the browser default sitting inside a 14px-radius card.
@@ -1242,25 +1300,43 @@
    is done, the mono face for the log. No light gradients; elevation by the
    lit top edge the rest of the product uses. */
 .pipe { display: flex; justify-content: center; }
+/* ══ CAPPED, BECAUSE A COLUMN DOES NOT WANT A THOUSAND PIXELS ════════════
+   `width: 100%` was right while the rail was in here — four tiles and three
+   connectors spread to fill whatever they were given. A step row is a mark, a
+   few words and a clock, and at a 1412px layout this card was 1023 wide with
+   about 300 of that used: a short label on the left, a time on the far right,
+   and two thirds of nothing between them.
+
+   Every reference for this pattern is narrow — Rox centres about 340px in a
+   full page, Lindy's sits in a chat column, Profound's in a side panel — and
+   none of them stretches the steps across the window. `.pipe` is already
+   `justify-content: center`, so the cap is the whole change. */
 .pipe-card {
-  width: 100%; padding: 14px;
+  width: 100%; max-width: 640px; padding: 14px;
   border-radius: 20px; background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 40px -20px rgba(0,0,0,0.5);
 }
-.pipe-panel {
-  background: var(--card-bg-raised); border: 1px solid var(--card-border);
-  border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-.pipe-badge, .pipe-stage-time, .pipe-row-time, .pipe-row-sub, .pipe-elapsed {
+.pipe-badge, .pipe-elapsed {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 
 /* header */
 .pipe-head { padding: 6px 8px 16px; }
-.pipe-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* ══ IT WRAPS RATHER THAN OVERLAPS ═════════════════════════════
+   `justify-content: space-between` with one side `flex: none` puts the two
+   groups at the ends of a row and then lets them run into each other when the
+   row is shorter than both — measured on a phone, `Companies · LinkedIn Sales
+   Navigator` was drawn straight through `Running · Ask the suppliers`, two
+   sentences on the same pixels. Wrapping gives the status its own line at the
+   width where it needs one and changes nothing at the width where it does not.
+
+   `.pipe-title` IS GONE. It printed buildName() inside the card, forty pixels
+   under `.s-rec-name`, which is buildName() as the page's own heading — the
+   same string twice, and the copy in here was the one being cut off at the
+   card's edge. */
+.pipe-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
 .pipe-head-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.pipe-title { margin: 0; font-size: var(--t-deck); font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--d50); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pipe-badge {
   display: inline-flex; align-items: center; gap: 5px; flex: none;
   padding: 5px 8px; border-radius: var(--r-md); font-size: var(--t-ui); line-height: 1;
@@ -1268,89 +1344,127 @@
 }
 .pipe-badge-dot { color: var(--ink-muted); }
 .pipe-head-state { display: flex; align-items: center; gap: 8px; flex: none; }
+/* Both halves of the head give way before the row does. The badge is a fact
+   about the run and the status is what it is doing; neither is worth an
+   ellipsis until the other has none left to give. */
+.pipe-head-main, .pipe-badge, .pipe-status { min-width: 0; }
+.pipe-badge, .pipe-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pipe-status { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text); }
 .pipe-status.done { color: var(--ok-text); }
 .pipe-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
 .pipe-live-dot.done { background: var(--ok-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
-.pipe-track { position: relative; height: 6px; margin-top: 13px; border-radius: 99px; overflow: hidden; background: var(--card-bg-raised); border: 1px solid var(--card-border); }
-.pipe-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); transition: background-color 400ms var(--ease-out); }
-.pipe-fill.done { background: var(--ok-text); }
 
-/* stage rail */
-.pipe-rail { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 20px; }
-.pipe-stage { width: auto; min-width: 96px; flex: none; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.pipe-conn-wrap { flex: 1; padding: 0 8px; margin-top: 25px; }
-.pipe-tile {
-  position: relative; display: flex; align-items: center; justify-content: center;
-  width: 52px; height: 52px; border-radius: 16px; color: var(--ink-muted);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: background-color 400ms var(--ease-out), color 400ms var(--ease-out), transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
-}
-.pipe-tile.live { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.10); }
-.pipe-tile.done { color: var(--ok-text); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
-.pipe-check {
-  position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; color: #fff;
-  background: var(--ok-text); border: 2.5px solid var(--card-bg-raised);
-}
-.pipe-stage-label { margin-top: 11px; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); transition: color 400ms var(--ease-out); }
-.pipe-stage-label.pending { color: var(--ink-muted); }
-.pipe-stage-time { margin-top: 3px; font-size: var(--t-small); color: var(--ink-muted); }
-.pipe-stage-time.running { color: var(--accent-text); }
-.pipe-stage-time.done { color: var(--ok-text); }
-.pipe-conn { position: relative; height: 3px; border-radius: 99px; background: var(--card-bg); border: 1px solid var(--card-border); }
-.pipe-conn-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); }
-.pipe-conn-fill.done { background: var(--ok-text); }
-.pipe-dot {
-  position: absolute; top: 50%; left: 0; width: 10px; height: 10px; border-radius: 50%;
-  transform: translate(-50%, -50%); background: var(--accent); border: 2.5px solid var(--card-bg-raised);
-}
-.pipe-dot[hidden] { display: none; }
+/* ══ THE RIBBON ════════════════════════════════════════════════
 
-/* step list */
-.pipe-rows { margin-top: 12px; padding: 8px; display: flex; flex-direction: column; }
-.pipe-row {
-  display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px;
-  border: 1px solid transparent; transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out);
-}
-.pipe-row.live { background: rgba(var(--accent-rgb), 0.08); border-color: rgba(var(--accent-rgb), 0.18); }
-.pipe-row-mark { width: 22px; height: 22px; flex: none; display: flex; align-items: center; justify-content: center; }
-.pipe-row-check { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--ok-text); }
-.pipe-row-idle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--card-border); background: var(--card-bg); }
-.pipe-spinbox { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
-.pipe-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.pipe-row-sub { font-size: var(--t-small); color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pipe-row-label { font-size: var(--t-body); font-weight: var(--fw-medium); color: var(--d50); transition: color 300ms var(--ease-out); }
-.pipe-row-label.pending { color: var(--ink-muted); font-weight: var(--fw-regular); }
-.pipe-row-time { font-size: var(--t-small); color: var(--ink-muted); }
-.pipe-row-time.done { color: var(--d200); }
+   THE HEIGHT COMES FROM THE STEPS, AND SO DOES THE SPACING. Each step is
+   `flex-grow: <its duration>` down a column of fixed height with a zero
+   basis, so the room a step gets IS how long it takes: the gap under `Ask the
+   suppliers` is bigger than the gap under `Read the criteria` because the
+   step is. A list of four evenly spaced rows cannot say that, and it was the
+   one thing the run knew and never showed.
 
-/* footer */
-.pipe-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 8px 4px; }
-.pipe-foot-act { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+   NOTHING THAT MOVES PER FRAME TOUCHES LAYOUT, which is the whole reason this
+   shape is drawn the way it is rather than the obvious way. The fill is a
+   full-height bar SCALED from its top edge, not a height that is animated;
+   the head is a glow TRANSLATED down the same axis, not a top that is moved.
+   Both are compositor work. Verified on the standalone before this landed:
+   across 121 synthetic frames the only inline properties that changed were
+   `transform` on the fill and `transform`/`opacity` on the head, and
+   `getBoundingClientRect` was called zero times inside the loop — the track's
+   height is read once at mount and again only on resize, because reading it
+   per frame is a forced synchronous reflow sixty times a second.
+
+   THE HORIZONTAL TRACK ABOVE IT IS GONE. This IS the progress bar; a second
+   one across the head of the same card was the same claim twice. So is the
+   predicted finish — the foot carries the clock and nothing else. */
+.pipe-rib { position: relative; display: flex; flex-direction: column; height: 250px; margin: 16px 0 4px; }
+
+.pipe-rib-track {
+  position: absolute; left: 5px; top: 8px; bottom: 16px; width: 2px;
+  border-radius: 2px; background: var(--card-border); overflow: hidden;
+}
+.pipe-rib-fill {
+  position: absolute; inset: 0; border-radius: 2px; background: var(--accent);
+  transform-origin: top center; transform: scaleY(0); will-change: transform;
+}
+/* The leading edge, riding down with the fill. */
+.pipe-rib-head {
+  position: absolute; left: 6px; top: 8px; width: 0; height: 0;
+  transform: translateY(0); will-change: transform, opacity;
+  transition: opacity 420ms var(--ease-out); pointer-events: none;
+}
+.pipe-rib-head::before {
+  content: ''; position: absolute; left: -11px; top: -11px; width: 22px; height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb),0.6) 0%, rgba(var(--accent-rgb),0) 68%);
+}
+
+/* flex-grow is written inline per step, because it is data — the duration of
+   that stage — and not a design constant. Basis 0 so grow distributes the
+   whole column and the shares are exact. */
+.pipe-step {
+  position: relative; flex: 1 1 0; min-height: 46px;
+  display: flex; align-items: flex-start; gap: 14px;
+}
+.pipe-pin {
+  position: relative; z-index: 1; flex: none;
+  width: 12px; height: 12px; margin-top: 2px; border-radius: 50%;
+  background: var(--card-bg); border: 1.5px solid var(--card-border);
+  transform: scale(1); will-change: transform;
+  transition: background-color 400ms var(--ease-out),
+              border-color 400ms var(--ease-out),
+              transform 460ms var(--ease-pin),
+              box-shadow 400ms var(--ease-out);
+}
+.pipe-step.is-live .pipe-pin {
+  background: var(--accent); border-color: var(--accent); transform: scale(1.22);
+  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.14);
+}
+.pipe-step.is-done .pipe-pin {
+  background: var(--ok-text); border-color: var(--ok-text); transform: scale(1);
+  box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0);
+}
+
+.pipe-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pipe-step-row { display: flex; align-items: baseline; gap: 12px; }
+.pipe-step-label {
+  flex: 1; min-width: 0; font-size: var(--t-body); font-weight: var(--fw-medium);
+  line-height: 1.25; color: var(--ink-muted);
+  transition: color 460ms var(--ease-out);
+}
+.pipe-step.is-live .pipe-step-label { color: var(--d50); font-weight: var(--fw-bold); }
+.pipe-step.is-done .pipe-step-label { color: var(--d200); }
+/* The figure and the sentence a finished step ends on. They arrive with it
+   rather than being drawn empty and waiting — opacity and transform, so the
+   arrival costs nothing the compositor cannot do. */
+.pipe-step-time {
+  flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: var(--t-small); color: var(--ink-muted);
+  opacity: 0; transform: translateY(-3px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+.pipe-step.is-done .pipe-step-time { opacity: 1; transform: none; }
+.pipe-step-said {
+  font-family: var(--font-mono); font-size: var(--t-small); color: var(--ink-muted);
+  line-height: 1.4;
+  opacity: 0; transform: translateY(-4px);
+  transition: opacity 420ms var(--ease-out), transform 420ms var(--ease-out);
+}
+.pipe-step.is-done .pipe-step-said { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pipe-pin, .pipe-step-label, .pipe-step-time, .pipe-step-said, .pipe-rib-head {
+    transition-duration: 1ms;
+  }
+}
+
+/* footer — the clock, and nothing beside it. `.pipe-foot-act` and its chip
+   went with the stage name they carried: it repeated the status at the top of
+   the same card and was written once and never updated, so it named the first
+   stage for the length of the run. */
+.pipe-foot { display: flex; align-items: center; gap: 12px; padding: 16px 8px 4px; }
 .pipe-elapsed { font-size: var(--t-ui); color: var(--ink-muted); }
-.pipe-chip {
-  font-family: inherit; padding: 9px 15px; border-radius: 99px; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
-  background: var(--card-bg-raised); border: 1px solid var(--card-border); cursor: default;
-}
-button.pipe-chip { cursor: pointer; transition: transform 160ms var(--ease-out), border-color var(--t-fast), color var(--t-fast); }
-button.pipe-chip:hover { border-color: var(--accent); color: var(--d50); }
-button.pipe-chip:active { transform: scale(0.97); }
-button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-/* motion — a thing arriving is already most of its size; nothing overshoots;
-   nothing runs on its own (the call on the live tile stands still, the dot in
-   the masthead stands still — the spinner is the one thing that moves, and
-   it moves because you pressed Find); the check is drawn, not dropped. */
-@keyframes pipe-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes pipe-spin { to { transform: rotate(360deg); } }
-@keyframes pipe-draw { to { stroke-dashoffset: 0; } }
-.pipe-pop { animation: pipe-pop 200ms var(--ease-out) both; }
-/* The mark lands, then the tick draws inside it. 80ms is the beat between
-   two things that are one event — short enough to read as sequence, long
-   enough not to read as simultaneity gone wrong. */
-.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) var(--t-beat) forwards; }
-.pipe-spin { animation: pipe-spin 850ms linear infinite; }
 /* text that changes state goes through a blur — swapText() */
 /* ══ A NUMBER CHANGING IS NOT A BUTTON BEING PRESSED ══════════════
    90ms is --t-press, and it was here by proximity rather than by argument:
@@ -1359,17 +1473,49 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    not a softening, it is a flash of something unreadable. The swap step is
    --t-fast over --blur-small's two pixels — a shorter distance to travel,
    held long enough to read as one value becoming another. */
-.b-swap { transition: opacity var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out); }
-.b-swap.is-swapping { opacity: 0; filter: blur(2px); }
+/* ══ AND IT CROSSES ITSELF RATHER THAN BLINKING ════════════════════
+   Everything above argued about how long ONE span should take to fade out,
+   change its own characters and fade back in. However well that is timed it
+   is a blink: for the length of the fade there is nothing on the line, and an
+   empty line beside a live dot reads as the thing having broken rather than
+   having changed. Timing it correctly only made it an honest blink — measured
+   at exactly zero opacity on all four swaps, and still wrong.
+
+   Two spans instead, overlapping. The incoming starts at 90ms while the
+   outgoing has until 260, so for 170ms both are on the line — one leaving
+   upward, one arriving from below — and on no frame is there nothing there.
+   The arriving one is longer and slower than the departing one, which is the
+   asymmetry every good swap has: a thing leaving should get out of the way,
+   a thing arriving is what you are meant to read.
+
+   OPACITY AND TRANSFORM, NOTHING ELSE. The blur that used to soften this was
+   a full repaint on every frame of the fade and buys nothing once two layers
+   are crossing — the overlap IS the softening. 6px of travel: far enough to
+   carry a direction, not far enough to be a movement of its own.
+
+   The outgoing span is anchored RIGHT, because `.pipe-head-state` sits at the
+   end of a `space-between` row: the dot holds still and the text's left edge
+   is what moves when the wording changes length. Anchored left, the departing
+   words would slide sideways as the incoming ones sized the box. */
+.pipe-status { position: relative; display: inline-block; text-align: right; }
+.pipe-say { display: block; white-space: nowrap; }
+.pipe-say.is-in { animation: pipe-say-in 300ms var(--ease-out) 90ms both; }
+.pipe-say.is-out {
+  position: absolute; right: 0; top: 0;
+  animation: pipe-say-out 260ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+@keyframes pipe-say-in  { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pipe-say-out { to   { opacity: 0; transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) {
-  .pipe-pop, .pipe-pop path, .pipe-spin { animation: none !important; }
-  .pipe-pop path { stroke-dashoffset: 0; }
-  .b-swap { transition: none; }
+  .pipe-say.is-in { animation: none; }
+  /* Gone the instant it is replaced, rather than held for an animation that
+     is not going to run. */
+  .pipe-say.is-out { display: none; }
 }
-@media (max-width: 520px) {
-  .pipe-tile { width: 44px; height: 44px; border-radius: 13px; }
-  .pipe-stage { width: 70px; }
-}
+/* The rail's own narrow tier went with the rail. A column of rows needs no
+   width tier: the mark is 30px at every width and the label beside it takes
+   whatever is left. */
 
 /* ══ 30. THE ROSTER ════════════════════════════════════════════════════════
    The shell's row, at this build's scale. V3 set the row's name at the title
@@ -1428,8 +1574,15 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    switcher — ticks once, the new number rising through 4px of blur. Never on
    load, never on scroll, never for navigating: only for what you just did. */
 .b-switch { position: relative; }
+/* ══ TOP, NOT BOTTOM, BECAUSE THE STRIP WRAPS ════════════════════════
+   `.b-switch` is `flex-wrap: wrap`, and the manager's desk has five entries:
+   at a 459px layout they take two rows. `bottom: 0` is the bottom of the
+   whole wrapped block, so with Diary lit on the first row the bar drew 34px
+   BELOW the second one — a rule floating under Lists, marking nothing.
+   Anchored to the top, the bar's place is a function of the button alone and
+   placeSwitchBar() carries the y it was already computing the x for. */
 .b-switch-bar {
-  position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--d50);
+  position: absolute; left: 0; top: 0; width: 1px; height: 2px; background: var(--d50);
   /* SURFACE MOTION TAKES THE SURFACE CURVE. This was
      `cubic-bezier(0.77, 0, 0.175, 1)` — a symmetrical ease-IN-out, which on
      a bar that slides between tabs means it spends its first frames barely
@@ -1617,6 +1770,29 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-cuts-row { align-items: center; }
 .b-cuts-go { margin-left: auto; }
 
+/* ══ AND ON A NARROW ONE IT IS NOT THE SAME LINE ════════════════════
+   The rule above rests on there being ONE line. The row wraps, and
+   `margin-left: auto` then pushes the verb to the far end of whichever line
+   it lands on — measured at a 459px layout, four chips took the first line
+   and `Call them` sat on the second with a 39px gap after `After meeting 3`,
+   reading as that chip's own button rather than the set's.
+
+   THE SPACER IS A PSEUDO-ELEMENT OF THE FLEX CONTAINER, which is a flex item
+   like any other. Full basis, no height, ordered between the chips and the
+   verb: it fills out whatever line the chips ended on and puts the verb on a
+   line of its own, left with them, where it reads as the verb for all of
+   them. `flex-basis: 100%` on the button itself cannot do this — the
+   `max-width: max-content` needed to keep it from stretching clamps the
+   hypothetical size the line-break is decided from, so it simply sits back
+   down beside the last chip; measured, twice.
+
+   Nothing here applies above 720 layout px, where the row is one line and the
+   rule above is right as it stands. */
+@media (max-width: 611.98px) { /* 720 layout px */
+  .b-cuts-row::after { content: ''; flex: 0 0 100%; height: 0; order: 1; }
+  .b-cuts-row .b-cuts-go { order: 2; margin-left: 0; margin-top: 2px; }
+}
+
 /* ══ 42. THE WAY OUT IS ITS OWN DECISION ═══════════════════════════════════
    Ending a lead sat in the row of ordinary verbs at the same weight as
    "Call". It is under a rule of its own now, quiet until pressed, and it
@@ -1715,7 +1891,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-end-open:hover .b-end-mark { opacity: 1; }
 /* The question, on the menus' own machinery: a click anywhere else or Escape
    is the way back, and it hangs from the right because the button does. */
-.b-end-pop { left: auto; right: 0; transform-origin: top right; width: 296px; max-width: 84vw; }
+.b-end-pop { left: auto; right: 0; transform-origin: top right; width: 296px; max-width: calc(var(--vp-w) * 0.84); }
 .b-end-say {
   margin: 2px 10px 10px; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); text-wrap: pretty;
@@ -1853,10 +2029,57 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
-@media (max-width: 720px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   .b-back-row { grid-template-columns: 1fr; }
-  .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
+  /* ══ THE LABEL IS NOT A SHARE OF THE ROW, IT IS THE ROW'S SUBJECT ══════
+     This was `minmax(80px, 1fr) 2fr`, which gave the BAR twice what it gave
+     the step it belongs to: measured at a 620px layout, the label got 114 and
+     `On the record here` folded to two lines while 229px of bar sat beside it
+     saying nothing the row's own figures do not. max-content is what the
+     default tier above already gives this column; the bar keeps the rest. */
+  .b-funnel { grid-template-columns: max-content minmax(40px, 1fr) auto auto; }
+  /* AND max-content NEEDS A CEILING, because this label is not always a step:
+     the first row takes the campaign's or the account's own name, which is
+     unbounded. Stress-tested at a 376px layout with a 51-character one —
+     uncapped the column asked for 331px inside a 308px block and took the
+     table off the card. 22ch wraps that name and is wider than every step in
+     the ladder, so the ordinary row is untouched: measured identical, 117px
+     and one line, with the cap on and off. */
+  .b-fn-name { max-width: 22ch; }
 }
+
+/* ══ AND BELOW 560 THE BAR IS THE COLUMN THAT GOES ═════════════════════
+   Four columns on a 459px layout leave the label 80 of them, which is not a
+   label column: `Got this far` folded to two lines in the header and `On the
+   record here` to two in the row under it, so a three-row table stood five
+   rows tall with every cell straddling a line it did not belong to.
+
+   THE BAR IS THE ONE THAT CAN LEAVE, because it is the only cell here that
+   says nothing the row does not already say in words — it is `of the one
+   above` drawn, and `of the one above` is still there in figures at the end
+   of the same row. Dropping the count or the conversion would cost a fact;
+   this costs a picture of a fact. The label then takes what the bar was
+   holding and every cell is one line again. */
+/* ══ AND THERE IS NO THIRD TIER, WHICH TOOK FOUR TO FIND OUT ══════════════
+   A pass through here dropped the bar below 560 and rebuilt the block three
+   columns wide, on the reasoning that the bar is the only cell saying nothing
+   the row does not also say in figures. It read well and it was the wrong
+   move: a component that runs out of room should change its form, not leave.
+
+   Three forms were built and looked at on a 459px layout, in both themes:
+   the bar as the row's own ground with the label over it, the bar as a rule
+   under the row, and the bar simply gone. The ground form is invisible in
+   LIGHT — --d300 and --ink-muted at the alpha that reads on a dark card are
+   nothing against a near-white one, which is the flattener every colour
+   change here has to be checked for. The rule form folded `of the one above`
+   into four lines. And then the arithmetic said the question was wrong:
+   `max-content minmax(40px, 1fr) auto auto` is 117 + 65 + 46 + 120 at a 459px
+   layout and 117 + 40 + 46 + 63 at 376, so the bar FITS at every width this
+   build renders — 65 real pixels of it, filled to its share, which is a bar.
+
+   The tier above is the whole answer. This block is the note that a third one
+   was tried and is not needed, so the next pass does not spend the four
+   rounds again. */
 
 /* ══ 45. NO RULES BETWEEN SECTIONS ═════════════════════════════════════════
    The shell separates one block from the next with a hairline, and once a
@@ -2484,7 +2707,24 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    caption above each is already the separator and a rule would make three
    facts read as three objects. */
 .b-cmeta {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  /* ══ THE 232 GIVES WAY WHEN THERE IS NOT 232 ═══════════════════════
+     `minmax(232px, 1fr)` reads like a preference and behaves like a floor:
+     the track cannot go under 232 whatever the container does, so a grid of N
+     parts reports a min-content of N x 232 and the block sizes the PAGE
+     instead of the page sizing the block. `.b-draft-meta` below hit this and
+     was answered by counting columns per breakpoint; this is the same defect
+     at its source, and it showed on the manager's campaign, where four parts
+     made 792px of min-content inside a 391px layout and took the back link,
+     the title, the team and every block below them off the right of the
+     screen by 380px.
+
+     `min(232px, 100%)` is the same preference written so it can lose. The
+     column still asks for 232 and auto-fit still decides how many fit; when
+     the container is narrower than one column, the floor becomes the
+     container and the grid folds to one part per row instead of overflowing.
+     No breakpoint, and it answers every width rather than the ones somebody
+     thought to write down. */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(232px, 100%), 1fr));
   column-gap: 48px; row-gap: 24px; margin: 22px 0 0; max-width: 1080px;
 }
 .b-cmeta-part { min-width: 0; }
@@ -2634,7 +2874,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   margin: 12px 0 0; font-weight: var(--fw-semibold); color: var(--d200);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   .b-way { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
   .b-way-n { font-size: var(--fs-xl); }
 }
@@ -2776,13 +3016,11 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    loading state that has stopped telling you anything. The card is capped at
    the height it has, and the log scrolls inside it, which is the part that
    grows. svh rather than vh, so a mobile browser's own bar is counted. */
-.pipe-card { max-height: calc(100svh - 190px); display: flex; flex-direction: column; }
-.pipe-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pipe-card { max-height: calc(var(--vp-h) - 190px); display: flex; flex-direction: column; }
 /* Nothing is pressed here any more, so the foot is one line of elapsed. */
 .pipe-foot { padding: 12px 8px 2px; }
-@media (max-height: 720px) {
-  .pipe-rail { padding: 14px 20px; }
-  .pipe-card { max-height: calc(100svh - 150px); }
+@media (max-height: 611.98px) { /* 720 layout px tall */
+  .pipe-card { max-height: calc(var(--vp-h) - 150px); }
 }
 
 /* A button that carries a staged choice says so by holding full ink; the
@@ -2900,7 +3138,6 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    padding, so 14. The run's panels sit 14px inside a 20px card, so 8. A
    card's reading sits 14px inside a 12px card, so it is the smallest step. */
 .b-menu { border-radius: 14px; }
-.pipe-panel { border-radius: 8px; }
 .b-aimy { border-radius: var(--r-sm); }
 
 /* A photograph's edge takes its call from the ground it sits on: white at a
@@ -3036,11 +3273,18 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    is separated from the day beside it: an inset rule, not an edge-to-edge
    one — this build draws the dividers between the parts of a panel inside
    the panel's own padding. */
+/* `wrap` and `min-width: 0` are both inert until the row cannot hold the
+   month and its controls on one line, which at this type size is a 376px
+   layout — a 320px phone. Measured there: 120 of month plus 150 of nav plus
+   the gap is 280 in a 278px box, three pixels of a panel hanging over its own
+   card. Nothing above that width moves, because nothing above it overflows. */
 .b-cal-head {
   display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px; padding: 2px 2px 12px; margin-bottom: 10px;
   border-bottom: 1px solid var(--card-border);
 }
+.b-cal-month { min-width: 0; }
 .b-cal-month {
   display: flex; align-items: center; gap: 10px; margin: 0;
   font-size: var(--t-h3); font-weight: var(--fw-bold); color: var(--d50);
@@ -3307,9 +3551,18 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 }
 @media (prefers-reduced-motion: reduce) { .b-cal-nrow { animation: none; } }
 
-@media (max-width: 560px) {
+@media (max-width: 475.98px) { /* 560 layout px */
   .b-cal-day { height: 48px; }
-  .b-cal-etime { width: 42px; }
+  /* THE COLUMN EXISTS SO THE KINDS LINE UP, and 42 was measured against the
+     times alone. A diary row's when is `11:30` or `16:30` — 29 and 33px — or
+     it is `all day`, which is 46.3 and wrapped, taking that row to two lines
+     and dropping `Owed` half a line below the `Demo` above it.
+
+     min-width rather than width, and nowrap beside it: at 48 every value this
+     column holds is one line and they share an edge, and a longer one later
+     takes the room it needs instead of folding. A fixed width can only fail
+     by wrapping; this can only fail by not aligning. */
+  .b-cal-etime { min-width: 48px; white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   .b-cal-bg, .b-cal-plus, .b-cal-btn { transition: none; }
@@ -3818,8 +4071,8 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    Counted columns and `minmax(0, 1fr)` so the fields fit the page rather than
    the page fitting the fields. */
 .b-draft-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 100%; }
-@media (max-width: 1087.98px) { .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 719.98px) { .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1087.98px) { /* 1280 layout px */ .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 611.98px) { /* 720 layout px */ .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
 
 /* Greyed, and the reason is the sentence beside it rather than a tooltip
    nobody hovers. */
@@ -3886,7 +4139,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 12px; max-width: 100%;
 }
-@media (max-width: 719.98px) { .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 611.98px) { /* 720 layout px */ .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
 
 /* ══ 84. THE DIARY, AS A PAGE ══════════════════════════════════════════════
    The same month the pop-out draws, standing on a surface instead of hanging
@@ -3930,7 +4183,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-diary .b-cal-etime, .b-diary .b-cal-ewhat { font-size: var(--t-ui); }
 /* Under the fold for a second column: the month goes back over the day and
    the rule between them turns with them, which is the stacked default. */
-@media (max-width: 1023.98px) {
+@media (max-width: 870.98px) { /* 1024 layout px */
   .b-diary .b-cal-panel { grid-template-columns: minmax(0, 1fr); }
   .b-diary .b-cal-side {
     padding-left: 0; margin-left: 0; padding-top: 12px; margin-top: 12px;
@@ -4420,7 +4673,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 
 .b-ring {
   pointer-events: auto;
-  width: 384px; max-width: calc(100vw - 32px);
+  width: 384px; max-width: calc(var(--vp-w) - 32px);
   border-radius: var(--r-2xl);
   background: var(--composer-skin);
   border: 1px solid var(--composer-edge);
@@ -4627,7 +4880,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 /* The phone is 384px and the narrow shell is not, so it takes the gutter the
    rest of the build takes and nothing else changes: the same card, the same
    two buttons, at the width there is. */
-@media (max-width: 460px) {
+@media (max-width: 390.98px) { /* 460 layout px */
   .b-ring-main { padding: 12px 12px; gap: 10px; }
   .b-ring-read { padding: 8px 12px 10px; }
 }

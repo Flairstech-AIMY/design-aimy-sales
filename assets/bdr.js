@@ -2981,7 +2981,7 @@
   function prePaint() {
     const out = { bar: null, figs: null };
     const on = document.querySelector('.b-switch-btn.is-on');
-    if (on) out.bar = { x: on.offsetLeft, w: on.offsetWidth };
+    if (on) out.bar = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
     if (FIG_TICK) {
       out.figs = Object.create(null);
       document.querySelectorAll('[data-fig]').forEach((el) => { out.figs[el.getAttribute('data-fig')] = el.textContent; });
@@ -2989,19 +2989,31 @@
     FIG_TICK = false;
     return out;
   }
+  /* THE BAR IS PLACED ON BOTH AXES, BECAUSE THE STRIP WRAPS. `.b-switch` is
+     `flex-wrap: wrap` and the manager's desk carries five entries, which at a
+     459px layout take two rows. Moving the bar in x alone left it wherever
+     `bottom: 0` put it — the foot of the whole wrapped block — so with Diary
+     lit on the first row the bar sat 34px below the second, under Lists,
+     marking nothing. It is anchored to the TOP of the strip now (bdr.css §31)
+     and told where to go. 2 is its own height: the y is the button's bottom
+     edge, so the bar sits in the last two pixels of the button's box, which
+     is what `bottom: 0` gave it on a single row and is now true on any. */
+  function barY(on) { return on.offsetTop + on.offsetHeight - 2; }
   /* FLIP: put the bar where it was, let the browser see it there, then
      send it where it goes. No previous place, no motion. */
   function placeSwitchBar(from) {
     const bar = document.querySelector('.b-switch-bar');
     const on = document.querySelector('.b-switch-btn.is-on');
     if (!bar || !on) return;
-    if (from && (from.x !== on.offsetLeft || from.w !== on.offsetWidth)) {
+    const to = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
+    const at = (p) => 'translate(' + p.x + 'px, ' + p.y + 'px) scaleX(' + p.w + ')';
+    if (from && (from.x !== to.x || from.y !== to.y || from.w !== to.w)) {
       bar.style.transition = 'none';
-      bar.style.transform = 'translateX(' + from.x + 'px) scaleX(' + from.w + ')';
+      bar.style.transform = at(from);
       void bar.offsetWidth;
       bar.style.transition = '';
     }
-    bar.style.transform = 'translateX(' + on.offsetLeft + 'px) scaleX(' + on.offsetWidth + ')';
+    bar.style.transform = at(to);
   }
   function postPaint(pre) {
     placeSwitchBar(pre.bar);
@@ -4689,6 +4701,24 @@
       b.setAttribute('aria-label', on ? 'Close what is here' : 'Open what is here');
     }
     if (on) { try { byId('appRail').focus({ preventScroll: true }); } catch (e) {} }
+  }
+
+  /* The canvas's conversation column, the scrim over the thread behind it and
+     the button that says which way it is — railOpen's shape, deliberately, so
+     this shell has one drawer and not two that drift. Above 765px the drawer
+     rules do not apply and the class does nothing, which is why there is no
+     breakpoint in here either. */
+  function ovChatsOpen(on) {
+    const col = byId('overlayChats');
+    if (!col) return;
+    col.classList.toggle('is-open', on);
+    const s = byId('ovChatsScrim');
+    if (s) s.classList.toggle('is-open', on);
+    const b = byId('ovChatsToggle');
+    if (b) {
+      b.setAttribute('aria-expanded', String(on));
+      b.setAttribute('aria-label', on ? 'Close conversations' : 'Open conversations');
+    }
   }
 
   function paintRail() {
@@ -10496,16 +10526,61 @@
      4px of blur and the new ones arrive through it, 90ms each way (bdr.css
      §29); a swap already under way is not restarted by the frame after it,
      and a newer word overrides an older one still on its way. */
+  /* ══ THE TWO HALVES USED TO DISAGREE, AND IT FLICKERED ════════════════
+     This waited 90ms and then swapped. The note above says the swap step is
+     `--t-fast`, and bdr.css §29 duly sets 150 — but the number in HERE was
+     never lengthened with it. So at the moment the characters changed, the
+     old ones were still at about six tenths of their opacity under less than
+     a pixel of blur: plainly readable. The swap happened in place behind a
+     fade that had not finished, which is the exact defect the fade exists to
+     prevent, and it read as a flicker on every step.
+
+     SO THERE IS NO DURATION IN HERE ANY MORE. The out phase is over when the
+     opacity transition says it is over, whatever bdr.css sets it to next, and
+     the two cannot drift apart again. The timeout that remains is a safety
+     net rather than the timing — a transition on a hidden element never fires
+     transitionend — and a reader who has turned motion off lands straight
+     away rather than waiting for that net. */
+  /* ══ TWO WORDS PASS EACH OTHER; THE LINE IS NEVER EMPTY ══════════════
+     ONE span faded out, waited, changed its own characters and faded back in,
+     and that is a blink however well it is timed — for the length of the fade
+     there is nothing on the line at all. It got worse when the two halves
+     disagreed (the CSS was lengthened to --t-fast and the 90ms in here was
+     not, so the characters changed at six tenths opacity, in plain sight),
+     and fixing that made it an honest blink rather than a glitchy one. Nour's
+     answer to the honest blink was that it still flickers, and that is right:
+     the defect was never the timing, it was the gap.
+
+     So there are two spans and they overlap. The old one leaves upward while
+     the new one arrives from below, and the arrival starts before the
+     departure has finished — there is no frame on which the line is blank.
+     Opacity and transform only: no blur, which is a paint on every frame of
+     the fade and buys nothing once two layers are crossing.
+
+     The outgoing span is anchored to the RIGHT, because `.pipe-head-state`
+     sits at the end of a `space-between` row — the dot beside it holds still
+     and the text's LEFT edge is what moves when the wording changes length.
+     Anchored left, the departing words would slide sideways as the incoming
+     ones sized the box. */
   function swapText(el, text) {
-    if (!el || el.textContent === text || el._swapTo === text) return;
-    el.classList.add('b-swap', 'is-swapping');
-    el._swapTo = text;
-    setTimeout(() => {
-      if (el._swapTo !== text) return;
-      el.textContent = text;
-      el._swapTo = null;
-      el.classList.remove('is-swapping');
-    }, 90);
+    if (!el) return;
+    const cur = el.querySelector('.pipe-say:not(.is-out)');
+    if (cur ? cur.textContent === text : el.textContent === text) return;
+    if (cur) {
+      cur.classList.add('is-out');
+      /* Removed when its own animation ends, so the two never accumulate.
+         The timeout is the net for a reader with motion turned off, where no
+         animationend arrives — the CSS hides it in that case, so the wait
+         costs nothing that can be seen. */
+      cur.addEventListener('animationend', () => cur.remove(), { once: true });
+      setTimeout(() => { if (cur.parentNode) cur.remove(); }, 700);
+    } else {
+      el.textContent = '';
+    }
+    const next = document.createElement('span');
+    next.className = 'pipe-say is-in';
+    next.textContent = text;
+    el.appendChild(next);
   }
   const pipeFmt = (n) => n.toFixed(1) + 's';
 
@@ -10573,8 +10648,18 @@
   const pipeLocalOf = (i) => Math.max(0, Math.min(PIPE.elapsed - PIPE.starts[i], PIPE.stages[i].duration));
   const pipeProgressOf = (i) => Math.max(0, Math.min(1, pipeLocalOf(i) / PIPE.stages[i].duration));
 
+  /* The glow travels in pixels, so it needs the track's height. Read here,
+     which is called at mount and whenever the viewport changes — and never
+     from pipePaint, which runs on the frame clock. */
+  function pipeMeasure() {
+    if (!PIPE) return;
+    const t = document.querySelector('.pipe-rib-track');
+    PIPE.trackH = t ? t.getBoundingClientRect().height : 0;
+  }
+
   function pipeTick(now) {
     if (!PIPE || S.build !== 'run' || !byId('pipeCard')) { if (PIPE) PIPE.raf = null; return; }
+    if (!PIPE.trackH) pipeMeasure();
     if (PIPE.t0 === null) PIPE.t0 = now;
     PIPE.elapsed = Math.min((now - PIPE.t0) / 1000, PIPE.total);
     pipePaint();
@@ -10589,13 +10674,19 @@
     const active = PIPE.stages[ai];
     const activeDone = pipeStateOf(ai) === 'done';
     const local = pipeLocalOf(ai);
-    /* One layout read, before any write: the connectors' widths, so the
-       dot can be placed by transform and nothing lays out per frame. */
-    const widths = Object.create(null);
-    PIPE.stages.forEach((x) => { const cn = byId('pipeConn-' + x.id); if (cn) widths[x.id] = cn.parentNode.clientWidth; });
-
+    /* ══ TRANSFORM AND OPACITY, AND NOTHING ELSE ════════════════════
+       This runs sixty times a second. Scaling a full-height bar and
+       translating a glow is compositor work; animating a height or a top is
+       layout and paint on every one of those frames. PIPE.trackH is read at
+       mount and on resize — never here, because a getBoundingClientRect
+       between two style writes is a forced synchronous reflow. */
     const fill = byId('pipeFill');
-    if (fill) { fill.style.clipPath = 'inset(0 ' + (100 - PIPE.elapsed / PIPE.total * 100) + '% 0 0 round 99px)'; fill.classList.toggle('done', finished); }
+    if (fill) fill.style.transform = 'scaleY(' + (PIPE.elapsed / PIPE.total) + ')';
+    const rhead = byId('pipeHead');
+    if (rhead) {
+      rhead.style.transform = 'translateY(' + (PIPE.elapsed / PIPE.total * (PIPE.trackH || 0)) + 'px)';
+      rhead.style.opacity = finished ? '0' : '1';
+    }
     const st = byId('pipeStatus');
     if (st) {
       swapText(st, finished ? 'Found · ' + commas(DRAFT.run.total) : 'Running · ' + active.label);
@@ -10604,65 +10695,28 @@
     const dot = byId('pipeDot');
     if (dot) dot.classList.toggle('done', finished);
 
+    /* A CLASS, NOT A REWRITE. Two classes decide everything a step looks
+       like, and both the time and the sentence it ends on are already in the
+       markup waiting at opacity 0 — so a step finishing is one class toggle
+       and the rest is CSS transitions the compositor runs. Touched only when
+       the state actually changes; this loop is on the frame clock. */
     PIPE.stages.forEach((x, i) => {
       const state = pipeStateOf(i);
-      const tile = byId('pipeTile-' + x.id);
-      if (tile) {
-        tile.className = 'pipe-tile ' + (state === 'running' ? 'live' : state);
-        const chk = tile.querySelector('.pipe-check');
-        if (state === 'done' && !chk) tile.insertAdjacentHTML('beforeend', '<span class="pipe-check pipe-pop">' + pipeCheck(11) + '</span>');
-        if (state !== 'done' && chk) chk.remove();
-      }
-      const lab = byId('pipeLabel-' + x.id);
-      if (lab) lab.classList.toggle('pending', state === 'pending');
-      const tm = byId('pipeTime-' + x.id);
-      if (tm) {
-        tm.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? pipeFmt(pipeLocalOf(i)) : pipeFmt(0);
-        tm.className = 'pipe-stage-time ' + state;
-      }
-      if (i > 0) {
-        const pct = (state === 'pending' ? 0 : pipeProgressOf(i)) * 100;
-        const cf = byId('pipeConn-' + x.id);
-        if (cf) { cf.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0 round 99px)'; cf.classList.toggle('done', state === 'done'); }
-        const cd = byId('pipeConnDot-' + x.id);
-        if (cd) { cd.hidden = state === 'done' || pct <= 1; cd.style.transform = 'translate(calc(' + ((widths[x.id] || 0) * pct / 100) + 'px - 50%), -50%)'; }
-      }
-      const row = byId('pipeRow-' + x.id);
-      if (row) {
-        row.className = 'pipe-row' + (state === 'running' ? ' live' : '');
-        const mark = row.querySelector('.pipe-row-mark');
-        const want = state === 'done' ? 'done' : state === 'running' ? 'live' : 'idle';
-        if (mark && mark.getAttribute('data-state') !== want) {
-          mark.setAttribute('data-state', want);
-          mark.innerHTML = want === 'done' ? '<span class="pipe-row-check pipe-pop">' + pipeCheck(12) + '</span>'
-            : want === 'live' ? '<span class="pipe-spinbox"><svg viewBox="0 0 24 24" width="20" height="20" class="pipe-spin" aria-hidden="true">' +
-              '<path d="M12 2.7a9.3 9.3 0 1 0 9.3 9.3" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></span>'
-            : '<span class="pipe-row-idle"></span>';
-        }
-        const rl = row.querySelector('.pipe-row-label');
-        if (rl) rl.classList.toggle('pending', state === 'pending');
-        const rt = row.querySelector('.pipe-row-time');
-        if (rt) { rt.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? '· · ·' : ''; rt.classList.toggle('done', state === 'done'); }
-        /* WHAT THE STEP FOUND, ONCE, WHEN IT IS DONE. The typed log said it
-           four lines at a time and then scrolled it away; the number that
-           matters is the one the step ends on, and it belongs on the step. */
-        const rs = row.querySelector('.pipe-row-sub');
-        if (rs) swapText(rs, state === 'done' ? x.logs[x.logs.length - 1].text.replace(/^✓\s*/, '') : '');
+      const step = byId('pipeStep-' + x.id);
+      if (step && step.getAttribute('data-state') !== state) {
+        step.setAttribute('data-state', state);
+        step.classList.toggle('is-live', state === 'running');
+        step.classList.toggle('is-done', state === 'done');
       }
     });
 
     const el = byId('pipeElapsed');
-    if (el) el.textContent = pipeFmt(PIPE.elapsed) + ' / ' + pipeFmt(PIPE.total);
+    if (el) el.textContent = pipeFmt(PIPE.elapsed);
     /* ══ A LOADING STATE IS NOT A DESTINATION ══════════════════════════════
        It finished and then waited to be told to show what it had found, with
        "Run again with ZoomInfo" beside the way out — two decisions on a
        screen whose whole purpose was to be over. It ends by opening the list,
        which is where every one of those decisions is available anyway. */
-    const foot = byId('pipeFootAct');
-    if (foot && foot.getAttribute('data-done') !== String(finished)) {
-      foot.setAttribute('data-done', String(finished));
-      foot.innerHTML = finished ? '' : '<span class="pipe-chip">' + esc(active.label) + '…</span>';
-    }
     if (finished && PIPE && !PIPE.left) {
       PIPE.left = true;
       /* One beat on the finished state so the last tick is seen, then out. */
@@ -10691,48 +10745,58 @@
         '<header class="pipe-head">' +
           '<div class="pipe-head-row">' +
             '<div class="pipe-head-main">' +
-              '<h1 class="pipe-title">' + esc(buildName()) + '</h1>' +
+              /* No title. `.s-rec-name` above the card is buildName() already;
+                 this printed the same string forty pixels under it, and this
+                 was the copy being cut off at the card's own edge. */
               '<span class="pipe-badge">' + esc(kind) + '<span class="pipe-badge-dot">·</span>' + esc(f.name) + '</span>' +
             '</div>' +
             '<div class="pipe-head-state">' +
-              '<span class="pipe-status b-swap" id="pipeStatus">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
+              '<span class="pipe-status" id="pipeStatus">' +
+                '<span class="pipe-say">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
+              '</span>' +
               '<span class="pipe-live-dot" id="pipeDot" aria-hidden="true"></span>' +
             '</div>' +
           '</div>' +
-          '<div class="pipe-track"><div class="pipe-fill" id="pipeFill" style="clip-path:inset(0 100% 0 0 round 99px)"></div></div>' +
         '</header>' +
 
-        '<section class="pipe-panel pipe-rail" aria-label="Stages">' +
-          PIPE.stages.map((x, i) =>
-            (i > 0
-              ? '<div class="pipe-conn-wrap"><div class="pipe-conn">' +
-                  '<div class="pipe-conn-fill" id="pipeConn-' + esc(x.id) + '" style="clip-path:inset(0 100% 0 0 round 99px)"></div>' +
-                  '<span class="pipe-dot" id="pipeConnDot-' + esc(x.id) + '" hidden></span>' +
-                '</div></div>'
-              : '') +
-            '<div class="pipe-stage">' +
-              '<div class="pipe-tile pending" id="pipeTile-' + esc(x.id) + '">' + pipeIcon(x.icon) + '</div>' +
-              '<div class="pipe-stage-label pending" id="pipeLabel-' + esc(x.id) + '">' + esc(x.label) + '</div>' +
-              '<div class="pipe-stage-time pending" id="pipeTime-' + esc(x.id) + '">0.0s</div>' +
-            '</div>').join('') +
-        '</section>' +
-
-        '<section class="pipe-panel pipe-rows" aria-label="Steps">' +
+        /* THE RIBBON. One track for the whole run, and the vertical room a
+           step gets is its duration — `flex-grow` is the number, written
+           inline because it is data and not a design constant. */
+        '<section class="pipe-rib" aria-label="Steps">' +
+          '<div class="pipe-rib-track"><div class="pipe-rib-fill" id="pipeFill"></div></div>' +
+          '<div class="pipe-rib-head" id="pipeHead"></div>' +
           PIPE.stages.map((x) =>
-            '<div class="pipe-row" id="pipeRow-' + esc(x.id) + '">' +
-              '<span class="pipe-row-mark" data-state="idle"><span class="pipe-row-idle"></span></span>' +
-              '<span class="pipe-row-text">' +
-                '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
-                '<span class="pipe-row-sub b-swap"></span>' +
+            '<div class="pipe-step" id="pipeStep-' + esc(x.id) + '" ' +
+              'style="flex-grow:' + x.duration + '">' +
+              '<span class="pipe-pin"></span>' +
+              '<span class="pipe-step-body">' +
+                '<span class="pipe-step-row">' +
+                  '<span class="pipe-step-label">' + esc(x.label) + '</span>' +
+                  '<span class="pipe-step-time">' + pipeFmt(x.duration) + '</span>' +
+                '</span>' +
+                '<span class="pipe-step-said">' +
+                  esc(x.logs[x.logs.length - 1].text.replace(/^\u2713\s*/, '')) +
+                '</span>' +
               '</span>' +
-              '<span class="pipe-row-time"></span>' +
             '</div>').join('') +
         '</section>' +
 
 
+        /* The clock, and nothing beside it. A chip naming the running stage
+           stood here and said what the status line at the top of the card
+           already says, eight centimetres below it — and said it WRONG: it
+           was written once, on the first paint where the run was not
+           finished, and never again, so it read `Read the criteria…` for the
+           whole run. The fix for a stale second copy of a fact is not to
+           refresh it. */
+        /* ══ HOW LONG IT HAS TAKEN, NOT HOW LONG IT WILL ═══════════════
+           `0.0s / 7.0s` promised a finish. The seven seconds is this fixture's
+           own scripted length and a real run answers to four suppliers over a
+           network — so the total was a number the product cannot know, printed
+           in the one place a reader would take it for a commitment. The clock
+           counts up and says nothing it cannot stand behind. */
         '<footer class="pipe-foot">' +
-          '<span class="pipe-elapsed" id="pipeElapsed">0.0s / ' + pipeFmt(PIPE.total) + '</span>' +
-          '<span class="pipe-foot-act" id="pipeFootAct" data-done=""></span>' +
+          '<span class="pipe-elapsed" id="pipeElapsed">0.0s</span>' +
         '</footer>' +
       '</div></div>' +
       '<p class="b-vfoot s-block-wide">Nothing is saved until you say so. What comes back is shown first, ' +
@@ -10759,6 +10823,59 @@
      so the menu toggles and stays open until you look away from it. */
   const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
     ? DRAFT.assign : [me().id]);
+
+  /* Untouched, it is the verb; touched, it is the answer. The campaign button
+     beside it works the same way, and "You are calling them" read as a fact
+     somebody was telling you rather than a control.
+
+     Names, while there are few enough to name. "Split between 2" makes you
+     open the menu to find out which two.
+
+     ITS OWN FUNCTION BECAUSE TWO THINGS SAY IT NOW — the renderer that draws
+     the control and assignSync(), which relabels it in place when a name is
+     ticked. Two copies of this ladder is two places for the wording to drift. */
+  function assignSay(who, set) {
+    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
+    if (!set) return 'Assign people';
+    if (who.length === 1) {
+      return who[0] === me().id ? 'You are calling them'
+        : actor(who[0]).name + ' is calling them';
+    }
+    if (who.length <= 3) return 'Split between ' + listSay(who.map(first));
+    return 'Split between ' + commas(who.length) + ' of you';
+  }
+
+  /* ══ A MULTIPLE CHOICE DOES NOT REPAINT THE PAGE UNDER ITSELF ═══════════
+     Ticking a caller called paint(), which rebuilds the surface from a string
+     — so the open menu was destroyed and a new one built in its place on every
+     press. It came back because the handler re-showed it by id, and it came
+     back NEW: the entrance animation replayed, the search box lost what was
+     typed in it and the focus ring went with the element it was on. Four names
+     is four flashes.
+
+     The rule is already written at [data-pickopen]: opening, choosing and
+     filtering happen in the DOM, and only the confirm writes. This is the
+     choosing. Nothing else on the page reads the assignment — saveList()
+     reads it at commit time, and that is a write, which repaints — so the
+     two things that show it are the ticks and the opener's own label. */
+  function assignSync() {
+    const who = assignedTo();
+    const set = !!(DRAFT && DRAFT.assign);
+    const menu = byId('assignPick');
+    if (menu) {
+      menu.querySelectorAll('[data-pickrep]').forEach((b) => {
+        const on = who.indexOf(b.getAttribute('data-pickrep')) >= 0;
+        b.setAttribute('aria-pressed', String(on));
+        const tick = b.querySelector('.b-menu-tick');
+        if (tick) tick.classList.toggle('is-on', on);
+      });
+    }
+    const opener = document.querySelector('[data-pickopen="assignPick"]');
+    if (opener) {
+      opener.classList.toggle('is-set', set);
+      opener.textContent = assignSay(who, set);
+    }
+  }
   /* ══ A LIST ON NO CAMPAIGN IS A LIST NOBODY IS WORKING ═════════════════
      Save led and the campaign hung off it as a second thought, so the easy
      press produced a set of five hundred people sitting in a drawer. Putting
@@ -10788,20 +10905,8 @@
   };
   const assignPickMenu = () => {
     const who = assignedTo();
-    /* Untouched, it is the verb; touched, it is the answer. The campaign
-       button beside it works the same way, and "You are calling them" read
-       as a fact somebody was telling you rather than a control. */
     const set = !!(DRAFT && DRAFT.assign);
-    /* Names, while there are few enough to name. "Split between 2" makes
-       you open the menu to find out which two. */
-    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
-    const say = !set
-      ? 'Assign people'
-      : who.length === 1
-        ? (who[0] === me().id ? 'You are calling them' : actor(who[0]).name + ' is calling them')
-        : who.length <= 3
-          ? 'Split between ' + listSay(who.map(first))
-          : 'Split between ' + commas(who.length) + ' of you';
+    const say = assignSay(who, set);
     return '<span class="b-menu-wrap">' +
       '<button class="s-inline-btn b-menu-open' + (set ? ' is-set' : '') + '" ' +
         'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
@@ -12309,6 +12414,12 @@
       '</div>';
     }).join('');
     return '<div class="b-funnel">' +
+        /* The empty cell is the BAR'S column in the header, and it stays
+           empty: a bar's heading is the row it measures. Unclassed on purpose
+           — it briefly carried one so a narrow-width rule could drop it
+           alongside the bar, and bdr.css §43 records why there is no such rule
+           any more. A class nothing styles is a class the next reader has to
+           go looking for. */
         '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span></span>' +
           '<span class="b-fn-n">people</span><span class="b-fn-conv">of the one above</span></div>' +
         rows + '</div>' +
@@ -15246,11 +15357,12 @@
   function vlist(o) {
     const host = o.host;
     const scroller = byId('pageScroll');
-    const rowH = o.rowH;
     const overscan = o.overscan == null ? 8 : o.overscan;
     const self = {
       host: host, items: o.items || [], cursor: -1,
       first: -1, last: -1,
+      /* What the caller says a row is, until a row says otherwise. */
+      rowH: o.rowH,
     };
 
     host.classList.add('b-vlist');
@@ -15265,8 +15377,53 @@
       return t;
     }
 
+    /* ══ THE ROW HEIGHT IS MEASURED, NOT DECLARED ═════════════════════
+       Every row here is pinned to `rowH` and placed at `i * rowH`, so a number
+       that does not match what the CSS produces is not a rounding error — it
+       is every row overlapping the next one by the difference, for the whole
+       list.
+
+       `.s-brow` was told 132. Measured on the builder's result: 134 at a
+       1412px layout, and 246 at 459, because below 720 the figures column
+       moves under the name instead of beside it. Two pixels of overlap on a
+       desktop nobody would report, and a hundred and fourteen on a phone,
+       where the staff count and the tag of one company were drawn across the
+       name of the next.
+
+       A TABLE OF BREAKPOINT CONSTANTS WOULD BE WRONG AGAIN THE NEXT TIME THE
+       ROW CHANGES, and would have to list every width somebody thought of.
+       One row is rendered with its height let go, read, and thrown away — so
+       the number comes from the same CSS that draws the list, at whatever
+       width the list is actually at.
+
+       IN LAYOUT PIXELS. The shell carries `zoom` on <body>, so a rect is the
+       layout value times the scale while `rowH` is a CSS length; mixing them
+       puts the window out by a factor on every screen that is not the 1536
+       anchor. The README states this about `offsetTop` and `clientHeight`,
+       and it is the same trap one measurement further along.
+
+       ONLY ON A FORCED RENDER — mount, update, resize — never on scroll,
+       which is the frame-rate path. */
+    function measure() {
+      if (!self.items.length) return;
+      const S = parseFloat(getComputedStyle(document.documentElement)
+        .getPropertyValue('--ui-scale')) || 1;
+      const probe = document.createElement('article');
+      probe.className = (o.rowClass ? o.rowClass + ' ' : '') + 'b-vrow';
+      probe.style.cssText =
+        'position:absolute;left:0;right:0;top:0;height:auto;transform:none;visibility:hidden';
+      probe.setAttribute('aria-hidden', 'true');
+      probe.innerHTML = o.row(self.items[0], 0, false);
+      host.appendChild(probe);
+      const h = Math.round(probe.getBoundingClientRect().height / S);
+      probe.remove();
+      if (h > 0) self.rowH = h;
+    }
+
     function render(force) {
       const n = self.items.length;
+      if (force) measure();
+      const rowH = self.rowH;
       host.style.height = (n * rowH) + 'px';
       if (!n) {
         host.innerHTML = o.empty ? '<div class="b-vfoot">' + esc(o.empty) + '</div>' : '';
@@ -15329,13 +15486,13 @@
       if (i >= n) i = n - 1;
       self.cursor = i;
       const top = topOf();
-      const want = top + i * rowH;
+      const want = top + i * self.rowH;
       const st = scroller.scrollTop;
       const vh = scroller.clientHeight;
       /* Only scroll when the row is not already whole on screen. A list that
          re-centres on every keypress makes the eye chase the cursor. */
-      if (want < st) scroller.scrollTop = want - rowH;
-      else if (want + rowH > st + vh - 96) scroller.scrollTop = want + rowH + 96 - vh;
+      if (want < st) scroller.scrollTop = want - self.rowH;
+      else if (want + self.rowH > st + vh - 96) scroller.scrollTop = want + self.rowH + 96 - vh;
       render(true);
       if (o.onCursor) o.onCursor(self.items[i], i);
     };
@@ -15361,9 +15518,15 @@
     });
   }
   byId('pageScroll').addEventListener('scroll', vscroll, { passive: true });
-  window.addEventListener('resize', () => {
+  function vremeasure() {
     for (let i = 0; i < VLISTS.length; i++) VLISTS[i].render(true);
-  }, { passive: true });
+  }
+  window.addEventListener('resize', vremeasure, { passive: true });
+  /* AND ON THE VIEWPORT CHANGES `resize` DOES NOT ANNOUNCE. Changing browser
+     zoom moves the viewport with no resize event — assets/aimy-viewport.js
+     measured that and publishes this for it. It matters here because the row
+     height is measured from the CSS, and the CSS answers the width. */
+  window.addEventListener('aimy:viewport', vremeasure, { passive: true });
 
   /* Every repaint drops the lists that were on the previous surface. A list
      left in the registry keeps rendering into a host that is no longer in the
@@ -15746,6 +15909,12 @@
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
     back: '<path d="m15 18-6-6 6-6"/>',
     fwd: '<path d="m9 18 6-6-6-6"/>',
+    /* The same chevron turned, for a panel that goes away downwards rather
+       than a page that goes back sideways. Drawn rather than rotated: `back`
+       and `fwd` are 24-box paths on the same grid and a transform would put
+       this one a half-pixel off theirs. */
+    'chev-down': '<path d="m6 9 6 6 6-6"/>',
+    'chev-up': '<path d="m18 15-6-6-6 6"/>',
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     /* The circle and the stroke through it. Drawn once here and read by both
@@ -15829,6 +15998,33 @@
     return actor(k && k.owner ? k.owner : MANAGERS[0].id);
   }
 
+  /* ══ THE CALL STEPS BACK, IT DOES NOT CLOSE ═══════════════════════════
+     Below 720 layout px the call is the whole width (sales.css §THE CALL
+     PANEL), because 300px beside a 459px layout leaves the page 159 and every
+     line in it cut mid-word. That answers the call and asks a new question:
+     the page was then not reachable at all while one was up, and "open the
+     record, check the brief, read what was said last time" is the reason this
+     is a shell region rather than a modal in the first place.
+
+     So the narrow answer is a STATE, not a removal. Minimised, the call is a
+     strip under the masthead carrying the three things that are true right
+     now — that it is live, how long it has been, and who — plus End, which is
+     the one control here whose absence would cost you something. The page is
+     underneath it, whole, and the strip is the way back.
+
+     VIEW STATE, SO IT IS NOT IN DB.call. A minimised call is not a different
+     call: the model is what is happening on the line, and this is where you
+     are standing. It is false whenever a call begins or ends, so a call never
+     opens into a strip nobody asked for.
+
+     NO paint HERE. Every caller of this already repaints on its own line, and
+     a paint inside would double every one of them. */
+  let CALL_MIN = false;
+  function callMin(on) {
+    CALL_MIN = !!on;
+    document.body.classList.toggle('is-call-min', CALL_MIN);
+  }
+
   function startCall(id, sess) {
     const c = DB.byCon[id];
     if (!c) return;
@@ -15842,6 +16038,7 @@
       auto: false, sess: sess || (DB.call && DB.call.sess) || null,
     };
     document.body.classList.add('is-calling');
+    callMin(false);
     paintCall();
     /* The brief goes up as the phone is about to call, not after. It is a
        stored turn, so every toast and repaint for the rest of the run leaves
@@ -15961,6 +16158,7 @@
     };
     DB.call = null;
     document.body.classList.remove('is-calling');
+    callMin(false);
     paintCall();
     callLogPropose();
   }
@@ -16160,6 +16358,7 @@
     clearCallTimers();
     DB.call = null;
     document.body.classList.remove('is-calling');
+    callMin(false);
     paintCall();
   }
 
@@ -16319,7 +16518,32 @@
             'Start call</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
             (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
-            (dialing ? 'Stop' : 'End') + '</button>') +
+            /* THE WORD IS IN A SPAN SO A WIDTH CAN TAKE IT. On a phone this
+               control is the handset alone — sales.css decides where — and a
+               bare text node beside the icon is the one thing in this button
+               that cannot be addressed. The button keeps its aria-label either
+               way, so what a screen reader hears does not depend on how wide
+               the panel is. */
+            '<span class="call-end-say">' + (dialing ? 'Stop' : 'End') + '</span>' +
+            '</button>') +
+
+        /* ══ AND THE WAY BACK TO THE PAGE, AFTER END ════════════════════
+           In this row rather than up in the head, and last in it. The head is
+           where the call says what is true — that it is live, and for how
+           long — and a control among those three readings is a control in the
+           one place on this panel nobody is looking for one. Everything you
+           can PRESS during a call is this row; the chevron is one of those
+           things, so it is here, on the far side of End, where the hand
+           already is in both of the panel's forms.
+
+           Painted only where the call owns the whole width, which is the only
+           place stepping back from it means anything — beside the page there
+           is nothing to step back TO. sales.css decides that, not this. */
+        '<button class="call-min" type="button" data-call-min ' +
+          'aria-expanded="' + (!CALL_MIN) + '" aria-controls="callPanel" aria-label="' +
+          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '" title="' +
+          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '">' +
+          chIcon(CALL_MIN ? 'chev-up' : 'chev-down') + '</button>' +
 
       '</div>';
   }
@@ -16642,11 +16866,32 @@
   ];
   const RING_GAP = 7.0;
 
-  /* Quiet on purpose. A room sound, not an alert in headphones — the one
-     thing worse than a phone you cannot hear is one you can hear three
-     desks away. Back up a little from where sixteen overlapping notes
-     needed it, because six with air between them do not accumulate. */
-  const RING_VOL = 0.052;
+  /* ══ THREE TIMES WHAT IT SHIPPED AT, AND STILL A ROOM SOUND ══════════
+     0.052 was set against sixteen overlapping notes and then kept when the
+     melody came down to six with air between them, which is the arithmetic
+     that made it too quiet: the accumulation it was backing away from had
+     stopped happening. Doubled to 0.104, then asked for half again on top of
+     that and given exactly that — 0.156, which is 3x the original and +9.5dB
+     on it.
+
+     AMPLITUDE, NOT PERCEIVED LOUDNESS, at each step. Twice as loud to the ear
+     is about +10dB and 3.2x the amplitude; somebody turning a volume up is
+     asking for the number, not the psychoacoustics. Said here because the two
+     readings diverge fast and the next person to raise this should know which
+     one the last two raises meant.
+
+     THE ONE SCALAR EVERY PEAK IS DERIVED FROM, so the balance between the
+     partials and between the notes is untouched: ringBurst multiplies this
+     by the voice's share and the note's, and both of those are ratios.
+
+     STILL NOT CLIPPING, measured rather than assumed, because this is the one
+     number here that can. The loudest instant is the downbeat, where D4 and
+     D3 sound together with their octaves — 0.85 + 0.102 + 0.34 + 0.041 = 1.33
+     of this constant. Summed output through an analyser on a real ring: 0.176
+     peak against a ceiling of 1, which is 15dB of headroom. There is room to
+     go louder again if it is still not enough; there is not room to keep
+     doing it for ever, and past about 0.6 this comment stops being true. */
+  const RING_VOL = 0.156;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
@@ -16805,6 +17050,7 @@
       asking: false, notice: false, auto: false, sess: null,
     };
     document.body.classList.add('is-calling');
+    callMin(false);
     paintCall();
 
     CALL_TICK = setInterval(() => {
@@ -21371,10 +21617,9 @@
       const at = now.indexOf(id);
       if (at >= 0) { if (now.length > 1) now.splice(at, 1); } else now.push(id);
       DRAFT.assign = now;
-      paint();
-      /* The menu is a multiple choice, so it stays where it was. */
-      const m = byId('assignPick');
-      if (m) m.hidden = false;
+      /* In place. The menu is a multiple choice and stays where it was — the
+         same element, not a new one wearing its id. See assignSync. */
+      assignSync();
       return;
     }
     if (t.closest('[data-discard]')) {
@@ -21589,6 +21834,7 @@
       return;
     }
 
+    if (t.closest('[data-call-min]')) { callMin(!CALL_MIN); paintCall(); return; }
     if (t.closest('[data-callgo]')) { callGo(); return; }
     if (t.closest('[data-call-end]')) { endCall(); return; }
     /* The two presses on a ringing phone. Beside the controls that end a
@@ -21967,6 +22213,15 @@
     const railToggle = t.closest('#railToggle');
     if (railToggle) { railOpen(!byId('appRail').classList.contains('is-open')); return; }
     if (t.closest('#railScrim')) { railOpen(false); return; }
+    if (t.closest('#ovChatsToggle')) {
+      ovChatsOpen(!byId('overlayChats').classList.contains('is-open'));
+      return;
+    }
+    if (t.closest('#ovChatsScrim')) { ovChatsOpen(false); return; }
+    /* Every control in the drawer is a way out of it, and a drawer still
+       standing over the thread it just switched to is one you have to dismiss
+       to read what you asked for — go()'s own words about the rail. */
+    if (t.closest('#overlayChats') && t.closest('button, a[href]')) { ovChatsOpen(false); }
 
     const closeC = t.closest('[data-overlay-close]');
     /* Through `closeCanvas`, not straight at the class. This branch removed
@@ -22316,6 +22571,9 @@
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (byId('appRail').classList.contains('is-open')) { railOpen(false); return; }
+    /* Innermost first: a drawer standing over the canvas is closer to hand
+       than the canvas, so Escape takes it before the surface under it. */
+    if (byId('overlayChats').classList.contains('is-open')) { ovChatsOpen(false); return; }
     if (byId('aimyOverlay').classList.contains('open')) { closeCanvas(); return; }
     /* The notifications panel closes itself on Escape — that is QA's code. */
     if (DB.call) { skipCall(); }
@@ -22497,6 +22755,13 @@
   });
 
   window.addEventListener('resize', () => placeSwitchBar(null));
+  /* AND ON THE VIEWPORT CHANGES `resize` DOES NOT ANNOUNCE. Changing the
+     browser's zoom level moves the viewport with no resize event at all —
+     assets/aimy-viewport.js measured it and publishes `aimy:viewport` for
+     precisely this, so a consumer does not have to grow its own poll. It
+     matters here because the strip wraps: five entries are one row at a 776px
+     layout and two at 459, and the bar's y is which row the lit one is on. */
+  window.addEventListener('aimy:viewport', () => placeSwitchBar(null));
   /* The webfont lands after the first paint and the buttons narrow under
      the bar; it is placed again when the fonts are in. */
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSwitchBar(null));
@@ -22514,8 +22779,65 @@
 
   /* ══ 9. BOOT ════════════════════════════════════════════════════════════ */
 
+  /* ══ THE PRODUCT MENU IS THE STRIP, READ BACK ═════════════════════
+     Below 720 layout px the ecosystem strip comes off the masthead and hangs
+     from the mark as a menu (sales.css §THE MASTHEAD BELOW 720). What is in it
+     is not typed out again here: the tabs are shared chrome that the three
+     products carry identically, and a second list of them in this file is the
+     list that drifts the first time one is added. The strip in the markup is
+     the source and this is a second view of it — an <a> stays an <a> and keeps
+     its href, a placeholder <button> stays inert rather than becoming a link
+     to nowhere, and the tab marked active becomes the item marked `is-on`.
+
+     Once, at boot: the strip is static markup and nothing repaints it. */
+  function fillProdMenu() {
+    const menu = byId('prodMenu');
+    const strip = document.querySelector('.topnav-tabs-inner');
+    if (!menu || !strip) return;
+    /* NO CAPTION. A menu hanging off the AiMY mark, listing the AiMY
+       products, does not also need a line saying Products — the same
+       argument .overlay-badge lost, and the same one the rail's scope block
+       lost: a label for what the next line already is. */
+    menu.innerHTML =
+      Array.prototype.map.call(strip.children, (tab) => {
+        const on = tab.classList.contains('active');
+        const href = tab.getAttribute('href');
+        /* THE TAB'S OWN MARK COMES WITH IT. The strip draws the product you
+           are on as the AiMY glyph and its name in accent, and this list is a
+           second view of that strip — so it carries whatever mark the tab
+           carries rather than deciding for itself which entries have one. The
+           size is CSS's, next to .prod-anchor. */
+        const mark = tab.querySelector('svg');
+        const name = (mark ? mark.outerHTML : '') +
+          '<span class="b-menu-line"><span class="b-menu-name">' +
+          esc(tab.textContent.trim()) + '</span></span>';
+        /* THE ONE YOU ARE ON IS MARKED AND IS NOT A LINK. It came out of the
+           branch below as a plain disabled item with nothing to say it was
+           the current product, because Sales is a <button> in the strip — it
+           has no href for the same reason it needs no link. Marked first, so
+           being here is why it does not press rather than an omission.
+           `is-on` is the menu's own word for it, everywhere else in this
+           build.
+
+           The rest with nowhere to go say so by not being pressable. A menu
+           item that answers a press with nothing teaches you to stop pressing,
+           which is .call-tools' own argument about Record in `ready`. */
+        if (on) {
+          return '<button class="b-menu-item is-on" type="button" role="menuitem" ' +
+            'aria-current="page" disabled>' + name + '</button>';
+        }
+        if (!href) {
+          return '<button class="b-menu-item" type="button" role="menuitem" disabled>' +
+            name + '</button>';
+        }
+        return '<a class="b-menu-item" role="menuitem" href="' + esc(href) + '">' +
+          name + '</a>';
+      }).join('');
+  }
+
   loadUI();
   load();
+  fillProdMenu();
   parse();
   paint();
   /* ══ AND A LINK CAN LAND IN ONE ═══════════════════════════════════════
