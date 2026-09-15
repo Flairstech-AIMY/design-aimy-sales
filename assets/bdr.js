@@ -1999,7 +1999,13 @@
        this come from" had two possible answers and needed three. */
     {
       const HIST_N = 22;
-      const QA_N = 8;
+      /* Seven in ten of these decide, so eight deals left two still live —
+         and a desk with two live deals has two rows in a diary, nothing in
+         the fortnight behind it for `unrecorded` to have missed, and a
+         briefing with almost nothing to be about. Twelve leaves three or
+         four running, which is what a product line with two campaigns
+         looks like and what the Today tab needs to have a day. */
+      const QA_N = 12;
       const of = (arr, h) => arr[Math.abs(h) % arr.length];
       /* Finished campaigns first: old business belongs to a campaign that
          has ended. Never one the caller is crewed on. */
@@ -2065,6 +2071,11 @@
       };
       camp.push(qaHome);
 
+      /* How many of the line's deals have been given today. Counted rather
+         than picked by index: whether a deal is still live is decided by its
+         own hash several steps down, so "the first two" by index was two
+         deals that might already have closed — and one of them had. */
+      let onToday = 0;
       for (let i = 0; i < HIST_N + QA_N; i++) {
         const h = Math.abs(hash('hist:' + i));
         const k = i < HIST_N ? of(homes, h) : qaHome;
@@ -2174,6 +2185,33 @@
         if (parked) {
           const back = new Date(parked.getTime() + (42 + ((h >> 13) % 70)) * DAY_MS);
           c.next = { what: 'Pick it back up', due: back.toISOString().slice(0, 10) };
+        }
+
+        /* ══ AND THE LINE NEEDS A DAY, NOT ONLY A BOOK ═══════════════════
+           These deals arrived with a past and no future: the block above
+           writes `next` only for a deal somebody parked, so the product
+           desk opened on a briefing with an empty diary under it and a
+           Today tab that had nothing to be about. The twenty-two before
+           them do not need this — they come with the corpus's own diary
+           rule — which is why it is bounded to `i >= HIST_N` and cannot
+           move a single one of them.
+
+           A deal that has decided owes nothing, and a parked one already
+           has its date, so only the live ones get one. Two land TODAY,
+           because a desk you open to look at a day has to have a day; the
+           rest spread a fortnight either side, which is what puts rows in
+           the diary's month and gives `unrecorded` something to have
+           missed. Off `hash`, like every other fact in this block. */
+        if (i >= HIST_N && !ends && !c.next) {
+          const hd = Math.abs(hash('qaday:' + i));
+          const kind = hd % 3;
+          const today = onToday < 3;
+          if (today) onToday += 1;
+          c.next = {
+            what: kind === 0 ? 'Demo for them'
+              : kind === 1 ? 'Meeting with them' : 'Dinner with them',
+            due: today ? dayAdd(0) : dayAdd(((hd >> 5) % 19) - 5),
+          };
         }
       }
 
