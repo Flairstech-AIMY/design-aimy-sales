@@ -12321,14 +12321,13 @@
       '</div>';
     }).join('');
     return '<div class="b-funnel">' +
-        /* The empty cell is the BAR'S column in the header, and it is named so
-           that hiding the bar hides its heading with it. Unclassed, the two
-           went out of step the moment the bar dropped at a narrow width: the
-           rows lost a cell, the header kept it, and `people` sat over the bars
-           while `of the one above` sat over the counts. It is not `.b-fn-bar`
-           because that cell draws a pill, and an empty pill in a header row is
-           a figure with no figure in it. */
-        '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span class="b-fn-barh"></span>' +
+        /* The empty cell is the BAR'S column in the header, and it stays
+           empty: a bar's heading is the row it measures. Unclassed on purpose
+           — it briefly carried one so a narrow-width rule could drop it
+           alongside the bar, and bdr.css §43 records why there is no such rule
+           any more. A class nothing styles is a class the next reader has to
+           go looking for. */
+        '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span></span>' +
           '<span class="b-fn-n">people</span><span class="b-fn-conv">of the one above</span></div>' +
         rows + '</div>' +
       /* The campaign page holds this back and reads it out in the block

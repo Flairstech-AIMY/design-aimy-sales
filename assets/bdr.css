@@ -1949,17 +1949,26 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    of the same row. Dropping the count or the conversion would cost a fact;
    this costs a picture of a fact. The label then takes what the bar was
    holding and every cell is one line again. */
-@media (max-width: 475.98px) { /* 560 layout px */
-  /* max-content, so the LABEL wins the contest for the last pixels and the
-     column caption gives way. At a 376px layout `minmax(0, 1fr)` left the
-     label 113 against the 117 it needs and wrapped `On the record here`,
-     while `of the one above` held 120 for a heading over two figures. Now the
-     heading takes the two lines and every row is one — which is the right way
-     round: a caption folding is what captions do, a row label folding in a
-     three-row table reads as the table having broken. */
-  .b-funnel { grid-template-columns: max-content auto auto; }
-  .b-fn-bar, .b-fn-barh { display: none; }
-}
+/* ══ AND THERE IS NO THIRD TIER, WHICH TOOK FOUR TO FIND OUT ══════════════
+   A pass through here dropped the bar below 560 and rebuilt the block three
+   columns wide, on the reasoning that the bar is the only cell saying nothing
+   the row does not also say in figures. It read well and it was the wrong
+   move: a component that runs out of room should change its form, not leave.
+
+   Three forms were built and looked at on a 459px layout, in both themes:
+   the bar as the row's own ground with the label over it, the bar as a rule
+   under the row, and the bar simply gone. The ground form is invisible in
+   LIGHT — --d300 and --ink-muted at the alpha that reads on a dark card are
+   nothing against a near-white one, which is the flattener every colour
+   change here has to be checked for. The rule form folded `of the one above`
+   into four lines. And then the arithmetic said the question was wrong:
+   `max-content minmax(40px, 1fr) auto auto` is 117 + 65 + 46 + 120 at a 459px
+   layout and 117 + 40 + 46 + 63 at 376, so the bar FITS at every width this
+   build renders — 65 real pixels of it, filled to its share, which is a bar.
+
+   The tier above is the whole answer. This block is the note that a third one
+   was tried and is not needed, so the next pass does not spend the four
+   rounds again. */
 
 /* ══ 45. NO RULES BETWEEN SECTIONS ═════════════════════════════════════════
    The shell separates one block from the next with a hairline, and once a
