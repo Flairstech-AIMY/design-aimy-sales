@@ -15891,7 +15891,12 @@
         '<p class="call-name">' + esc(c.name) + '</p>' +
         '<p class="call-sub">' + esc(c.title) +
           (a ? ' · ' + esc(a.name) : '') + '</p>' +
-        (c.phone ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
+        /* A stranger IS their number, so the name line is already the
+           number and this printed it again two rows down. Guarded on the
+           values rather than on the direction: any record whose name is its
+           own phone number has the same problem. */
+        (c.phone && c.phone !== c.name
+          ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
         /* ══ A WORKED EXAMPLE HAS TO SAY THAT IT IS ONE ════════════════════
            Nothing here dials. The transcript grows a line at a time from a
            script chosen by the person's own hidden `fate`, and it grows at
@@ -16285,13 +16290,42 @@
     }, 1000);
     CALL_LINE = setInterval(growTranscript, LINE_MS);
 
-    /* The brief, for somebody we hold. There is nothing to brief on a
-       stranger, and an empty brief is worse than none. */
+    /* ══ BOTH DOORS OPEN THE CANVAS, AND THEY DID NOT ══════════════════
+       A known caller gets the brief, which opens the canvas on its way past.
+       A stranger got nothing, on the argument that there is nothing to brief
+       and an empty brief is worse than none — and that was half right. There
+       is nothing to RECALL about somebody we do not hold. There is still
+       something to say, and it is the most useful sentence on the surface:
+       nobody is on this number, so the identity is not going to arrive from
+       the record and has to come out of the conversation.
+
+       Answering opened a call rail beside a closed canvas, and the question
+       that flow exists to ask did not turn up until the call was over. */
     if (c) callPrep(c);
+    else strangerPrep(r.phone);
 
     r.state = 'live';
     paintRing();
     RING_GONE = setTimeout(ringRetire, RING_HANDOFF_MS);
+  }
+
+  /* Three lines, and the same shape the known caller's brief takes so the
+     two read as one surface with a fact missing rather than as two surfaces.
+     "What to get" is the same caption, because it is the same question: on a
+     lead it is a function of the rung, and on a stranger there is no rung, so
+     it is the thing every rung starts from. */
+  function strangerPrep(phone) {
+    const body = '<div class="b-prep">' +
+      '<p class="b-prep-id">Not in the book · ' + esc(phone) + '</p>' +
+      '<blockquote class="b-open">' +
+        '<span class="b-open-cap">What to get</span>' +
+        '<p class="b-open-say">Their name and who they work for. I will read the ' +
+          'call back when you hang up and offer to open an account on it.</p>' +
+      '</blockquote>' +
+    '</div>';
+    openCanvas();
+    say('aimy', answerBlock('While you have them on the line', body,
+      'nothing on the record'));
   }
 
   /* ══ DECLINE, AND MISSED ════════════════════════════════════════════════
@@ -19714,6 +19748,18 @@
     else if (who.title) said.push('they run ' + who.title);
     else if (who.co) said.push('they mentioned ' + who.co);
 
+    /* ══ AND IT HAS TO OPEN THE CANVAS, BECAUSE NOTHING ELSE DID ══════
+       Every other read-back is written into a thread that is already on
+       screen: `callPrep` opens the canvas when the call starts, so
+       `callLogPropose` can push a turn and trust somebody is looking at it.
+
+       This path never called `callPrep`. There is nothing to brief on a
+       stranger and an empty brief is worse than none, so `answerInbound`
+       skips it — and the consequence was that the one question this whole
+       flow exists to ask was asked into a closed surface. The call ended,
+       the rail went away, and the screen went back to the board with no
+       sign anything had happened. */
+    openCanvas();
     lbuildSpend();
     TURNS.push({
       who: 'aimy',
