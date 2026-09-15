@@ -715,6 +715,29 @@ button {
   --warn-text:   var(--warn);
   --err-text:    var(--err);
   --accent-text: #a06ff7;   /* 5.04:1 — an action, not a status */
+
+  /* ══ THE TWO VERBS A TELEPHONE HAS ════════════════════════════════
+     Answer and hang up, and they are NOT the status family. `--ok` is a
+     mint at 157° that says a thing IS fine; this is a button somebody
+     presses, and every phone anybody has held for twenty years makes it
+     green. Jakob's Law, which this build already cites for the handset
+     glyphs themselves.
+
+     Declared here rather than in aimy-ds.css because a product may name
+     what it needs and may not re-theme the family — same rule the
+     `--accent` revert above states. The library has no green like this
+     and that is a gap to raise there, not a literal to edit in.
+
+     FILLS, NEVER INK. Both are pinned by contrast against the white glyph
+     that sits on them, which is what rules out iOS green #34C759 at
+     2.3:1. Measured in the browser, both themes: 3.05:1 and 4.27:1
+     white-on-fill, and 5.15:1 / 3.67:1 against the dark card, 3.05:1 /
+     4.27:1 against the white one — so one value serves both themes and
+     neither needs a light twin. Set either as small text and it fails,
+     the same way `--ok` and `--err` do; that is what `--ok-text` and
+     `--err-text` above are for. */
+  --answer-fill: #0fa968;
+  --hangup-fill: #e5372b;
 }
 :root[data-theme="light"] {
   /* The three status inks have no light entry any more. They alias --ok /
@@ -5591,9 +5614,14 @@ body.is-calling { --fb-reserve: var(--call-width); }
    doing something to somebody else, so it takes the same red as the timer's
    live dot and the End button rather than the surface's own accent. */
 .call-tool.is-rec {
-  color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); background: var(--err-bg);
+  color: var(--hangup-fill);
+  border-color: color-mix(in srgb, var(--hangup-fill) 40%, transparent);
+  background: color-mix(in srgb, var(--hangup-fill) 16%, transparent);
 }
-.call-tool.is-rec:hover { background: var(--err-bg); color: var(--err); }
+.call-tool.is-rec:hover {
+  background: color-mix(in srgb, var(--hangup-fill) 16%, transparent);
+  color: var(--hangup-fill);
+}
 .call-tool.is-rec svg { fill: currentColor; }
 
 /* ── The transcript ── */
@@ -5655,8 +5683,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
   flex: 1 1 100%; order: 1;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 8px 12px;
-  border-radius: var(--r-md); border: 1px solid var(--err-strong);
-  background: var(--err-strong); color: #fff;
+  border-radius: var(--r-md); border: 1px solid var(--hangup-fill);
+  background: var(--hangup-fill); color: #fff;
   font-size: var(--fs-xs); font-weight: var(--fw-bold); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast);
 }
@@ -5666,8 +5694,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the hover and the resting state were the same colour and the one control
    that hangs up on a person had no feedback at all. */
 .call-end:hover {
-  background: color-mix(in srgb, var(--err-strong) 88%, #000);
-  border-color: color-mix(in srgb, var(--err-strong) 88%, #000);
+  background: color-mix(in srgb, var(--hangup-fill) 88%, #000);
+  border-color: color-mix(in srgb, var(--hangup-fill) 88%, #000);
 }
 .call-end:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
@@ -5680,9 +5708,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
 
    Brand rather than error, because opening a line is not the irreversible
    half. Ending one is. */
-.call-go, .call-go:hover { border-color: var(--brand); }
-.call-go { background: var(--brand); }
-.call-go:hover { background: color-mix(in srgb, var(--brand) 88%, #fff); }
+.call-go, .call-go:hover { border-color: var(--answer-fill); }
+.call-go { background: var(--answer-fill); }
+/* Darkens rather than lightens. The green sits close to its contrast
+   floor against the white glyph, so a lighter hover pushes it under. */
+.call-go:hover { background: color-mix(in srgb, var(--answer-fill) 88%, #000); }
 
 /* ── What the rest of the shell does while a call is up ──
    The canvas clears the panel rather than covering it: the prep thread and
