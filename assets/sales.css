@@ -5759,6 +5759,45 @@ body.is-calling .aimy-overlay { right: var(--call-width); }
    a control whose every use during a call is a mistake is absent. */
 body.is-calling .overlay-chats { display: none; }
 
+/* ══ AND BELOW 720 LAYOUT PX THE CALL IS THE WHOLE WIDTH ════════════════
+
+   `.app-call` is 300px and `flex-shrink: 0`, so what the page column gets is
+   whatever is left — and on a phone that is nothing. Measured at a 459px
+   layout (a 390px phone at the 0.85 floor) with a call up: the main column was
+   159 layout px wide, every line in it cut mid-word, and the float bar's own
+   clamp — correct arithmetic on a false premise — resolved --fb-w to 111px, so
+   the composer was a pill with three icons and no room to type in. The call's
+   own Start control and that composer then overlapped, which is the one
+   collision this panel's rules exist to prevent.
+
+   720 IS WHERE THE COLUMN STOPS BEING A COLUMN, and it is already this file's
+   word for that. What the page is FOR beside a live call is reading — the
+   record, the brief, what was said last time — and reading wants 45 to 75
+   characters, which at this body size is about 420px. 420 + 300 + the gutters
+   is 720, and at 719 the column would be under its own measure. So above this
+   they sit side by side, and below it the call takes the surface.
+
+   THE PAGE IS HIDDEN, NOT SQUEEZED. A zero-width flex sibling still scrolls,
+   still takes focus and still answers the keyboard, so leaving it in place
+   trades a visible defect for an invisible one. `display: none` is also what
+   .overlay-chats above gets, and for the same reason: a surface whose every
+   use during a call is a mistake is absent rather than disabled. */
+@media (max-width: 611.98px) { /* 720 layout px */
+  :root { --call-width: 100%; }
+  body.is-calling .app-main { display: none; }
+  .app-call { border-left: 0; }
+  /* The reserve exists to keep the composer off a panel parked on the right.
+     There is no right-hand panel here — the call IS the surface — so the
+     reserve would clamp --fb-w to nothing. */
+  body.is-calling { --fb-reserve: 0px; }
+  /* AND THE COMPOSER GOES WITH THE COLUMN IT BELONGED TO. `End` is pinned to
+     the bottom of this panel by `.call-tools { margin-top: auto }`, and a
+     fixed bar at `bottom: 20px` lands on it — the one control here whose
+     mispress costs you the call, under a bar you did not ask for. */
+  body.is-calling .aimy-float-wrap { display: none; }
+  body.is-calling .aimy-overlay { right: 0; }
+}
+
 /* The brief AiMY writes before the call. */
 .s-brief-call { display: flex; flex-direction: column; gap: 8px; }
 .s-callp { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
