@@ -10603,8 +10603,18 @@
   const pipeLocalOf = (i) => Math.max(0, Math.min(PIPE.elapsed - PIPE.starts[i], PIPE.stages[i].duration));
   const pipeProgressOf = (i) => Math.max(0, Math.min(1, pipeLocalOf(i) / PIPE.stages[i].duration));
 
+  /* The glow travels in pixels, so it needs the track's height. Read here,
+     which is called at mount and whenever the viewport changes — and never
+     from pipePaint, which runs on the frame clock. */
+  function pipeMeasure() {
+    if (!PIPE) return;
+    const t = document.querySelector('.pipe-rib-track');
+    PIPE.trackH = t ? t.getBoundingClientRect().height : 0;
+  }
+
   function pipeTick(now) {
     if (!PIPE || S.build !== 'run' || !byId('pipeCard')) { if (PIPE) PIPE.raf = null; return; }
+    if (!PIPE.trackH) pipeMeasure();
     if (PIPE.t0 === null) PIPE.t0 = now;
     PIPE.elapsed = Math.min((now - PIPE.t0) / 1000, PIPE.total);
     pipePaint();
@@ -10619,11 +10629,19 @@
     const active = PIPE.stages[ai];
     const activeDone = pipeStateOf(ai) === 'done';
     const local = pipeLocalOf(ai);
-    /* No layout read here any more. The rail's travelling dot had to be
-       placed against a measured connector width on every frame; a column has
-       nothing whose position depends on how wide it is. */
+    /* ══ TRANSFORM AND OPACITY, AND NOTHING ELSE ════════════════════
+       This runs sixty times a second. Scaling a full-height bar and
+       translating a glow is compositor work; animating a height or a top is
+       layout and paint on every one of those frames. PIPE.trackH is read at
+       mount and on resize — never here, because a getBoundingClientRect
+       between two style writes is a forced synchronous reflow. */
     const fill = byId('pipeFill');
-    if (fill) { fill.style.clipPath = 'inset(0 ' + (100 - PIPE.elapsed / PIPE.total * 100) + '% 0 0 round 99px)'; fill.classList.toggle('done', finished); }
+    if (fill) fill.style.transform = 'scaleY(' + (PIPE.elapsed / PIPE.total) + ')';
+    const rhead = byId('pipeHead');
+    if (rhead) {
+      rhead.style.transform = 'translateY(' + (PIPE.elapsed / PIPE.total * (PIPE.trackH || 0)) + 'px)';
+      rhead.style.opacity = finished ? '0' : '1';
+    }
     const st = byId('pipeStatus');
     if (st) {
       swapText(st, finished ? 'Found · ' + commas(DRAFT.run.total) : 'Running · ' + active.label);
@@ -10632,47 +10650,23 @@
     const dot = byId('pipeDot');
     if (dot) dot.classList.toggle('done', finished);
 
+    /* A CLASS, NOT A REWRITE. Two classes decide everything a step looks
+       like, and both the time and the sentence it ends on are already in the
+       markup waiting at opacity 0 — so a step finishing is one class toggle
+       and the rest is CSS transitions the compositor runs. Touched only when
+       the state actually changes; this loop is on the frame clock. */
     PIPE.stages.forEach((x, i) => {
       const state = pipeStateOf(i);
-      const row = byId('pipeRow-' + x.id);
-      if (row) {
-        row.className = 'pipe-row' + (state === 'running' ? ' live' : '');
-        /* The spine fills as the step it leads AWAY from finishes, so a solid
-           line between two marks is the claim that the first one is done. */
-        const sp = byId('pipeSpine-' + x.id);
-        if (sp) sp.classList.toggle('done', state === 'done');
-        /* THE GLYPH STAYS; THE RING AND THE TICK COME AND GO. Rewritten only
-           when the state actually changes -- this runs every frame, and
-           reassigning innerHTML at 60Hz would restart the ring's rotation and
-           redraw the tick on every one of them. */
-        const mark = byId('pipeMark-' + x.id);
-        const want = state === 'done' ? 'done' : state === 'running' ? 'live' : 'idle';
-        if (mark && mark.getAttribute('data-state') !== want) {
-          mark.setAttribute('data-state', want);
-          mark.className = 'pipe-mark' + (want === 'idle' ? '' : ' ' + want);
-          mark.innerHTML = pipeIcon(x.icon) +
-            (want === 'live'
-              ? '<svg class="pipe-ring pipe-spin" viewBox="0 0 38 38" width="38" height="38" aria-hidden="true">' +
-                '<circle cx="19" cy="19" r="18" stroke-dasharray="26 87"/></svg>'
-              : '') +
-            (want === 'done'
-              ? '<span class="pipe-check pipe-pop">' + pipeCheck(9) + '</span>'
-              : '');
-        }
-        const rl = row.querySelector('.pipe-row-label');
-        if (rl) rl.classList.toggle('pending', state === 'pending');
-        const rt = row.querySelector('.pipe-row-time');
-        if (rt) { rt.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? '· · ·' : ''; rt.classList.toggle('done', state === 'done'); }
-        /* WHAT THE STEP FOUND, ONCE, WHEN IT IS DONE. The typed log said it
-           four lines at a time and then scrolled it away; the number that
-           matters is the one the step ends on, and it belongs on the step. */
-        const rs = row.querySelector('.pipe-row-sub');
-        if (rs) swapText(rs, state === 'done' ? x.logs[x.logs.length - 1].text.replace(/^✓\s*/, '') : '');
+      const step = byId('pipeStep-' + x.id);
+      if (step && step.getAttribute('data-state') !== state) {
+        step.setAttribute('data-state', state);
+        step.classList.toggle('is-live', state === 'running');
+        step.classList.toggle('is-done', state === 'done');
       }
     });
 
     const el = byId('pipeElapsed');
-    if (el) el.textContent = pipeFmt(PIPE.elapsed) + ' / ' + pipeFmt(PIPE.total);
+    if (el) el.textContent = pipeFmt(PIPE.elapsed);
     /* ══ A LOADING STATE IS NOT A DESTINATION ══════════════════════════════
        It finished and then waited to be told to show what it had found, with
        "Run again with ZoomInfo" beside the way out — two decisions on a
@@ -10716,27 +10710,27 @@
               '<span class="pipe-live-dot" id="pipeDot" aria-hidden="true"></span>' +
             '</div>' +
           '</div>' +
-          '<div class="pipe-track"><div class="pipe-fill" id="pipeFill" style="clip-path:inset(0 100% 0 0 round 99px)"></div></div>' +
         '</header>' +
 
-        /* ONE SECTION. The rail that stood here drew these same four stages
-           as 52px tiles with their own labels and their own clocks, and it was
-           the only thing in the card that could not fit a narrow one. Its tile
-           is the row's marker now; nothing it said has gone. */
-        '<section class="pipe-panel pipe-rows" aria-label="Steps">' +
+        /* THE RIBBON. One track for the whole run, and the vertical room a
+           step gets is its duration — `flex-grow` is the number, written
+           inline because it is data and not a design constant. */
+        '<section class="pipe-rib" aria-label="Steps">' +
+          '<div class="pipe-rib-track"><div class="pipe-rib-fill" id="pipeFill"></div></div>' +
+          '<div class="pipe-rib-head" id="pipeHead"></div>' +
           PIPE.stages.map((x) =>
-            '<div class="pipe-row" id="pipeRow-' + esc(x.id) + '">' +
-              '<span class="pipe-markcol">' +
-                '<span class="pipe-mark" id="pipeMark-' + esc(x.id) + '" data-state="idle">' +
-                  pipeIcon(x.icon) +
+            '<div class="pipe-step" id="pipeStep-' + esc(x.id) + '" ' +
+              'style="flex-grow:' + x.duration + '">' +
+              '<span class="pipe-pin"></span>' +
+              '<span class="pipe-step-body">' +
+                '<span class="pipe-step-row">' +
+                  '<span class="pipe-step-label">' + esc(x.label) + '</span>' +
+                  '<span class="pipe-step-time">' + pipeFmt(x.duration) + '</span>' +
                 '</span>' +
-                '<span class="pipe-spine" id="pipeSpine-' + esc(x.id) + '"></span>' +
+                '<span class="pipe-step-said">' +
+                  esc(x.logs[x.logs.length - 1].text.replace(/^\u2713\s*/, '')) +
+                '</span>' +
               '</span>' +
-              '<span class="pipe-row-text">' +
-                '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
-                '<span class="pipe-row-sub b-swap"></span>' +
-              '</span>' +
-              '<span class="pipe-row-time"></span>' +
             '</div>').join('') +
         '</section>' +
 
@@ -10748,8 +10742,14 @@
            finished, and never again, so it read `Read the criteria…` for the
            whole run. The fix for a stale second copy of a fact is not to
            refresh it. */
+        /* ══ HOW LONG IT HAS TAKEN, NOT HOW LONG IT WILL ═══════════════
+           `0.0s / 7.0s` promised a finish. The seven seconds is this fixture's
+           own scripted length and a real run answers to four suppliers over a
+           network — so the total was a number the product cannot know, printed
+           in the one place a reader would take it for a commitment. The clock
+           counts up and says nothing it cannot stand behind. */
         '<footer class="pipe-foot">' +
-          '<span class="pipe-elapsed" id="pipeElapsed">0.0s / ' + pipeFmt(PIPE.total) + '</span>' +
+          '<span class="pipe-elapsed" id="pipeElapsed">0.0s</span>' +
         '</footer>' +
       '</div></div>' +
       '<p class="b-vfoot s-block-wide">Nothing is saved until you say so. What comes back is shown first, ' +

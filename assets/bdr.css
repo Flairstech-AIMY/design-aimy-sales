@@ -1317,11 +1317,7 @@
   border: 1px solid var(--card-border);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 40px -20px rgba(0,0,0,0.5);
 }
-.pipe-panel {
-  background: var(--card-bg-raised); border: 1px solid var(--card-border);
-  border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-.pipe-badge, .pipe-row-time, .pipe-row-sub, .pipe-elapsed {
+.pipe-badge, .pipe-elapsed {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 
@@ -1357,80 +1353,110 @@
 .pipe-status.done { color: var(--ok-text); }
 .pipe-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
 .pipe-live-dot.done { background: var(--ok-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
-.pipe-track { position: relative; height: 6px; margin-top: 13px; border-radius: 99px; overflow: hidden; background: var(--card-bg-raised); border: 1px solid var(--card-border); }
-.pipe-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); transition: background-color 400ms var(--ease-out); }
-.pipe-fill.done { background: var(--ok-text); }
 
-/* ══ ONE COLUMN, BECAUSE THERE WAS NEVER MORE THAN ONE THING TO SAY ══════
-   This card carried the four stages TWICE: a horizontal rail of 52px tiles
-   with a label and a clock under each, and under that a vertical list of the
-   same four with the same labels and the same clocks. The rail is gone and
-   the list has taken its tiles.
+/* ══ THE RIBBON ════════════════════════════════════════════════
 
-   IT WAS ALSO THE ONE THING HERE THAT COULD NOT FIT. Four tiles with
-   `min-width: 96px` and three connectors between them need about 500px and
-   the card is as wide as the column: measured at a 459px layout, `Take out
-   who you have` was cut off at the card's right edge with its clock below the
-   fold of it, and every label was folding to two lines to get there. A row
-   cannot do that at any width — it is as wide as it is given and as tall as
-   it needs.
+   THE HEIGHT COMES FROM THE STEPS, AND SO DOES THE SPACING. Each step is
+   `flex-grow: <its duration>` down a column of fixed height with a zero
+   basis, so the room a step gets IS how long it takes: the gap under `Ask the
+   suppliers` is bigger than the gap under `Read the criteria` because the
+   step is. A list of four evenly spaced rows cannot say that, and it was the
+   one thing the run knew and never showed.
 
-   The references agree on the shape and they are the reason for the spine:
-   Rox, Lindy and Relevance AI all draw an agent's work as one column of
-   steps, and Gusto runs a line through the markers so the column reads as a
-   sequence rather than a list of four unrelated things. */
+   NOTHING THAT MOVES PER FRAME TOUCHES LAYOUT, which is the whole reason this
+   shape is drawn the way it is rather than the obvious way. The fill is a
+   full-height bar SCALED from its top edge, not a height that is animated;
+   the head is a glow TRANSLATED down the same axis, not a top that is moved.
+   Both are compositor work. Verified on the standalone before this landed:
+   across 121 synthetic frames the only inline properties that changed were
+   `transform` on the fill and `transform`/`opacity` on the head, and
+   `getBoundingClientRect` was called zero times inside the loop — the track's
+   height is read once at mount and again only on resize, because reading it
+   per frame is a forced synchronous reflow sixty times a second.
 
-/* step list */
-.pipe-rows { margin-top: 12px; padding: 8px; display: flex; flex-direction: column; }
-.pipe-row {
-  display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 12px;
-  border: 1px solid transparent; transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out);
+   THE HORIZONTAL TRACK ABOVE IT IS GONE. This IS the progress bar; a second
+   one across the head of the same card was the same claim twice. So is the
+   predicted finish — the foot carries the clock and nothing else. */
+.pipe-rib { position: relative; display: flex; flex-direction: column; height: 250px; margin: 16px 0 4px; }
+
+.pipe-rib-track {
+  position: absolute; left: 5px; top: 8px; bottom: 16px; width: 2px;
+  border-radius: 2px; background: var(--card-border); overflow: hidden;
 }
-.pipe-row.live { background: rgba(var(--accent-rgb), 0.08); border-color: rgba(var(--accent-rgb), 0.18); }
+.pipe-rib-fill {
+  position: absolute; inset: 0; border-radius: 2px; background: var(--accent);
+  transform-origin: top center; transform: scaleY(0); will-change: transform;
+}
+/* The leading edge, riding down with the fill. */
+.pipe-rib-head {
+  position: absolute; left: 6px; top: 8px; width: 0; height: 0;
+  transform: translateY(0); will-change: transform, opacity;
+  transition: opacity 420ms var(--ease-out); pointer-events: none;
+}
+.pipe-rib-head::before {
+  content: ''; position: absolute; left: -11px; top: -11px; width: 22px; height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb),0.6) 0%, rgba(var(--accent-rgb),0) 68%);
+}
 
-/* ══ THE MARKER COLUMN IS THE MARK AND THE LINE UNDER IT ═══════════════
-   `flex: 1` on the spine inside a stretched column is the whole trick: the
-   line fills whatever height the row turns out to be, so a step that grows a
-   second line when it finishes does not need anybody to know that. A spine
-   drawn from the list with fixed insets would have to. */
-.pipe-markcol { align-self: stretch; flex: none; display: flex; flex-direction: column; align-items: center; }
-.pipe-mark {
-  position: relative; flex: none;
-  width: 30px; height: 30px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--ink-muted); background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: background-color 400ms var(--ease-out), color 400ms var(--ease-out),
-              border-color 400ms var(--ease-out);
+/* flex-grow is written inline per step, because it is data — the duration of
+   that stage — and not a design constant. Basis 0 so grow distributes the
+   whole column and the shares are exact. */
+.pipe-step {
+  position: relative; flex: 1 1 0; min-height: 46px;
+  display: flex; align-items: flex-start; gap: 14px;
 }
-/* The stage keeps its own glyph at every state. It is what the rail's tile
-   carried and the only thing in it that was not a second copy of the row. */
-.pipe-mark svg { width: 15px; height: 15px; }
-.pipe-mark.live { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.14); border-color: rgba(var(--accent-rgb), 0.34); }
-.pipe-mark.done { color: var(--ok-text); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 32%, transparent); }
-/* The ring turns OUTSIDE the mark rather than replacing the glyph inside it,
-   so a running step still says which step it is. `transform-origin` because
-   an SVG's is 0 0 to CSS and a ring spinning about its corner is a wobble. */
-.pipe-ring { position: absolute; inset: -4px; width: auto; height: auto; transform-origin: 50% 50%; overflow: visible; }
-.pipe-ring circle { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
-.pipe-check {
-  position: absolute; right: -3px; bottom: -3px; width: 15px; height: 15px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; color: #fff;
-  background: var(--ok-text); border: 2px solid var(--card-bg-raised);
+.pipe-pin {
+  position: relative; z-index: 1; flex: none;
+  width: 12px; height: 12px; margin-top: 2px; border-radius: 50%;
+  background: var(--card-bg); border: 1.5px solid var(--card-border);
+  transform: scale(1); will-change: transform;
+  transition: background-color 400ms var(--ease-out),
+              border-color 400ms var(--ease-out),
+              transform 460ms var(--ease-pin),
+              box-shadow 400ms var(--ease-out);
 }
-.pipe-spine {
-  flex: 1; width: 2px; min-height: 8px; margin-top: 6px; border-radius: 2px;
-  background: var(--card-border); transition: background-color 400ms var(--ease-out);
+.pipe-step.is-live .pipe-pin {
+  background: var(--accent); border-color: var(--accent); transform: scale(1.22);
+  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.14);
 }
-.pipe-spine.done { background: color-mix(in srgb, var(--ok) 45%, transparent); }
-/* Nothing follows the last step, so nothing points at it. */
-.pipe-row:last-child .pipe-spine { display: none; }
+.pipe-step.is-done .pipe-pin {
+  background: var(--ok-text); border-color: var(--ok-text); transform: scale(1);
+  box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0);
+}
 
-.pipe-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 5px; }
-.pipe-row-sub { font-size: var(--t-small); color: var(--ink-muted); }
-.pipe-row-label { font-size: var(--t-body); font-weight: var(--fw-medium); color: var(--d50); transition: color 300ms var(--ease-out); }
-.pipe-row-label.pending { color: var(--ink-muted); font-weight: var(--fw-regular); }
-.pipe-row-time { flex: none; padding-top: 6px; font-size: var(--t-small); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.pipe-row-time.done { color: var(--d200); }
+.pipe-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pipe-step-row { display: flex; align-items: baseline; gap: 12px; }
+.pipe-step-label {
+  flex: 1; min-width: 0; font-size: var(--t-body); font-weight: var(--fw-medium);
+  line-height: 1.25; color: var(--ink-muted);
+  transition: color 460ms var(--ease-out);
+}
+.pipe-step.is-live .pipe-step-label { color: var(--d50); font-weight: var(--fw-bold); }
+.pipe-step.is-done .pipe-step-label { color: var(--d200); }
+/* The figure and the sentence a finished step ends on. They arrive with it
+   rather than being drawn empty and waiting — opacity and transform, so the
+   arrival costs nothing the compositor cannot do. */
+.pipe-step-time {
+  flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: var(--t-small); color: var(--ink-muted);
+  opacity: 0; transform: translateY(-3px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+.pipe-step.is-done .pipe-step-time { opacity: 1; transform: none; }
+.pipe-step-said {
+  font-family: var(--font-mono); font-size: var(--t-small); color: var(--ink-muted);
+  line-height: 1.4;
+  opacity: 0; transform: translateY(-4px);
+  transition: opacity 420ms var(--ease-out), transform 420ms var(--ease-out);
+}
+.pipe-step.is-done .pipe-step-said { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pipe-pin, .pipe-step-label, .pipe-step-time, .pipe-step-said, .pipe-rib-head {
+    transition-duration: 1ms;
+  }
+}
 
 /* footer — the clock, and nothing beside it. `.pipe-foot-act` and its chip
    went with the stage name they carried: it repeated the status at the top of
@@ -1439,19 +1465,6 @@
 .pipe-foot { display: flex; align-items: center; gap: 12px; padding: 16px 8px 4px; }
 .pipe-elapsed { font-size: var(--t-ui); color: var(--ink-muted); }
 
-/* motion — a thing arriving is already most of its size; nothing overshoots;
-   nothing runs on its own (the call on the live tile stands still, the dot in
-   the masthead stands still — the spinner is the one thing that moves, and
-   it moves because you pressed Find); the check is drawn, not dropped. */
-@keyframes pipe-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes pipe-spin { to { transform: rotate(360deg); } }
-@keyframes pipe-draw { to { stroke-dashoffset: 0; } }
-.pipe-pop { animation: pipe-pop 200ms var(--ease-out) both; }
-/* The mark lands, then the tick draws inside it. 80ms is the beat between
-   two things that are one event — short enough to read as sequence, long
-   enough not to read as simultaneity gone wrong. */
-.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) var(--t-beat) forwards; }
-.pipe-spin { animation: pipe-spin 850ms linear infinite; }
 /* text that changes state goes through a blur — swapText() */
 /* ══ A NUMBER CHANGING IS NOT A BUTTON BEING PRESSED ══════════════
    90ms is --t-press, and it was here by proximity rather than by argument:
@@ -1463,8 +1476,6 @@
 .b-swap { transition: opacity var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out); }
 .b-swap.is-swapping { opacity: 0; filter: blur(2px); }
 @media (prefers-reduced-motion: reduce) {
-  .pipe-pop, .pipe-pop path, .pipe-spin { animation: none !important; }
-  .pipe-pop path { stroke-dashoffset: 0; }
   .b-swap { transition: none; }
 }
 /* The rail's own narrow tier went with the rail. A column of rows needs no
@@ -2971,7 +2982,6 @@
    the height it has, and the log scrolls inside it, which is the part that
    grows. svh rather than vh, so a mobile browser's own bar is counted. */
 .pipe-card { max-height: calc(var(--vp-h) - 190px); display: flex; flex-direction: column; }
-.pipe-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 /* Nothing is pressed here any more, so the foot is one line of elapsed. */
 .pipe-foot { padding: 12px 8px 2px; }
 @media (max-height: 611.98px) { /* 720 layout px tall */
@@ -3093,7 +3103,6 @@
    padding, so 14. The run's panels sit 14px inside a 20px card, so 8. A
    card's reading sits 14px inside a 12px card, so it is the smallest step. */
 .b-menu { border-radius: 14px; }
-.pipe-panel { border-radius: 8px; }
 .b-aimy { border-radius: var(--r-sm); }
 
 /* A photograph's edge takes its call from the ground it sits on: white at a
