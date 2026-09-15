@@ -2002,10 +2002,11 @@
       /* Seven in ten of these decide, so eight deals left two still live —
          and a desk with two live deals has two rows in a diary, nothing in
          the fortnight behind it for `unrecorded` to have missed, and a
-         briefing with almost nothing to be about. Twelve leaves three or
-         four running, which is what a product line with two campaigns
-         looks like and what the Today tab needs to have a day. */
-      const QA_N = 12;
+         briefing with almost nothing to be about. Twenty leaves six or so
+         running, which is what a product line with two campaigns looks
+         like — enough for a day AND for a fortnight behind it, which is
+         where everything in "what wants you" comes from. */
+      const QA_N = 20;
       const of = (arr, h) => arr[Math.abs(h) % arr.length];
       /* Finished campaigns first: old business belongs to a campaign that
          has ended. Never one the caller is crewed on. */
@@ -2207,10 +2208,25 @@
           const kind = hd % 3;
           const today = onToday < 3;
           if (today) onToday += 1;
+          /* ══ A DATE HAS TO SIT AFTER THE LAST MEETING THAT WAS HELD ════
+             The ones that are not today land inside the month the diary
+             draws and the fortnight `unrecorded` looks back over — which is
+             what fills "what wants you", because every p1 in it is a
+             meeting that has been and gone with nothing written up.
+
+             But a next step cannot predate a phase already on the record,
+             or the deal says it is owed a demo it had a month after. `when`
+             is where the phase walk stopped, so anything past it is after
+             every phase written, and a date that would fall before it is
+             pushed to just after it instead. */
+          let due = new Date(TODAY.getTime() + ((((hd >> 5) % 30) - 17) * DAY_MS));
+          if (due.getTime() <= when.getTime()) {
+            due = new Date(when.getTime() + ((3 + (hd % 9)) * DAY_MS));
+          }
           c.next = {
             what: kind === 0 ? 'Demo for them'
               : kind === 1 ? 'Meeting with them' : 'Dinner with them',
-            due: today ? dayAdd(0) : dayAdd(((hd >> 5) % 19) - 5),
+            due: today ? dayAdd(0) : isoDay(due),
           };
         }
       }
