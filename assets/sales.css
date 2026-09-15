@@ -728,16 +728,27 @@ button {
      `--accent` revert above states. The library has no green like this
      and that is a gap to raise there, not a literal to edit in.
 
-     FILLS, NEVER INK. Both are pinned by contrast against the white glyph
-     that sits on them, which is what rules out iOS green #34C759 at
-     2.3:1. Measured in the browser, both themes: 3.05:1 and 4.27:1
-     white-on-fill, and 5.15:1 / 3.67:1 against the dark card, 3.05:1 /
-     4.27:1 against the white one — so one value serves both themes and
-     neither needs a light twin. Set either as small text and it fails,
-     the same way `--ok` and `--err` do; that is what `--ok-text` and
-     `--err-text` above are for. */
-  --answer-fill: #0fa968;
-  --hangup-fill: #e5372b;
+     FILLS, NEVER INK, AND PINNED BY THE WORD RATHER THAN THE GLYPH.
+     These first cleared 3:1, which is the floor for an icon and is what
+     the banner's two circles carry — nothing on them but a handset. The
+     rail's are not circles: `.call-end` and `.call-go` are wide buttons
+     with a WORD on them, set 14px bold. WCAG's large-text allowance
+     starts at 18.66px bold, so 14px is ordinary text and owes 4.5:1 —
+     and at the brighter pair those two labels sat at 3.05:1 and 4.27:1.
+     Both failed, and the green failed badly enough to see.
+
+     So both are deeper now, and there is still ONE pair rather than a
+     bright one for icons and a dark one for labels: a second green for
+     the same verb is the fragmentation these tokens were consolidated to
+     end, and the stricter bar is a legible colour everywhere while the
+     looser one is not. Deeper is not duller: both sit near 90% HSL
+     saturation, above the pair they replaced.
+
+     Measured in the browser, dark and light. Set either as small text
+     and it still fails the way `--ok` and `--err` do; that is what
+     `--ok-text` and `--err-text` above are for. */
+  --answer-fill: #0a8552;
+  --hangup-fill: #dc2f22;
 }
 :root[data-theme="light"] {
   /* The three status inks have no light entry any more. They alias --ok /
