@@ -1300,8 +1300,19 @@
    is done, the mono face for the log. No light gradients; elevation by the
    lit top edge the rest of the product uses. */
 .pipe { display: flex; justify-content: center; }
+/* ══ CAPPED, BECAUSE A COLUMN DOES NOT WANT A THOUSAND PIXELS ════════════
+   `width: 100%` was right while the rail was in here — four tiles and three
+   connectors spread to fill whatever they were given. A step row is a mark, a
+   few words and a clock, and at a 1412px layout this card was 1023 wide with
+   about 300 of that used: a short label on the left, a time on the far right,
+   and two thirds of nothing between them.
+
+   Every reference for this pattern is narrow — Rox centres about 340px in a
+   full page, Lindy's sits in a chat column, Profound's in a side panel — and
+   none of them stretches the steps across the window. `.pipe` is already
+   `justify-content: center`, so the cap is the whole change. */
 .pipe-card {
-  width: 100%; padding: 14px;
+  width: 100%; max-width: 640px; padding: 14px;
   border-radius: 20px; background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 40px -20px rgba(0,0,0,0.5);
@@ -1310,15 +1321,26 @@
   background: var(--card-bg-raised); border: 1px solid var(--card-border);
   border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.pipe-badge, .pipe-stage-time, .pipe-row-time, .pipe-row-sub, .pipe-elapsed {
+.pipe-badge, .pipe-row-time, .pipe-row-sub, .pipe-elapsed {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 
 /* header */
 .pipe-head { padding: 6px 8px 16px; }
-.pipe-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* ══ IT WRAPS RATHER THAN OVERLAPS ═════════════════════════════
+   `justify-content: space-between` with one side `flex: none` puts the two
+   groups at the ends of a row and then lets them run into each other when the
+   row is shorter than both — measured on a phone, `Companies · LinkedIn Sales
+   Navigator` was drawn straight through `Running · Ask the suppliers`, two
+   sentences on the same pixels. Wrapping gives the status its own line at the
+   width where it needs one and changes nothing at the width where it does not.
+
+   `.pipe-title` IS GONE. It printed buildName() inside the card, forty pixels
+   under `.s-rec-name`, which is buildName() as the page's own heading — the
+   same string twice, and the copy in here was the one being cut off at the
+   card's edge. */
+.pipe-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
 .pipe-head-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.pipe-title { margin: 0; font-size: var(--t-deck); font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--d50); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pipe-badge {
   display: inline-flex; align-items: center; gap: 5px; flex: none;
   padding: 5px 8px; border-radius: var(--r-md); font-size: var(--t-ui); line-height: 1;
@@ -1326,6 +1348,11 @@
 }
 .pipe-badge-dot { color: var(--ink-muted); }
 .pipe-head-state { display: flex; align-items: center; gap: 8px; flex: none; }
+/* Both halves of the head give way before the row does. The badge is a fact
+   about the run and the status is what it is doing; neither is worth an
+   ellipsis until the other has none left to give. */
+.pipe-head-main, .pipe-badge, .pipe-status { min-width: 0; }
+.pipe-badge, .pipe-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pipe-status { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text); }
 .pipe-status.done { color: var(--ok-text); }
 .pipe-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
@@ -1334,67 +1361,83 @@
 .pipe-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); transition: background-color 400ms var(--ease-out); }
 .pipe-fill.done { background: var(--ok-text); }
 
-/* stage rail */
-.pipe-rail { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 20px; }
-.pipe-stage { width: auto; min-width: 96px; flex: none; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.pipe-conn-wrap { flex: 1; padding: 0 8px; margin-top: 25px; }
-.pipe-tile {
-  position: relative; display: flex; align-items: center; justify-content: center;
-  width: 52px; height: 52px; border-radius: 16px; color: var(--ink-muted);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: background-color 400ms var(--ease-out), color 400ms var(--ease-out), transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
-}
-.pipe-tile.live { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.10); }
-.pipe-tile.done { color: var(--ok-text); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
-.pipe-check {
-  position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; color: #fff;
-  background: var(--ok-text); border: 2.5px solid var(--card-bg-raised);
-}
-.pipe-stage-label { margin-top: 11px; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); transition: color 400ms var(--ease-out); }
-.pipe-stage-label.pending { color: var(--ink-muted); }
-.pipe-stage-time { margin-top: 3px; font-size: var(--t-small); color: var(--ink-muted); }
-.pipe-stage-time.running { color: var(--accent-text); }
-.pipe-stage-time.done { color: var(--ok-text); }
-.pipe-conn { position: relative; height: 3px; border-radius: 99px; background: var(--card-bg); border: 1px solid var(--card-border); }
-.pipe-conn-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); }
-.pipe-conn-fill.done { background: var(--ok-text); }
-.pipe-dot {
-  position: absolute; top: 50%; left: 0; width: 10px; height: 10px; border-radius: 50%;
-  transform: translate(-50%, -50%); background: var(--accent); border: 2.5px solid var(--card-bg-raised);
-}
-.pipe-dot[hidden] { display: none; }
+/* ══ ONE COLUMN, BECAUSE THERE WAS NEVER MORE THAN ONE THING TO SAY ══════
+   This card carried the four stages TWICE: a horizontal rail of 52px tiles
+   with a label and a clock under each, and under that a vertical list of the
+   same four with the same labels and the same clocks. The rail is gone and
+   the list has taken its tiles.
+
+   IT WAS ALSO THE ONE THING HERE THAT COULD NOT FIT. Four tiles with
+   `min-width: 96px` and three connectors between them need about 500px and
+   the card is as wide as the column: measured at a 459px layout, `Take out
+   who you have` was cut off at the card's right edge with its clock below the
+   fold of it, and every label was folding to two lines to get there. A row
+   cannot do that at any width — it is as wide as it is given and as tall as
+   it needs.
+
+   The references agree on the shape and they are the reason for the spine:
+   Rox, Lindy and Relevance AI all draw an agent's work as one column of
+   steps, and Gusto runs a line through the markers so the column reads as a
+   sequence rather than a list of four unrelated things. */
 
 /* step list */
 .pipe-rows { margin-top: 12px; padding: 8px; display: flex; flex-direction: column; }
 .pipe-row {
-  display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px;
+  display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 12px;
   border: 1px solid transparent; transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out);
 }
 .pipe-row.live { background: rgba(var(--accent-rgb), 0.08); border-color: rgba(var(--accent-rgb), 0.18); }
-.pipe-row-mark { width: 22px; height: 22px; flex: none; display: flex; align-items: center; justify-content: center; }
-.pipe-row-check { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--ok-text); }
-.pipe-row-idle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--card-border); background: var(--card-bg); }
-.pipe-spinbox { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
-.pipe-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.pipe-row-sub { font-size: var(--t-small); color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ══ THE MARKER COLUMN IS THE MARK AND THE LINE UNDER IT ═══════════════
+   `flex: 1` on the spine inside a stretched column is the whole trick: the
+   line fills whatever height the row turns out to be, so a step that grows a
+   second line when it finishes does not need anybody to know that. A spine
+   drawn from the list with fixed insets would have to. */
+.pipe-markcol { align-self: stretch; flex: none; display: flex; flex-direction: column; align-items: center; }
+.pipe-mark {
+  position: relative; flex: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-muted); background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: background-color 400ms var(--ease-out), color 400ms var(--ease-out),
+              border-color 400ms var(--ease-out);
+}
+/* The stage keeps its own glyph at every state. It is what the rail's tile
+   carried and the only thing in it that was not a second copy of the row. */
+.pipe-mark svg { width: 15px; height: 15px; }
+.pipe-mark.live { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.14); border-color: rgba(var(--accent-rgb), 0.34); }
+.pipe-mark.done { color: var(--ok-text); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 32%, transparent); }
+/* The ring turns OUTSIDE the mark rather than replacing the glyph inside it,
+   so a running step still says which step it is. `transform-origin` because
+   an SVG's is 0 0 to CSS and a ring spinning about its corner is a wobble. */
+.pipe-ring { position: absolute; inset: -4px; width: auto; height: auto; transform-origin: 50% 50%; overflow: visible; }
+.pipe-ring circle { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
+.pipe-check {
+  position: absolute; right: -3px; bottom: -3px; width: 15px; height: 15px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: var(--ok-text); border: 2px solid var(--card-bg-raised);
+}
+.pipe-spine {
+  flex: 1; width: 2px; min-height: 8px; margin-top: 6px; border-radius: 2px;
+  background: var(--card-border); transition: background-color 400ms var(--ease-out);
+}
+.pipe-spine.done { background: color-mix(in srgb, var(--ok) 45%, transparent); }
+/* Nothing follows the last step, so nothing points at it. */
+.pipe-row:last-child .pipe-spine { display: none; }
+
+.pipe-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 5px; }
+.pipe-row-sub { font-size: var(--t-small); color: var(--ink-muted); }
 .pipe-row-label { font-size: var(--t-body); font-weight: var(--fw-medium); color: var(--d50); transition: color 300ms var(--ease-out); }
 .pipe-row-label.pending { color: var(--ink-muted); font-weight: var(--fw-regular); }
-.pipe-row-time { font-size: var(--t-small); color: var(--ink-muted); }
+.pipe-row-time { flex: none; padding-top: 6px; font-size: var(--t-small); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .pipe-row-time.done { color: var(--d200); }
 
-/* footer */
-.pipe-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 8px 4px; }
-.pipe-foot-act { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+/* footer — the clock, and nothing beside it. `.pipe-foot-act` and its chip
+   went with the stage name they carried: it repeated the status at the top of
+   the same card and was written once and never updated, so it named the first
+   stage for the length of the run. */
+.pipe-foot { display: flex; align-items: center; gap: 12px; padding: 16px 8px 4px; }
 .pipe-elapsed { font-size: var(--t-ui); color: var(--ink-muted); }
-.pipe-chip {
-  font-family: inherit; padding: 9px 15px; border-radius: 99px; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
-  background: var(--card-bg-raised); border: 1px solid var(--card-border); cursor: default;
-}
-button.pipe-chip { cursor: pointer; transition: transform 160ms var(--ease-out), border-color var(--t-fast), color var(--t-fast); }
-button.pipe-chip:hover { border-color: var(--accent); color: var(--d50); }
-button.pipe-chip:active { transform: scale(0.97); }
-button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* motion — a thing arriving is already most of its size; nothing overshoots;
    nothing runs on its own (the call on the live tile stands still, the dot in
@@ -1424,10 +1467,9 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   .pipe-pop path { stroke-dashoffset: 0; }
   .b-swap { transition: none; }
 }
-@media (max-width: 441.98px) { /* 520 layout px */
-  .pipe-tile { width: 44px; height: 44px; border-radius: 13px; }
-  .pipe-stage { width: 70px; }
-}
+/* The rail's own narrow tier went with the rail. A column of rows needs no
+   width tier: the mark is 30px at every width and the label beside it takes
+   whatever is left. */
 
 /* ══ 30. THE ROSTER ════════════════════════════════════════════════════════
    The shell's row, at this build's scale. V3 set the row's name at the title
@@ -2933,7 +2975,6 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 /* Nothing is pressed here any more, so the foot is one line of elapsed. */
 .pipe-foot { padding: 12px 8px 2px; }
 @media (max-height: 611.98px) { /* 720 layout px tall */
-  .pipe-rail { padding: 14px 20px; }
   .pipe-card { max-height: calc(var(--vp-h) - 150px); }
 }
 

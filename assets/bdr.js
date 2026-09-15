@@ -10619,11 +10619,9 @@
     const active = PIPE.stages[ai];
     const activeDone = pipeStateOf(ai) === 'done';
     const local = pipeLocalOf(ai);
-    /* One layout read, before any write: the connectors' widths, so the
-       dot can be placed by transform and nothing lays out per frame. */
-    const widths = Object.create(null);
-    PIPE.stages.forEach((x) => { const cn = byId('pipeConn-' + x.id); if (cn) widths[x.id] = cn.parentNode.clientWidth; });
-
+    /* No layout read here any more. The rail's travelling dot had to be
+       placed against a measured connector width on every frame; a column has
+       nothing whose position depends on how wide it is. */
     const fill = byId('pipeFill');
     if (fill) { fill.style.clipPath = 'inset(0 ' + (100 - PIPE.elapsed / PIPE.total * 100) + '% 0 0 round 99px)'; fill.classList.toggle('done', finished); }
     const st = byId('pipeStatus');
@@ -10636,38 +10634,30 @@
 
     PIPE.stages.forEach((x, i) => {
       const state = pipeStateOf(i);
-      const tile = byId('pipeTile-' + x.id);
-      if (tile) {
-        tile.className = 'pipe-tile ' + (state === 'running' ? 'live' : state);
-        const chk = tile.querySelector('.pipe-check');
-        if (state === 'done' && !chk) tile.insertAdjacentHTML('beforeend', '<span class="pipe-check pipe-pop">' + pipeCheck(11) + '</span>');
-        if (state !== 'done' && chk) chk.remove();
-      }
-      const lab = byId('pipeLabel-' + x.id);
-      if (lab) lab.classList.toggle('pending', state === 'pending');
-      const tm = byId('pipeTime-' + x.id);
-      if (tm) {
-        tm.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? pipeFmt(pipeLocalOf(i)) : pipeFmt(0);
-        tm.className = 'pipe-stage-time ' + state;
-      }
-      if (i > 0) {
-        const pct = (state === 'pending' ? 0 : pipeProgressOf(i)) * 100;
-        const cf = byId('pipeConn-' + x.id);
-        if (cf) { cf.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0 round 99px)'; cf.classList.toggle('done', state === 'done'); }
-        const cd = byId('pipeConnDot-' + x.id);
-        if (cd) { cd.hidden = state === 'done' || pct <= 1; cd.style.transform = 'translate(calc(' + ((widths[x.id] || 0) * pct / 100) + 'px - 50%), -50%)'; }
-      }
       const row = byId('pipeRow-' + x.id);
       if (row) {
         row.className = 'pipe-row' + (state === 'running' ? ' live' : '');
-        const mark = row.querySelector('.pipe-row-mark');
+        /* The spine fills as the step it leads AWAY from finishes, so a solid
+           line between two marks is the claim that the first one is done. */
+        const sp = byId('pipeSpine-' + x.id);
+        if (sp) sp.classList.toggle('done', state === 'done');
+        /* THE GLYPH STAYS; THE RING AND THE TICK COME AND GO. Rewritten only
+           when the state actually changes -- this runs every frame, and
+           reassigning innerHTML at 60Hz would restart the ring's rotation and
+           redraw the tick on every one of them. */
+        const mark = byId('pipeMark-' + x.id);
         const want = state === 'done' ? 'done' : state === 'running' ? 'live' : 'idle';
         if (mark && mark.getAttribute('data-state') !== want) {
           mark.setAttribute('data-state', want);
-          mark.innerHTML = want === 'done' ? '<span class="pipe-row-check pipe-pop">' + pipeCheck(12) + '</span>'
-            : want === 'live' ? '<span class="pipe-spinbox"><svg viewBox="0 0 24 24" width="20" height="20" class="pipe-spin" aria-hidden="true">' +
-              '<path d="M12 2.7a9.3 9.3 0 1 0 9.3 9.3" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></span>'
-            : '<span class="pipe-row-idle"></span>';
+          mark.className = 'pipe-mark' + (want === 'idle' ? '' : ' ' + want);
+          mark.innerHTML = pipeIcon(x.icon) +
+            (want === 'live'
+              ? '<svg class="pipe-ring pipe-spin" viewBox="0 0 38 38" width="38" height="38" aria-hidden="true">' +
+                '<circle cx="19" cy="19" r="18" stroke-dasharray="26 87"/></svg>'
+              : '') +
+            (want === 'done'
+              ? '<span class="pipe-check pipe-pop">' + pipeCheck(9) + '</span>'
+              : '');
         }
         const rl = row.querySelector('.pipe-row-label');
         if (rl) rl.classList.toggle('pending', state === 'pending');
@@ -10688,11 +10678,6 @@
        "Run again with ZoomInfo" beside the way out — two decisions on a
        screen whose whole purpose was to be over. It ends by opening the list,
        which is where every one of those decisions is available anyway. */
-    const foot = byId('pipeFootAct');
-    if (foot && foot.getAttribute('data-done') !== String(finished)) {
-      foot.setAttribute('data-done', String(finished));
-      foot.innerHTML = finished ? '' : '<span class="pipe-chip">' + esc(active.label) + '…</span>';
-    }
     if (finished && PIPE && !PIPE.left) {
       PIPE.left = true;
       /* One beat on the finished state so the last tick is seen, then out. */
@@ -10721,7 +10706,9 @@
         '<header class="pipe-head">' +
           '<div class="pipe-head-row">' +
             '<div class="pipe-head-main">' +
-              '<h1 class="pipe-title">' + esc(buildName()) + '</h1>' +
+              /* No title. `.s-rec-name` above the card is buildName() already;
+                 this printed the same string forty pixels under it, and this
+                 was the copy being cut off at the card's own edge. */
               '<span class="pipe-badge">' + esc(kind) + '<span class="pipe-badge-dot">·</span>' + esc(f.name) + '</span>' +
             '</div>' +
             '<div class="pipe-head-state">' +
@@ -10732,25 +10719,19 @@
           '<div class="pipe-track"><div class="pipe-fill" id="pipeFill" style="clip-path:inset(0 100% 0 0 round 99px)"></div></div>' +
         '</header>' +
 
-        '<section class="pipe-panel pipe-rail" aria-label="Stages">' +
-          PIPE.stages.map((x, i) =>
-            (i > 0
-              ? '<div class="pipe-conn-wrap"><div class="pipe-conn">' +
-                  '<div class="pipe-conn-fill" id="pipeConn-' + esc(x.id) + '" style="clip-path:inset(0 100% 0 0 round 99px)"></div>' +
-                  '<span class="pipe-dot" id="pipeConnDot-' + esc(x.id) + '" hidden></span>' +
-                '</div></div>'
-              : '') +
-            '<div class="pipe-stage">' +
-              '<div class="pipe-tile pending" id="pipeTile-' + esc(x.id) + '">' + pipeIcon(x.icon) + '</div>' +
-              '<div class="pipe-stage-label pending" id="pipeLabel-' + esc(x.id) + '">' + esc(x.label) + '</div>' +
-              '<div class="pipe-stage-time pending" id="pipeTime-' + esc(x.id) + '">0.0s</div>' +
-            '</div>').join('') +
-        '</section>' +
-
+        /* ONE SECTION. The rail that stood here drew these same four stages
+           as 52px tiles with their own labels and their own clocks, and it was
+           the only thing in the card that could not fit a narrow one. Its tile
+           is the row's marker now; nothing it said has gone. */
         '<section class="pipe-panel pipe-rows" aria-label="Steps">' +
           PIPE.stages.map((x) =>
             '<div class="pipe-row" id="pipeRow-' + esc(x.id) + '">' +
-              '<span class="pipe-row-mark" data-state="idle"><span class="pipe-row-idle"></span></span>' +
+              '<span class="pipe-markcol">' +
+                '<span class="pipe-mark" id="pipeMark-' + esc(x.id) + '" data-state="idle">' +
+                  pipeIcon(x.icon) +
+                '</span>' +
+                '<span class="pipe-spine" id="pipeSpine-' + esc(x.id) + '"></span>' +
+              '</span>' +
               '<span class="pipe-row-text">' +
                 '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
                 '<span class="pipe-row-sub b-swap"></span>' +
@@ -10760,9 +10741,15 @@
         '</section>' +
 
 
+        /* The clock, and nothing beside it. A chip naming the running stage
+           stood here and said what the status line at the top of the card
+           already says, eight centimetres below it — and said it WRONG: it
+           was written once, on the first paint where the run was not
+           finished, and never again, so it read `Read the criteria…` for the
+           whole run. The fix for a stale second copy of a fact is not to
+           refresh it. */
         '<footer class="pipe-foot">' +
           '<span class="pipe-elapsed" id="pipeElapsed">0.0s / ' + pipeFmt(PIPE.total) + '</span>' +
-          '<span class="pipe-foot-act" id="pipeFootAct" data-done=""></span>' +
         '</footer>' +
       '</div></div>' +
       '<p class="b-vfoot s-block-wide">Nothing is saved until you say so. What comes back is shown first, ' +
