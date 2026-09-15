@@ -1473,10 +1473,45 @@
    not a softening, it is a flash of something unreadable. The swap step is
    --t-fast over --blur-small's two pixels — a shorter distance to travel,
    held long enough to read as one value becoming another. */
-.b-swap { transition: opacity var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out); }
-.b-swap.is-swapping { opacity: 0; filter: blur(2px); }
+/* ══ AND IT CROSSES ITSELF RATHER THAN BLINKING ════════════════════
+   Everything above argued about how long ONE span should take to fade out,
+   change its own characters and fade back in. However well that is timed it
+   is a blink: for the length of the fade there is nothing on the line, and an
+   empty line beside a live dot reads as the thing having broken rather than
+   having changed. Timing it correctly only made it an honest blink — measured
+   at exactly zero opacity on all four swaps, and still wrong.
+
+   Two spans instead, overlapping. The incoming starts at 90ms while the
+   outgoing has until 260, so for 170ms both are on the line — one leaving
+   upward, one arriving from below — and on no frame is there nothing there.
+   The arriving one is longer and slower than the departing one, which is the
+   asymmetry every good swap has: a thing leaving should get out of the way,
+   a thing arriving is what you are meant to read.
+
+   OPACITY AND TRANSFORM, NOTHING ELSE. The blur that used to soften this was
+   a full repaint on every frame of the fade and buys nothing once two layers
+   are crossing — the overlap IS the softening. 6px of travel: far enough to
+   carry a direction, not far enough to be a movement of its own.
+
+   The outgoing span is anchored RIGHT, because `.pipe-head-state` sits at the
+   end of a `space-between` row: the dot holds still and the text's left edge
+   is what moves when the wording changes length. Anchored left, the departing
+   words would slide sideways as the incoming ones sized the box. */
+.pipe-status { position: relative; display: inline-block; text-align: right; }
+.pipe-say { display: block; white-space: nowrap; }
+.pipe-say.is-in { animation: pipe-say-in 300ms var(--ease-out) 90ms both; }
+.pipe-say.is-out {
+  position: absolute; right: 0; top: 0;
+  animation: pipe-say-out 260ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+@keyframes pipe-say-in  { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pipe-say-out { to   { opacity: 0; transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) {
-  .b-swap { transition: none; }
+  .pipe-say.is-in { animation: none; }
+  /* Gone the instant it is replaced, rather than held for an animation that
+     is not going to run. */
+  .pipe-say.is-out { display: none; }
 }
 /* The rail's own narrow tier went with the rail. A column of rows needs no
    width tier: the mark is 30px at every width and the label beside it takes

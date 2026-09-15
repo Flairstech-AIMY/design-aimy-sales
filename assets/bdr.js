@@ -10526,16 +10526,61 @@
      4px of blur and the new ones arrive through it, 90ms each way (bdr.css
      §29); a swap already under way is not restarted by the frame after it,
      and a newer word overrides an older one still on its way. */
+  /* ══ THE TWO HALVES USED TO DISAGREE, AND IT FLICKERED ════════════════
+     This waited 90ms and then swapped. The note above says the swap step is
+     `--t-fast`, and bdr.css §29 duly sets 150 — but the number in HERE was
+     never lengthened with it. So at the moment the characters changed, the
+     old ones were still at about six tenths of their opacity under less than
+     a pixel of blur: plainly readable. The swap happened in place behind a
+     fade that had not finished, which is the exact defect the fade exists to
+     prevent, and it read as a flicker on every step.
+
+     SO THERE IS NO DURATION IN HERE ANY MORE. The out phase is over when the
+     opacity transition says it is over, whatever bdr.css sets it to next, and
+     the two cannot drift apart again. The timeout that remains is a safety
+     net rather than the timing — a transition on a hidden element never fires
+     transitionend — and a reader who has turned motion off lands straight
+     away rather than waiting for that net. */
+  /* ══ TWO WORDS PASS EACH OTHER; THE LINE IS NEVER EMPTY ══════════════
+     ONE span faded out, waited, changed its own characters and faded back in,
+     and that is a blink however well it is timed — for the length of the fade
+     there is nothing on the line at all. It got worse when the two halves
+     disagreed (the CSS was lengthened to --t-fast and the 90ms in here was
+     not, so the characters changed at six tenths opacity, in plain sight),
+     and fixing that made it an honest blink rather than a glitchy one. Nour's
+     answer to the honest blink was that it still flickers, and that is right:
+     the defect was never the timing, it was the gap.
+
+     So there are two spans and they overlap. The old one leaves upward while
+     the new one arrives from below, and the arrival starts before the
+     departure has finished — there is no frame on which the line is blank.
+     Opacity and transform only: no blur, which is a paint on every frame of
+     the fade and buys nothing once two layers are crossing.
+
+     The outgoing span is anchored to the RIGHT, because `.pipe-head-state`
+     sits at the end of a `space-between` row — the dot beside it holds still
+     and the text's LEFT edge is what moves when the wording changes length.
+     Anchored left, the departing words would slide sideways as the incoming
+     ones sized the box. */
   function swapText(el, text) {
-    if (!el || el.textContent === text || el._swapTo === text) return;
-    el.classList.add('b-swap', 'is-swapping');
-    el._swapTo = text;
-    setTimeout(() => {
-      if (el._swapTo !== text) return;
-      el.textContent = text;
-      el._swapTo = null;
-      el.classList.remove('is-swapping');
-    }, 90);
+    if (!el) return;
+    const cur = el.querySelector('.pipe-say:not(.is-out)');
+    if (cur ? cur.textContent === text : el.textContent === text) return;
+    if (cur) {
+      cur.classList.add('is-out');
+      /* Removed when its own animation ends, so the two never accumulate.
+         The timeout is the net for a reader with motion turned off, where no
+         animationend arrives — the CSS hides it in that case, so the wait
+         costs nothing that can be seen. */
+      cur.addEventListener('animationend', () => cur.remove(), { once: true });
+      setTimeout(() => { if (cur.parentNode) cur.remove(); }, 700);
+    } else {
+      el.textContent = '';
+    }
+    const next = document.createElement('span');
+    next.className = 'pipe-say is-in';
+    next.textContent = text;
+    el.appendChild(next);
   }
   const pipeFmt = (n) => n.toFixed(1) + 's';
 
@@ -10706,7 +10751,9 @@
               '<span class="pipe-badge">' + esc(kind) + '<span class="pipe-badge-dot">·</span>' + esc(f.name) + '</span>' +
             '</div>' +
             '<div class="pipe-head-state">' +
-              '<span class="pipe-status b-swap" id="pipeStatus">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
+              '<span class="pipe-status" id="pipeStatus">' +
+                '<span class="pipe-say">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
+              '</span>' +
               '<span class="pipe-live-dot" id="pipeDot" aria-hidden="true"></span>' +
             '</div>' +
           '</div>' +
