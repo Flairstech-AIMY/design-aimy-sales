@@ -715,6 +715,49 @@ button {
   --warn-text:   var(--warn);
   --err-text:    var(--err);
   --accent-text: #a06ff7;   /* 5.04:1 — an action, not a status */
+
+  /* ══ THE TWO VERBS A TELEPHONE HAS ════════════════════════════════
+     Answer and hang up, and they are NOT the status family. `--ok` is a
+     mint at 157° that says a thing IS fine; this is a button somebody
+     presses, and every phone anybody has held for twenty years makes it
+     green. Jakob's Law, which this build already cites for the handset
+     glyphs themselves.
+
+     ANSWER, NOT START. `--answer-fill` is for a phone that is RINGING —
+     the banner's circle, and nothing else so far. `.call-go` in the rail
+     is `--brand` and stays there: you chose that person off a queue and
+     pressed when you were ready, so it borrows no urgency it has not
+     earned. `--hangup-fill` has no such split; ending a live call and
+     refusing one that is ringing are the same red.
+
+     Declared here rather than in aimy-ds.css because a product may name
+     what it needs and may not re-theme the family — same rule the
+     `--accent` revert above states. The library has no green like this
+     and that is a gap to raise there, not a literal to edit in.
+
+     FILLS, NEVER INK — AND THE TWO OWE DIFFERENT FLOORS, BECAUSE ONE OF
+     THEM CARRIES A WORD AND THE OTHER DOES NOT.
+
+     `--hangup-fill` is on `.call-end`, a wide button with END written
+     across it at 14px bold. WCAG's large-text allowance starts at
+     18.66px bold, so 14px is ordinary text and owes 4.5:1. That is what
+     pins this red, and it is why it is as deep as it is.
+
+     `--answer-fill` is on one 40px circle with a handset in it and no
+     text anywhere, so its floor is 3:1 — the non-text floor, which
+     governs both the white glyph on the fill and the fill's own edge
+     against a white card. It was briefly pinned at 4.5:1 too, back when
+     `.call-go` was green and did carry a word. `.call-go` is brand
+     again, so nothing labelled uses this green any more and the
+     stricter floor was buying nothing but a darker button. It sits just
+     under the 3:1 ceiling now, which is as bright as a white glyph on
+     it can legibly get.
+
+     Both measured in the browser, dark and light. Set either as small
+     text and it fails the way `--ok` and `--err` do; that is what
+     `--ok-text` and `--err-text` above are for. */
+  --answer-fill: #18a955;   /* 3.07:1 on white — at the non-text ceiling */
+  --hangup-fill: #dc2f22;   /* 4.70:1 on white — it has END written on it */
 }
 :root[data-theme="light"] {
   /* The three status inks have no light entry any more. They alias --ok /
@@ -5591,9 +5634,14 @@ body.is-calling { --fb-reserve: var(--call-width); }
    doing something to somebody else, so it takes the same red as the timer's
    live dot and the End button rather than the surface's own accent. */
 .call-tool.is-rec {
-  color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); background: var(--err-bg);
+  color: var(--hangup-fill);
+  border-color: color-mix(in srgb, var(--hangup-fill) 40%, transparent);
+  background: color-mix(in srgb, var(--hangup-fill) 16%, transparent);
 }
-.call-tool.is-rec:hover { background: var(--err-bg); color: var(--err); }
+.call-tool.is-rec:hover {
+  background: color-mix(in srgb, var(--hangup-fill) 16%, transparent);
+  color: var(--hangup-fill);
+}
 .call-tool.is-rec svg { fill: currentColor; }
 
 /* ── The transcript ── */
@@ -5655,8 +5703,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
   flex: 1 1 100%; order: 1;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 8px 12px;
-  border-radius: var(--r-md); border: 1px solid var(--err-strong);
-  background: var(--err-strong); color: #fff;
+  border-radius: var(--r-md); border: 1px solid var(--hangup-fill);
+  background: var(--hangup-fill); color: #fff;
   font-size: var(--fs-xs); font-weight: var(--fw-bold); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast);
 }
@@ -5666,8 +5714,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the hover and the resting state were the same colour and the one control
    that hangs up on a person had no feedback at all. */
 .call-end:hover {
-  background: color-mix(in srgb, var(--err-strong) 88%, #000);
-  border-color: color-mix(in srgb, var(--err-strong) 88%, #000);
+  background: color-mix(in srgb, var(--hangup-fill) 88%, #000);
+  border-color: color-mix(in srgb, var(--hangup-fill) 88%, #000);
 }
 .call-end:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
@@ -5680,9 +5728,24 @@ body.is-calling { --fb-reserve: var(--call-width); }
 
    Brand rather than error, because opening a line is not the irreversible
    half. Ending one is. */
+/* ══ DIALLING IS NOT ANSWERING, AND ONLY ONE OF THEM IS GREEN ═══════════
+   This was green for a while, on the argument that answer and start are
+   the same verb in two places. They are not. Green is what a RINGING
+   phone offers — Jakob's Law, the banner's two circles, a decision
+   somebody else started and you have seconds to make. Nothing is ringing
+   here. You picked this person off a queue, read their brief, and pressed
+   a button when you were ready; the pressure is entirely yours and the
+   colour should not borrow urgency the moment does not have.
+
+   So it is back to brand, which is also the note directly above: opening
+   a line is not the irreversible half. Ending one is, and that is the
+   only control in this panel wearing an alarm. */
 .call-go, .call-go:hover { border-color: var(--brand); }
 .call-go { background: var(--brand); }
-.call-go:hover { background: color-mix(in srgb, var(--brand) 88%, #fff); }
+/* Darkens rather than lightens. White on brand is 4.56:1 against the
+   14px bold label — over the 4.5 floor and not by much — so the hover
+   this rule used to lighten toward #fff would have taken it under. */
+.call-go:hover { background: color-mix(in srgb, var(--brand) 88%, #000); }
 
 /* ── What the rest of the shell does while a call is up ──
    The canvas clears the panel rather than covering it: the prep thread and
@@ -8634,16 +8697,11 @@ body.is-figures .filter-tray { display: none; }
 
 /* `.s-aud-names` went with the audience read-out it wrapped. */
 
-/* The build stamp in the prototype panel — which file the browser actually
-   loaded, not which file is on disk. Small, quiet, and the first thing to
-   read when a report cannot be reproduced. */
-.proto-build {
-  padding: var(--sp-2) 0 var(--sp-3);
-  margin-bottom: var(--sp-2);
-  border-bottom: 1px solid var(--hairline);
-  font-size: var(--fs-2xs); color: var(--ink-muted);
-}
-.proto-build strong { color: var(--d200); font-weight: var(--fw-bold); }
+/* `.proto-build` went with the last three things that used it: the build
+   stamp, which reads out of the console now, and the two explainers under
+   the panel's remaining sections. Nothing renders it, so the rule would be
+   dead CSS — and dead CSS is the one kind of wrong the audit cannot see,
+   because it only checks that a class USED has a rule, never the reverse. */
 
 /* ══ WHAT HAPPENED, IN THE RAIL ═══════════════════════════════════════════
    A campaign's history, in the same region and the same vocabulary a record's

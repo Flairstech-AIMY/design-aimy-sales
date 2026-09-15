@@ -50,6 +50,14 @@
     const m = t && /[?&]v=([^&]+)/.exec(t.getAttribute("src") || "");
     return m ? "v" + m[1] : "unstamped";
   })();
+  /* The panel used to print this and does not any more. It is still the
+     only thing that can tell a stale page from a live one — the `?v=`
+     stamp makes every asset immutable, so a browser that loaded before a
+     bump serves the old stylesheet with nothing on screen saying why — so
+     it says it where it costs no pixels. Read off the script's own src,
+     so it cannot claim a version it is not. */
+  try { console.info('AiMY Sales ' + BUILD); } catch (e) {}
+
   const byId = (id) => document.getElementById(id);
 
   /* Deterministic PRNG (mulberry32), carried over from the V3 build.
@@ -2264,6 +2272,10 @@
     touchesOf: Object.create(null),
     membersOf: Object.create(null),
     byMgr: Object.create(null),
+    /* digits -> contact id. The only index that goes from a NUMBER to a
+       person, and the only one an inbound call can use. Rebuilt by
+       `reindex`. */
+    byPhone: Object.create(null),
     /* listId -> the campaigns it is on. Rebuilt by `reindex`. */
     listOn: Object.create(null),
     call: null,
@@ -2334,6 +2346,7 @@
     DB.membersOf = Object.create(null);
     DB.consOf = Object.create(null);
     DB.byMgr = Object.create(null);
+    DB.byPhone = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
@@ -2362,6 +2375,7 @@
     DB.camp.forEach((c) => (c.lists || []).forEach((id) => addOn(id, c.id)));
     DB.con.forEach((c) => {
       DB.byCon[c.id] = c;
+      if (c.phone) DB.byPhone[phoneKey(c.phone)] = c.id;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
       c.camps.forEach((k) => DB.membersOf[k] && DB.membersOf[k].push(c.id));
       /* Whose desk it landed on. Only handed-over leads are on one — before
@@ -2459,6 +2473,10 @@
 
   /* Small persisted preferences that are not corpus: theme is its own key
      because it is read before this script exists. */
+  /* `cap` has had no control since the prototype panel was cut back to the
+     phone: it stays 0, which is the uncapped queue everybody who never
+     opened that panel already had. `UI` itself stays as the place a
+     persisted preference goes, which is what it was named for. */
   let UI = { cap: 0 };
   function loadUI() {
     try { UI = Object.assign(UI, JSON.parse(localStorage.getItem(KEY_UI) || '{}')); } catch (e) {}
@@ -15082,46 +15100,45 @@
     paintProto();
   }
 
+  /* ══ CUT TO THE ONE SCENARIO IT IS FOR ═════════════════════════════════
+     This panel held six sections: the build stamp, the corpus counts, a desk
+     switcher, the queue cap, the phone, and the reset. Five of them were
+     orientation for somebody reading the whole product, and this build is
+     being shown for one thing.
+
+     WHAT WENT, AND WHERE IT WENT TO. `data-as` was a shortcut to a URL that
+     already works — `?as=lina` is in `SCALAR`, so every desk is still one
+     address away and nothing is unreachable. `data-cap` left the queue on
+     its default, which is the state anybody who never opened this panel was
+     already in. The build stamp and the corpus counts were readouts, so they
+     took nothing with them.
+
+     THE RESET STAYED, AND IT IS THE ONE THAT COULD NOT GO. `reset()` has no
+     other caller anywhere in the build, and walking the inbound scenario
+     writes a touchpoint every time — decline one, miss one, log one, and the
+     corpus a demo starts from is not the corpus the last demo started from.
+     Without this the only way back to the seed is clearing localStorage by
+     hand, which is not a thing to ask of somebody mid-sentence.
+
+     Their two handlers went with them. The audit fails a router branch that
+     nothing renders, which is the check that keeps a panel like this from
+     quietly becoming a list of controls that used to exist. */
   function paintProto() {
     const p = byId('protoPanel');
     if (p.hidden) return;
-    let bytes = 0;
-    try { bytes = (localStorage.getItem(KEY_DB) || '').length; } catch (e) {}
     p.innerHTML =
       '<div class="proto-sec">' +
-        '<div class="proto-h">Build</div>' +
-        /* WHICH VERSION OF THE FILES YOU ARE ACTUALLY LOOKING AT. The `?v=`
-           stamp makes every asset immutable, so a browser that loaded the
-           page before a bump keeps serving the old stylesheet — and a defect
-           fixed an hour ago is still on the screen with nothing saying why.
-           Read off the script's own src, so it cannot claim a version it is
-           not. If this number is behind, hard-reload. */
-        '<div class="proto-build">' + esc(BUILD) + '</div>' +
-      '</div>' +
-      '<div class="proto-sec">' +
-        '<div class="proto-h">What the corpus holds</div>' +
-        '<div class="proto-build">' + commas(DB.con.length) + ' people · ' +
-          commas(DB.touch.length) + ' calls · ' + commas(bytes) + ' bytes of your changes</div>' +
-      '</div>' +
-      '<div class="proto-sec">' +
-        '<div class="proto-h">Looking as</div>' +
-        DESKS.map((id) => REP[id]).map((x) =>
-          '<button class="proto-link" type="button" data-as="' + esc(x.id) + '">' +
-          esc(x.name) + ' · ' + esc(JOB[x.fn]) +
-          (x.id === me().id ? ' — you' : '') + '</button>').join('') +
-      '</div>' +
-      '<div class="proto-sec">' +
-        '<div class="proto-h">Queue</div>' +
-        '<button class="proto-link" type="button" data-cap="3">Cap it at 3</button>' +
-        '<button class="proto-link" type="button" data-cap="0">No cap' +
-          (UI.cap ? '' : ' — on') + '</button>' +
+        '<div class="proto-h">Incoming calls</div>' +
+        '<button class="proto-link" type="button" data-inbound="known">' +
+          'Somebody on the board calls in</button>' +
+        '<button class="proto-link" type="button" data-inbound="named">' +
+          'A stranger calls in, and says who they are</button>' +
+        '<button class="proto-link" type="button" data-inbound="anon">' +
+          'A stranger calls in, and will not say</button>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
         '<button class="proto-link" type="button" data-reset>Reset to seed</button>' +
-        '<a class="proto-link" href="old/" target="_blank" rel="noopener">The V3 build</a>' +
-        '<div class="proto-build">Your changes live in this browser. The corpus itself is ' +
-          'rebuilt from one seed on every load.</div>' +
       '</div>';
   }
 
@@ -15430,7 +15447,12 @@
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (ICONS[k] || '') + '</svg>';
 
-  const callOn = () => (DB.call ? DB.byCon[DB.call.con] : null);
+  /* The person on the call, and for an inbound one they may not be a
+     record yet. `stranger` is contact-SHAPED and lives on the call rather
+     than in `DB`, because somebody ringing you is not a lead until you
+     say so — and this way the whole rail draws unchanged either way. */
+  const callOn = () => (DB.call
+    ? (DB.byCon[DB.call.con] || DB.call.stranger || null) : null);
   const fmtClock = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 
   function clearCallTimers() {
@@ -15574,11 +15596,28 @@
     const disp = impliedDisp((noted && noted.disp) || heard.disp,
       noted && noted.props.length ? noted.props : heard.props,
       noted && noted.objs.length ? noted.objs : heard.objs);
+    /* ══ THE HONEST DEFAULT INVERTS ON AN INBOUND CALL ═════════════════
+       `no-answer` is the right fallback outbound, and the reason is in the
+       note below: the first line of every outbound script is the CALLER'S
+       own opening, so claiming contact off it claims you reached somebody
+       out of you asking to.
+
+       Inbound it is the opposite, and reading nothing is not the same as
+       nothing happening. They dialled, the phone rang, and somebody picked
+       it up — `answerInbound` is the only way to reach this line with
+       `dir === 'in'`. Contact is not an inference there, it is the
+       precondition, and logging it as No answer would put a false record
+       on a conversation that demonstrably took place. */
+    const nothingHeard = c.dir === 'in' ? 'reached' : 'no-answer';
     PENDING = {
       con: c.con, camp: c.camp, secs: c.secs, sess: c.sess, auto: c.auto,
       lines: c.script.slice(0, c.shown).map((l) => ({ who: l[0], text: l[1] })),
-      note: c.note, read: heard, outcome: disp || 'no-answer',
+      note: c.note, read: heard, outcome: disp || nothingHeard,
       guessed: !disp, when: (noted && noted.when) || heard.when || 1,
+      /* Who rang whom, the number it came from, and the caller-shaped
+         object standing in for a person we do not hold. All three are
+         null on an outbound call and nothing downstream reads them. */
+      dir: c.dir || 'out', phone: c.phone || null, stranger: c.stranger || null,
     };
     DB.call = null;
     document.body.classList.remove('is-calling');
@@ -15686,8 +15725,18 @@
       id: 't' + (Date.now().toString(36)) + Math.floor(Math.random() * 1000),
       con: c.id, camp: call.camp, by: me().id, at: now,
       secs: call.secs, outcome: outcome, auto: !!call.auto,
+      /* WHO RANG WHOM, ON THE RECORD. Every touchpoint this build had ever
+         written was a call somebody here placed, so the direction was true
+         by construction and never stored. It is not any more. */
+      dir: call.dir || 'out',
       proposals: props, objections: objs, openings: opps,
-      note: call.note || (heard.disp ? 'Logged from the call.' : 'No answer.'),
+      /* The fallback note said "No answer." on any call AiMY read nothing
+         out of — which is a sentence about an outbound call nobody picked
+         up, printed under an inbound one that was answered and spoken on.
+         The row prints this note, so it is also where the direction becomes
+         visible without a shared renderer having to learn a new field. */
+      note: call.note || (call.dir === 'in' ? 'They called in.'
+        : heard.disp ? 'Logged from the call.' : 'No answer.'),
       lines: call.lines || [],
       next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
@@ -15842,8 +15891,14 @@
 
       '<div class="call-who-block">' +
         '<p class="call-name">' + esc(c.name) + '</p>' +
-        '<p class="call-sub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') + '</p>' +
-        (c.phone ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
+        '<p class="call-sub">' + esc(c.title) +
+          (a ? ' · ' + esc(a.name) : '') + '</p>' +
+        /* A stranger IS their number, so the name line is already the
+           number and this printed it again two rows down. Guarded on the
+           values rather than on the direction: any record whose name is its
+           own phone number has the same problem. */
+        (c.phone && c.phone !== c.name
+          ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
         /* ══ A WORKED EXAMPLE HAS TO SAY THAT IT IS ONE ════════════════════
            Nothing here dials. The transcript grows a line at a time from a
            script chosen by the person's own hidden `fate`, and it grows at
@@ -15930,6 +15985,444 @@
   }
 
 
+
+
+  /* ══ THE PHONE RINGS THE OTHER WAY ══════════════════════════════════════
+     Everything above this line is a call the caller chose to place. A BDR's
+     phone also rings, and until now that half of the day was invisible: the
+     queue is people WE picked, `startCall` refuses a contact with no number
+     on file, and `callLogPropose` opened with a lookup that returns nothing
+     for somebody who is not in the book — so a call from a stranger could
+     not be recorded at all.
+
+     IT IS THE SAME CALL ONCE IT IS ANSWERED. Not a second call model: the
+     rail, the transcript, the reading, the read-back and `logCall` are the
+     ones above, reached from a different door. The only things that differ
+     are the two this direction actually changes — it starts LIVE, because
+     the caller is already on the line and a `connecting` beat would be a lie
+     about the one thing the clock measures; and the person on it may not
+     exist yet.
+
+     THE TELEPHONY IS STILL FIXTURE. Same argument as §7b: a transcript, on a
+     timer, so a demo walked twice tells the same story twice. */
+
+  let RINGING = null;
+  let RING_TIMER = null;
+  let RING_GONE = null;
+
+  /* Long enough to be a real decision, short enough that an unanswered phone
+     stops being one. A widget that rings for ever is a widget nobody
+     believes is connected to anything. */
+  const RING_MS = 30000;
+  /* The beat the answered card holds before it retires. Without it the
+     banner and the rail swap with nothing connecting them, and the handoff
+     is something you infer rather than something you saw. */
+  const RING_HANDOFF_MS = 900;
+
+  /* Inbound transcripts, and THEY SPEAK FIRST. Every script in §7b opens on
+     the caller's own line because the caller dialled; these open on theirs,
+     which is the whole difference a transcript can show.
+
+     Deliberately outside `CALL_SCRIPTS`: `assets/audit.js` lifts that
+     constant whole and asserts every entry reads back to the `SCENARIOS` row
+     it is declared against. These are not scenarios — nothing hashes a fate
+     to them — so putting them in that object would ask the audit to bless
+     rows that do not exist. They are read by the same `readCall` either way,
+     which is the part that has to stay true. */
+  const INBOUND_SCRIPTS = {
+    known: [
+      ['them', 'Hello, it is {first}. You left me a message last week.'],
+      ['you', 'I did — thanks for calling back. Have I caught you at a good time?'],
+      ['them', 'Two minutes. I read what you sent. The pricing is where I am stuck.'],
+      ['you', 'Fair enough. Rather than talk at you, could I show you it working?'],
+      ['them', 'Go on then, book me a demo. The cost will decide it, mind.'],
+    ],
+    /* The caller introduces themselves, so `readWho` has frames to read. */
+    named: [
+      ['them', 'Hello — is this the team that takes on the support desk work?'],
+      ['you', 'It is. Who am I speaking to?'],
+      ['them', 'My name is Ruben Haverkamp. I run facilities at Kuijpers.'],
+      ['you', 'Good to hear from you. What made you pick up the phone?'],
+      ['them', 'One of your emails went round our office. What does it cost?'],
+      ['you', 'It depends on the size of the desk. Could I show you it working?'],
+      ['them', 'Send me the pricing and put a demo in for next week.'],
+    ],
+    /* The same call, from somebody who will not say who they are — which is
+       a real way a first inbound call goes, not an absence of one. Every
+       frame `readWho` looks for is deliberately missing: no introduction, no
+       "I run X", and no capitalised name after an `at`. `readCall` still
+       reads it fully, so the call logs like any other — what is missing is
+       the person, not the conversation. */
+    anon: [
+      ['them', 'Hello — is this the team that takes on the support desk work?'],
+      ['you', 'It is. Who am I speaking to?'],
+      ['them', 'I would rather not get into that until I know what it costs.'],
+      ['you', 'Fair enough, and it is a good question. It depends on the size of the desk.'],
+      ['them', 'Send me the pricing and I will come back to you.'],
+    ],
+  };
+
+  /* ══ WHO WAS THAT, OUT OF WHAT THEY SAID ════════════════════════════════
+     `readCall` reads what HAPPENED on a call. This reads who was on it, and
+     only from the frames a person actually uses to introduce themselves. It
+     is deliberately narrow: a reading that guesses a name out of any two
+     capitalised words would put "Good Morning" on the board as a lead.
+
+     Every axis is independent and any of them may come back empty — that is
+     the point rather than a shortfall. "I got some of it" and "I got none of
+     it" are the two things AiMY has to be able to say here, and a reader
+     that always returns something can say neither. */
+  const READ_WHO = [
+    /* The frame is spelled both ways and the capture is not. A single /i
+       flag would relax the capture too, and "My name" would come back as
+       the name — which is exactly the guess this reader refuses. */
+    ['name', /(?:[Mm]y name is|[Tt]his is|[Yy]ou are speaking to|[Ii]t is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z'-]+){1,2})/],
+    ['name', /^([A-Z][a-z]+(?:\s+[A-Z][a-z'-]+){1,2})[.,]/],
+    ['co', /\b(?:i(?:'m| am)? (?:at|with|from)|i run [a-z ]{3,24} at|we are|calling from|over at)\s+([A-Z][A-Za-z&.-]*(?:\s+[A-Z][A-Za-z&.-]*){0,2})/],
+    ['co', /\bat\s+([A-Z][A-Za-z&.-]*(?:\s+[A-Z][A-Za-z&.-]*){0,2})\b/],
+    ['title', /\bi\s+(?:run|head up|head|manage|look after|am in charge of|am head of)\s+([a-z][a-z ]{2,26}?)(?:\s+at\b|[.,]|$)/i],
+  ];
+
+  function readWho(lines) {
+    const said = (lines || []).filter((l) => l[0] === 'them').map((l) => l[1]);
+    const out = { name: null, co: null, title: null };
+    READ_WHO.forEach((row) => {
+      if (out[row[0]]) return;
+      for (let i = 0; i < said.length; i++) {
+        const m = said[i].match(row[1]);
+        if (m && m[1]) { out[row[0]] = m[1].trim().replace(/[.,]$/, ''); return; }
+      }
+    });
+    return out;
+  }
+
+  /* A number is stored the way somebody wrote it and arrives the way the
+     network spells it, so both reduce to digits and compare on the last
+     nine: long enough that two people cannot collide, short enough that a
+     country code written one way here and another way there still lands on
+     the same person. */
+  const phoneKey = (s) => String(s || '').replace(/[^0-9]/g, '').slice(-9);
+  const conByPhone = (s) => DB.byPhone[phoneKey(s)] || null;
+
+  /* Contacts carry no initials of their own — only the twelve people in
+     `REP` do, because they are written by hand. A caller's are derived, the
+     way every avatar in the build derives them. */
+  const initialsOf = (n) => String(n || '').trim().split(/\s+/)
+    .map((w) => w.charAt(0)).join('').slice(0, 2).toUpperCase();
+
+  /* ══ WHY ARE THEY RINGING ME ════════════════════════════════════════════
+     `callPrep` already writes a full brief, and it writes it AFTER you
+     answer — by which time the question has changed from "why is this person
+     ringing me" to "what do I say". This is the first question, it has about
+     five seconds, and it gets one line.
+
+     ORDERED, AND THE ORDER IS THE RANKING. What you owe them beats what they
+     objected to beats where they are on the ladder, because a person ringing
+     you about a thing you promised is the likeliest call on this list and
+     also the most expensive one to walk into cold.
+
+     IT RETURNS NULL RATHER THAN A HEDGE. A strip that fills itself on a
+     contact with nothing behind it is a strip people learn to skip, and then
+     the once it knows something it is skipped too. Nothing true to say, no
+     strip.
+
+     INFERENCES ARE HEDGED AND FACTS ARE NOT. "Probably chasing" is a guess
+     about why somebody dialled and says so; a due date is not a guess, and
+     hedging it would teach the reader to doubt the one thing here that is
+     simply known. A reading that hedges everything equally is a reading
+     nobody can calibrate against. */
+  function ringRead(c) {
+    if (!c) return null;
+    const ts = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const last = ts[0] || null;
+    const sell = SELL[sellOf(c)];
+    const owed = c.next && c.next.what ? String(c.next.what) : null;
+    /* A step keeps the name it is stored under and takes the emphasis, which
+       is the idiom the rest of the build already reads a next step in. Lower-
+       casing it into the sentence made "demo for them" out of a thing that is
+       called Demo for them everywhere else on the screen. */
+    const step = owed ? '<b>' + esc(owed) + '</b>' : null;
+
+    if (owed && c.next.due && c.next.due < TODAY_ISO) {
+      return 'Probably chasing ' + step + ' — it was due ' +
+        esc(sayWhen(c.next.due)) + '.';
+    }
+    if (c.checkpoint === 'callback') {
+      return 'They asked to be called back and nobody has. This is probably them.';
+    }
+    if (last && last.objections && last.objections.length) {
+      const o = OBJECTION[last.objections[0]];
+      return 'Probably the same sticking point — <b>' +
+        esc(o ? o.label : last.objections[0]) + '</b> is what stopped it last time.';
+    }
+    if (owed) {
+      return 'You owe them ' + step + ' ' + esc(sayWhen(c.next.due)) + '.';
+    }
+    if (last && last.openings && last.openings.length) {
+      return 'Last call flagged them: <b>' +
+        esc(openLabel(last.openings[0])) + '</b>.';
+    }
+    if (rank(c.checkpoint) >= rank('interested')) {
+      return 'They wanted to go further on <b>' + esc(sell ? sell.name : 'this') + '</b>.';
+    }
+    if (c.remember && c.remember.text) return esc(c.remember.text);
+    return null;
+  }
+
+  /* ══ THE CARD ═══════════════════════════════════════════════════════════
+     Rendered whole on every state change rather than patched, because it has
+     three states and the largest of them is six elements. Its own host: the
+     toast rewrites `#toastHost` wholesale on every receipt, and a ringing
+     phone rendered into it would die the moment anything else happened. */
+  function paintRing() {
+    const host = byId('ringHost');
+    if (!host) return;
+    if (!RINGING) { host.innerHTML = ''; return; }
+    host.innerHTML = ringHtml();
+  }
+
+  function ringHtml() {
+    const r = RINGING;
+    const c = r.con ? DB.byCon[r.con] : null;
+    const live = r.state === 'live';
+    const a = c ? accOf(c) : null;
+    const said = live || !c ? null : ringRead(c);
+
+    const who = c ? c.name : r.phone;
+    /* NO CLOCK ON THE PILL. It carried one and it was a snapshot taken at
+       the moment of answering, so it read 0:00 beside a rail already reading
+       0:05 — two numbers for one call, one of them wrong, in the one second
+       a reader is looking at both. The rail owns the time; this owns the
+       handoff. Same argument the rail's own header makes about a clock
+       sitting next to "Connecting". */
+    const sub = live
+      ? 'Connected'
+      /* A stranger IS their number, so the number is the name and there is
+         no second line to put it on. It printed in both and read as two
+         facts, which is the one thing this card has no room for. */
+      : c
+        ? esc((a ? a.name + ' · ' : '') + (c.phone || r.phone))
+        : null;
+
+    return '<div class="b-ring" data-state="' + (live ? 'live' : 'ringing') + '" ' +
+        'role="alertdialog" aria-live="assertive" ' +
+        'aria-label="' + (live ? 'Call connected' : 'Incoming call') + ' from ' + esc(who) + '">' +
+      '<div class="b-ring-main">' +
+        '<span class="b-ring-av' + (c ? '' : ' is-unknown') + '" aria-hidden="true">' +
+          (c ? esc(initialsOf(c.name)) : '?') + '</span>' +
+        '<span class="b-ring-id">' +
+          '<span class="b-ring-name">' + esc(who) + '</span>' +
+          (sub ? '<span class="b-ring-sub">' + sub + '</span>' : '') +
+          (live ? '' : '<span class="b-ring-state">' +
+            (c ? 'Incoming call' : 'Not in the book') + '</span>') +
+        '</span>' +
+        (live ? '' :
+          '<span class="b-ring-acts">' +
+            '<button class="b-ring-btn is-no" type="button" data-ring-no ' +
+              'aria-label="Decline the call">' + chIcon('phone') + '</button>' +
+            '<button class="b-ring-btn is-yes" type="button" data-ring-yes ' +
+              'aria-label="Answer the call">' + chIcon('phone') + '</button>' +
+          '</span>') +
+      '</div>' +
+      (said
+        ? '<div class="b-ring-read">' +
+            '<svg class="b-ring-mark" viewBox="0 0 18 20" aria-hidden="true">' +
+              '<use href="#aimy-logo-small"/></svg>' +
+            /* Already escaped inside `ringRead`, which has to be: the step
+               name carries the emphasis, so the sentence is HTML by the
+               time it gets here and escaping it again would print tags. */
+            '<span class="b-ring-said">' + said + '</span>' +
+          '</div>'
+        : '') +
+    '</div>';
+  }
+
+  /* ══ START RINGING ══════════════════════════════════════════════════════ */
+  function ringIn(phone, forceUnknown, says) {
+    if (DB.call) { toast('You are already on a call. One line at a time.'); return; }
+    if (RINGING) return;
+    const id = forceUnknown ? null : conByPhone(phone);
+    ringStop();
+    RINGING = { phone: phone, con: id, state: 'ringing', says: says || 'anon' };
+    paintRing();
+    /* Nobody picks up for ever. The timeout is the honest end of a ring, and
+       it leaves the same trace a person would want afterwards: that the
+       phone went and you were not there. */
+    RING_TIMER = setTimeout(ringMissed, RING_MS);
+  }
+
+  function ringStop() {
+    if (RING_TIMER) { clearTimeout(RING_TIMER); RING_TIMER = null; }
+    if (RING_GONE) { clearTimeout(RING_GONE); RING_GONE = null; }
+  }
+
+  /* Out along the axis it came in on, and the state is cleared only when the
+     animation is done — clearing it first would take the card off the screen
+     and animate nothing. Reduced motion zeroes the animation, so the same
+     timer simply fires over an already-gone card. */
+  function ringRetire() {
+    ringStop();
+    const el = byId('ringHost') && byId('ringHost').firstElementChild;
+    if (!el) { RINGING = null; paintRing(); return; }
+    el.classList.add('is-leaving');
+    RING_GONE = setTimeout(() => { RING_GONE = null; RINGING = null; paintRing(); }, 260);
+  }
+
+  /* ══ ANSWER ═════════════════════════════════════════════════════════════
+     `startCall` with the two differences this direction actually has: it
+     opens LIVE, and the person on it may be nobody we hold. The stranger is
+     a contact-SHAPED object rather than a record — `callOn` falls back to it
+     so the whole rail draws unchanged — and it is never pushed into `DB`,
+     because a caller is not a lead until somebody says so. */
+  function answerInbound() {
+    const r = RINGING;
+    if (!r || r.state === 'live') return;
+    const c = r.con ? DB.byCon[r.con] : null;
+    ringStop();
+    clearCallTimers();
+
+    DB.call = {
+      con: r.con, camp: c ? campFor(c) : null, state: 'live', secs: 0,
+      dir: 'in', phone: r.phone,
+      stranger: c ? null : {
+        id: null, acc: null, name: r.phone, title: 'Not in the book',
+        phone: r.phone, camps: [], checkpoint: 'not-called', attempts: 0,
+        next: null, remember: null, dnc: false, fate: null,
+      },
+      script: (c ? INBOUND_SCRIPTS.known : INBOUND_SCRIPTS[r.says] || INBOUND_SCRIPTS.anon)
+        .map((l) => [l[0], l[1].split('{first}').join(c ? c.name.split(' ')[0] : 'there')]),
+      shown: 0, note: '', outcome: null, read: null,
+      when: 1, recording: false, muted: false, held: false,
+      asking: false, notice: false, auto: false, sess: null,
+    };
+    document.body.classList.add('is-calling');
+    paintCall();
+
+    CALL_TICK = setInterval(() => {
+      if (!DB.call) return;
+      DB.call.secs++;
+      const el = byId('callTimer');
+      if (el) el.textContent = (DB.call.held ? 'On hold · ' : '') + fmtClock(DB.call.secs);
+    }, 1000);
+    CALL_LINE = setInterval(growTranscript, LINE_MS);
+
+    /* ══ BOTH DOORS OPEN THE CANVAS, AND THEY DID NOT ══════════════════
+       A known caller gets the brief, which opens the canvas on its way past.
+       A stranger got nothing, on the argument that there is nothing to brief
+       and an empty brief is worse than none — and that was half right. There
+       is nothing to RECALL about somebody we do not hold. There is still
+       something to say, and it is the most useful sentence on the surface:
+       nobody is on this number, so the identity is not going to arrive from
+       the record and has to come out of the conversation.
+
+       Answering opened a call rail beside a closed canvas, and the question
+       that flow exists to ask did not turn up until the call was over. */
+    if (c) callPrep(c);
+    else strangerPrep(r.phone);
+
+    r.state = 'live';
+    paintRing();
+    RING_GONE = setTimeout(ringRetire, RING_HANDOFF_MS);
+  }
+
+  /* Three lines, and the same shape the known caller's brief takes so the
+     two read as one surface with a fact missing rather than as two surfaces.
+     "What to get" is the same caption, because it is the same question: on a
+     lead it is a function of the rung, and on a stranger there is no rung, so
+     it is the thing every rung starts from. */
+  function strangerPrep(phone) {
+    const body = '<div class="b-prep">' +
+      '<p class="b-prep-id">Not in the book · ' + esc(phone) + '</p>' +
+      '<blockquote class="b-open">' +
+        '<span class="b-open-cap">What to get</span>' +
+        '<p class="b-open-say">Their name and who they work for. I will read the ' +
+          'call back when you hang up and offer to open an account on it.</p>' +
+      '</blockquote>' +
+    '</div>';
+    openCanvas();
+    say('aimy', answerBlock('While you have them on the line', body,
+      'nothing on the record'));
+  }
+
+  /* ══ DECLINE, AND MISSED ════════════════════════════════════════════════
+     Both leave a trace, and the trace is only writable against somebody we
+     hold — there is no record for a stranger's unanswered call to sit on,
+     and inventing one to have somewhere to write would be minting a lead out
+     of a phone ringing. For a stranger the toast is the whole of it, and it
+     carries the number so the caller can be rung back by hand. */
+
+  /* ══ MAKING IT RING, OFF THE LIVE CORPUS ════════════════════════════════
+     The panel's own rule, and it is the reason the panel is worth having: a
+     trigger resolves against records that really are in the state it claims,
+     never against a fixture written to look like one. So the known caller is
+     a person actually on the board with a number actually on file, preferred
+     in the order `ringRead` has most to say about — a demonstration where
+     AiMY has nothing to add demonstrates nothing.
+
+     And the unknown one has to genuinely miss. A number picked at random
+     could collide with somebody we hold, and the one run where it did would
+     show the wrong half of the feature with no sign anything was wrong. */
+  function ringTrigger(which) {
+    if (which === 'named' || which === 'anon') {
+      let n = '';
+      do {
+        n = '+31 6 ' + String(Math.floor(1000 + Math.random() * 9000)) +
+          ' ' + String(Math.floor(1000 + Math.random() * 9000));
+      } while (conByPhone(n));
+      ringIn(n, true, which);
+      return;
+    }
+    const c = ringPick();
+    if (!c) { toast('Nobody on the board has a number on file to call in from.'); return; }
+    ringIn(c.phone, false);
+  }
+
+  /* Whoever has the most to be read about them, by the same ranking
+     `ringRead` uses — so pressing this twice on the same corpus shows the
+     same thing, and the thing it shows is the top of the strip's own list
+     rather than whichever contact the seed happened to write first. */
+  function ringPick() {
+    const mine = DB.con.filter((c) => canRing(c) && ringRead(c));
+    if (!mine.length) return DB.con.filter(canRing)[0] || null;
+    const score = (c) => {
+      if (c.next && c.next.due && c.next.due < TODAY_ISO) return 0;
+      if (c.checkpoint === 'callback') return 1;
+      const t = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
+      if (t && t.objections && t.objections.length) return 2;
+      if (c.next) return 3;
+      return 4;
+    };
+    return mine.slice().sort((a, b) => score(a) - score(b))[0];
+  }
+
+  /* Both are `no-answer` and neither is a word of its own. It is the one
+     outcome that asserts no contact, which is exactly what a phone that
+     rang and was not picked up asserts — and inventing an eighth outcome
+     for it would put a key in the record that no filter, count or lexicon
+     in the build can read. Which of the two it was is in the note. */
+  function declineInbound() { ringEnded('You declined'); }
+  function ringMissed() { ringEnded('You missed'); }
+
+  function ringEnded(verb) {
+    const r = RINGING;
+    if (!r || r.state === 'live') return;
+    const c = r.con ? DB.byCon[r.con] : null;
+    ringRetire();
+    if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody on the board has that number.'); return; }
+    const now = new Date().toISOString();
+    const t = {
+      id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
+      outcome: 'no-answer', auto: false, dir: 'in',
+      proposals: [], objections: [], openings: [],
+      note: verb + ' their call.', lines: [], next: null, moved: null,
+      called: c.checkpoint,
+    };
+    addTouch(t);
+    paint();
+    toast(verb + ' a call from ' + c.name + '. It is on their record.',
+      () => { dropTouch(t.id); paint(); });
+  }
 
   /* ══ 7c. WHAT A CALL CANNOT SAY ═════════════════════════════════════════
      Four steps are things a person OBSERVED, not things a call record
@@ -16883,6 +17376,20 @@
   let REACH_SAID = false;
   let REACH_HIT = null;
   function reachGreet() {
+    /* ══ AND IT IS THE MANAGER'S MOVE, NOT THE CALLER'S ═════════════════
+       What this offers is a stranger who is NOT on the board, found in
+       `DB.net`, reachable through somebody in your own LinkedIn network,
+       ranked by what the work would be worth. That is sourcing: deciding
+       which company to go after and spending a personal connection to get
+       in. A BDR does not decide which companies to go after. They work the
+       queue they were given, and the two verbs under this message — write
+       the ask, add them to the board — are both outside what that desk
+       does.
+
+       It was greeting every desk, and the default desk is a BDR's, so the
+       first thing the product said to the person it is named for was an
+       offer to do somebody else's job. */
+    if (!isMgr()) return;
     if (REACH_SAID) return;
     const hit = reachTop();
     if (!hit) return;
@@ -17001,6 +17508,8 @@
                 : t.step === 'cbuild' ? 'data-cb="' + esc(o.k) + '"'
                 : t.step === 'meetlog' ? 'data-meetlog="' + esc(o.k) + '"'
                 : t.step === 'calllog' ? 'data-calllog="' + esc(o.k) + '"'
+                : t.step === 'whois' ? 'data-whois="' + esc(o.k) + '"'
+                : t.step === 'whoismake' ? 'data-whoismake="' + esc(o.k) + '"'
                 : t.step === 'reach' ? 'data-reach="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
               esc(o.label) + '</button>').join('') + '</div>'
@@ -18110,10 +18619,15 @@
     const c = {
       id: 'y' + tag, acc: a ? a.id : null, name: f.name,
       title: f.title || 'Title not known',
-      phone: null, email: null, camps: [], owner: null,
-      checkpoint: 'handed-over', checkpointAt: now,
+      /* A lead typed into the bar knows none of these; one made out of a
+         call that just happened knows all four, and defaulting them would
+         throw away the number they rang from and file them as handed over
+         to a manager who has never heard of them. */
+      phone: f.phone || null, email: null, camps: [], owner: null,
+      checkpoint: f.step || 'handed-over', checkpointAt: now,
       attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
-      fate: SCENARIOS[0].k, enrichedAt: null, manager: me().id,
+      fate: SCENARIOS[0].k, enrichedAt: null,
+      manager: f.manager === undefined ? me().id : f.manager,
       /* What it is for, when the sentence said. It is the only field on a
          lead that a campaign would otherwise have supplied, and a lead
          added by hand has no campaign — so without it the board prices
@@ -18124,8 +18638,8 @@
     const t = {
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
       outcome: 'added', proposals: [], objections: [], openings: [],
-      note: 'Added by hand' + (f.co ? ', met at ' + f.co : '') + '.',
-      lines: [], next: null, moved: null, called: 'handed-over',
+      note: f.note || ('Added by hand' + (f.co ? ', met at ' + f.co : '') + '.'),
+      lines: [], next: null, moved: null, called: f.step || 'handed-over',
     };
     DB.acc = DB.acc.concat(madeAcc);
     DB.con = DB.con.concat([c]);
@@ -18143,6 +18657,9 @@
       save();
       go(cleared());
     });
+    /* The record it made, for a caller that has to log a call against it
+       the moment it exists. Nothing else reads this. */
+    return c;
   }
 
   /* Who the sentence is about: a name in it on one of your campaigns, else
@@ -18205,6 +18722,16 @@
       say('aimy', 'I could not read a step out of that, so nothing was written. ' +
         'Say it again with what came of the meeting in it.');
       paintThread();
+      return;
+    }
+    /* WHO was on the phone, which is a different question from what
+       happened on it. Claimed above `callLogCorrect` because that reads a
+       sentence for a disposition and would find none in a name, a role and
+       a company — and then report that it could not read a disposition out
+       of a sentence that was never about one. */
+    if (PENDING && PENDING.kind === 'whois') {
+      openCanvas();
+      whoisRead(t);
       return;
     }
     if (PENDING) {
@@ -18852,6 +19379,18 @@
     const calls = callsIn(hist);
     const last = hist[0];
     const sess = DB.call && DB.call.sess;
+    /* ══ THE SAME BRIEF, AND IT IS NOT THE SAME CALL ═══════════════════
+       Everything below was written for a call somebody here decided to
+       place, and two of its parts are false the moment the other end
+       dialled. It is one function with two branches rather than two
+       functions, for the reason the read-back card gives about itself: a
+       second renderer is a second thing that can disagree with the first.
+       Everything not branched below holds either way, because recall is
+       recall whoever pressed the button. */
+    const inbound = !!(DB.call && DB.call.dir === 'in');
+    /* Read once, above everything that branches on it: the state line needs
+       to know whether the reading already names the owed step. */
+    const why = inbound ? ringRead(c) : null;
     const rg = called[c.checkpoint];
     const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
 
@@ -18859,24 +19398,89 @@
 
     /* WHO, AS A SUBTITLE. The block is already headed with their name, so
        repeating it as the first of nine facts spent the loudest line on the
-       one thing the reader had just read. */
+       one thing the reader had just read.
+
+       Sector and headcount are firmographics: they shape a PITCH, which is
+       what this brief is for when you are the one dialling. On a call already
+       in progress they are two more clauses wrapping the identity onto a
+       second row, and nobody mid-conversation needs telling how many people
+       work there. Inbound, role and company IS the summary. */
     body += '<p class="b-prep-id">' + esc(c.title) +
-      (a ? ' · ' + esc(a.name) + (accKnown(a)
+      (a ? ' · ' + esc(a.name) + (!inbound && accKnown(a)
         ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
 
     /* ── 1. where they stand, and what is owed ── */
+    /* `rg.say` is a gloss on the rung — "you got them on the phone" — and
+       reading that to somebody who IS on the phone with them is the brief
+       narrating what the reader is doing. The rung's own label stays,
+       because which step this is remains the question. */
+    const owedNamed = inbound && c.next && why && why.indexOf(c.next.what) >= 0;
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
         esc(rg.label) + '</span>' +
-      '<span class="b-prep-owed">' + esc(rg.say) +
-        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>' +
-      (c.next
+      (inbound ? '' : '<span class="b-prep-owed">' + esc(rg.say) +
+        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>') +
+      /* The chip and the reading are the same fact when the reading is the
+         overdue step — "Call them back · was due 6 Sep" over "Probably
+         chasing Call them back, it was due 6 Sep". The sentence keeps it,
+         because it is the one that says what it MEANS. */
+      (c.next && !owedNamed
         ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
           esc((late ? 'was due ' : 'due ') + sayWhen(c.next.due)) + '</span>'
         : '') +
     '</div>';
 
-    /* ── 2. the sentence you say ── */
+    /* ── 2. the sentence you say, or the reason they are saying one ──
+       An opener is a script for the half-second you control, and on an
+       inbound call you do not have it: they spoke first, they have the
+       agenda, and handing somebody a line to open with after they have
+       already been greeted is the brief describing a call that is not
+       happening.
+
+       What replaces it is the question that IS live in that second — why
+       are they ringing — read by the same function the banner's strip
+       uses, so the sentence somebody decided to answer on is the sentence
+       still in front of them. And it keeps that function's discipline: no
+       reading, no block, rather than a hedge under a caption. */
+    if (inbound) {
+      if (why) {
+        body += '<blockquote class="b-open">' +
+          '<span class="b-open-cap">Why they called</span>' +
+          '<p class="b-open-say">' + why + '</p>' +
+        '</blockquote>';
+      }
+      /* ══ AND WHAT TO GET OUT OF IT, WHICH IS A FUNCTION OF THE RUNG ══
+         The outbound brief spends its last third on the campaign: what is
+         being sold, what to ask for, what can be sent. That is preparation,
+         and it is three paragraphs of it to read while somebody waits on the
+         line. `whatNext` already answers the same question in one sentence
+         off the checkpoint — call them back, ask for the meeting, say
+         whether they turned up, hand them over — and one sentence is what
+         there is time for. The caption says Next, so the sentence does not
+         have to; the record's own rail strips it the same way. */
+      body += '<blockquote class="b-open">' +
+        '<span class="b-open-cap">What to get</span>' +
+        '<p class="b-open-say">' + esc(whatNext(c).replace(/^Next:\s*/, '')
+          .replace(/^./, (x) => x.toUpperCase())) + '</p>' +
+      '</blockquote>';
+      /* The one standing instruction about this person, and the only part of
+         the long brief that survives into the short one: it is a thing
+         somebody wrote down BECAUSE it would be needed on a call. */
+      if (c.remember) {
+        body += '<div class="b-prep-know"><p class="b-prep-line"><b>Remember</b> ' +
+          esc(c.remember.text) + ' <span class="s-callp-who">— ' +
+          esc(actor(c.remember.by).name) + '</span></p></div>';
+      }
+      body += '</div>';
+      /* The outbound path opens the canvas on its way past the bottom of
+         this function; the inbound one returns here, so it opens its own.
+         Without this the brief was written into a thread nobody was
+         looking at. */
+      openCanvas();
+      say('aimy', answerBlock('While you have ' + c.name + ' on the line', body,
+        calls.length ? plural(calls.length, 'call') + ' on the record' : 'nothing on the record yet'));
+      return;
+    }
     body += '<blockquote class="b-open">' +
       '<span class="b-open-cap">Open with</span>' +
       '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
@@ -19014,7 +19618,15 @@
   function logSay(call) {
     const h = logHeard(call);
     const d = OUTCOME[call.outcome];
-    const bits = [d ? 'I read that as ' + d.label.toLowerCase() + '.'
+    /* "I read that as connected" on a call with no transcript claims a
+       reading that did not happen. Inbound, the outcome there comes from the
+       call having been ANSWERED rather than from anything said, so it says
+       so — the claim is the same and the basis is stated, which is the
+       difference between a reading and an assertion. */
+    const bits = [d
+      ? (call.dir === 'in' && call.guessed
+        ? 'Nothing was written down, so all I have is that you spoke.'
+        : 'I read that as ' + d.label.toLowerCase() + '.')
       : 'I could not tell how that one ended.'];
     if (h.objs.length) {
       bits.push(listSay(h.objs.map((k) => OBJECTION[k].label)) +
@@ -19123,11 +19735,232 @@
     '</div>';
   }
 
+
+  /* ══ A CALL FROM SOMEBODY WE DO NOT HOLD ════════════════════════════════
+     The read-back above proposes a TOUCHPOINT, and a touchpoint needs a
+     record to sit on. Here there is none, so what is proposed first is the
+     record — and it is proposed rather than made, because a phone ringing is
+     not consent to put a person on a board.
+
+     TWO READINGS, AND THE DIFFERENCE BETWEEN THEM IS THE POINT. `readWho`
+     comes back with whatever the caller actually said about themselves and
+     nothing else. When it got a name, AiMY says what she got and the button
+     is the confirm — the reading IS the read-back. When it got nothing she
+     says that too, in those words, and asks for it in a sentence. A reader
+     that always returns something could say neither. */
+  function callLogProposeUnknown() {
+    const call = PENDING;
+    if (!call) return;
+    const who = readWho((call.lines || []).map((l) => [l.who, l.text]));
+    const num = call.phone || 'that number';
+    call.who = who;
+
+    /* Their role and their company are ONE fact — "runs facilities at
+       Kuijpers" — and pushing them separately made the list read "they run
+       facilities and at Kuijpers". A list joins things that stand alone. */
+    const said = [];
+    if (who.name) said.push('they gave their name as ' + who.name);
+    if (who.title && who.co) said.push('they run ' + who.title + ' at ' + who.co);
+    else if (who.title) said.push('they run ' + who.title);
+    else if (who.co) said.push('they mentioned ' + who.co);
+
+    /* ══ AND IT HAS TO OPEN THE CANVAS, BECAUSE NOTHING ELSE DID ══════
+       Every other read-back is written into a thread that is already on
+       screen: `callPrep` opens the canvas when the call starts, so
+       `callLogPropose` can push a turn and trust somebody is looking at it.
+
+       This path never called `callPrep`. There is nothing to brief on a
+       stranger and an empty brief is worse than none, so `answerInbound`
+       skips it — and the consequence was that the one question this whole
+       flow exists to ask was asked into a closed surface. The call ended,
+       the rail went away, and the screen went back to the board with no
+       sign anything had happened. */
+    openCanvas();
+    lbuildSpend();
+
+    /* ══ THE SENTENCE IS CLAIMED EITHER WAY ════════════════════════════
+       Whatever comes back is about WHO was on the phone, so `runInput`
+       routes it to `whoisRead` rather than to the call-reading corrector.
+       That is what lets a wrong reading be answered by typing the right
+       one instead of by pressing a button and then being asked. */
+    call.kind = 'whois';
+
+    /* ══ SHE GOT SOME OF IT, OR SHE GOT NONE, AND THEY ARE NOT THE SAME
+       QUESTION ═══════════════════════════════════════════════════════
+       Both used to end "Shall I open an account?" over a Yes button, which
+       asks the reader to confirm a proposal in one case and to authorise a
+       blank in the other. The two need different answers from them.
+
+       GOT SOME: it is a reading, so it can be WRONG, and the way to say so
+       is the way you say so everywhere else here — write the right one. The
+       button agrees with what she heard; typing overrules it per axis.
+
+       GOT NONE: there is nothing to agree with, so there is nothing for a
+       Yes to mean. Pressing it only ever produced a second turn asking for
+       the details, which is a click spent on a question she could have
+       asked outright. She asks outright. Nothing is opened until somebody
+       types a name either way, so the confirm was never protecting a
+       write. */
+    TURNS.push({
+      who: 'aimy',
+      html: said.length
+        /* A colon, not "I got". The clauses are full sentences — "they gave
+           their name as X" — so a verb in front of them produced "I got they
+           gave their name as X". The colon does the same work of marking
+           this as a report rather than a fact, and the hint below says the
+           rest. */
+        ? esc(num) + ' is not in the book. From the call: ' + esc(saidList(said)) +
+          '. Shall I open an account on that?'
+        : esc(num) + ' is not in the book, and nothing in the call told me who it ' +
+          'was. Tell me who they were and I will open an account for them.',
+      hint: said.length
+        ? 'If I got any of that wrong, type it correctly instead and I will use yours.'
+        : 'A name is enough. Like "Ruben Haverkamp, Head of Facilities at Kuijpers".',
+      step: 'whois',
+      opts: said.length
+        ? [{ k: 'make', label: 'Open an account' }, { k: 'no', label: 'No, leave it', quiet: true }]
+        : [{ k: 'no', label: 'No, leave it', quiet: true }],
+    });
+    paintThread();
+  }
+
+  /* "a, b and c" — the list read out rather than punctuated. Three facts
+     separated by middle dots is a data row; this is AiMY talking. */
+  function saidList(parts) {
+    if (parts.length < 2) return parts[0] || '';
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+  }
+
+  /* Nothing was heard, so nothing is guessed. The sentence is claimed by
+     `runInput` on the way in, the same door `bookday` and `meet` use. */
+  function whoisAsk() {
+    const call = PENDING;
+    if (!call) return;
+    call.kind = 'whois';
+    lbuildSpend();
+    TURNS.push({
+      who: 'aimy',
+      html: 'Tell me who they were and I will open it. A name is enough; ' +
+        'their role and company go in if you have them.',
+      hint: 'Like "Ruben Haverkamp, Head of Facilities at Kuijpers"',
+    });
+    paintThread();
+  }
+
+  /* The same parser the composer's "add a lead" uses, because it is the same
+     sentence. Two readers over one language is two readers that drift, and
+     the drift is invisible: the identical sentence typed at two doors would
+     quietly produce two different people. */
+  function whoisRead(text) {
+    const call = PENDING;
+    if (!call) return false;
+    /* ══ A CORRECTION IS A SENTENCE, NOT A FIELD ══════════════════════
+       `readLead` was written for the composer, where you have already typed
+       "add a lead" and what follows is the record: Name, Title at Company.
+       Here AiMY has just read something out and asked whether it is right,
+       so what comes back is an answer to a question — "actually it was Bram
+       de Vries, he runs IT at Kuijpers" — and the first comma-separated
+       piece of that is not a name, it is a name with a correction stuck to
+       the front of it. It went on the board as Actually It Was Bram De
+       Vries.
+
+       The preambles come off first, repeatedly, because they stack: no,
+       actually, it was. Only at the START of the sentence and only these
+       exact openers — a general cleaner would start editing names. */
+    const PRE = /^\s*(?:no|actually|sorry|it was|that was|it is|his name is|her name is|their name is|they said|he is|she is|they are)(?![a-z])[,\s]*/i;
+    let said = String(text || '');
+    for (let i = 0; i < 4 && PRE.test(said); i++) said = said.replace(PRE, '');
+    const f = readLead(said || text);
+    /* "he runs IT" is a sentence about a job, and the field wants the job. */
+    if (f && f.title) f.title = f.title.replace(/^\s*(?:he|she|they)\s+/i, '').trim();
+    say('you', esc(text));
+    /* ══ READLEAD IS TOO WILLING TO BE ASKED ═══════════════════════════
+       It splits on commas and takes the first piece, and its only test is
+       that the piece contains a letter. That is defensible at the composer,
+       where the sentence had to open with "add a lead" to get there at all.
+       Here AiMY asked an open question, so the reply can be anything a
+       person says when they do not know — and "dunno, some bloke" came back
+       as a lead called Dunno with the job title Some Bloke, read aloud with
+       a confirm button under it.
+
+       A name is capitalised. Somebody who types theirs in lower case is
+       asked once more, which costs a sentence; the alternative costs a
+       record on the board that nobody will ever be able to explain. */
+    const named = f && /(^|\s)[A-Z]/.test(f.name);
+    if (!named) {
+      say('aimy', 'That did not read as a name, so nothing was opened. ' +
+        'Write it the way it goes on the record and I will put them on the board.');
+      paintThread();
+      return true;
+    }
+    call.kind = null;
+    call.made = f;
+    lbuildSpend();
+    TURNS.push({
+      who: 'aimy',
+      html: esc(f.name) + (f.title ? ', ' + esc(f.title) : '') +
+        (f.co ? ' at ' + esc(f.co) : ', at no company you named') +
+        '. Opening that and logging the call against them.',
+      hint: f.co ? '' : 'Without a company they land on your board on their own.',
+      step: 'whoismake',
+      /* "an", not "the". There is no account yet — and "Open the account"
+         is already a control in this build, on records that HAVE one, where
+         it means go and look at it. Two verbs behind one label is the kind
+         of collision nobody reports and everybody mis-clicks once. */
+      opts: [{ k: 'go', label: 'Open an account' }],
+    });
+    paintThread();
+    return true;
+  }
+
+  /* ══ ONE WRITE, THEN THE CALL LANDS ON IT ═══════════════════════════════
+     `addLead` already mints the account, links the contact, writes the
+     arrival touchpoint and registers an undo that unpicks all three. The
+     only thing it did not do was hand back what it made, which is what a
+     caller needs in order to log a call against a person who existed one
+     line ago.
+
+     THEN THE ORDINARY PATH. `PENDING` is re-pointed at the new contact and
+     the standard read-back runs — so an inbound call from a stranger is
+     logged by exactly the code that logs every other call, which is what
+     "and then it logs normally" has to mean. */
+  function whoisMake() {
+    const call = PENDING;
+    if (!call) return;
+    const w = call.made || call.who || {};
+    if (!w.name) { whoisAsk(); return; }
+    const c = addLead({
+      name: w.name, title: w.title || null, co: w.co || null, sell: w.sell || null,
+      phone: call.phone || null,
+      /* They rang us and we spoke. Not 'handed-over': no manager has this,
+         and the step a call earns is the one the call actually reached. */
+      step: 'answered', manager: null,
+      note: 'Called in on ' + (call.phone || 'an unknown number') + '.',
+    });
+    if (!c) return;
+    /* Released here as well as in `whoisRead`, because agreeing with the
+       reading skips that function entirely — and a claim left standing would
+       send the next sentence, which is about the CALL, to the identity
+       reader. */
+    call.kind = null;
+    call.con = c.id;
+    call.camp = null;
+    call.who = null;
+    call.made = null;
+    callLogPropose();
+  }
+
   function callLogPropose() {
     const call = PENDING;
     if (!call) return;
     const c = DB.byCon[call.con];
-    if (!c) return;
+    /* NOT A DEAD END ANY MORE. This returned, and returning was the whole
+       reason a call from somebody not in the book could not be logged: the
+       call happened, AiMY read it, and then the proposal quietly declined
+       to exist. There is something to say about a stranger, and it is said
+       next door rather than here, because what it proposes is a person
+       rather than a touchpoint. */
+    if (!c) { callLogProposeUnknown(); return; }
     const mv = moveFor(c, call.outcome || 'no-answer', logHeard(call).props, call.when);
     const sess = call.sess;
     const nextCon = sess ? DB.byCon[sess.ids.filter((id) => id !== call.con &&
@@ -19151,7 +19984,16 @@
          Outside a run the read-back ended with "Log it" and the queue.
          The queue's next person is one press away now — the same ranking
          the page shows — and plain "Log it" stays for when it is not. */
-      opts: sess
+      /* ══ AN INBOUND CALL IS NOT A RUN ═══════════════════════════════
+         "Log it and call Evie" is the queue's next person, and the queue is
+         a list of people the caller CHOSE to ring. Somebody ringing in did
+         not put anybody in a run and does not hand you the next one, so the
+         only thing to do with the call that just happened is write it down.
+         Offering the queue here would turn answering the phone into the
+         start of a session nobody asked to begin. */
+      opts: call.dir === 'in'
+        ? [{ k: 'go', label: 'Log it' }]
+        : sess
         ? [{ k: 'go', label: nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish' }]
         : (function () {
             /* the scope you are working: on a campaign page, its queue */
@@ -20232,6 +21074,11 @@
 
     if (t.closest('[data-callgo]')) { callGo(); return; }
     if (t.closest('[data-call-end]')) { endCall(); return; }
+    /* The two presses on a ringing phone. Beside the controls that end a
+       call rather than down with the prototype triggers, because the
+       widget is product and only the thing that makes it ring is not. */
+    if (t.closest('[data-ring-yes]')) { answerInbound(); return; }
+    if (t.closest('[data-ring-no]')) { declineInbound(); return; }
     if (t.closest('[data-call-rec]')) {
       if (!DB.call) return;
       if (DB.call.recording) { DB.call.recording = false; paintCall(); return; }
@@ -20270,6 +21117,25 @@
       else { PENDING = null; lbuildSpend(); say('aimy', 'Left as it was.'); paintThread(); }
       return;
     }
+
+    const wi = t.closest('[data-whois]');
+    if (wi) {
+      lbuildSpend();
+      if (wi.getAttribute('data-whois') === 'make') {
+        /* Nothing heard means nothing to confirm, so it asks. Something
+           heard was already read back in the question above, and pressing
+           the button IS the confirm — asking again would be asking you to
+           agree to a sentence twice. */
+        if (PENDING && PENDING.who && PENDING.who.name) whoisMake();
+        else whoisAsk();
+      } else {
+        PENDING = null;
+        say('aimy', 'Left alone. Nothing was opened and the call is not on a record.');
+        paintThread();
+      }
+      return;
+    }
+    if (t.closest('[data-whoismake]')) { lbuildSpend(); whoisMake(); return; }
 
     const cl = t.closest('[data-calllog]');
     if (cl) {
@@ -20574,9 +21440,14 @@
     const undoEl = t.closest('[data-undo]');
     if (undoEl) { const fn = UNDO; toastGone(); if (fn) fn(); return; }
 
-    const cap = t.closest('[data-cap]');
-    if (cap) { UI.cap = Number(cap.getAttribute('data-cap')) || 0; saveUI(); paint(); return; }
+    /* `data-cap` was the queue cap and went with the prototype panel's
+       other sections; nothing else rendered it and its branch went too.
 
+       `data-as` STAYS, and the audit is why I know. The panel's desk
+       switcher was a second copy of a control the product already has —
+       `#asPanel`, the Looking as menu under the user chip in the topnav.
+       Dropping the branch with the buttons broke the real one, and the
+       drawn-not-wired check caught it in the same second. */
     const as = t.closest('[data-as]');
     if (as) {
       shutMenus(null);
@@ -20586,6 +21457,20 @@
 
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
+
+    /* Make the phone ring. The panel shuts first: it is bottom-right and
+       the widget is top-centre, so nothing overlaps, but a panel left open
+       over a ringing phone is a prototype control competing with the thing
+       it was pressed to demonstrate. */
+    const inb = t.closest('[data-inbound]');
+    if (inb) {
+      const panel = byId('protoPanel');
+      if (panel) panel.hidden = true;
+      const btn = byId('protoToggle');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      ringTrigger(inb.getAttribute('data-inbound'));
+      return;
+    }
 
     /* One control, one panel. The rail's gate was the second way in and it
        is a link to the console now, so `data-proto` is wired to nothing and
@@ -20689,6 +21574,25 @@
   /* The pitch opens the first time and stays however you left it after that.
      `toggle` does not bubble, so it is caught in the capture phase rather
      than by hanging a listener on an element every repaint replaces. */
+  /* ══ A RINGING PHONE CLAIMS TWO KEYS ═══════════════════════════════
+     Registered above the composer's own Enter, because this build already
+     binds Enter to START a call and a person reaching for the keyboard
+     while a phone is ringing means the one in front of them.
+
+     IT YIELDS TO ANYBODY WHO IS TYPING. A caller mid-sentence in the
+     composer presses Enter to send it, not to answer a call, and stealing
+     that keystroke would throw the sentence away to do something they
+     could not have meant. Focus is never taken by the widget either, for
+     the same reason. */
+  document.addEventListener('keydown', (e) => {
+    if (!RINGING || RINGING.state === 'live') return;
+    const el = e.target;
+    const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+      el.isContentEditable);
+    if (typing) return;
+    if (e.key === 'Enter') { e.preventDefault(); answerInbound(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); declineInbound(); }
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' || e.shiftKey) return;
     const el = e.target;

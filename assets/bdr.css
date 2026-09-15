@@ -4385,3 +4385,249 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   .chat-msg.aimy:not(.is-thinking) .msg-bubble,
   .chat-msg.aimy:not(.is-thinking) .msg-avatar { transition: none; }
 }
+
+/* ══ 93. THE PHONE RINGING ═══════════════════════════════════════════
+   The one surface in this build that the user did not ask for and cannot
+   defer. Everything else here appears because somebody pressed something;
+   this appears because somebody else did, and it has a deadline.
+
+   SO IT IS THE BANNER AND NOT THE PANEL. A ringing call is answered from
+   wherever you are — mid-canvas, mid-scroll, three rows into a queue — so
+   it cannot be a region that reflows the shell, and it cannot wait for a
+   surface to close. It is fixed, it is centred on the WINDOW the way the
+   composer and the toast are, and it sits under the topnav rather than over
+   it: covering the chrome would take the mark, the tabs and the bell away
+   for the length of a ring, and nothing about answering a phone needs them
+   gone.
+
+   THE LAYER. 970, one above the toast's 960 and two above the prototype
+   panel's 950. A receipt for something that already happened must not cover
+   a phone that is still ringing, and a prototype control never covers
+   anything. */
+.b-ring-host {
+  position: fixed;
+  top: calc(var(--topbar-height) + 12px);
+  left: 50%;
+  z-index: 970;
+  /* The host holds the centring and the card holds the motion, so the
+     entrance's transform is never fighting a translate that positions it. */
+  transform: translateX(-50%);
+  /* Empty most of the time, and an empty fixed box across the top of the
+     window would eat the first click on everything under it. */
+  pointer-events: none;
+}
+.b-ring-host:empty { display: none; }
+
+.b-ring {
+  pointer-events: auto;
+  width: 384px; max-width: calc(100vw - 32px);
+  border-radius: var(--r-2xl);
+  background: var(--composer-skin);
+  border: 1px solid var(--composer-edge);
+  /* The panel elevation, because this is further off the page than anything
+     else on it — plus the inner top hairline the composer uses, which is
+     what makes the two read as the same material rather than as two boxes
+     of the same colour. */
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+:root[data-theme="light"] .b-ring {
+  box-shadow:
+    0 16px 48px rgba(16, 24, 40, 0.16),
+    0 0 0 1px rgba(16, 24, 40, 0.04);
+}
+
+.b-ring-main { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+
+/* ── Who it is ──
+   Initials, because there is not a photograph anywhere in this product and
+   a grey silhouette is a photograph that failed. The unknown caller gets a
+   question mark on a flat ground rather than the avatar gradient: the
+   gradient means we hold a person, and we do not. */
+.b-ring-av {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--grad-avatar); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--fs-sm); font-weight: var(--fw-bold);
+  flex-shrink: 0; position: relative;
+}
+.b-ring-av.is-unknown {
+  background: var(--d700); color: var(--d200);
+  font-size: var(--fs-lg); font-weight: var(--fw-bold);
+}
+/* THE RING IS NOT A DECORATIVE PULSE. The doctrine's Never list names
+   pulsing decorative dots, and this is the other kind: `.call-live` in
+   sales.css already pulses for exactly this reason, with the argument that
+   it is the one thing on the surface true RIGHT NOW rather than true as of
+   the last paint. A phone that is ringing is the same claim, and it stops
+   the moment the claim does. */
+.b-ring[data-state="ringing"] .b-ring-av::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid var(--brand); opacity: 0.55;
+  animation: b-ring-pulse 1.6s var(--ease-out) infinite;
+}
+@keyframes b-ring-pulse {
+  from { transform: scale(0.86); opacity: 0.55; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+
+.b-ring-id { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.b-ring-name {
+  font-size: var(--t-lead); font-weight: var(--fw-bold); color: var(--d50);
+  line-height: var(--lh-tight);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* A number is a number: tabular, so two callers' numbers do not wobble
+   against each other across two rings. */
+.b-ring-sub {
+  font-size: var(--t-micro); color: var(--d200); margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* `--d200` and not below it. This line says which of the two states the
+   card is in, and a state set at caption weight under its own subject is
+   the footnote problem the briefing already argued its way out of. */
+.b-ring-state {
+  font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--d200); margin-top: 2px;
+  text-transform: uppercase; letter-spacing: var(--ls-wide);
+}
+
+/* ── Answer and decline ──
+   Filled circles, because these are the two most consequential presses in
+   the build and a ghost button on a card that is already floating reads as
+   optional. The SIGNAL COLOURS ARE FILLS HERE and never text: `--ok` and
+   `--err` measure 4.37:1 and 3.82:1 as small type, which is under the floor,
+   so the glyph on top is white and every word on this card is neutral.
+
+   THE PAIR IS `--answer-fill` / `--hangup-fill`, and it is the rail's too.
+   This was `--ok` over `--err` — a mint and a salmon, the two quietest
+   things in the palette, on the two loudest presses in the build.
+
+   Green answers and red refuses because every phone anybody has held for
+   twenty years does, which is the same Jakob's Law argument this component
+   already makes for the handset glyphs themselves.
+
+   THE GREEN IS THIS SURFACE'S ALONE, and that is the point of it. `.call-go`
+   in the rail is brand, because dialling somebody you picked off a queue
+   after reading their brief is not the same act as a phone going off in
+   front of you. Green is the colour of a decision somebody else started.
+   `.call-end` IS `--hangup-fill`, though: ending a live call and refusing
+   one that is ringing are the same verb, so they are the same red.
+
+   Both live in sales.css beside `--ok-text` and its siblings — product-local
+   names, not a re-theme of the family — and both are pinned by contrast
+   against the white glyph rather than by taste. The reasoning and the
+   measurements are on the declaration. */
+.b-ring-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.b-ring-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #fff; padding: 0;
+  transition: transform var(--t-press) var(--ease-out),
+              background-color var(--t-fast) var(--ease-out);
+}
+.b-ring-btn svg { width: 19px; height: 19px; display: block; }
+.b-ring-btn.is-no { background: var(--hangup-fill); }
+/* The handset turned down, which is what declining looks like on every
+   phone anybody has held. Rotating the same glyph rather than drawing a
+   second one keeps the two buttons visibly one pair. */
+.b-ring-btn.is-no svg { transform: rotate(134deg); }
+.b-ring-btn.is-yes { background: var(--answer-fill); }
+/* Both darken, because both are now saturated fills rather than one fill
+   and one brand: lightening a green that is already close to its contrast
+   floor would push it under. */
+.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--hangup-fill) 88%, #000); }
+.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--answer-fill) 88%, #000); }
+.b-ring-btn:active { transform: scale(0.94); }
+.b-ring-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ── What AiMY thinks they want ──
+   The five seconds before you decide to pick up. `callPrep` already writes a
+   full brief, but it does that AFTER you answer, and by then the question
+   has changed from "why is this person ringing me" to "what do I say". This
+   is the first question, and it has to be answerable at a glance.
+
+   It is drawn only when there is something true to say. A strip that fills
+   itself with a hedge on a contact with no history is a strip people learn
+   to skip, and then the one time it knows something it is skipped too. */
+.b-ring-read {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--hairline);
+}
+.b-ring-mark { width: 13px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+/* Not muted. This is the payload of the card — the conclusion AiMY reached,
+   which is the thing the whole strip exists to carry — and setting the
+   conclusion lighter than the phone number above it would rank the reading
+   below the fact it was read from. Two lines is the cap: past that it is a
+   brief, and a brief has a surface of its own. */
+.b-ring-said {
+  font-size: var(--t-small); line-height: var(--lh-snug);
+  color: var(--d100); font-weight: var(--fw-medium);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* The step, the obstacle or the offering the sentence is about. It is the
+   one word a caller scans this strip for, and the rest of the build already
+   sets a next step in bold inside its own sentence. */
+.b-ring-said b { font-weight: var(--fw-bold); color: var(--d50); }
+
+/* ── Answered, on the way out ──
+   The card does not vanish the instant it is pressed. It becomes the thing
+   it is handing off to — name and a running clock, the shape the call rail
+   is about to draw at full size — holds that for a beat so the handoff is
+   something you saw rather than something you inferred, and leaves. */
+.b-ring[data-state="live"] .b-ring-acts,
+.b-ring[data-state="live"] .b-ring-read,
+.b-ring[data-state="live"] .b-ring-state { display: none; }
+.b-ring[data-state="live"] .b-ring-sub { color: var(--d100); }
+
+/* ── Arriving, and leaving ──
+   Down from above, because that is where it came from and where dismissing
+   sends it. `--t-panel` in and `--t-open` out: a thing that interrupts you
+   should arrive deliberately enough to be read before it is acted on, and
+   get out of the way faster than it came.
+
+   From 0.97 and not from 0 — an element that scales up from nothing has no
+   shape to come from. The blur is on `filter` and not `backdrop-filter`:
+   animating the backdrop re-samples the whole shell every frame. */
+.b-ring {
+  animation: b-ring-in var(--t-panel) var(--ease-out);
+}
+@keyframes b-ring-in {
+  from { opacity: 0; transform: translate3d(0, -14px, 0) scale(0.97); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+.b-ring.is-leaving {
+  animation: b-ring-out var(--t-open) var(--ease-out) forwards;
+  pointer-events: none;
+}
+@keyframes b-ring-out {
+  from { opacity: 1; transform: none; filter: blur(0); }
+  to { opacity: 0; transform: translate3d(0, -10px, 0) scale(0.98); filter: blur(2px); }
+}
+
+/* The preference asks for less motion, not for less information. The card
+   still arrives and still leaves — instantly — and the ring around the
+   avatar HOLDS rather than going away: it is the only thing on the card
+   saying the phone is ringing right now, and removing it would answer the
+   preference by deleting the state. */
+@media (prefers-reduced-motion: reduce) {
+  .b-ring, .b-ring.is-leaving { animation: none; }
+  .b-ring-btn { transition: none; }
+  .b-ring[data-state="ringing"] .b-ring-av::after {
+    animation: none; opacity: 0.55; transform: scale(1.12);
+  }
+}
+
+/* The phone is 384px and the narrow shell is not, so it takes the gutter the
+   rest of the build takes and nothing else changes: the same card, the same
+   two buttons, at the width there is. */
+@media (max-width: 460px) {
+  .b-ring-main { padding: 12px 12px; gap: 10px; }
+  .b-ring-read { padding: 8px 12px 10px; }
+}
