@@ -1770,6 +1770,13 @@ body {
        wide. The 56px it leaves is the strip of thread behind that says the
        drawer is over something. */
     width: min(280px, calc(var(--vp-w) - 56px));
+    /* THE DOOR STAYS ON TOP OF WHAT IT OPENED, so the drawer starts below it.
+       The toggle is 34px at 16 from the top and sits at z-index 40 against the
+       drawer's 30 — correct, because while the drawer is open that button is
+       how you shut it — but the column's own 20px padding put New conversation
+       straight underneath it. 58 = 16 + 34 + 8, which reads as the drawer's
+       head with its control in it rather than as a gap. */
+    padding-top: 58px;
     background: var(--panel-bg);
     box-shadow: var(--shadow-xl);
     backdrop-filter: blur(18px);
