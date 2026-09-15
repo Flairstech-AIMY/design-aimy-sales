@@ -19324,6 +19324,9 @@
        Everything not branched below holds either way, because recall is
        recall whoever pressed the button. */
     const inbound = !!(DB.call && DB.call.dir === 'in');
+    /* Read once, above everything that branches on it: the state line needs
+       to know whether the reading already names the owed step. */
+    const why = inbound ? ringRead(c) : null;
     const rg = called[c.checkpoint];
     const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
 
@@ -19331,18 +19334,33 @@
 
     /* WHO, AS A SUBTITLE. The block is already headed with their name, so
        repeating it as the first of nine facts spent the loudest line on the
-       one thing the reader had just read. */
+       one thing the reader had just read.
+
+       Sector and headcount are firmographics: they shape a PITCH, which is
+       what this brief is for when you are the one dialling. On a call already
+       in progress they are two more clauses wrapping the identity onto a
+       second row, and nobody mid-conversation needs telling how many people
+       work there. Inbound, role and company IS the summary. */
     body += '<p class="b-prep-id">' + esc(c.title) +
-      (a ? ' · ' + esc(a.name) + (accKnown(a)
+      (a ? ' · ' + esc(a.name) + (!inbound && accKnown(a)
         ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
 
     /* ── 1. where they stand, and what is owed ── */
+    /* `rg.say` is a gloss on the rung — "you got them on the phone" — and
+       reading that to somebody who IS on the phone with them is the brief
+       narrating what the reader is doing. The rung's own label stays,
+       because which step this is remains the question. */
+    const owedNamed = inbound && c.next && why && why.indexOf(c.next.what) >= 0;
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
         esc(rg.label) + '</span>' +
-      '<span class="b-prep-owed">' + esc(rg.say) +
-        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>' +
-      (c.next
+      (inbound ? '' : '<span class="b-prep-owed">' + esc(rg.say) +
+        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>') +
+      /* The chip and the reading are the same fact when the reading is the
+         overdue step — "Call them back · was due 6 Sep" over "Probably
+         chasing Call them back, it was due 6 Sep". The sentence keeps it,
+         because it is the one that says what it MEANS. */
+      (c.next && !owedNamed
         ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
           esc((late ? 'was due ' : 'due ') + sayWhen(c.next.due)) + '</span>'
         : '') +
@@ -19361,25 +19379,48 @@
        still in front of them. And it keeps that function's discipline: no
        reading, no block, rather than a hedge under a caption. */
     if (inbound) {
-      const why = ringRead(c);
       if (why) {
         body += '<blockquote class="b-open">' +
-          /* The caption asks and the sentence answers. It read "Probably
-             calling about" over "Probably chasing...", which hedges the same
-             claim twice — and a reading that hedges harder than it needs to
-             is one nobody calibrates against. The hedge belongs in the
-             sentence, where `ringRead` already puts it or leaves it out
-             depending on whether the line is a guess or a due date. */
           '<span class="b-open-cap">Why they rang</span>' +
           '<p class="b-open-say">' + why + '</p>' +
         '</blockquote>';
       }
-    } else {
+      /* ══ AND WHAT TO GET OUT OF IT, WHICH IS A FUNCTION OF THE RUNG ══
+         The outbound brief spends its last third on the campaign: what is
+         being sold, what to ask for, what can be sent. That is preparation,
+         and it is three paragraphs of it to read while somebody waits on the
+         line. `whatNext` already answers the same question in one sentence
+         off the checkpoint — call them back, ask for the meeting, say
+         whether they turned up, hand them over — and one sentence is what
+         there is time for. The caption says Next, so the sentence does not
+         have to; the record's own rail strips it the same way. */
       body += '<blockquote class="b-open">' +
-        '<span class="b-open-cap">Open with</span>' +
-        '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
+        '<span class="b-open-cap">What to get</span>' +
+        '<p class="b-open-say">' + esc(whatNext(c).replace(/^Next:\s*/, '')
+          .replace(/^./, (x) => x.toUpperCase())) + '</p>' +
       '</blockquote>';
+      /* The one standing instruction about this person, and the only part of
+         the long brief that survives into the short one: it is a thing
+         somebody wrote down BECAUSE it would be needed on a call. */
+      if (c.remember) {
+        body += '<div class="b-prep-know"><p class="b-prep-line"><b>Remember</b> ' +
+          esc(c.remember.text) + ' <span class="s-callp-who">— ' +
+          esc(actor(c.remember.by).name) + '</span></p></div>';
+      }
+      body += '</div>';
+      /* The outbound path opens the canvas on its way past the bottom of
+         this function; the inbound one returns here, so it opens its own.
+         Without this the brief was written into a thread nobody was
+         looking at. */
+      openCanvas();
+      say('aimy', answerBlock('While you have ' + c.name + ' on the line', body,
+        calls.length ? plural(calls.length, 'call') + ' on the record' : 'nothing on the record yet'));
+      return;
     }
+    body += '<blockquote class="b-open">' +
+      '<span class="b-open-cap">Open with</span>' +
+      '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
+    '</blockquote>';
 
     /* ── 3. the two or three facts that shape it ── */
     const know = [];
@@ -19440,12 +19481,7 @@
         '</div>';
     }
     openCanvas();
-    /* "Before you speak to" is a tense the inbound call has already left.
-       They are talking now, and a heading that says otherwise is the first
-       line of the brief being wrong about the thing the reader can hear. */
-    say('aimy', answerBlock(
-      (inbound ? 'While you have ' + c.name + ' on the line'
-        : 'Before you speak to ' + c.name), body,
+    say('aimy', answerBlock('Before you speak to ' + c.name, body,
       calls.length ? plural(calls.length, 'call') + ' on the record' : 'nothing on the record yet'));
   }
 
