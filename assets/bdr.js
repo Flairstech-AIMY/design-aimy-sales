@@ -15131,8 +15131,10 @@
         '<div class="proto-h">Make the phone ring</div>' +
         '<button class="proto-link" type="button" data-inbound="known">' +
           'Somebody on the board rings in</button>' +
-        '<button class="proto-link" type="button" data-inbound="unknown">' +
-          'A number we do not have rings in</button>' +
+        '<button class="proto-link" type="button" data-inbound="named">' +
+          'A stranger rings in, and says who they are</button>' +
+        '<button class="proto-link" type="button" data-inbound="anon">' +
+          'A stranger rings in, and will not say</button>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
@@ -16035,7 +16037,8 @@
       ['you', 'Fair enough. Rather than talk at you, could I show you it working?'],
       ['them', 'Go on then, book me a demo. The cost will decide it, mind.'],
     ],
-    unknown: [
+    /* The caller introduces themselves, so `readWho` has frames to read. */
+    named: [
       ['them', 'Hello — is this the team that takes on the support desk work?'],
       ['you', 'It is. Who am I speaking to?'],
       ['them', 'My name is Ruben Haverkamp. I run facilities at Kuijpers.'],
@@ -16043,6 +16046,19 @@
       ['them', 'One of your emails went round our office. What does it cost?'],
       ['you', 'It depends on the size of the desk. Could I show you it working?'],
       ['them', 'Send me the pricing and put a demo in for next week.'],
+    ],
+    /* The same call, from somebody who will not say who they are — which is
+       a real way a first inbound call goes, not an absence of one. Every
+       frame `readWho` looks for is deliberately missing: no introduction, no
+       "I run X", and no capitalised name after an `at`. `readCall` still
+       reads it fully, so the call logs like any other — what is missing is
+       the person, not the conversation. */
+    anon: [
+      ['them', 'Hello — is this the team that takes on the support desk work?'],
+      ['you', 'It is. Who am I speaking to?'],
+      ['them', 'I would rather not get into that until I know what it costs.'],
+      ['you', 'Fair enough, and it is a good question. It depends on the size of the desk.'],
+      ['them', 'Send me the pricing and I will come back to you.'],
     ],
   };
 
@@ -16222,12 +16238,12 @@
   }
 
   /* ══ START RINGING ══════════════════════════════════════════════════════ */
-  function ringIn(phone, forceUnknown) {
+  function ringIn(phone, forceUnknown, says) {
     if (DB.call) { toast('You are already on a call. One line at a time.'); return; }
     if (RINGING) return;
     const id = forceUnknown ? null : conByPhone(phone);
     ringStop();
-    RINGING = { phone: phone, con: id, state: 'ringing' };
+    RINGING = { phone: phone, con: id, state: 'ringing', says: says || 'anon' };
     paintRing();
     /* Nobody picks up for ever. The timeout is the honest end of a ring, and
        it leaves the same trace a person would want afterwards: that the
@@ -16273,7 +16289,7 @@
         phone: r.phone, camps: [], checkpoint: 'not-called', attempts: 0,
         next: null, remember: null, dnc: false, fate: null,
       },
-      script: (c ? INBOUND_SCRIPTS.known : INBOUND_SCRIPTS.unknown)
+      script: (c ? INBOUND_SCRIPTS.known : INBOUND_SCRIPTS[r.says] || INBOUND_SCRIPTS.anon)
         .map((l) => [l[0], l[1].split('{first}').join(c ? c.name.split(' ')[0] : 'there')]),
       shown: 0, note: '', outcome: null, read: null,
       when: 1, recording: false, muted: false, held: false,
@@ -16347,13 +16363,13 @@
      could collide with somebody we hold, and the one run where it did would
      show the wrong half of the feature with no sign anything was wrong. */
   function ringTrigger(which) {
-    if (which === 'unknown') {
+    if (which === 'named' || which === 'anon') {
       let n = '';
       do {
         n = '+31 6 ' + String(Math.floor(1000 + Math.random() * 9000)) +
           ' ' + String(Math.floor(1000 + Math.random() * 9000));
       } while (conByPhone(n));
-      ringIn(n, true);
+      ringIn(n, true, which);
       return;
     }
     const c = ringPick();
@@ -19761,21 +19777,49 @@
        sign anything had happened. */
     openCanvas();
     lbuildSpend();
+
+    /* ══ THE SENTENCE IS CLAIMED EITHER WAY ════════════════════════════
+       Whatever comes back is about WHO was on the phone, so `runInput`
+       routes it to `whoisRead` rather than to the call-reading corrector.
+       That is what lets a wrong reading be answered by typing the right
+       one instead of by pressing a button and then being asked. */
+    call.kind = 'whois';
+
+    /* ══ SHE GOT SOME OF IT, OR SHE GOT NONE, AND THEY ARE NOT THE SAME
+       QUESTION ═══════════════════════════════════════════════════════
+       Both used to end "Shall I open an account?" over a Yes button, which
+       asks the reader to confirm a proposal in one case and to authorise a
+       blank in the other. The two need different answers from them.
+
+       GOT SOME: it is a reading, so it can be WRONG, and the way to say so
+       is the way you say so everywhere else here — write the right one. The
+       button agrees with what she heard; typing overrules it per axis.
+
+       GOT NONE: there is nothing to agree with, so there is nothing for a
+       Yes to mean. Pressing it only ever produced a second turn asking for
+       the details, which is a click spent on a question she could have
+       asked outright. She asks outright. Nothing is opened until somebody
+       types a name either way, so the confirm was never protecting a
+       write. */
     TURNS.push({
       who: 'aimy',
       html: said.length
-        ? esc(num) + ' is not in the book. From the call, ' + esc(saidList(said)) +
+        /* A colon, not "I got". The clauses are full sentences — "they gave
+           their name as X" — so a verb in front of them produced "I got they
+           gave their name as X". The colon does the same work of marking
+           this as a report rather than a fact, and the hint below says the
+           rest. */
+        ? esc(num) + ' is not in the book. From the call: ' + esc(saidList(said)) +
           '. Shall I open an account on that?'
         : esc(num) + ' is not in the book, and nothing in the call told me who it ' +
-          'was. Shall I open an account for them?',
+          'was. Tell me who they were and I will open an account for them.',
       hint: said.length
-        ? 'Opening it logs the call against them straight after.'
-        : 'Say yes and I will ask you who they were.',
+        ? 'If I got any of that wrong, type it correctly instead and I will use yours.'
+        : 'A name is enough. Like "Ruben Haverkamp, Head of Facilities at Kuijpers".',
       step: 'whois',
-      opts: [
-        { k: 'make', label: said.length ? 'Open the account' : 'Open an account' },
-        { k: 'no', label: 'No, leave it', quiet: true },
-      ],
+      opts: said.length
+        ? [{ k: 'make', label: 'Open an account' }, { k: 'no', label: 'No, leave it', quiet: true }]
+        : [{ k: 'no', label: 'No, leave it', quiet: true }],
     });
     paintThread();
   }
@@ -19810,7 +19854,25 @@
   function whoisRead(text) {
     const call = PENDING;
     if (!call) return false;
-    const f = readLead(text);
+    /* ══ A CORRECTION IS A SENTENCE, NOT A FIELD ══════════════════════
+       `readLead` was written for the composer, where you have already typed
+       "add a lead" and what follows is the record: Name, Title at Company.
+       Here AiMY has just read something out and asked whether it is right,
+       so what comes back is an answer to a question — "actually it was Bram
+       de Vries, he runs IT at Kuijpers" — and the first comma-separated
+       piece of that is not a name, it is a name with a correction stuck to
+       the front of it. It went on the board as Actually It Was Bram De
+       Vries.
+
+       The preambles come off first, repeatedly, because they stack: no,
+       actually, it was. Only at the START of the sentence and only these
+       exact openers — a general cleaner would start editing names. */
+    const PRE = /^\s*(?:no|actually|sorry|it was|that was|it is|his name is|her name is|their name is|they said|he is|she is|they are)(?![a-z])[,\s]*/i;
+    let said = String(text || '');
+    for (let i = 0; i < 4 && PRE.test(said); i++) said = said.replace(PRE, '');
+    const f = readLead(said || text);
+    /* "he runs IT" is a sentence about a job, and the field wants the job. */
+    if (f && f.title) f.title = f.title.replace(/^\s*(?:he|she|they)\s+/i, '').trim();
     say('you', esc(text));
     /* ══ READLEAD IS TOO WILLING TO BE ASKED ═══════════════════════════
        It splits on commas and takes the first piece, and its only test is
@@ -19841,7 +19903,11 @@
         '. Opening that and logging the call against them.',
       hint: f.co ? '' : 'Without a company they land on your board on their own.',
       step: 'whoismake',
-      opts: [{ k: 'go', label: 'Open the account' }],
+      /* "an", not "the". There is no account yet — and "Open the account"
+         is already a control in this build, on records that HAVE one, where
+         it means go and look at it. Two verbs behind one label is the kind
+         of collision nobody reports and everybody mis-clicks once. */
+      opts: [{ k: 'go', label: 'Open an account' }],
     });
     paintThread();
     return true;
@@ -19872,6 +19938,11 @@
       note: 'Rang in on ' + (call.phone || 'an unknown number') + '.',
     });
     if (!c) return;
+    /* Released here as well as in `whoisRead`, because agreeing with the
+       reading skips that function entirely — and a claim left standing would
+       send the next sentence, which is about the CALL, to the identity
+       reader. */
+    call.kind = null;
     call.con = c.id;
     call.camp = null;
     call.who = null;
