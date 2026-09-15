@@ -2677,7 +2677,7 @@
      phone: it stays 0, which is the uncapped queue everybody who never
      opened that panel already had. `UI` itself stays as the place a
      persisted preference goes, which is what it was named for. */
-  let UI = { cap: 0 };
+  let UI = { cap: 0, quiet: false };
   function loadUI() {
     try { UI = Object.assign(UI, JSON.parse(localStorage.getItem(KEY_UI) || '{}')); } catch (e) {}
   }
@@ -15467,6 +15467,8 @@
           'A stranger calls in, and says who they are</button>' +
         '<button class="proto-link" type="button" data-inbound="anon">' +
           'A stranger calls in, and will not say</button>' +
+        '<button class="proto-link" type="button" data-quiet>' +
+          (UI.quiet ? 'Ring out loud' : 'Ring silently') + '</button>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
@@ -16575,6 +16577,170 @@
     '</div>';
   }
 
+  /* ══ AND IT MAKES A NOISE, BECAUSE THAT IS WHAT A RINGING PHONE IS ══════
+     Everything else this widget does assumes somebody is looking at the
+     screen. A phone's whole job is to be noticed by somebody who is not —
+     reading a record, writing a note, on the other side of the desk — and a
+     silent ringing phone is a notification with the one channel that works
+     switched off.
+
+     SYNTHESISED, NOT A FILE. This build ships two SVGs and no media of any
+     kind, has no network calls by construction, and says of its own
+     telephony that it is a fixture. A recorded ringtone would be a binary in
+     a repo with none, fetched over a connection this build does not make, of
+     a line that does not exist. Two hundred bytes of oscillator is the
+     honest version of the same thing — and it cannot 404, cannot drift out
+     of sync with the cadence below, and weighs nothing.
+
+     THE CADENCE IS DUTCH, because the corpus is. Every number in the book is
+     +31 or Benelux, and the Netherlands rings one second on and four off at
+     425 Hz — not the American double-buzz everybody reaches for. Getting
+     this wrong is the audio version of a date printed the American way round
+     on a European record: nobody can say what is off, everybody hears that
+     something is. */
+  /* ══ A MARIMBA, AND A PHRASE RATHER THAN A MOTIF ══════════════════════
+     Three sounds got tried here before this one: the Dutch line tone, which
+     was a buzz; a glass chime, which was clean and cold; and the same chime
+     stretched longer and softer, which smoothed the edge off and left it
+     thin. What got picked was the wooden one, and what it needed was room.
+
+     A MARIMBA IS THE FOURTH HARMONIC. Struck wood puts most of its energy in
+     the fundamental and then, two octaves up, one clear partial — that ratio
+     of 4 is the whole character, and it dies in a sixth of the time the
+     fundamental does. That is why the note reads as hit rather than blown,
+     and why it can be short without sounding cut off.
+
+     THREE NOTES, TWICE, AND THE REST IS AIR. This was sixteen notes of D
+     major pentatonic rising to a peak and resolving — which is a TUNE. A
+     tune has a shape you could hum, and anything you can hum belongs to a
+     toy or a game rather than to a phone on a working desk.
+
+     What replaced it states rather than sings: the root, up a fifth, and
+     settle onto the third. An interval, not a line. It is an octave lower
+     than the tune was, because the top of a marimba is where it sounds
+     like a xylophone in a nursery and the bottom is where it sounds like
+     an instrument. The low D under the first note of each statement is the
+     only thing below the melody and sits near a third of the volume:
+     enough to give the phrase a floor, quiet enough that a laptop speaker
+     with no bottom end loses it without losing anything else.
+
+     THE SILENCE IS MOST OF THE SEVEN SECONDS, and it is doing the work.
+     One and a half seconds of notes, two of nothing, the same again. That
+     is the rhythm every telephone has ever had, and it is also what
+     separates a thing that is confident you will hear it from a thing that
+     keeps talking in case you did not. */
+  const RING_VOICE = [[1, 1, 0.42], [4, 0.12, 0.16]];
+  /* seconds in, hertz, share of the peak */
+  const RING_MELODY = [
+    /* D4, up a fifth to A4, settling on F#4. Then silence. */
+    [0.00, 293.66, 0.85], [0.00, 146.83, 0.34],
+    [0.42, 440.00, 0.95],
+    [1.15, 369.99, 0.58],
+    [3.60, 293.66, 0.85], [3.60, 146.83, 0.34],
+    [4.02, 440.00, 0.95],
+    [4.75, 369.99, 0.58],
+  ];
+  const RING_GAP = 7.0;
+
+  /* Quiet on purpose. A room sound, not an alert in headphones — the one
+     thing worse than a phone you cannot hear is one you can hear three
+     desks away. Back up a little from where sixteen overlapping notes
+     needed it, because six with air between them do not accumulate. */
+  const RING_VOL = 0.052;
+  let RING_AC = null;
+  let RING_BEAT = null;
+  let RING_AT = 0;
+
+  /* Nodes per strike rather than any held open and gated. A gate leaks for
+     the length of the session and has its own ramps to cancel on every
+     stop; these are created, scheduled, and collected when they finish.
+
+     `exponentialRampToValueAtTime` cannot reach zero — the curve is
+     multiplicative, so it is undefined there — hence a floor near silence
+     and a short linear ramp off it. Landing on the floor and stopping
+     would leave a step of its own, which is the click this is avoiding. */
+  function ringBurst(ac, at) {
+    RING_MELODY.forEach((note) => {
+      RING_VOICE.forEach((pt) => {
+        const t0 = at + note[0];
+        const peak = RING_VOL * pt[1] * note[2];
+        const life = pt[2];
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.value = note[1] * pt[0];
+        g.gain.setValueAtTime(0.0001, t0);
+        /* 6ms. A marimba is STRUCK, and the earlier 45ms was the setting
+           that made the chime before it read as blown — right for that
+           sound and wrong for this one. Short enough to have an onset,
+           long enough that the onset is not a click. */
+        g.gain.linearRampToValueAtTime(peak, t0 + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0002, t0 + life);
+        g.gain.linearRampToValueAtTime(0, t0 + life + 0.03);
+        o.connect(g);
+        g.connect(ac.destination);
+        o.start(t0);
+        o.stop(t0 + life + 0.05);
+      });
+    });
+  }
+
+  /* ══ IT CAN FAIL, AND FAILING IS NOT AN ERROR ══════════════════════════
+     A browser will not start audio without a gesture, and every path into
+     this one is a click on the prototype panel — so it starts. But the rule
+     is the browser's and it can say no for reasons that are none of this
+     build's business: a muted tab, a policy, an output device that went
+     away. None of that is a reason for a ringing phone to stop appearing on
+     screen, so every line of it is inside a try and a failure is silence
+     rather than a broken widget. */
+  function ringToneOn() {
+    if (UI.quiet) return;
+    ringToneOff();
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      RING_AC = new AC();
+      if (RING_AC.state === 'suspended' && RING_AC.resume) RING_AC.resume();
+      /* ══ THE PHRASE IS SPACED ON THE AUDIO CLOCK, NOT ON setInterval ══
+         This booked each repeat for `currentTime` at the moment a 7000ms
+         timer fired, and the two clocks are not the same clock. A context
+         takes a fraction of a second to start, so seven seconds of wall
+         time was 6.35 of audio time on the first repeat — the phrase came
+         back in before the last note of the one before it had finished,
+         and every further repeat added its own timer jitter on top.
+
+         So a cursor in AUDIO time moves in exact RING_GAP steps and the
+         timer only asks, twice a second, whether anything falls inside the
+         next second and a half. The timer can be late, early or skipped
+         entirely by a busy tab and the spacing does not move: what it
+         controls is when notes get BOOKED, not when they sound. */
+      RING_AT = RING_AC.currentTime + 0.05;
+      ringBurst(RING_AC, RING_AT);
+      RING_AT += RING_GAP;
+      RING_BEAT = setInterval(() => {
+        try {
+          if (!RING_AC) return;
+          while (RING_AT < RING_AC.currentTime + 1.5) {
+            ringBurst(RING_AC, RING_AT);
+            RING_AT += RING_GAP;
+          }
+        } catch (e) {}
+      }, 500);
+    } catch (e) { RING_AC = null; }
+  }
+
+  /* Closing the context is what stops a burst that is already SCHEDULED.
+     Clearing the interval only stops the next one from being booked, and the
+     gap between them is five seconds — long enough that answering the phone
+     mid-burst would have left it ringing in your ear after you said hello. */
+  function ringToneOff() {
+    if (RING_BEAT) { clearInterval(RING_BEAT); RING_BEAT = null; }
+    if (RING_AC) {
+      try { if (RING_AC.close) RING_AC.close(); } catch (e) {}
+      RING_AC = null;
+    }
+  }
+
   /* ══ START RINGING ══════════════════════════════════════════════════════ */
   function ringIn(phone, forceUnknown, says) {
     if (DB.call) { toast('You are already on a call. One line at a time.'); return; }
@@ -16583,13 +16749,18 @@
     ringStop();
     RINGING = { phone: phone, con: id, state: 'ringing', says: says || 'anon' };
     paintRing();
+    ringToneOn();
     /* Nobody picks up for ever. The timeout is the honest end of a ring, and
        it leaves the same trace a person would want afterwards: that the
        phone went and you were not there. */
     RING_TIMER = setTimeout(ringMissed, RING_MS);
   }
 
+  /* Every way out of a ringing phone comes through here — answered,
+     declined, timed out, or replaced by another ring — which is why the
+     sound is stopped here and not at each of them. */
   function ringStop() {
+    ringToneOff();
     if (RING_TIMER) { clearTimeout(RING_TIMER); RING_TIMER = null; }
     if (RING_GONE) { clearTimeout(RING_GONE); RING_GONE = null; }
   }
@@ -21827,6 +21998,18 @@
 
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
+
+    /* Persisted, because somebody who silenced it once did not mean only
+       this ring. It also stops a ring already in progress: a mute you have
+       to wait out is not a mute. */
+    if (t.closest('[data-quiet]')) {
+      UI.quiet = !UI.quiet;
+      saveUI();
+      if (UI.quiet) ringToneOff();
+      else if (RINGING && RINGING.state === 'ringing') ringToneOn();
+      paintProto();
+      return;
+    }
 
     /* Make the phone ring. The panel shuts first: it is bottom-right and
        the widget is top-centre, so nothing overlaps, but a panel left open
