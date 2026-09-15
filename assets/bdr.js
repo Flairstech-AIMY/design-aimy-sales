@@ -19676,9 +19676,22 @@
     if (!call) return false;
     const f = readLead(text);
     say('you', esc(text));
-    if (!f) {
-      say('aimy', 'I could not find a name in that, so nothing was opened. ' +
-        'Say it again with their name in it and I will put them on the board.');
+    /* ══ READLEAD IS TOO WILLING TO BE ASKED ═══════════════════════════
+       It splits on commas and takes the first piece, and its only test is
+       that the piece contains a letter. That is defensible at the composer,
+       where the sentence had to open with "add a lead" to get there at all.
+       Here AiMY asked an open question, so the reply can be anything a
+       person says when they do not know — and "dunno, some bloke" came back
+       as a lead called Dunno with the job title Some Bloke, read aloud with
+       a confirm button under it.
+
+       A name is capitalised. Somebody who types theirs in lower case is
+       asked once more, which costs a sentence; the alternative costs a
+       record on the board that nobody will ever be able to explain. */
+    const named = f && /(^|\s)[A-Z]/.test(f.name);
+    if (!named) {
+      say('aimy', 'That did not read as a name, so nothing was opened. ' +
+        'Write it the way it goes on the record and I will put them on the board.');
       paintThread();
       return true;
     }
