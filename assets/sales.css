@@ -1159,6 +1159,61 @@ body {
   .ver-link { display: none; }
 }
 
+/* ══ AND BELOW 720 THE STRIP TAKES A ROW OF ITS OWN ════════════════════
+
+   assets/aimy-responsive.css §4 puts the strip back in flow at 1280 layout so
+   it cannot collide with the right-hand cluster, and hands it `overflow-x:
+   auto` so the flanks can take what they need. That keeps the masthead from
+   OVERLAPPING; it does not keep the strip legible. Measured on the queue at a
+   459px layout: the flanks took 320 of it and the strip was left an 111px
+   window onto 356px of tabs — which renders as `ct  Talent`, two half-words in
+   the middle of the masthead, with the tab you are actually on scrolled out of
+   sight. A scroller nobody can see the ends of is not navigation.
+
+   720 IS MEASURED, NOT CHOSEN. The flanks are 170 (logo) and 150 (the bell,
+   the theme control and the pill) and the strip wants 356. Walking the width
+   down: at a 776px layout the strip got 358 of the 356 it needs, at 729 still
+   358, at 682 only 334 — so it stops fitting at about 727, and 720 is this
+   file's existing word for the width either side of it.
+
+   TWO ROWS RATHER THAN FEWER TABS. Dropping tabs is what the flanks already
+   do — the version link at 1000, the user's name at 1120 — because each of
+   those has a peer that survives it. The ecosystem strip has none: it is five
+   products and the one you are on, and a masthead that hides the other four
+   has stopped saying what it exists to say. On its own row it fits whole at
+   every width down to 376 layout px, with no scroll and nothing cut.
+
+   --topbar-height IS REDECLARED, AND THAT IS THE LOAD-BEARING HALF. The
+   overlay, the rail drawer, its scrim and the notifications panel are all
+   `position: fixed` against this token (sales.css:1265, 1375, 5984, 6005). A
+   masthead that grew without it would have all four starting 44px up inside
+   it. 44 = the 38px pill plus the 6px row gap; the sum is written out so it
+   moves when the pill does. */
+@media (max-width: 611.98px) { /* 720 layout px */
+  :root { --topbar-height: calc(60px + 44px); }
+  .app-topnav {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 6px;
+    padding: 0 16px 6px;
+  }
+  /* The two spacers exist to spread the flanks around a centred strip. With
+     the strip on its own row there is nothing between them to centre, and two
+     `flex: 1 1 0` boxes on a wrapping row are two more things that can take a
+     line. `margin-left: auto` does the one job they were left doing. */
+  .topnav-spacer { display: none; }
+  .topnav-logo { order: 1; padding-right: 0; margin-right: 0; }
+  .topnav-right { order: 2; margin-left: auto; }
+  /* 100% of the line, so it cannot share one. `justify-content: flex-start`
+     because a strip that fits has no centre to find, and a strip that does
+     not must start at the first tab rather than the middle of the third. */
+  .topnav-tabs {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: flex-start;
+  }
+}
+
 /* ── The notifications panel ───────────────────────────────────────
    What is still waiting on a person, derived from the same model the
    briefing rail and the Status filter read — so the three cannot disagree.
@@ -1258,15 +1313,14 @@ body {
 /* The bell sits ~90px in from the window edge, so a 360px card anchored to
    it runs off the LEFT of the screen before the viewport is narrow enough
    for max-width to catch it — the constraint is measured from the wrong
-   side. Below that width, pin the panel to the window instead. */
-@media (max-width: 441.98px) { /* 520 layout px */
-  .ntf-panel {
-    position: fixed;
-    top: calc(var(--topbar-height) + 4px);
-    right: 12px; left: 12px;
-    width: auto; max-width: none;
-  }
-}
+   side. Below that width the panel is pinned to the window instead, AND THAT
+   RULE IS IN bdr.css, not here: bdr.css carries a second, complete definition
+   of .ntf-panel at this same specificity and loads after this file, so its
+   unconditional `position: absolute; right: 0` beat this file's media query
+   — a media query adds no specificity. Measured at a 459px layout before the
+   move: only `left: 12px` survived, which resolved against `.ntf-anchor`
+   rather than the window and pushed the panel 255px off the right edge, its
+   text cut mid-word. The rule lives beside the definition that wins. */
 
 @media (prefers-reduced-motion: reduce) {
   .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }

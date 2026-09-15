@@ -1150,8 +1150,17 @@
   right: 0;
   z-index: 300;
   width: 360px;
-  max-width: calc(100vw - 32px);
-  max-height: min(70vh, 520px);
+  /* ══ --vp-w/--vp-h, NOT vw/vh, AND THE DIFFERENCE IS A FACTOR ═══════════
+     The shell carries `zoom` on <body> (assets/aimy-responsive.css), and
+     inside a zoomed subtree `100vw` resolves to the raw viewport in LAYOUT px
+     and is then multiplied by the scale on the way to the screen — so this cap
+     was --ui-scale times wrong at every width that is not the 1536 anchor.
+     Above the anchor it never bit at all: at a scale of 1.667 `calc(100vw -
+     32px)` was 1.667 viewports wide. The tokens are the same expression with
+     the scale divided back out; they are declared on :root in the responsive
+     sheet for exactly this. */
+  max-width: calc(var(--vp-w) - 32px);
+  max-height: min(calc(var(--vp-h) * 0.7), 520px);
   overflow-y: auto;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -1162,6 +1171,31 @@
   text-align: left;
 }
 .ntf-panel[hidden] { display: none; }
+
+/* ══ AND BELOW 520 LAYOUT PX IT IS PINNED TO THE WINDOW ═════════════════
+   The bell sits about 90px in from the window edge, so a 360px card hung from
+   it runs off the LEFT before `max-width` — which measures from the other
+   side — is narrow enough to catch it. Below that width the card stops being
+   a dropdown and becomes a sheet under the masthead, which is the only
+   position that can hold 360px of text on a 459px layout.
+
+   IT IS HERE AND NOT IN sales.css, WHICH IS WHERE IT WAS. That file defines
+   .ntf-panel too, at this same (0,1,0) and earlier in the document, so its
+   copy of this block lost to the four positional declarations above — a media
+   query carries no extra specificity. All that got through was `left: 12px`,
+   resolved against the `position: relative` .ntf-anchor rather than the
+   window, which pushed the panel 255px off the right edge of a 390px phone
+   with every line cut mid-word. TWO DEFINITIONS OF ONE COMPONENT IS THE
+   DEFECT; this block is the half that has to sit with the winner until they
+   are one. */
+@media (max-width: 441.98px) { /* 520 layout px */
+  .ntf-panel {
+    position: fixed;
+    top: calc(var(--topbar-height) + 4px);
+    right: 12px; left: 12px;
+    width: auto; max-width: none;
+  }
+}
 
 /* Scrollbar, matching .dashboard-scroll / .overlay-thread rather than
    leaving the browser default sitting inside a 14px-radius card.
@@ -1715,7 +1749,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-end-open:hover .b-end-mark { opacity: 1; }
 /* The question, on the menus' own machinery: a click anywhere else or Escape
    is the way back, and it hangs from the right because the button does. */
-.b-end-pop { left: auto; right: 0; transform-origin: top right; width: 296px; max-width: 84vw; }
+.b-end-pop { left: auto; right: 0; transform-origin: top right; width: 296px; max-width: calc(var(--vp-w) * 0.84); }
 .b-end-say {
   margin: 2px 10px 10px; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); text-wrap: pretty;
@@ -2776,13 +2810,13 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    loading state that has stopped telling you anything. The card is capped at
    the height it has, and the log scrolls inside it, which is the part that
    grows. svh rather than vh, so a mobile browser's own bar is counted. */
-.pipe-card { max-height: calc(100svh - 190px); display: flex; flex-direction: column; }
+.pipe-card { max-height: calc(var(--vp-h) - 190px); display: flex; flex-direction: column; }
 .pipe-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 /* Nothing is pressed here any more, so the foot is one line of elapsed. */
 .pipe-foot { padding: 12px 8px 2px; }
 @media (max-height: 720px) {
   .pipe-rail { padding: 14px 20px; }
-  .pipe-card { max-height: calc(100svh - 150px); }
+  .pipe-card { max-height: calc(var(--vp-h) - 150px); }
 }
 
 /* A button that carries a staged choice says so by holding full ink; the
@@ -4420,7 +4454,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 
 .b-ring {
   pointer-events: auto;
-  width: 384px; max-width: calc(100vw - 32px);
+  width: 384px; max-width: calc(var(--vp-w) - 32px);
   border-radius: var(--r-2xl);
   background: var(--composer-skin);
   border: 1px solid var(--composer-edge);
