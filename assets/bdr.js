@@ -16739,11 +16739,25 @@
   ];
   const RING_GAP = 7.0;
 
-  /* Quiet on purpose. A room sound, not an alert in headphones — the one
-     thing worse than a phone you cannot hear is one you can hear three
-     desks away. Back up a little from where sixteen overlapping notes
-     needed it, because six with air between them do not accumulate. */
-  const RING_VOL = 0.052;
+  /* ══ DOUBLED, AND IT IS STILL A ROOM SOUND ═════════════════════════
+     0.052 was set against sixteen overlapping notes and then kept when the
+     melody came down to six with air between them, which is the arithmetic
+     that made it too quiet: the accumulation it was backing away from
+     stopped happening. Asked for twice as loud and given exactly that — the
+     amplitude, not the perceptual doubling, which would be about +10dB and
+     3.2x and is not what somebody turning a volume up means.
+
+     THE ONE SCALAR EVERY PEAK IS DERIVED FROM, so the balance between the
+     partials and between the notes is untouched: ringBurst multiplies this
+     by the voice's share and the note's, and both of those are ratios.
+
+     NO HEADROOM PROBLEM, and that is worth stating rather than assuming,
+     because this is the one number here that can clip. The loudest instant
+     is the downbeat, where D4 and D3 sound together with their octaves:
+     0.85 + 0.102 + 0.34 + 0.041 = 1.33 of this constant, which is 0.139 of
+     full scale. The A4 landing at 0.42s over their decay is the next
+     candidate and lands near 0.24. Both are far under 1. */
+  const RING_VOL = 0.104;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
