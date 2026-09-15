@@ -21504,12 +21504,33 @@
            stylesheet already chose, so a menu that fits today is untouched. */
         const bar = document.querySelector('.aimy-float-wrap');
         const floor = bar ? bar.getBoundingClientRect().top - 12 : window.innerHeight - 16;
+        /* ══ AND THE CEILING IS THE TOPNAV, FOR THE FLOOR'S OWN REASON ═════
+           The floor stopped being the viewport when the composer turned out
+           to sit over it; the ceiling never got the same treatment and has
+           the identical fault at the other end. `.app-topnav` holds the top
+           51px at z-index 100 against this menu's 40, so a menu hung above
+           its button and allowed to reach y=16 puts its first rows — the
+           caption and the name under it — behind the bar, unreadable and
+           unclickable. Nour hit it on a campaign's team stack. */
+        const nav = document.querySelector('.app-topnav');
+        const ceil = (nav ? nav.getBoundingClientRect().bottom : 0) + 8;
         const seat = po.getBoundingClientRect();
         const under = floor - seat.bottom - 8;
-        const over = seat.top - 8 - 16;
+        const over = seat.top - 8 - ceil;
         if (panel.getBoundingClientRect().bottom > floor && over > under) panel.classList.add('is-up');
         const room = panel.classList.contains('is-up') ? over : under;
-        panel.style.maxHeight = Math.max(160, Math.min(328, Math.round(room))) + 'px';
+        /* ══ THE ROOM IS MEASURED IN ONE UNIT AND SPENT IN ANOTHER ═══════
+           `<body>` carries `zoom`, so every rect above is in VISUAL pixels
+           while `max-height` inside that subtree is a CSS pixel the browser
+           then scales. Assigning the one to the other is the windowed list's
+           own bug in a second place: at the 0.85 this shell uses below the
+           1536 anchor the cap came out 15% short, which only ever scrolled a
+           menu that had room — and that shortfall was the ONLY thing keeping
+           the menu off the topnav. At 1536 and wider the zoom is 1, the
+           slack is gone, and the menu reached the ceiling it should never
+           have been given. Divide back out, so the cap is the room. */
+        const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+        panel.style.maxHeight = Math.max(160, Math.min(328, Math.round(room / z))) + 'px';
       }
       return;
     }
