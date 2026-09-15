@@ -2677,7 +2677,7 @@
      phone: it stays 0, which is the uncapped queue everybody who never
      opened that panel already had. `UI` itself stays as the place a
      persisted preference goes, which is what it was named for. */
-  let UI = { cap: 0 };
+  let UI = { cap: 0, quiet: false };
   function loadUI() {
     try { UI = Object.assign(UI, JSON.parse(localStorage.getItem(KEY_UI) || '{}')); } catch (e) {}
   }
@@ -15467,6 +15467,8 @@
           'A stranger calls in, and says who they are</button>' +
         '<button class="proto-link" type="button" data-inbound="anon">' +
           'A stranger calls in, and will not say</button>' +
+        '<button class="proto-link" type="button" data-quiet>' +
+          (UI.quiet ? 'Ring out loud' : 'Ring silently') + '</button>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
@@ -16575,6 +16577,128 @@
     '</div>';
   }
 
+  /* ══ AND IT MAKES A NOISE, BECAUSE THAT IS WHAT A RINGING PHONE IS ══════
+     Everything else this widget does assumes somebody is looking at the
+     screen. A phone's whole job is to be noticed by somebody who is not —
+     reading a record, writing a note, on the other side of the desk — and a
+     silent ringing phone is a notification with the one channel that works
+     switched off.
+
+     SYNTHESISED, NOT A FILE. This build ships two SVGs and no media of any
+     kind, has no network calls by construction, and says of its own
+     telephony that it is a fixture. A recorded ringtone would be a binary in
+     a repo with none, fetched over a connection this build does not make, of
+     a line that does not exist. Two hundred bytes of oscillator is the
+     honest version of the same thing — and it cannot 404, cannot drift out
+     of sync with the cadence below, and weighs nothing.
+
+     THE CADENCE IS DUTCH, because the corpus is. Every number in the book is
+     +31 or Benelux, and the Netherlands rings one second on and four off at
+     425 Hz — not the American double-buzz everybody reaches for. Getting
+     this wrong is the audio version of a date printed the American way round
+     on a European record: nobody can say what is off, everybody hears that
+     something is. */
+  /* ══ A BELL, AND THE CLEAN KIND ═══════════════════════════════════════
+     This was a telephone line tone — 425 Hz held for a second, the Dutch
+     cadence, which is what the numbers in the book would really make a
+     handset do. It was also a buzz, and a buzz is what you put on a phone
+     that has to be heard over a factory floor rather than one that sits on
+     a desk in front of somebody.
+
+     WHAT MAKES A BELL SOUND LIKE A BELL is that its overtones are NOT
+     whole multiples of the fundamental — the minor-third partial around
+     2.4× is the one your ear reads as "bell", and it is also the one that
+     reads as clang. This has no inharmonic partial at all: the octave and
+     the twelfth, both exact multiples, both quiet. That is a struck glass
+     rather than a church bell, which is the trade asked for — clean over
+     characterful.
+
+     SMOOTH IS THE ATTACK, AND IT IS 12ms. A sine that starts at full
+     amplitude has a step discontinuity in it, and a step is a click; at
+     4ms you still hear the onset as a tick on top of the tone. Twelve is
+     under the ~20ms where an onset starts sounding soft rather than
+     struck, so it arrives without announcing itself. The decay is
+     exponential because that is what a struck body does, and the upper
+     partials die first, which is also what a struck body does. */
+  const BELL_HZ = 880;
+  /* ratio, peak share, seconds to silence */
+  const BELL_PARTIALS = [[1, 1, 2.2], [2, 0.26, 1.3], [3, 0.08, 0.8]];
+  /* Two strikes, and the second is quieter. A bell that is rocking hits
+     softer on the way back, and two identical hits read as a rattle. */
+  const BELL_STRIKES = [[0, 1], [0.21, 0.62]];
+  const RING_GAP = 3.4;
+  /* Quiet on purpose, and quieter than the line tone it replaces. This is a
+     room sound, not an alert in headphones, and the one thing worse than a
+     phone you cannot hear is one you can hear three desks away. */
+  const RING_VOL = 0.034;
+  let RING_AC = null;
+  let RING_BEAT = null;
+
+  /* Nodes per strike rather than any held open and gated. A gate leaks for
+     the length of the session and has its own ramps to cancel on every
+     stop; these are created, scheduled, and collected when they finish.
+
+     `exponentialRampToValueAtTime` cannot reach zero — the curve is
+     multiplicative, so it is undefined there — hence a floor near silence
+     and a short linear ramp off it. Landing on the floor and stopping
+     would leave a step of its own, which is the click this is avoiding. */
+  function ringBurst(ac, at) {
+    BELL_STRIKES.forEach((hit) => {
+      BELL_PARTIALS.forEach((pt) => {
+        const t0 = at + hit[0];
+        const peak = RING_VOL * pt[1] * hit[1];
+        const life = pt[2];
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.value = BELL_HZ * pt[0];
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0002, t0 + life);
+        g.gain.linearRampToValueAtTime(0, t0 + life + 0.03);
+        o.connect(g);
+        g.connect(ac.destination);
+        o.start(t0);
+        o.stop(t0 + life + 0.05);
+      });
+    });
+  }
+
+  /* ══ IT CAN FAIL, AND FAILING IS NOT AN ERROR ══════════════════════════
+     A browser will not start audio without a gesture, and every path into
+     this one is a click on the prototype panel — so it starts. But the rule
+     is the browser's and it can say no for reasons that are none of this
+     build's business: a muted tab, a policy, an output device that went
+     away. None of that is a reason for a ringing phone to stop appearing on
+     screen, so every line of it is inside a try and a failure is silence
+     rather than a broken widget. */
+  function ringToneOn() {
+    if (UI.quiet) return;
+    ringToneOff();
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      RING_AC = new AC();
+      if (RING_AC.state === 'suspended' && RING_AC.resume) RING_AC.resume();
+      ringBurst(RING_AC, RING_AC.currentTime + 0.05);
+      RING_BEAT = setInterval(() => {
+        try { if (RING_AC) ringBurst(RING_AC, RING_AC.currentTime); } catch (e) {}
+      }, RING_GAP * 1000);
+    } catch (e) { RING_AC = null; }
+  }
+
+  /* Closing the context is what stops a burst that is already SCHEDULED.
+     Clearing the interval only stops the next one from being booked, and the
+     gap between them is five seconds — long enough that answering the phone
+     mid-burst would have left it ringing in your ear after you said hello. */
+  function ringToneOff() {
+    if (RING_BEAT) { clearInterval(RING_BEAT); RING_BEAT = null; }
+    if (RING_AC) {
+      try { if (RING_AC.close) RING_AC.close(); } catch (e) {}
+      RING_AC = null;
+    }
+  }
+
   /* ══ START RINGING ══════════════════════════════════════════════════════ */
   function ringIn(phone, forceUnknown, says) {
     if (DB.call) { toast('You are already on a call. One line at a time.'); return; }
@@ -16583,13 +16707,18 @@
     ringStop();
     RINGING = { phone: phone, con: id, state: 'ringing', says: says || 'anon' };
     paintRing();
+    ringToneOn();
     /* Nobody picks up for ever. The timeout is the honest end of a ring, and
        it leaves the same trace a person would want afterwards: that the
        phone went and you were not there. */
     RING_TIMER = setTimeout(ringMissed, RING_MS);
   }
 
+  /* Every way out of a ringing phone comes through here — answered,
+     declined, timed out, or replaced by another ring — which is why the
+     sound is stopped here and not at each of them. */
   function ringStop() {
+    ringToneOff();
     if (RING_TIMER) { clearTimeout(RING_TIMER); RING_TIMER = null; }
     if (RING_GONE) { clearTimeout(RING_GONE); RING_GONE = null; }
   }
@@ -21827,6 +21956,18 @@
 
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
+
+    /* Persisted, because somebody who silenced it once did not mean only
+       this ring. It also stops a ring already in progress: a mute you have
+       to wait out is not a mute. */
+    if (t.closest('[data-quiet]')) {
+      UI.quiet = !UI.quiet;
+      saveUI();
+      if (UI.quiet) ringToneOff();
+      else if (RINGING && RINGING.state === 'ringing') ringToneOn();
+      paintProto();
+      return;
+    }
 
     /* Make the phone ring. The panel shuts first: it is bottom-right and
        the widget is top-centre, so nothing overlaps, but a panel left open
