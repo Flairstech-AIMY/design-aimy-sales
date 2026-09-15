@@ -16598,41 +16598,56 @@
      this wrong is the audio version of a date printed the American way round
      on a European record: nobody can say what is off, everybody hears that
      something is. */
-  /* ══ A BELL, AND THE CLEAN KIND ═══════════════════════════════════════
-     This was a telephone line tone — 425 Hz held for a second, the Dutch
-     cadence, which is what the numbers in the book would really make a
-     handset do. It was also a buzz, and a buzz is what you put on a phone
-     that has to be heard over a factory floor rather than one that sits on
-     a desk in front of somebody.
+  /* ══ A MARIMBA, AND A PHRASE RATHER THAN A MOTIF ══════════════════════
+     Three sounds got tried here before this one: the Dutch line tone, which
+     was a buzz; a glass chime, which was clean and cold; and the same chime
+     stretched longer and softer, which smoothed the edge off and left it
+     thin. What got picked was the wooden one, and what it needed was room.
 
-     WHAT MAKES A BELL SOUND LIKE A BELL is that its overtones are NOT
-     whole multiples of the fundamental — the minor-third partial around
-     2.4× is the one your ear reads as "bell", and it is also the one that
-     reads as clang. This has no inharmonic partial at all: the octave and
-     the twelfth, both exact multiples, both quiet. That is a struck glass
-     rather than a church bell, which is the trade asked for — clean over
-     characterful.
+     A MARIMBA IS THE FOURTH HARMONIC. Struck wood puts most of its energy in
+     the fundamental and then, two octaves up, one clear partial — that ratio
+     of 4 is the whole character, and it dies in a sixth of the time the
+     fundamental does. That is why the note reads as hit rather than blown,
+     and why it can be short without sounding cut off.
 
-     SMOOTH IS THE ATTACK, AND IT IS 12ms. A sine that starts at full
-     amplitude has a step discontinuity in it, and a step is a click; at
-     4ms you still hear the onset as a tick on top of the tone. Twelve is
-     under the ~20ms where an onset starts sounding soft rather than
-     struck, so it arrives without announcing itself. The decay is
-     exponential because that is what a struck body does, and the upper
-     partials die first, which is also what a struck body does. */
-  const BELL_HZ = 880;
-  /* ratio, peak share, seconds to silence */
-  const BELL_PARTIALS = [[1, 1, 2.2], [2, 0.26, 1.3], [3, 0.08, 0.8]];
-  /* Two strikes, and the second is quieter. A bell that is rocking hits
-     softer on the way back, and two identical hits read as a rattle. */
-  const BELL_STRIKES = [[0, 1], [0.21, 0.62]];
-  const RING_GAP = 3.4;
-  /* Quiet on purpose, and quieter than the line tone it replaces. This is a
-     room sound, not an alert in headphones, and the one thing worse than a
-     phone you cannot hear is one you can hear three desks away. */
-  const RING_VOL = 0.034;
+     SEVEN SECONDS IS A PHRASE, NOT A LOOP OF A MOTIF. Two notes repeating
+     every three seconds is a device asking for attention; this is D major
+     pentatonic, sixteen notes, rising through the first bar and resolving
+     back to D at 6.2s with eight-tenths of a second of air before it starts
+     again. Pentatonic because nothing in it can clash with anything else in
+     it — notes overlap at these tempos, and a scale with no semitones cannot
+     produce a sour one. The two low D's are the only voice under the melody
+     and they sit at half volume: enough to give the phrase a floor, quiet
+     enough that a laptop speaker with no bottom end loses them without
+     losing the tune. */
+  const RING_VOICE = [[1, 1, 0.42], [4, 0.12, 0.16]];
+  /* seconds in, hertz, share of the peak */
+  const RING_MELODY = [
+    [0.00, 587.33, 0.90], [0.00, 293.66, 0.45],
+    [0.40, 739.99, 0.85],
+    [0.80, 880.00, 0.95],
+    [1.20, 987.77, 1.00],
+    [1.80, 880.00, 0.85],
+    [2.20, 739.99, 0.80],
+    [2.60, 659.25, 0.80],
+    [3.20, 587.33, 0.90],
+    [3.90, 440.00, 0.70], [3.90, 293.66, 0.40],
+    [4.30, 587.33, 0.80],
+    [4.70, 739.99, 0.85],
+    [5.10, 880.00, 0.90],
+    [5.70, 659.25, 0.75],
+    [6.20, 587.33, 0.85],
+  ];
+  const RING_GAP = 7.0;
+
+  /* Quiet on purpose. A room sound, not an alert in headphones — the one
+     thing worse than a phone you cannot hear is one you can hear three
+     desks away. Lower than the two-note version carried because sixteen
+     notes with overlapping tails accumulate where two did not. */
+  const RING_VOL = 0.045;
   let RING_AC = null;
   let RING_BEAT = null;
+  let RING_AT = 0;
 
   /* Nodes per strike rather than any held open and gated. A gate leaks for
      the length of the session and has its own ramps to cancel on every
@@ -16643,17 +16658,21 @@
      and a short linear ramp off it. Landing on the floor and stopping
      would leave a step of its own, which is the click this is avoiding. */
   function ringBurst(ac, at) {
-    BELL_STRIKES.forEach((hit) => {
-      BELL_PARTIALS.forEach((pt) => {
-        const t0 = at + hit[0];
-        const peak = RING_VOL * pt[1] * hit[1];
+    RING_MELODY.forEach((note) => {
+      RING_VOICE.forEach((pt) => {
+        const t0 = at + note[0];
+        const peak = RING_VOL * pt[1] * note[2];
         const life = pt[2];
         const o = ac.createOscillator();
         const g = ac.createGain();
         o.type = 'sine';
-        o.frequency.value = BELL_HZ * pt[0];
+        o.frequency.value = note[1] * pt[0];
         g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+        /* 6ms. A marimba is STRUCK, and the earlier 45ms was the setting
+           that made the chime before it read as blown — right for that
+           sound and wrong for this one. Short enough to have an onset,
+           long enough that the onset is not a click. */
+        g.gain.linearRampToValueAtTime(peak, t0 + 0.006);
         g.gain.exponentialRampToValueAtTime(0.0002, t0 + life);
         g.gain.linearRampToValueAtTime(0, t0 + life + 0.03);
         o.connect(g);
@@ -16680,10 +16699,31 @@
       if (!AC) return;
       RING_AC = new AC();
       if (RING_AC.state === 'suspended' && RING_AC.resume) RING_AC.resume();
-      ringBurst(RING_AC, RING_AC.currentTime + 0.05);
+      /* ══ THE PHRASE IS SPACED ON THE AUDIO CLOCK, NOT ON setInterval ══
+         This booked each repeat for `currentTime` at the moment a 7000ms
+         timer fired, and the two clocks are not the same clock. A context
+         takes a fraction of a second to start, so seven seconds of wall
+         time was 6.35 of audio time on the first repeat — the phrase came
+         back in before the last note of the one before it had finished,
+         and every further repeat added its own timer jitter on top.
+
+         So a cursor in AUDIO time moves in exact RING_GAP steps and the
+         timer only asks, twice a second, whether anything falls inside the
+         next second and a half. The timer can be late, early or skipped
+         entirely by a busy tab and the spacing does not move: what it
+         controls is when notes get BOOKED, not when they sound. */
+      RING_AT = RING_AC.currentTime + 0.05;
+      ringBurst(RING_AC, RING_AT);
+      RING_AT += RING_GAP;
       RING_BEAT = setInterval(() => {
-        try { if (RING_AC) ringBurst(RING_AC, RING_AC.currentTime); } catch (e) {}
-      }, RING_GAP * 1000);
+        try {
+          if (!RING_AC) return;
+          while (RING_AT < RING_AC.currentTime + 1.5) {
+            ringBurst(RING_AC, RING_AT);
+            RING_AT += RING_GAP;
+          }
+        } catch (e) {}
+      }, 500);
     } catch (e) { RING_AC = null; }
   }
 
