@@ -27,6 +27,26 @@
 
    Everything else here is a small variant of something in sales.css and says
    which one.
+
+   ── AND EVERY WIDTH BREAKPOINT HERE IS MULTIPLIED BY 0.85 ───────────────
+
+   Same contract as sales.css's, which states the derivation in full at its
+   own breakpoint block — the shell carries `zoom` on <body> and a media query
+   reads the REAL viewport, so a threshold reasoned about in LAYOUT px has to
+   be converted into the viewport width that produces that layout. Below a
+   real 1306 the scale is exactly 0.85, so the conversion is one exact
+   multiplication and every threshold in this file lands inside that region.
+
+   THIS FILE DID NOT FOLLOW IT, AND HALF OF IT SHOWED. Two thresholds were
+   converted (1087.98 and 611.98) and eight were written against the real
+   viewport, which fired each of those eight about eighteen percent early:
+   `max-width: 720px` on `.b-grid` dropped the queue to one column at an
+   847px layout, where two columns of 380 still fit, and the single card it
+   left was 773px wide. Both spellings of 720 were in the file at once.
+
+   The trailing comment on each query is the number that was reasoned about;
+   the number in the parentheses is machinery. The .98 clears the fractional
+   viewport Windows reports at 125% display scaling.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 
@@ -200,8 +220,12 @@
   gap: 12px;
   align-items: stretch;
 }
-@media (max-width: 1087.98px) { .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 719.98px)  { .b-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1087.98px) { /* 1280 layout px */ .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Measured on the queue: at a 729px layout two columns are 324px each and a
+   card holds its step, its campaign, four facts, the AiMY note and the
+   number without crowding; the one column this used to give at 841 was 773px
+   wide, with the note running ninety characters to the line. */
+@media (max-width: 611.98px)  { /* 720 layout px */ .b-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* ── NO FIXED HEIGHT, OR A TALL CARD LOSES ITS BOTTOM ─────────────────────
    This was `height: 100%`, which pins the card to the height the grid row
@@ -678,7 +702,7 @@
    And the answers are capped at 58ch. They ran the full block — measured at
    800px, about 130 characters — which is roughly twice the width anybody
    tracks a line back across. */
-@media (max-width: 611.98px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   /* Below this the label column costs more than the alignment is worth. */
 }
 
@@ -1400,7 +1424,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   .pipe-pop path { stroke-dashoffset: 0; }
   .b-swap { transition: none; }
 }
-@media (max-width: 520px) {
+@media (max-width: 441.98px) { /* 520 layout px */
   .pipe-tile { width: 44px; height: 44px; border-radius: 13px; }
   .pipe-stage { width: 70px; }
 }
@@ -1894,9 +1918,26 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
-@media (max-width: 720px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   .b-back-row { grid-template-columns: 1fr; }
   .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
+}
+
+/* ══ AND BELOW 560 THE BAR IS THE COLUMN THAT GOES ═════════════════════
+   Four columns on a 459px layout leave the label 80 of them, which is not a
+   label column: `Got this far` folded to two lines in the header and `On the
+   record here` to two in the row under it, so a three-row table stood five
+   rows tall with every cell straddling a line it did not belong to.
+
+   THE BAR IS THE ONE THAT CAN LEAVE, because it is the only cell here that
+   says nothing the row does not already say in words — it is `of the one
+   above` drawn, and `of the one above` is still there in figures at the end
+   of the same row. Dropping the count or the conversion would cost a fact;
+   this costs a picture of a fact. The label then takes what the bar was
+   holding and every cell is one line again. */
+@media (max-width: 475.98px) { /* 560 layout px */
+  .b-funnel { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .b-fn-bar, .b-fn-barh { display: none; }
 }
 
 /* ══ 45. NO RULES BETWEEN SECTIONS ═════════════════════════════════════════
@@ -2675,7 +2716,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   margin: 12px 0 0; font-weight: var(--fw-semibold); color: var(--d200);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   .b-way { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
   .b-way-n { font-size: var(--fs-xl); }
 }
@@ -2821,7 +2862,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .pipe-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 /* Nothing is pressed here any more, so the foot is one line of elapsed. */
 .pipe-foot { padding: 12px 8px 2px; }
-@media (max-height: 720px) {
+@media (max-height: 611.98px) { /* 720 layout px tall */
   .pipe-rail { padding: 14px 20px; }
   .pipe-card { max-height: calc(var(--vp-h) - 150px); }
 }
@@ -3348,7 +3389,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 }
 @media (prefers-reduced-motion: reduce) { .b-cal-nrow { animation: none; } }
 
-@media (max-width: 560px) {
+@media (max-width: 475.98px) { /* 560 layout px */
   .b-cal-day { height: 48px; }
   /* THE COLUMN EXISTS SO THE KINDS LINE UP, and 42 was measured against the
      times alone. A diary row's when is `11:30` or `16:30` — 29 and 33px — or
@@ -3868,8 +3909,8 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    Counted columns and `minmax(0, 1fr)` so the fields fit the page rather than
    the page fitting the fields. */
 .b-draft-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 100%; }
-@media (max-width: 1087.98px) { .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 719.98px) { .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1087.98px) { /* 1280 layout px */ .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 611.98px) { /* 720 layout px */ .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
 
 /* Greyed, and the reason is the sentence beside it rather than a tooltip
    nobody hovers. */
@@ -3936,7 +3977,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 12px; max-width: 100%;
 }
-@media (max-width: 719.98px) { .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 611.98px) { /* 720 layout px */ .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
 
 /* ══ 84. THE DIARY, AS A PAGE ══════════════════════════════════════════════
    The same month the pop-out draws, standing on a surface instead of hanging
@@ -3980,7 +4021,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 .b-diary .b-cal-etime, .b-diary .b-cal-ewhat { font-size: var(--t-ui); }
 /* Under the fold for a second column: the month goes back over the day and
    the rule between them turns with them, which is the stacked default. */
-@media (max-width: 1023.98px) {
+@media (max-width: 870.98px) { /* 1024 layout px */
   .b-diary .b-cal-panel { grid-template-columns: minmax(0, 1fr); }
   .b-diary .b-cal-side {
     padding-left: 0; margin-left: 0; padding-top: 12px; margin-top: 12px;
@@ -4677,7 +4718,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 /* The phone is 384px and the narrow shell is not, so it takes the gutter the
    rest of the build takes and nothing else changes: the same card, the same
    two buttons, at the width there is. */
-@media (max-width: 460px) {
+@media (max-width: 390.98px) { /* 460 layout px */
   .b-ring-main { padding: 12px 12px; gap: 10px; }
   .b-ring-read { padding: 8px 12px 10px; }
 }
