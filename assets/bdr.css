@@ -4517,9 +4517,28 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    call or picking it up, which is the thing a second surface doing the same
    job most easily gets wrong.
 
-   There is no saturated green in this system to reach for instead — `--ok`
-   is the only one and it is a mint. A phone-green would be a new token, so
-   it is a gap to raise rather than a literal to drop in here. */
+   THAT ARGUMENT LOST, AND THE REASON IT LOST IS JAKOB'S LAW. It is the same
+   law this build already cites for the handset glyphs one section up: every
+   phone anybody has held for twenty years answers on green and refuses on
+   red, and somebody reaching for a ringing phone is not reading. A pair that
+   is internally consistent with `.call-go` and externally wrong against
+   every telephone ever made is the wrong trade on THIS surface, whatever it
+   is on the rail — the rail is a control you went looking for, this arrives
+   unasked with a deadline.
+
+   SO THE GREEN IS A NEW TOKEN, because the system has none: `--ok` is a mint
+   at 157° and reads as a status tint, not as a button you press. Declared
+   here rather than in aimy-ds.css, the way sales.css declares `--ok-text`
+   and its three siblings — a product may name what it needs, it may not
+   re-theme the family. Raise it as a gap; do not edit the library from here.
+
+   BOTH ARE PINNED BY CONTRAST, NOT BY TASTE. The glyph is white, so the fill
+   has to clear 3:1 against white — which is what rules out the obvious
+   answer, iOS green #34C759, at 2.3:1. These are the most saturated pair
+   that clears it: measured 3.05:1 and 4.28:1 white-on-fill, and 4.99:1 and
+   3.56:1 against the dark card behind them, so one value serves both themes
+   and neither needs a light-mode twin. */
+:root { --ring-yes: #0fa968; --ring-no: #e5372b; }
 .b-ring-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .b-ring-btn {
   width: 40px; height: 40px; border-radius: 50%; border: 0;
@@ -4529,14 +4548,17 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
               background-color var(--t-fast) var(--ease-out);
 }
 .b-ring-btn svg { width: 19px; height: 19px; display: block; }
-.b-ring-btn.is-no { background: var(--err-strong); }
+.b-ring-btn.is-no { background: var(--ring-no); }
 /* The handset turned down, which is what declining looks like on every
    phone anybody has held. Rotating the same glyph rather than drawing a
    second one keeps the two buttons visibly one pair. */
 .b-ring-btn.is-no svg { transform: rotate(134deg); }
-.b-ring-btn.is-yes { background: var(--brand); }
-.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--err-strong) 88%, #000); }
-.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--brand) 88%, #fff); }
+.b-ring-btn.is-yes { background: var(--ring-yes); }
+/* Both darken, because both are now saturated fills rather than one fill
+   and one brand: lightening a green that is already close to its contrast
+   floor would push it under. */
+.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--ring-no) 88%, #000); }
+.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--ring-yes) 88%, #000); }
 .b-ring-btn:active { transform: scale(0.94); }
 .b-ring-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
