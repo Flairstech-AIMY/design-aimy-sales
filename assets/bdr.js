@@ -15128,13 +15128,13 @@
     if (p.hidden) return;
     p.innerHTML =
       '<div class="proto-sec">' +
-        '<div class="proto-h">Make the phone ring</div>' +
+        '<div class="proto-h">Incoming calls</div>' +
         '<button class="proto-link" type="button" data-inbound="known">' +
-          'Somebody on the board rings in</button>' +
+          'Somebody on the board calls in</button>' +
         '<button class="proto-link" type="button" data-inbound="named">' +
-          'A stranger rings in, and says who they are</button>' +
+          'A stranger calls in, and says who they are</button>' +
         '<button class="proto-link" type="button" data-inbound="anon">' +
-          'A stranger rings in, and will not say</button>' +
+          'A stranger calls in, and will not say</button>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
@@ -15735,7 +15735,7 @@
          up, printed under an inbound one that was answered and spoken on.
          The row prints this note, so it is also where the direction becomes
          visible without a shared renderer having to learn a new field. */
-      note: call.note || (call.dir === 'in' ? 'They rang in.'
+      note: call.note || (call.dir === 'in' ? 'They called in.'
         : heard.disp ? 'Logged from the call.' : 'No answer.'),
       lines: call.lines || [],
       next: mv.next || null,
@@ -16032,7 +16032,7 @@
   const INBOUND_SCRIPTS = {
     known: [
       ['them', 'Hello, it is {first}. You left me a message last week.'],
-      ['you', 'I did — thanks for ringing back. Have I caught you at a good time?'],
+      ['you', 'I did — thanks for calling back. Have I caught you at a good time?'],
       ['them', 'Two minutes. I read what you sent. The pricing is where I am stuck.'],
       ['you', 'Fair enough. Rather than talk at you, could I show you it working?'],
       ['them', 'Go on then, book me a demo. The cost will decide it, mind.'],
@@ -16373,7 +16373,7 @@
       return;
     }
     const c = ringPick();
-    if (!c) { toast('Nobody on the board has a number on file to ring in from.'); return; }
+    if (!c) { toast('Nobody on the board has a number on file to call in from.'); return; }
     ringIn(c.phone, false);
   }
 
@@ -16408,7 +16408,7 @@
     if (!r || r.state === 'live') return;
     const c = r.con ? DB.byCon[r.con] : null;
     ringRetire();
-    if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody on the board rang it.'); return; }
+    if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody on the board has that number.'); return; }
     const now = new Date().toISOString();
     const t = {
       id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
@@ -19445,7 +19445,7 @@
     if (inbound) {
       if (why) {
         body += '<blockquote class="b-open">' +
-          '<span class="b-open-cap">Why they rang</span>' +
+          '<span class="b-open-cap">Why they called</span>' +
           '<p class="b-open-say">' + why + '</p>' +
         '</blockquote>';
       }
@@ -19935,7 +19935,7 @@
       /* They rang us and we spoke. Not 'handed-over': no manager has this,
          and the step a call earns is the one the call actually reached. */
       step: 'answered', manager: null,
-      note: 'Rang in on ' + (call.phone || 'an unknown number') + '.',
+      note: 'Called in on ' + (call.phone || 'an unknown number') + '.',
     });
     if (!c) return;
     /* Released here as well as in `whoisRead`, because agreeing with the
