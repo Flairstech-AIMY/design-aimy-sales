@@ -15765,6 +15765,12 @@
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
     back: '<path d="m15 18-6-6 6-6"/>',
     fwd: '<path d="m9 18 6-6-6-6"/>',
+    /* The same chevron turned, for a panel that goes away downwards rather
+       than a page that goes back sideways. Drawn rather than rotated: `back`
+       and `fwd` are 24-box paths on the same grid and a transform would put
+       this one a half-pixel off theirs. */
+    'chev-down': '<path d="m6 9 6 6 6-6"/>',
+    'chev-up': '<path d="m18 15-6-6-6 6"/>',
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     /* The circle and the stroke through it. Drawn once here and read by both
@@ -15848,6 +15854,33 @@
     return actor(k && k.owner ? k.owner : MANAGERS[0].id);
   }
 
+  /* ══ THE CALL STEPS BACK, IT DOES NOT CLOSE ═══════════════════════════
+     Below 720 layout px the call is the whole width (sales.css §THE CALL
+     PANEL), because 300px beside a 459px layout leaves the page 159 and every
+     line in it cut mid-word. That answers the call and asks a new question:
+     the page was then not reachable at all while one was up, and "open the
+     record, check the brief, read what was said last time" is the reason this
+     is a shell region rather than a modal in the first place.
+
+     So the narrow answer is a STATE, not a removal. Minimised, the call is a
+     strip under the masthead carrying the three things that are true right
+     now — that it is live, how long it has been, and who — plus End, which is
+     the one control here whose absence would cost you something. The page is
+     underneath it, whole, and the strip is the way back.
+
+     VIEW STATE, SO IT IS NOT IN DB.call. A minimised call is not a different
+     call: the model is what is happening on the line, and this is where you
+     are standing. It is false whenever a call begins or ends, so a call never
+     opens into a strip nobody asked for.
+
+     NO paint HERE. Every caller of this already repaints on its own line, and
+     a paint inside would double every one of them. */
+  let CALL_MIN = false;
+  function callMin(on) {
+    CALL_MIN = !!on;
+    document.body.classList.toggle('is-call-min', CALL_MIN);
+  }
+
   function startCall(id, sess) {
     const c = DB.byCon[id];
     if (!c) return;
@@ -15861,6 +15894,7 @@
       auto: false, sess: sess || (DB.call && DB.call.sess) || null,
     };
     document.body.classList.add('is-calling');
+    callMin(false);
     paintCall();
     /* The brief goes up as the phone is about to call, not after. It is a
        stored turn, so every toast and repaint for the rest of the run leaves
@@ -15980,6 +16014,7 @@
     };
     DB.call = null;
     document.body.classList.remove('is-calling');
+    callMin(false);
     paintCall();
     callLogPropose();
   }
@@ -16179,6 +16214,7 @@
     clearCallTimers();
     DB.call = null;
     document.body.classList.remove('is-calling');
+    callMin(false);
     paintCall();
   }
 
@@ -16246,6 +16282,14 @@
           : '') +
         (sess ? '<span class="call-of" id="callOf">' + at + ' of ' + sess.ids.length +
           '</span>' : '') +
+        /* Painted only where the call owns the whole width, which is the only
+           place stepping back from it means anything — beside the page there
+           is nothing to step back TO. sales.css decides that, not this. */
+        '<button class="call-min" type="button" data-call-min ' +
+          'aria-expanded="' + (!CALL_MIN) + '" aria-controls="callPanel" aria-label="' +
+          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '" title="' +
+          (CALL_MIN ? 'Back to the call' : 'Back to the page') + '">' +
+          chIcon(CALL_MIN ? 'chev-up' : 'chev-down') + '</button>' +
       '</div>' +
 
       '<div class="call-who-block">' +
@@ -16824,6 +16868,7 @@
       asking: false, notice: false, auto: false, sess: null,
     };
     document.body.classList.add('is-calling');
+    callMin(false);
     paintCall();
 
     CALL_TICK = setInterval(() => {
@@ -21608,6 +21653,7 @@
       return;
     }
 
+    if (t.closest('[data-call-min]')) { callMin(!CALL_MIN); paintCall(); return; }
     if (t.closest('[data-callgo]')) { callGo(); return; }
     if (t.closest('[data-call-end]')) { endCall(); return; }
     /* The two presses on a ringing phone. Beside the controls that end a

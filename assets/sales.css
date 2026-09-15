@@ -1719,6 +1719,10 @@ body {
    live, so the whole clamp above collapses to the centring on every ordinary
    screen. */
 :root { --fb-reserve: 0px; }
+/* And what is parked at the TOP, which only a phone has: the strip a call
+   folds into below 720 layout px. Zero everywhere else, so the expressions
+   that add it resolve to the offset they had before it existed. */
+:root { --call-strip: 0px; }
 body.is-calling { --fb-reserve: var(--call-width); }
 
 /* The scope tray belongs TO the float bar — it is the bar's scope, not a
@@ -5608,6 +5612,31 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .app-call[hidden] { display: none; }
 
 .call-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* ══ THE WAY BACK TO THE PAGE, AND IT IS THE BELL'S SKIN ══════════════════
+   Not a new control shape — .topnav-bell and .rail-toggle are already this
+   product's icon button, and .rail-toggle is already the one that means "a
+   shell region changes form here". Same 34px box, same wash, same border, in
+   both themes. `margin-left: auto` puts it at the end of the head, away from
+   the clock, which is the only thing in that row you read at a glance.
+
+   `display: none` at every width and painted only in the narrow block below:
+   above it the page is beside the call already, and a control offering to
+   reveal something on screen is a control that does nothing. */
+.call-min {
+  display: none;
+  margin-left: auto; flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  align-items: center; justify-content: center;
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.call-min svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.call-min:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.call-min:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .call-min { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .call-min:hover { background: rgba(16,24,40,0.07); }
 /* The live dot pulses. It is the one thing on this surface that is true
    right now rather than true as of the last paint, and motion is how that
    reads without a word for it. */
@@ -5863,6 +5892,72 @@ body.is-calling .overlay-chats { display: none; }
      mispress costs you the call, under a bar you did not ask for. */
   body.is-calling .aimy-float-wrap { display: none; }
   body.is-calling .aimy-overlay { right: 0; }
+
+  /* ══ AND THE CALL CAN STEP BACK, SO THE PAGE IS NEVER GONE ═════════════
+     Taking the whole width is right and it is not the whole answer: a caller
+     opens the record, checks the brief and reads what was said last time
+     DURING the call — that is the reason this is a shell region rather than
+     a modal — and none of it was reachable once the column stepped aside.
+
+     So the region has a second form at this width instead of one form and a
+     hole. Minimised it is a strip under the masthead: the live dot, the
+     clock, the name, and End. The page is underneath, whole, with its own
+     composer back. Nothing is removed — the rest of the panel is one press
+     on the same chevron away, and the three things a live call has to keep
+     saying are the three the strip carries.
+
+     `flex-direction: row` is the whole mechanism: .app-call is already a flex
+     column with `margin-top: auto` pinning End to the bottom of a full-height
+     panel, and turning the axis makes that same rule pin End to the RIGHT of
+     a strip. One declaration, and the control that must never be hunted for
+     stays where the thumb already is. */
+  .call-min { display: inline-flex; }
+
+  body.is-call-min .app-main { display: flex; }
+  body.is-call-min .aimy-float-wrap { display: flex; }
+  /* A TOKEN, BECAUSE THREE THINGS READ THIS HEIGHT and they must not drift:
+     the strip is this tall, the canvas starts under it, and anything fixed to
+     the top of the column after them has to clear both. Declared at 0 on
+     :root above so every other state gets the arithmetic for free. */
+  body.is-call-min { --call-strip: 60px; }
+  body.is-call-min .app-call {
+    flex: 0 0 auto;
+    height: var(--call-strip);
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  /* The panel stacks ABOVE the page rather than beside it. .app-body is a
+     flex row; `wrap` plus a full-width basis is what makes a row into two,
+     and `order` is what decides which is on top. */
+  body.is-call-min .app-body { flex-wrap: wrap; align-content: flex-start; }
+  body.is-call-min .app-call { order: -1; width: 100%; }
+  body.is-call-min .app-main { flex: 1 1 100%; min-height: 0; }
+
+  /* What the strip does not carry, said as what it DOES. Naming the parts to
+     hide means naming them again every time the panel grows one — and the
+     first draft of this rule named four that do not exist, leaving the
+     transcript and the note standing in a row 190px tall. Three children are
+     the strip; everything else folds. Still in the tree, still one press away
+     on the same chevron: this is the panel folded, not the panel cut. */
+  body.is-call-min .app-call > :not(.call-head):not(.call-who-block):not(.call-tools) {
+    display: none;
+  }
+  body.is-call-min .call-who-block > :not(.call-name) { display: none; }
+  body.is-call-min .call-tool { display: none; }
+  /* The clock is the strip's subject, so it keeps its size while the name
+     beside it gives way — a name is a string of unknown length and the only
+     thing here that can be trusted to end. */
+  body.is-call-min .call-who-block { min-width: 0; flex: 1 1 auto; }
+  body.is-call-min .call-name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.is-call-min .call-head { flex: 0 0 auto; flex-wrap: nowrap; }
+  body.is-call-min .call-min { margin-left: 0; }
+  body.is-call-min .call-tools { margin: 0 0 0 auto; flex-wrap: nowrap; }
+  body.is-call-min .call-end { padding: 0 14px; height: 34px; }
 }
 
 /* The brief AiMY writes before the call. */
@@ -8786,7 +8881,32 @@ body.is-figures .filter-tray { display: none; }
    block. It now holds the main flow in the product, so it gets a real box.
    Fixed to the VIEWPORT, because a canvas you cannot read is not a surface. ══ */
 @media (max-width: 611.98px) { /* 720 layout px */
-  .aimy-overlay { position: fixed; inset: 0; }
+  /* ══ UNDER THE MASTHEAD, NOT OVER IT ════════════════════════════
+     `inset: 0` was the answer to a 155px thread inside a 375px viewport, and
+     the half of it that did that work is left and right. The top was
+     collateral: the canvas is translucent with a backdrop blur, so covering
+     the masthead did not hide it — it drew the canvas's own context chips
+     THROUGH the tab strip, two rows of different things on the same pixels,
+     and left the logo, the bell and the account pill lit but unreachable.
+
+     It now starts below the masthead, and below a minimised call as well: a
+     live call's strip is the one thing on this screen that is true right now,
+     and a surface that opens over it takes away the only evidence the line is
+     still open. --call-strip is 0 unless one is minimised. */
+  .aimy-overlay { position: fixed; inset: calc(var(--topbar-height) + var(--call-strip)) 0 0; }
+  /* ══ AND AN EXPANDED CALL IS IN FRONT OF IT ════════════════════════
+     Starting a call posts the brief, and posting to the canvas opens it
+     (bdr.js, callPrep) — which above this width lands beside the call and at
+     this width lands ON it, so pressing Call showed you a brief for a call you
+     could no longer see. Two full-width surfaces cannot both be the screen.
+
+     The canvas goes BEHIND rather than away: it is still open, still holding
+     the brief, and one press of the chevron puts the call back to a strip and
+     reveals it. Lowering the canvas is what makes that reversible — hiding it
+     would need a second rule to bring it back and a third to decide when. Its
+     z-index of 500 drops under .app-body's 1; the masthead's 100 stays above
+     both, which is the order that was wanted here in the first place. */
+  body.is-calling:not(.is-call-min) .aimy-overlay { z-index: 0; }
   .s-work, .s-work-body { min-width: 0; }
 }
 
