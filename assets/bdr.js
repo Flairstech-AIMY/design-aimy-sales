@@ -2447,6 +2447,11 @@
   }
   function saveNow() {
     saveTimer = null;
+    /* The day this half of the book was last written. Nothing reads it
+       except `driftDays`, and without it there is no way to know how far
+       behind a saved demo has fallen — the dates inside it are absolute and
+       say nothing about when they were absolute FROM. */
+    DELTA.at = TODAY_ISO;
     try { localStorage.setItem(KEY_DB, JSON.stringify(DELTA)); }
     catch (e) { /* quota or a private window: the session still works, it just
                    will not survive a reload. Never break the product for it. */ }
@@ -2614,6 +2619,50 @@
     reindex();
   }
 
+  /* ══ A SAVED DEMO GOES STALE AND THE CORPUS DOES NOT ═══════════════════
+     Seed dates are built from the real clock, so the book is current every
+     time it loads however long you leave it. What you CHANGED is not: a
+     meeting booked for "today" is stored as the day it was booked, and two
+     days later it is a meeting that was missed. The corpus has moved on and
+     your half of it has not, which is the one way this demo contradicts
+     itself — and `reset` could only fix it by throwing your half away.
+
+     THE WHOLE TIMELINE SLIDES, rather than each date being re-dated to
+     today one at a time. Two days behind means everything moves two days:
+     what you set for today lands on today, and the thing you set for two
+     days after it is still two days after it. Re-dating each to today
+     would flatten a diary into a single morning.
+
+     EVERY DATE, WALKED RATHER THAN LISTED. The delta is a dozen shapes and
+     a list of field names is a list that goes stale the first time a date
+     is stored in a new one. Anything that LOOKS like a date moves, wherever
+     it sits — including the ones inside a key, because a dismissed task is
+     identified by the day of the meeting it is about and would come back
+     undismissed if its id stayed behind. Nothing else in here can be
+     mistaken for one: ids are `p12`, `c0`, `k1a2b`. */
+  function shiftDates(v, days) {
+    if (typeof v === 'string') {
+      return v.replace(/\d{4}-\d{2}-\d{2}/g, (d) => isoAdd(d, days));
+    }
+    if (Array.isArray(v)) return v.map((x) => shiftDates(x, days));
+    if (v && typeof v === 'object') {
+      const out = Object.create(null);
+      Object.keys(v).forEach((k) => (out[k] = shiftDates(v[k], days)));
+      return out;
+    }
+    return v;
+  }
+  const driftDays = () =>
+    (DELTA.at ? Math.max(0, daysBetween(DELTA.at, TODAY_ISO)) : 0);
+  function catchUp() {
+    const n = driftDays();
+    /* A control that does nothing says so, rather than reloading the page
+       to prove it. */
+    if (!n) { toast('Everything you changed is already on today.'); return; }
+    DELTA = shiftDates(DELTA, n);
+    saveNow();
+    location.reload();
+  }
   function reset() {
     try {
       localStorage.removeItem(KEY_DB);
@@ -15421,6 +15470,12 @@
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
+        /* The gap is in the label because it is the whole reason to press
+           it, and on a demo opened the same day there is no gap to state. */
+        '<button class="proto-link" type="button" data-catchup>' +
+          (driftDays()
+            ? 'Move everything on ' + esc(plural(driftDays(), 'day')) + ' to today'
+            : 'Move everything on to today') + '</button>' +
         '<button class="proto-link" type="button" data-reset>Reset to seed</button>' +
       '</div>';
   }
@@ -21766,6 +21821,9 @@
       go({ as: as.getAttribute('data-as') === DEFAULT_ME ? '' : as.getAttribute('data-as') });
       return;
     }
+
+    const cup = t.closest('[data-catchup]');
+    if (cup) { catchUp(); return; }
 
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
