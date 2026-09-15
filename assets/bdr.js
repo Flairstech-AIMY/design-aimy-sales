@@ -2632,6 +2632,11 @@
   const myLine = () => me().sell || null;
   const lineOf = (k) => (k && k.sells && k.sells.length ? k.sells[0] : null);
   const onLine = (k) => !!myLine() && lineOf(k) === myLine();
+  /* Whose these are, in the desk's own terms. A manager runs them; a
+     stakeholder is answering for what they sell, and "you are running" on
+     his desk is a claim about somebody else's work. Written once, because
+     three surfaces say it and three spellings would drift. */
+  const bookWhose = () => (isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
   /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
      what it sells. The same word for all three, because it is the same
      question — is this mine to work — and every surface that asks it (the
@@ -4161,7 +4166,7 @@
           state: now.length ? 'staged' : 'detected',
           text: now.length
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
-              ' something today, out of the <b>' + commas(live.length) + '</b> you are running.'
+              ' something today, out of the <b>' + commas(live.length) + '</b> ' + bookWhose() + '.'
             : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
           evidence: [{ val: commas(week), cap: 'in the diary this week' },
             { val: camps.length, cap: 'campaigns' }],
@@ -4898,7 +4903,7 @@
               '<span class="b-owed-go">' + esc(t.cta) + '</span>' +
             '</button>').join('') + '</div>'
         : '<p class="s-block-sub">Nothing is waiting on you. The board has the ' +
-          plural(live.length, 'deal') + ' you are running.</p>') +
+          plural(live.length, 'deal') + ' ' + bookWhose() + '.</p>') +
     '</section>';
   }
 
@@ -4963,7 +4968,7 @@
       '<div class="s-lead-line">' +
         '<span class="s-lead-n">' + esc(euro(sum(live))) + '</span>' +
         '<span class="s-lead-say">still open, across <span class="s-lead-of">' +
-          commas(live.length) + '</span> deals you are running.</span>' +
+          commas(live.length) + '</span> deals ' + bookWhose() + '.</span>' +
       '</div>' +
       '<p class="s-lead-deck">' +
         (bits.length ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.'
@@ -8552,8 +8557,21 @@
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
-      if (!camps.length) return 'You are on no campaign, so there is nobody to call.';
-      return plural(camps.length, 'campaign') + ' are yours. <b>' + esc(busiest.name) +
+      if (!camps.length) {
+        return isLine() ? 'No campaign sells ' + esc(sellSay(myLine())) + ' at the moment.'
+          : 'You are on no campaign, so there is nobody to call.';
+      }
+      /* ══ AND "1 CAMPAIGN ARE YOURS" WAS ALREADY WRONG ═══════════════
+         `plural` inflects the noun and the verb beside it was a literal, so
+         this read "1 campaign are yours" for any desk holding one. No desk
+         held one until now, which is the whole reason it survived. Fixed
+         rather than carried across, and named here because it is not this
+         change's bug. */
+      return (isLine()
+        ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' sells ' : ' sell ') +
+          esc(sellSay(myLine())) + '.'
+        : plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') + ' yours.') +
+        ' <b>' + esc(busiest.name) +
         '</b> has the most left to call at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
         esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
     }
@@ -8594,10 +8612,17 @@
           esc(plural(un, 'meeting')) + '</button> ' + (un === 1 ? 'has' : 'have') +
           ' been and gone with nothing said about ' + (un === 1 ? 'it' : 'them') + '.'
         : '';
+      /* A stakeholder was never handed anything and owns no campaign. The
+         same two facts are true of his desk said the other way round: what
+         has reached the director on the campaigns that sell his product. */
       const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
-          ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
-        : 'Nothing has been handed to you yet.';
+          (isLine()
+            ? ' been handed over on <b>' + plural(camps.length, 'campaign') + '</b> selling ' +
+              esc(sellSay(myLine())) + '.'
+            : ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.')
+        : (isLine() ? 'Nothing has been handed over on ' + esc(sellSay(myLine())) + ' yet.'
+          : 'Nothing has been handed to you yet.');
       /* The surface is called Diary — on the tab, on the rail door and on
          the block this paragraph now sits above. Two words for one place,
          eighty pixels apart, is the reader doing translation. */
