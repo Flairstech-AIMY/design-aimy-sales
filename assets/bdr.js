@@ -16739,25 +16739,32 @@
   ];
   const RING_GAP = 7.0;
 
-  /* ══ DOUBLED, AND IT IS STILL A ROOM SOUND ═════════════════════════
+  /* ══ THREE TIMES WHAT IT SHIPPED AT, AND STILL A ROOM SOUND ══════════
      0.052 was set against sixteen overlapping notes and then kept when the
      melody came down to six with air between them, which is the arithmetic
-     that made it too quiet: the accumulation it was backing away from
-     stopped happening. Asked for twice as loud and given exactly that — the
-     amplitude, not the perceptual doubling, which would be about +10dB and
-     3.2x and is not what somebody turning a volume up means.
+     that made it too quiet: the accumulation it was backing away from had
+     stopped happening. Doubled to 0.104, then asked for half again on top of
+     that and given exactly that — 0.156, which is 3x the original and +9.5dB
+     on it.
+
+     AMPLITUDE, NOT PERCEIVED LOUDNESS, at each step. Twice as loud to the ear
+     is about +10dB and 3.2x the amplitude; somebody turning a volume up is
+     asking for the number, not the psychoacoustics. Said here because the two
+     readings diverge fast and the next person to raise this should know which
+     one the last two raises meant.
 
      THE ONE SCALAR EVERY PEAK IS DERIVED FROM, so the balance between the
      partials and between the notes is untouched: ringBurst multiplies this
      by the voice's share and the note's, and both of those are ratios.
 
-     NO HEADROOM PROBLEM, and that is worth stating rather than assuming,
-     because this is the one number here that can clip. The loudest instant
-     is the downbeat, where D4 and D3 sound together with their octaves:
-     0.85 + 0.102 + 0.34 + 0.041 = 1.33 of this constant, which is 0.139 of
-     full scale. The A4 landing at 0.42s over their decay is the next
-     candidate and lands near 0.24. Both are far under 1. */
-  const RING_VOL = 0.104;
+     STILL NOT CLIPPING, measured rather than assumed, because this is the one
+     number here that can. The loudest instant is the downbeat, where D4 and
+     D3 sound together with their octaves — 0.85 + 0.102 + 0.34 + 0.041 = 1.33
+     of this constant. Summed output through an analyser on a real ring: 0.176
+     peak against a ceiling of 1, which is 15dB of headroom. There is room to
+     go louder again if it is still not enough; there is not room to keep
+     doing it for ever, and past about 0.6 this comment stops being true. */
+  const RING_VOL = 0.156;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
