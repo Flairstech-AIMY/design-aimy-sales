@@ -17326,6 +17326,20 @@
   let REACH_SAID = false;
   let REACH_HIT = null;
   function reachGreet() {
+    /* ══ AND IT IS THE MANAGER'S MOVE, NOT THE CALLER'S ═════════════════
+       What this offers is a stranger who is NOT on the board, found in
+       `DB.net`, reachable through somebody in your own LinkedIn network,
+       ranked by what the work would be worth. That is sourcing: deciding
+       which company to go after and spending a personal connection to get
+       in. A BDR does not decide which companies to go after. They work the
+       queue they were given, and the two verbs under this message — write
+       the ask, add them to the board — are both outside what that desk
+       does.
+
+       It was greeting every desk, and the default desk is a BDR's, so the
+       first thing the product said to the person it is named for was an
+       offer to do somebody else's job. */
+    if (!isMgr()) return;
     if (REACH_SAID) return;
     const hit = reachTop();
     if (!hit) return;
