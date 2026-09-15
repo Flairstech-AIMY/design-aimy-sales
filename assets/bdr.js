@@ -16610,41 +16610,43 @@
      fundamental does. That is why the note reads as hit rather than blown,
      and why it can be short without sounding cut off.
 
-     SEVEN SECONDS IS A PHRASE, NOT A LOOP OF A MOTIF. Two notes repeating
-     every three seconds is a device asking for attention; this is D major
-     pentatonic, sixteen notes, rising through the first bar and resolving
-     back to D at 6.2s with eight-tenths of a second of air before it starts
-     again. Pentatonic because nothing in it can clash with anything else in
-     it — notes overlap at these tempos, and a scale with no semitones cannot
-     produce a sour one. The two low D's are the only voice under the melody
-     and they sit at half volume: enough to give the phrase a floor, quiet
-     enough that a laptop speaker with no bottom end loses them without
-     losing the tune. */
+     THREE NOTES, TWICE, AND THE REST IS AIR. This was sixteen notes of D
+     major pentatonic rising to a peak and resolving — which is a TUNE. A
+     tune has a shape you could hum, and anything you can hum belongs to a
+     toy or a game rather than to a phone on a working desk.
+
+     What replaced it states rather than sings: the root, up a fifth, and
+     settle onto the third. An interval, not a line. It is an octave lower
+     than the tune was, because the top of a marimba is where it sounds
+     like a xylophone in a nursery and the bottom is where it sounds like
+     an instrument. The low D under the first note of each statement is the
+     only thing below the melody and sits near a third of the volume:
+     enough to give the phrase a floor, quiet enough that a laptop speaker
+     with no bottom end loses it without losing anything else.
+
+     THE SILENCE IS MOST OF THE SEVEN SECONDS, and it is doing the work.
+     One and a half seconds of notes, two of nothing, the same again. That
+     is the rhythm every telephone has ever had, and it is also what
+     separates a thing that is confident you will hear it from a thing that
+     keeps talking in case you did not. */
   const RING_VOICE = [[1, 1, 0.42], [4, 0.12, 0.16]];
   /* seconds in, hertz, share of the peak */
   const RING_MELODY = [
-    [0.00, 587.33, 0.90], [0.00, 293.66, 0.45],
-    [0.40, 739.99, 0.85],
-    [0.80, 880.00, 0.95],
-    [1.20, 987.77, 1.00],
-    [1.80, 880.00, 0.85],
-    [2.20, 739.99, 0.80],
-    [2.60, 659.25, 0.80],
-    [3.20, 587.33, 0.90],
-    [3.90, 440.00, 0.70], [3.90, 293.66, 0.40],
-    [4.30, 587.33, 0.80],
-    [4.70, 739.99, 0.85],
-    [5.10, 880.00, 0.90],
-    [5.70, 659.25, 0.75],
-    [6.20, 587.33, 0.85],
+    /* D4, up a fifth to A4, settling on F#4. Then silence. */
+    [0.00, 293.66, 0.85], [0.00, 146.83, 0.34],
+    [0.42, 440.00, 0.95],
+    [1.15, 369.99, 0.58],
+    [3.60, 293.66, 0.85], [3.60, 146.83, 0.34],
+    [4.02, 440.00, 0.95],
+    [4.75, 369.99, 0.58],
   ];
   const RING_GAP = 7.0;
 
   /* Quiet on purpose. A room sound, not an alert in headphones — the one
      thing worse than a phone you cannot hear is one you can hear three
-     desks away. Lower than the two-note version carried because sixteen
-     notes with overlapping tails accumulate where two did not. */
-  const RING_VOL = 0.045;
+     desks away. Back up a little from where sixteen overlapping notes
+     needed it, because six with air between them do not accumulate. */
+  const RING_VOL = 0.052;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
