@@ -2981,7 +2981,7 @@
   function prePaint() {
     const out = { bar: null, figs: null };
     const on = document.querySelector('.b-switch-btn.is-on');
-    if (on) out.bar = { x: on.offsetLeft, w: on.offsetWidth };
+    if (on) out.bar = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
     if (FIG_TICK) {
       out.figs = Object.create(null);
       document.querySelectorAll('[data-fig]').forEach((el) => { out.figs[el.getAttribute('data-fig')] = el.textContent; });
@@ -2989,19 +2989,31 @@
     FIG_TICK = false;
     return out;
   }
+  /* THE BAR IS PLACED ON BOTH AXES, BECAUSE THE STRIP WRAPS. `.b-switch` is
+     `flex-wrap: wrap` and the manager's desk carries five entries, which at a
+     459px layout take two rows. Moving the bar in x alone left it wherever
+     `bottom: 0` put it — the foot of the whole wrapped block — so with Diary
+     lit on the first row the bar sat 34px below the second, under Lists,
+     marking nothing. It is anchored to the TOP of the strip now (bdr.css §31)
+     and told where to go. 2 is its own height: the y is the button's bottom
+     edge, so the bar sits in the last two pixels of the button's box, which
+     is what `bottom: 0` gave it on a single row and is now true on any. */
+  function barY(on) { return on.offsetTop + on.offsetHeight - 2; }
   /* FLIP: put the bar where it was, let the browser see it there, then
      send it where it goes. No previous place, no motion. */
   function placeSwitchBar(from) {
     const bar = document.querySelector('.b-switch-bar');
     const on = document.querySelector('.b-switch-btn.is-on');
     if (!bar || !on) return;
-    if (from && (from.x !== on.offsetLeft || from.w !== on.offsetWidth)) {
+    const to = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
+    const at = (p) => 'translate(' + p.x + 'px, ' + p.y + 'px) scaleX(' + p.w + ')';
+    if (from && (from.x !== to.x || from.y !== to.y || from.w !== to.w)) {
       bar.style.transition = 'none';
-      bar.style.transform = 'translateX(' + from.x + 'px) scaleX(' + from.w + ')';
+      bar.style.transform = at(from);
       void bar.offsetWidth;
       bar.style.transition = '';
     }
-    bar.style.transform = 'translateX(' + on.offsetLeft + 'px) scaleX(' + on.offsetWidth + ')';
+    bar.style.transform = at(to);
   }
   function postPaint(pre) {
     placeSwitchBar(pre.bar);
@@ -22497,6 +22509,13 @@
   });
 
   window.addEventListener('resize', () => placeSwitchBar(null));
+  /* AND ON THE VIEWPORT CHANGES `resize` DOES NOT ANNOUNCE. Changing the
+     browser's zoom level moves the viewport with no resize event at all —
+     assets/aimy-viewport.js measured it and publishes `aimy:viewport` for
+     precisely this, so a consumer does not have to grow its own poll. It
+     matters here because the strip wraps: five entries are one row at a 776px
+     layout and two at 459, and the bar's y is which row the lit one is on. */
+  window.addEventListener('aimy:viewport', () => placeSwitchBar(null));
   /* The webfont lands after the first paint and the buttons narrow under
      the bar; it is placed again when the fonts are in. */
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSwitchBar(null));

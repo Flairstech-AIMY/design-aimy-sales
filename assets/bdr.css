@@ -1462,8 +1462,15 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    switcher — ticks once, the new number rising through 4px of blur. Never on
    load, never on scroll, never for navigating: only for what you just did. */
 .b-switch { position: relative; }
+/* ══ TOP, NOT BOTTOM, BECAUSE THE STRIP WRAPS ════════════════════════
+   `.b-switch` is `flex-wrap: wrap`, and the manager's desk has five entries:
+   at a 459px layout they take two rows. `bottom: 0` is the bottom of the
+   whole wrapped block, so with Diary lit on the first row the bar drew 34px
+   BELOW the second one — a rule floating under Lists, marking nothing.
+   Anchored to the top, the bar's place is a function of the button alone and
+   placeSwitchBar() carries the y it was already computing the x for. */
 .b-switch-bar {
-  position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--d50);
+  position: absolute; left: 0; top: 0; width: 1px; height: 2px; background: var(--d50);
   /* SURFACE MOTION TAKES THE SURFACE CURVE. This was
      `cubic-bezier(0.77, 0, 0.175, 1)` — a symmetrical ease-IN-out, which on
      a bar that slides between tabs means it spends its first frames barely
@@ -3343,7 +3350,16 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 
 @media (max-width: 560px) {
   .b-cal-day { height: 48px; }
-  .b-cal-etime { width: 42px; }
+  /* THE COLUMN EXISTS SO THE KINDS LINE UP, and 42 was measured against the
+     times alone. A diary row's when is `11:30` or `16:30` — 29 and 33px — or
+     it is `all day`, which is 46.3 and wrapped, taking that row to two lines
+     and dropping `Owed` half a line below the `Demo` above it.
+
+     min-width rather than width, and nowrap beside it: at 48 every value this
+     column holds is one line and they share an edge, and a longer one later
+     takes the room it needs instead of folding. A fixed width can only fail
+     by wrapping; this can only fail by not aligning. */
+  .b-cal-etime { min-width: 48px; white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   .b-cal-bg, .b-cal-plus, .b-cal-btn { transition: none; }
