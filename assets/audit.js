@@ -65,6 +65,7 @@ const MARKERS = {
   'state': 'the pipeline row mark remembers which glyph it holds, so a frame that changes nothing redraws nothing',
   'done': 'the pipeline footer remembers whether it has flipped to its finished verbs',
   'chat-rename-in': 'which conversation the rename box is renaming, read by the keydown and focusout listeners that commit it',
+  'load': 'whether the surface is still standing behind its skeleton, read by bdr.css rather than by a click; arrive() writes it and the next prePaint takes it off',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */

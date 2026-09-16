@@ -737,6 +737,22 @@
      and it is named only so the pin can be retuned without touching the
      forty other things that read --ease-out. */
   --ease-pin: cubic-bezier(0.23, 1, 0.32, 1);
+  /* HOW LONG A SURFACE STANDS BEHIND ITS SKELETON. Nothing in this build
+     waits on data, so this is not the length of a fetch — it is a wait we
+     choose, and the only honest way to pick it was to look. Four dwells were
+     built as one page and compared against each other with the real cards at
+     their real size: 200ms is a flash, which reads worse than showing
+     nothing; 550ms is a desk that has got slower to use. 350 is where the
+     skeleton is long enough to be a state rather than a stutter, and short
+     enough that the cards are still an answer to the press.
+
+     bdr.js reads this back rather than keeping a copy, so the dwell and the
+     arrival that follows it cannot drift apart. */
+  --t-skel: 350ms;
+  /* The blur an arriving card resolves through, chosen the same way against
+     none, 2, 4 and 6. The build already had 2, 3, 4 and 6 written by hand in
+     four different keyframes; this is the one an arriving surface uses. */
+  --blur-arrive: 4px;
 }
 
 /* [1] EVERY PRESSABLE ANSWERS THE PRESS. Zero of these had an :active state.
@@ -3312,11 +3328,60 @@
    last card a quarter of a second, which is a wait, not a rhythm. Nothing
    here runs on a repaint or a page of the queue turning, because the class
    that starts it is only put on for a change of surface. */
-#wbStage.is-arriving .b-qcard {
-  animation: b-surface-in var(--t-settle) var(--ease-out) both;
+/* ══ ONE BOX, TWO STATES ═══════════════════════════════════════════════════
+   The slot is what the grid lays out now, and the card sits inside it. It is
+   a grid rather than a block on purpose: `align-items: stretch` still sizes
+   the row to its tallest card and still stretches every card to match, which
+   is what §1 established, and the card is never given a height of its own —
+   the bug that clipped a three-line AiMY note stays fixed.
+
+   The skeleton is pinned to the slot, so it is the card's own rectangle to
+   the pixel with nothing measured to make it so. That is the whole reason
+   for the wrapper: a placeholder that is a different size from the thing it
+   stands in for announces itself when they trade places. */
+.b-slot { position: relative; display: grid; }
+.b-skel { position: absolute; inset: 0; z-index: 2; margin: 0; pointer-events: none; }
+/* ══ THE SKELETON LEAVES WHILE THE CARDS ARRIVE ════════════════════════════
+   Not after them. Four handoffs were compared and this is the one that was
+   chosen: the placeholder is still going as the first cards are already
+   coming, so there is never a frame with nothing on the surface — which is
+   the same argument §29 makes about two words passing each other, at the
+   size of a page.
+
+   It fades on --t-fast against the cards' --t-settle, because the thing
+   leaving should be gone before the thing arriving has finished; a skeleton
+   still legible under a settled card is a placeholder that outstayed it. */
+.b-skel { opacity: 1; transition: opacity var(--t-fast) var(--ease-out); }
+#wbStage[data-load="done"] .b-skel { opacity: 0; }
+/* ══ AND THE CARDS RESOLVE INTO IT ═════════════════════════════════════════
+   The card holds still and arrives in place: six pixels up, through four of
+   blur, 30ms apart and capped at eight so the last one is a rhythm behind
+   the first rather than merely late. Blur is a paint, which this build spends
+   carefully — but this runs once per surface on cards that are already being
+   composited for the rise, and it is what turns a card appearing into a card
+   resolving. The keyframe lands on `filter: none` rather than interpolating
+   toward it, so nothing is left holding a composited layer and grey-edged
+   text for the life of the page.
+
+   NONE OF THIS RUNS ON A REPAINT. `data-load` is only written by arrive(),
+   which only runs when the surface key changed — so a write and a page of
+   the queue turning draw their cards plain, exactly as before. */
+#wbStage[data-load] .b-qcard { opacity: 0; }
+#wbStage[data-load="done"] .b-qcard {
+  animation: b-card-in var(--t-settle) var(--ease-out) both;
   animation-delay: calc(min(var(--i, 0), 8) * 30ms);
 }
-@media (prefers-reduced-motion: reduce) { #wbStage.is-arriving .b-qcard { animation: none; } }
+@keyframes b-card-in {
+  from { opacity: 0; transform: translateY(6px); filter: blur(var(--blur-arrive)); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+/* Frozen, not removed. The skeleton is a state rather than a motion, so it
+   still stands and still hands over — it simply does not fade, and the cards
+   are there rather than arriving. */
+@media (prefers-reduced-motion: reduce) {
+  #wbStage[data-load="done"] .b-qcard { animation: none; opacity: 1; }
+  .b-skel { transition: none; }
+}
 
 /* OPTICAL. The clock centred on the sentence when the sentence was the first
    line; the chip is the first line now, and the mark sat three pixels below

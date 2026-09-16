@@ -2440,6 +2440,40 @@
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
   let FIG_TICK = false;
+  /* ══ A SURFACE ARRIVES THROUGH A SKELETON; A REPAINT DOES NOT ══════════
+     Set by go() when the surface key actually changed, read by cardGrid()
+     while the page is being built, and put down again at the end of the
+     paint that used it — the same shape FIG_TICK has, and for the same
+     reason: a write and a page of the queue turning must not draw one.
+
+     Nothing in this build waits on data. The skeleton is not covering a
+     fetch, because there is no fetch; it is a wait we choose, so that a
+     surface resolves into place rather than being there before the eye has
+     followed the press. That makes its length a design value rather than a
+     measurement, which is why it lives in bdr.css with the rest of them and
+     is read back out rather than written twice. */
+  let SKEL_ON = false;
+  let SKEL_T = null;
+  /* The card's anatomy, not a generic block: a step tag, a name, a role, two
+     fact lines, the AiMY note and a foot. `.s-skel-card` and `.s-skel-line`
+     are sales.css's and are used here rather than restated — they were
+     written for exactly this and had never been rendered. */
+  const SKEL_BAR = (h, w, extra) =>
+    '<div class="s-skel-line skeleton" style="height:' + h + 'px;width:' + w + '%' + (extra || '') + '"></div>';
+  const skelCard = () =>
+    '<div class="b-skel s-skel-card" aria-hidden="true">' +
+      SKEL_BAR(18, 38) + SKEL_BAR(22, 62, ';margin-top:4px') + SKEL_BAR(13, 46) +
+      SKEL_BAR(13, 80) + SKEL_BAR(13, 70) + SKEL_BAR(40, 100, ';margin-top:4px') +
+      '<div class="s-skel-line skeleton is-meta" style="height:26px;width:100%"></div>' +
+    '</div>';
+  /* ONE BOX, TWO STATES. The slot is what the grid lays out, so the skeleton
+     can be pinned to exactly the card's own rectangle without measuring it —
+     and the slot is a grid rather than a block so the card still stretches to
+     the row the way `align-items: stretch` already made it, instead of being
+     given a height of its own, which is the bug §1 records. */
+  const cardGrid = (rows, fn) => '<div class="b-grid">' +
+    rows.map((r, i) => '<div class="b-slot">' + (SKEL_ON ? skelCard() : '') + fn(r, i) + '</div>').join('') +
+    '</div>';
   function save() {
     FIG_TICK = true;
     if (saveTimer) clearTimeout(saveTimer);
@@ -2928,6 +2962,11 @@
        to see what you asked for. */
     railOpen(false);
     parse();
+    /* Decided before the paint rather than after it, because the grids read
+       it while they are being built: a surface that is changing draws its
+       cards over a skeleton, and a write or a page turn draws them plain. */
+    const fresh = wasSurface !== [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+    SKEL_ON = fresh;
     paint();
     /* ══ A NEW SURFACE ARRIVES; A REPAINT DOES NOT ═════════════════════════
        The page is rebuilt from a string, so opening a person from the queue
@@ -2938,7 +2977,7 @@
        the page it is on, and a page of the queue turning is the same list
        under your hands; animating either would charge attention on the two
        things a caller does most. */
-    if (wasSurface !== [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|')) arrive();
+    if (fresh) arrive();
     /* A NEW SURFACE STARTS AT ITS TOP; A NEW PAGE OF ONE DOES NOT.
        Opening a person from row eleven of the queue landed on their record
        eleven rows down it — the header, the ladder and the whole reason you
@@ -2955,6 +2994,25 @@
     host.classList.remove('is-arriving');
     void host.offsetWidth;
     host.classList.add('is-arriving');
+    /* ══ AND A SURFACE OF CARDS RESOLVES OUT OF A SKELETON ═════════════════
+       Only where cardGrid actually drew one: the diary, the financials and a
+       record are pages of prose and panels, and a skeleton over those would
+       be a placeholder shaped like nothing. Those arrive on `is-arriving`
+       alone, the way they already did.
+
+       ONE ATTRIBUTE, NOT A SECOND PAINT. Both states are in the markup the
+       one paint produced — the skeleton over the card, the card beneath it
+       at nothing — so the handoff is a single write and bdr.css runs it.
+       Painting twice would be a rebuild mid-animation, which is the defect
+       the whole run was fixed for.
+
+       THE LENGTH IS READ, NOT WRITTEN. --t-skel lives with the other motion
+       values in bdr.css §28 and is read back here, so the dwell and the
+       stylesheet cannot drift apart the way the swap step once did. */
+    if (!host.querySelector('.b-skel')) return;
+    host.setAttribute('data-load', 'pending');
+    const dwell = parseFloat(getComputedStyle(host).getPropertyValue('--t-skel')) || 0;
+    SKEL_T = setTimeout(() => { host.setAttribute('data-load', 'done'); }, dwell);
   }
 
   /* ══ 7. PAINTING ════════════════════════════════════════════════════════ */
@@ -2992,6 +3050,17 @@
        arrive unless go() has decided the surface actually changed. */
     const stage = byId('wbStage');
     if (stage) stage.classList.remove('is-arriving');
+    /* AND THE SKELETON'S HANDOFF IS CALLED OFF HERE TOO. The flip to `done`
+       is a timer against the stage that was standing when it was set, and a
+       caller who navigates again, presses a keyboard verb or opens a record
+       inside the dwell gets a new one built underneath it. Left running, it
+       would write `done` onto a surface that never went pending — revealing
+       cards that are meant to be arriving on their own account, or none at
+       all. Cleared at the top of every paint, which is the one place every
+       route through this build passes. */
+    clearTimeout(SKEL_T);
+    SKEL_T = null;
+    if (stage) stage.removeAttribute('data-load');
     const on = document.querySelector('.b-switch-btn.is-on');
     if (on) out.bar = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
     if (FIG_TICK) {
@@ -3078,6 +3147,9 @@
     paintProto();
     guardBack();
     postPaint(pre);
+    /* Put down by the paint that used it, so the next one — a write, a page
+       of the queue — draws its cards plain unless go() says otherwise. */
+    SKEL_ON = false;
     if (byId('aimyOverlay').classList.contains('open')) { paintBasis(); paintChats(); }
   }
 
@@ -3558,7 +3630,7 @@
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
         : '<p class="b-vfoot">Nobody is buying from you yet. A deal marked Won lands here.</p>';
     }
-    return '<div class="b-grid">' + rows.map(custCard).join('') + '</div>';
+    return cardGrid(rows, custCard);
   }
 
   function qgrid(rows, emptyText) {
@@ -3575,7 +3647,7 @@
             ? ' <button class="s-inline-btn" type="button" data-q="all">Show everyone</button>'
             : '') + '</p>';
     }
-    return '<div class="b-grid">' + rows.map(qcard).join('') + '</div>';
+    return cardGrid(rows, qcard);
   }
 
   /* ══ WHAT AiMY KNOWS ABOUT THIS ONE ═════════════════════════════════════
@@ -3920,7 +3992,7 @@
   }
   function cgrid(rows) {
     if (!rows.length) return '<p class="b-vfoot">You are on no campaign.</p>';
-    return '<div class="b-grid">' + rows.map(ccard).join('') + '</div>';
+    return cardGrid(rows, ccard);
   }
 
   /* What AiMY makes of a campaign, off its own calls. Ranked by what would
@@ -4048,7 +4120,7 @@
       return '<p class="b-vfoot">You have not built one yet. ' +
         '<button class="s-inline-btn" type="button" data-bopen>Find leads</button></p>';
     }
-    return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
+    return cardGrid(rows, lcard);
   }
 
   /* ══ A BOOLEAN, BECAUSE THAT IS ALL IT EVER ASKED ═════════════════════
