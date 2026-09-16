@@ -23150,6 +23150,38 @@
     if (box && box.id === 'chatRename' && CHAT_EDIT) commitRename(box, true);
   });
 
+  /* ══ THE BASIS BELONGS TO THE TOP OF THE THREAD ═══════════════════════
+     `.overlay-context-bar` is `position: absolute` over the conversation. At
+     the top of one that is what it is for — what this answer stood on. Four
+     messages down it is a label parked on somebody's reading.
+
+     So it leaves on the first scroll and comes back at the top. The class goes
+     on the OVERLAY rather than the thread because the bar comes before
+     `.overlay-thread` in the markup and a sibling combinator only reaches
+     forward.
+
+     THIS PRODUCT HAD NO SCROLL LISTENER ON THE THREAD AT ALL — `sales.css`
+     carries an `.overlay-thread.is-at-end` rule that nothing has ever been
+     able to switch on. Only the class this needs is published here; reviving
+     the other is a separate change and would alter the thread's fade.
+
+     Coalesced through rAF for the reason AiMY Knowledge states on its own
+     copy: the read invalidates style, and once a frame is enough on the most
+     scrolled surface in the product. 8px rather than 0 so a rubber-band or a
+     one-pixel settle does not flicker it. */
+  (function () {
+    const th = byId('overlayThread');
+    const ov = byId('aimyOverlay');
+    if (!th || !ov) return;
+    let q = 0;
+    const sync = () => { ov.classList.toggle('is-scrolled', th.scrollTop > 8); };
+    th.addEventListener('scroll', () => {
+      if (q) return;
+      q = requestAnimationFrame(() => { q = 0; sync(); });
+    }, { passive: true });
+    sync();
+  })();
+
   window.addEventListener('resize', () => placeSwitchBar(null));
   /* AND ON THE VIEWPORT CHANGES `resize` DOES NOT ANNOUNCE. Changing the
      browser's zoom level moves the viewport with no resize event at all —
