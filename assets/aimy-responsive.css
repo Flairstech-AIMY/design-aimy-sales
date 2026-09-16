@@ -6,9 +6,16 @@
    screen the same way. Above the anchor the whole shell is scaled up
    proportionally, so a wider viewport shows the SAME layout — the same cards
    per row, the same proportions — physically larger, with no stretching and no
-   browser zoom. Below it the shell scales down to a floor rather than
-   collapsing, which is where this file departs from QA's; the argument is at
-   UI_MIN_SCALE in assets/aimy-viewport.js.
+   browser zoom.
+
+   BELOW THE ANCHOR IT DOES NOT SCALE AT ALL. It used to shrink to a 0.85
+   floor, which kept every column on a narrow screen by making the type on it
+   smaller — a 1200px laptop read 11.9px body text where the reference build
+   reads 14. Width is floored at 1 now and the breakpoints in this file, in
+   sales.css and in bdr.css take the narrow range instead, each re-keyed to the
+   layout width it was always written for. Height still scales, because a short
+   window has nowhere to put the rows; the argument is at UI_MIN_SCALE in
+   assets/aimy-viewport.js.
 
    THE ANCHOR IS 1536, and it lives in assets/aimy-viewport.js. 1536 is the CSS
    viewport a 1920 panel reports at Windows' default 125% display scaling — the
@@ -142,7 +149,7 @@
 
    1087.98 = 1280 x 0.85. The derivation is in sales.css's breakpoint block;
    inert above it, where every measurement is identical with and without it. */
-@media (max-width: 1087.98px) {
+@media (max-width: 1279.98px) {
   :root .topnav-tabs {
     position: static;
     left: auto;

@@ -214,18 +214,36 @@
    Three is the number the card was written for. It drops to two and then one
    where three would stop fitting.
 */
+/* ══ THE COLUMN COUNT IS THE GRID'S TO WORK OUT ════════════════════════════
+   This was three columns, then two under 1280 and one under 720, and the
+   trouble with counting columns at thresholds is the width just above each
+   one. At 1281 layout the queue still held three, which at that width is
+   288px a card — measured, and below the 324 the note under this rule calls
+   the point where a card stops holding what it is for. Every threshold has a
+   worst case on its wide side, and picking more thresholds only makes more of
+   them.
+
+   `auto-fill` has no worst case. The track floor IS the 324 that was measured
+   here, so the grid fits as many columns as can be 324 or wider and drops one
+   the moment they cannot be — at every width, including the ones nobody
+   thought to write a threshold for. Three columns survive to 1440 layout and
+   the reference build is unchanged at 1536; 1200 gets two at 400px where it
+   used to get three at 333.
+
+   auto-FILL rather than auto-fit: a fit collapses the tracks it has not
+   filled, so a queue cut with one person left in it would stretch that card
+   across the whole row. Fill keeps the track and the card keeps the width its
+   neighbours would have had.
+
+   min(324px, 100%) rather than 324px, so a container narrower than a card —
+   the drawer, a narrow phone — gets one column that fits rather than one
+   column that overflows. */
 .b-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(324px, 100%), 1fr));
   gap: 12px;
   align-items: stretch;
 }
-@media (max-width: 1087.98px) { /* 1280 layout px */ .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-/* Measured on the queue: at a 729px layout two columns are 324px each and a
-   card holds its step, its campaign, four facts, the AiMY note and the
-   number without crowding; the one column this used to give at 841 was 773px
-   wide, with the note running ninety characters to the line. */
-@media (max-width: 611.98px)  { /* 720 layout px */ .b-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* ── NO FIXED HEIGHT, OR A TALL CARD LOSES ITS BOTTOM ─────────────────────
    This was `height: 100%`, which pins the card to the height the grid row
@@ -729,7 +747,7 @@
    And the answers are capped at 58ch. They ran the full block — measured at
    800px, about 130 characters — which is roughly twice the width anybody
    tracks a line back across. */
-@media (max-width: 611.98px) { /* 720 layout px */
+@media (max-width: 719.98px) { /* 720 layout px */
   /* Below this the label column costs more than the alignment is worth. */
 }
 
@@ -1339,7 +1357,7 @@
    with every line cut mid-word. TWO DEFINITIONS OF ONE COMPONENT IS THE
    DEFECT; this block is the half that has to sit with the winner until they
    are one. */
-@media (max-width: 441.98px) { /* 520 layout px */
+@media (max-width: 519.98px) { /* 520 layout px */
   .ntf-panel {
     position: fixed;
     top: calc(var(--topbar-height) + 4px);
@@ -1975,7 +1993,7 @@
 
    Nothing here applies above 720 layout px, where the row is one line and the
    rule above is right as it stands. */
-@media (max-width: 611.98px) { /* 720 layout px */
+@media (max-width: 719.98px) { /* 720 layout px */
   .b-cuts-row::after { content: ''; flex: 0 0 100%; height: 0; order: 1; }
   .b-cuts-row .b-cuts-go { order: 2; margin-left: 0; margin-top: 2px; }
 }
@@ -2216,7 +2234,7 @@
   margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
-@media (max-width: 611.98px) { /* 720 layout px */
+@media (max-width: 719.98px) { /* 720 layout px */
   .b-back-row { grid-template-columns: 1fr; }
   /* ══ THE LABEL IS NOT A SHARE OF THE ROW, IT IS THE ROW'S SUBJECT ══════
      This was `minmax(80px, 1fr) 2fr`, which gave the BAR twice what it gave
@@ -3082,7 +3100,7 @@
   margin: 12px 0 0; font-weight: var(--fw-semibold); color: var(--d200);
 }
 
-@media (max-width: 611.98px) { /* 720 layout px */
+@media (max-width: 719.98px) { /* 720 layout px */
   .b-way { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
   .b-way-n { font-size: var(--fs-xl); }
 }
@@ -3885,7 +3903,7 @@
 }
 @media (prefers-reduced-motion: reduce) { .b-cal-nrow { animation: none; } }
 
-@media (max-width: 475.98px) { /* 560 layout px */
+@media (max-width: 559.98px) { /* 560 layout px */
   .b-cal-day { height: 48px; }
   /* THE COLUMN EXISTS SO THE KINDS LINE UP, and 42 was measured against the
      times alone. A diary row's when is `11:30` or `16:30` — 29 and 33px — or
@@ -4405,8 +4423,8 @@
    Counted columns and `minmax(0, 1fr)` so the fields fit the page rather than
    the page fitting the fields. */
 .b-draft-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 100%; }
-@media (max-width: 1087.98px) { /* 1280 layout px */ .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 611.98px) { /* 720 layout px */ .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1279.98px) { /* 1280 layout px */ .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 719.98px) { /* 720 layout px */ .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
 
 /* Greyed, and the reason is the sentence beside it rather than a tooltip
    nobody hovers. */
@@ -4481,7 +4499,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 12px; max-width: 100%;
 }
-@media (max-width: 611.98px) { /* 720 layout px */ .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 719.98px) { /* 720 layout px */ .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
 
 /* ══ 84. THE DIARY, AS A PAGE ══════════════════════════════════════════════
    The same month the pop-out draws, standing on a surface instead of hanging
@@ -4525,7 +4543,7 @@
 .b-diary .b-cal-etime, .b-diary .b-cal-ewhat { font-size: var(--t-ui); }
 /* Under the fold for a second column: the month goes back over the day and
    the rule between them turns with them, which is the stacked default. */
-@media (max-width: 870.98px) { /* 1024 layout px */
+@media (max-width: 1023.98px) { /* 1024 layout px */
   .b-diary .b-cal-panel { grid-template-columns: minmax(0, 1fr); }
   .b-diary .b-cal-side {
     padding-left: 0; margin-left: 0; padding-top: 12px; margin-top: 12px;
@@ -5254,7 +5272,7 @@
 /* The phone is 384px and the narrow shell is not, so it takes the gutter the
    rest of the build takes and nothing else changes: the same card, the same
    two buttons, at the width there is. */
-@media (max-width: 390.98px) { /* 460 layout px */
+@media (max-width: 459.98px) { /* 460 layout px */
   .b-ring-main { padding: 12px 12px; gap: 10px; }
   .b-ring-read { padding: 8px 12px 10px; }
 }
