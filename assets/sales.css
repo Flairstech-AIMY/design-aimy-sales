@@ -8975,34 +8975,36 @@ body.is-figures .filter-tray { display: none; }
   }
 }
 
-/* ══ ONE COLUMN, AND THE HEAD STOPS BEING A ROW AT THE SAME MOMENT ════════
-   The panels go one-up here, which doubles a panel's width. The head is
-   `space-between`, so doubling a panel does not crowd it — it pulls it
-   apart: the name goes hard left, the money hard right, and the space
-   between them is whatever is left over. Measured at 1180 layout, two-up:
-   35px between the name and its figures. Measured at 1000, one-up: 582px.
-   The widest panel this page ever draws is the first one after the columns
-   collapse, so the moment the head has the most room is the moment it has
-   the most air in it.
-
-   IT USED TO STACK AT ITS OWN THRESHOLD, three hundred and fifty layout px
-   further down, which is why the worst case was not covered by it. It is the
-   same query now because it is the same event. The figures keep their right
-   edge — and with it the column they form down the page — for as long as
-   there are two panels side by side to compare across; they take their own
-   line as soon as a panel is wide enough that right-alignment reads as
-   distance rather than as alignment.
-
-   AND THE STACK IS NOT ABOUT CROWDING, which is worth writing down because
-   the head never is: measured at 900, 824, 760 and 700 layout px its two
-   children need 301-309px against a container of 591-791. Nothing here was
-   ever running out of room. It is about two halves of one line drifting far
-   enough apart to stop reading as one line.
-
-   The figure steps down to --fs-lg with it: at 2xl on a line of its own it
-   stops being a number beside a name and becomes a headline. */
+/* ══ THE PANELS GO ONE-UP HERE, AND THE HEAD STAYS A ROW ══════════════════
+   One column below 1180, because two panels of campaign figures side by side
+   stop being comparable long before they stop fitting. */
 @media (max-width: 1179.98px) {
   .s-pans { grid-template-columns: 1fr; }
+}
+
+/* ══ AND THE HEAD ONLY STACKS WHEN ONE LINE STOPS WORKING ═════════════════
+   A pass before this one stacked it at 1179.98, on the argument that a panel
+   going full width does not crowd a `space-between` head, it pulls it apart:
+   35px between a campaign name and its money at two-up, 582px at one-up. The
+   arithmetic is right and the conclusion was wrong. Looked at rather than
+   measured — at the widest panel this page ever draws, 931px — the head reads
+   as a header band: a name at one end, its figures at the other, both anchored
+   by the panel's own edges, with the facts line under them tying the block
+   together. It is not two orphans. The picture beat the number.
+
+   SO THE STACK MOVED TO WHERE ONE LINE ACTUALLY FAILS, which is nothing to do
+   with the air between the halves. Measured with the head held as a row: 183px
+   of air at 600 layout, 83px at 500 — and by 430 the campaign NAME has started
+   giving up width to keep the figures on the line, 189px down to 186, and 146
+   at 390. A name truncating so a number can stay beside it is the failure. The
+   gap never was one.
+
+   600 is before that begins, with the 500 reading still comfortable and the
+   430 one already compromised.
+
+   The figure keeps its step down to --fs-lg when it stacks: at 2xl on a line
+   of its own it stops being a number beside a name and becomes a headline. */
+@media (max-width: 599.98px) { /* 600 layout px */
   .s-pan-head { flex-direction: column; gap: 4px; }
   .s-pan-total { font-size: var(--fs-lg); }
 }
