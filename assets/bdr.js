@@ -5338,9 +5338,25 @@
              is what a call log is a log OF; then when. */
           meta: logMeta(['Missed', c.phone, timeOf(t.at)]),
           say: ringRead(c),
-          go: canRing(c) ? 'Ring them back' : 'Open the record',
-          goIco: canRing(c) ? chIcon('phone') : chIcon('user'),
-          act: canRing(c) ? 'data-call="' + esc(c.id) + '"' : 'data-con="' + esc(c.id) + '"',
+          /* ══ EVERY ROW CALLS BACK, AND `canRing` WAS THE WRONG TEST ═══
+             Four of the fourteen said "Open the record" instead, because
+             `canRing` came back false for them. That predicate asks whether
+             somebody is still THIS DESK'S TO WORK — `callable` stops at rank 3
+             and parks a callback with a future date — which is the right
+             question for a queue of people to dial through and the wrong one
+             here. They already rang. Whether they are on the caller's part of
+             the ladder has nothing to do with whether their call gets
+             returned, and a log that answers four of them with a page to read
+             is a log that made the reader do the dialling themselves.
+
+             `startCall` gates on a number and an opt-out, and nothing on this
+             page can fail either: a missed call came off a number we hold,
+             and `dnc` is excluded where these are seeded. Where it somehow
+             did, `startCall` already says so in a toast rather than doing
+             nothing. */
+          go: 'Call them back',
+          goIco: chIcon('phone'),
+          act: 'data-call="' + esc(c.id) + '"',
         }, i);
       }) + '</div>';
   }
