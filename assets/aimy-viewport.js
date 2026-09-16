@@ -68,25 +68,33 @@
      zoom versus 100%. */
   var MIN_LAYOUT_H = 720;
 
-  /* ── THE ONE DEPARTURE FROM QA ──────────────────────────────────────────
-     QA returns exactly 1 for every raw scale below its dead zone, so it never
-     renders smaller than the anchor and lets its breakpoints take the tablet
-     range. That leaves a 1024 tablet showing a 1024-wide layout, which is not
-     the same experience as the anchor — it is a different, narrower one.
+  /* ── WHAT THIS STILL FLOORS, AND WHAT IT NO LONGER DOES ─────────────────
+     It used to floor both terms, and that was the one departure from QA:
+     where QA never renders smaller than the anchor and lets its breakpoints
+     take the narrow range, Sales scaled DOWN to 0.85 as well as up, so a 1024
+     viewport carried 1205 layout px — the rail, the canvas column and the
+     whole workbench kept, at about 12 physical pixels of body text.
 
-     Sales scales DOWN as well as up, to a floor. At the floor a 1024 viewport
-     carries an effective 1205px of layout: the rail, the canvas chat column
-     and the full workbench all survive, at ~12px of physical body text. Below
-     0.85 the TYPE is the thing that breaks first, so the floor is where
-     scaling stops and the breakpoints take over.
+     THAT TRADE IS OFF. Keeping every column cost every narrow screen its type
+     size, and a 1200px laptop is a screen somebody works on all day rather
+     than an edge case: it was rendering a 1412px layout at 85%, so its body
+     text stood at 11.9 physical pixels and its card titles at 15.3, against
+     the reference build's 14 and 18. Nothing was adapting there — the layout
+     was the anchor's, photographed smaller. Width is floored at 1 in
+     computeScale now and the breakpoints take the narrow range, as QA's do.
 
-     THE FLOOR IS WHY sales.css's BREAKPOINTS ARE MULTIPLIED BY IT. Media
-     queries read the REAL viewport, not the scaled one, so a threshold written
-     for the layout has to be converted to the width that produces it. Below a
-     real 1306 the scale is exactly this constant, so the conversion is a
-     single multiplication and it is exact — the derivation is written out in
-     full at sales.css's breakpoint block. Change this number and those
-     thresholds change with it. */
+     THE HEIGHT TERM STILL USES THIS FLOOR, and has no such argument against
+     it: a short window genuinely has nowhere to put the rows, and scaling is
+     the only answer that keeps the whole shell on the screen.
+
+     AND THE BREAKPOINTS MOVED WITH IT, which the old note above this one
+     demanded in its last line. They were written as `layout x 0.85`, because
+     a media query reads the REAL viewport rather than the scaled one and
+     below a real 1306 the scale was exactly this constant. With width at 1
+     the two are the same number, so every threshold was re-keyed to the
+     layout value its own comment already stated — 1087.98 to 1279.98, 611.98
+     to 719.98, and so on through sales.css, bdr.css and aimy-responsive.css.
+     Forty-eight conditions, one division, no thresholds invented. */
   var UI_MIN_SCALE = 0.85;
 
   /* Snap to exactly 1 near the anchor, so a window a few pixels off does not
@@ -114,9 +122,23 @@
      engine is going to ignore would shrink every modal by that factor. */
   var CAN_ZOOM = !!(window.CSS && CSS.supports && CSS.supports("zoom", "1.5"));
 
+  /* ══ WIDTH NEVER SHRINKS THE SHELL ═══════════════════════════════════════
+     The width term is floored at 1. A viewport narrower than the anchor gets
+     the anchor's type at the anchor's size and FEWER COLUMNS, rather than the
+     anchor's layout photographed smaller — which is what a floor of 0.85 was
+     doing to every laptop under 1306: a 1200px screen rendered a 1412px
+     layout at 85%, so its body text was 11.9 physical pixels against the
+     reference build's 14. The breakpoints do the narrowing now, which is what
+     they are for, and they were re-keyed from `layout x 0.85` to the layout
+     numbers their own comments already stated.
+
+     THE HEIGHT TERM STILL SHRINKS, and still stops at UI_MIN_SCALE. A short
+     window has nowhere to put the rows, and a shell too tall for the screen
+     is the defect section 1 of aimy-responsive.css exists to prevent — so
+     height keeps the behaviour width has given up. */
   function computeScale(vw, vh) {
     if (!CAN_ZOOM) return 1;
-    var s = Math.min(vw / UI_ANCHOR_W, vh / MIN_LAYOUT_H);
+    var s = Math.min(Math.max(1, vw / UI_ANCHOR_W), vh / MIN_LAYOUT_H);
     if (s >= DEADZONE_LO && s <= DEADZONE_HI) return 1;
     if (s > UI_MAX_SCALE) s = UI_MAX_SCALE;
     if (s < UI_MIN_SCALE) s = UI_MIN_SCALE;
