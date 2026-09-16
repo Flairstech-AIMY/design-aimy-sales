@@ -17093,28 +17093,45 @@
      0.052 was set against sixteen overlapping notes and then kept when the
      melody came down to six with air between them, which is the arithmetic
      that made it too quiet: the accumulation it was backing away from had
-     stopped happening. Doubled to 0.104, then asked for half again on top of
-     that and given exactly that — 0.156, which is 3x the original and +9.5dB
-     on it.
+     Doubled to 0.104, then half again on top of that — 0.156 — and it is now
+     0.88, which is not a preference but a ceiling: the loudest this melody can
+     be without a single sample reaching 1. That is 5.6x the last value, +15dB
+     on it, and about 17x the original.
 
      AMPLITUDE, NOT PERCEIVED LOUDNESS, at each step. Twice as loud to the ear
      is about +10dB and 3.2x the amplitude; somebody turning a volume up is
-     asking for the number, not the psychoacoustics. Said here because the two
-     readings diverge fast and the next person to raise this should know which
-     one the last two raises meant.
+     asking for the number, not the psychoacoustics. It matters less here than
+     it did — this is the top either way — but the next person to read these
+     figures should know which one the raises before it meant.
 
      THE ONE SCALAR EVERY PEAK IS DERIVED FROM, so the balance between the
      partials and between the notes is untouched: ringBurst multiplies this
      by the voice's share and the note's, and both of those are ratios.
 
-     STILL NOT CLIPPING, measured rather than assumed, because this is the one
-     number here that can. The loudest instant is the downbeat, where D4 and
-     D3 sound together with their octaves — 0.85 + 0.102 + 0.34 + 0.041 = 1.33
-     of this constant. Summed output through an analyser on a real ring: 0.176
-     peak against a ceiling of 1, which is 15dB of headroom. There is room to
-     go louder again if it is still not enough; there is not room to keep
-     doing it for ever, and past about 0.6 this comment stops being true. */
-  const RING_VOL = 0.156;
+     WHERE THE CEILING IS, measured rather than assumed. The loudest instant is
+     the downbeat, where D4 and D3 sound together with their octaves — 0.85 +
+     0.102 + 0.34 + 0.041 = 1.33 of this constant — and the rendered peak comes
+     out at 1.1253 times it. Rendered through an OfflineAudioContext and read
+     sample by sample at 44.1k, 48k and 176.4k: 0.9899, 0.9901 and 0.9903, with
+     no sample at or over 1 at any of them. At 0.889 twelve samples reach 1.
+     At 0.90, a hundred and ten. The same method returns 0.176 for the old
+     0.156, which is what an analyser on a live ring gave, so it is the old
+     measurement taken a cheaper way — no gesture, no speaker, and the whole
+     curve instead of whatever the meter caught.
+
+     INTER-SAMPLE PEAKS ARE NOT A FACTOR HERE, which is why a tenth of a
+     decibel of margin is enough. Oversampling four times moves the peak by
+     0.00dB: these are sine partials with 6ms onsets and exponential tails,
+     and there is no transient for the reconstruction to overshoot on.
+
+     AND THERE IS NO ROOM LEFT. The old note here said this stopped being true
+     past about 0.6; that was right about the direction and short on the
+     number, and it is spent now either way. The margin only holds because the
+     signal is fixed — the same melody, the same frequencies, the same
+     envelopes, every ring. A new note, a louder partial, a fifth voice or any
+     change to the downbeat will clip, and the answer then is a limiter or a
+     quieter downbeat, not a bigger number. */
+  const RING_VOL = 0.88;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
