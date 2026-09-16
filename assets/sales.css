@@ -8975,17 +8975,34 @@ body.is-figures .filter-tray { display: none; }
   }
 }
 
+/* ══ ONE COLUMN, AND THE HEAD STOPS BEING A ROW AT THE SAME MOMENT ════════
+   The panels go one-up here, which doubles a panel's width. The head is
+   `space-between`, so doubling a panel does not crowd it — it pulls it
+   apart: the name goes hard left, the money hard right, and the space
+   between them is whatever is left over. Measured at 1180 layout, two-up:
+   35px between the name and its figures. Measured at 1000, one-up: 582px.
+   The widest panel this page ever draws is the first one after the columns
+   collapse, so the moment the head has the most room is the moment it has
+   the most air in it.
+
+   IT USED TO STACK AT ITS OWN THRESHOLD, three hundred and fifty layout px
+   further down, which is why the worst case was not covered by it. It is the
+   same query now because it is the same event. The figures keep their right
+   edge — and with it the column they form down the page — for as long as
+   there are two panels side by side to compare across; they take their own
+   line as soon as a panel is wide enough that right-alignment reads as
+   distance rather than as alignment.
+
+   AND THE STACK IS NOT ABOUT CROWDING, which is worth writing down because
+   the head never is: measured at 900, 824, 760 and 700 layout px its two
+   children need 301-309px against a container of 591-791. Nothing here was
+   ever running out of room. It is about two halves of one line drifting far
+   enough apart to stop reading as one line.
+
+   The figure steps down to --fs-lg with it: at 2xl on a line of its own it
+   stops being a number beside a name and becomes a headline. */
 @media (max-width: 1179.98px) {
   .s-pans { grid-template-columns: 1fr; }
-}
-/* Converted from a bare `700px` — the other threshold in this file written
-   without a layout comment, and the one the `900` above it turned out to be.
-   Unlike that one there is no sentence here saying what it meant, and the
-   layout does not settle it either: measured at 900, 824, 760 and 700 layout
-   px the head's two children need 301-309px against a container of 591-791,
-   so the head is never crowded and this stack is defensive at any threshold
-   it could have. Today's behaviour is kept rather than a number guessed at. */
-@media (max-width: 823.53px) {
   .s-pan-head { flex-direction: column; gap: 4px; }
   .s-pan-total { font-size: var(--fs-lg); }
 }
