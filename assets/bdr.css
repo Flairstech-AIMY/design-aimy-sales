@@ -717,7 +717,27 @@
    at 150ms. Everything this build adds runs on a strong ease-out — starts
    fast, settles clean — at 120–160ms, because a press seen two hundred times
    a day has to answer instantly and get out of the way. */
-:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* THE SETTLE BEAT HAD NO NAME. 220ms is the most-used duration in this
+     build — the toast rise, the figure tick, and every one of the five
+     arrivals — and it was written out by hand at each of them. A number
+     spelled seven times is a number that drifts: the swap step below already
+     drifted once, when the CSS was lengthened and the millisecond count in
+     bdr.js was not. It sits a rung above --t-base and a rung under --t-open
+     on purpose — longer than a state changing, shorter than a thing opening. */
+  --t-settle: 220ms;
+  /* THE PIN ASKED FOR A CURVE NOBODY DECLARED. `.pipe-pin` transitions its
+     scale on var(--ease-pin), and --ease-pin was never defined anywhere in
+     the build. An undeclared custom property is invalid at computed-value
+     time, so the whole timing function fell back to the initial value: the
+     browser's `ease`, which is slow in and slow out and is the one curve
+     this file spends its opening paragraph arguing against. It was never
+     meant to be the exception — it is the same ease-out as everything else,
+     and it is named only so the pin can be retuned without touching the
+     forty other things that read --ease-out. */
+  --ease-pin: cubic-bezier(0.23, 1, 0.32, 1);
+}
 
 /* [1] EVERY PRESSABLE ANSWERS THE PRESS. Zero of these had an :active state.
    scale(0.97) is the number Linear ships; it is felt rather than seen, which
@@ -1385,14 +1405,29 @@
 }
 .pipe-rib-fill {
   position: absolute; inset: 0; border-radius: 2px; background: var(--accent);
-  transform-origin: top center; transform: scaleY(0); will-change: transform;
+  transform-origin: top center; transform: scaleY(0);
 }
 /* The leading edge, riding down with the fill. */
 .pipe-rib-head {
   position: absolute; left: 6px; top: 8px; width: 0; height: 0;
-  transform: translateY(0); will-change: transform, opacity;
+  transform: translateY(0);
   transition: opacity 420ms var(--ease-out); pointer-events: none;
 }
+/* ══ THE LAYER IS HELD FOR THE RUN, NOT FOR THE PAGE ══════════════════════
+   These three carried `will-change` in their own rules, which promotes each
+   to its own compositor layer the moment the card mounts and keeps it there
+   for as long as the card is on screen — including the beat it spends
+   finished, and the whole of a run somebody has walked away from. A promoted
+   layer costs GPU memory whether or not anything is moving on it, and the
+   hint is only worth paying for in the window where the frame clock is
+   actually writing transforms.
+
+   `done` goes on the card the moment the run ends, which is the same signal
+   the status line and the dot already read, so the layers are handed back at
+   the end of the run rather than at the end of the surface. */
+#pipeCard:not(.done) .pipe-rib-fill,
+#pipeCard:not(.done) .pipe-pin { will-change: transform; }
+#pipeCard:not(.done) .pipe-rib-head { will-change: transform, opacity; }
 .pipe-rib-head::before {
   content: ''; position: absolute; left: -11px; top: -11px; width: 22px; height: 22px;
   border-radius: 50%;
@@ -1410,7 +1445,7 @@
   position: relative; z-index: 1; flex: none;
   width: 12px; height: 12px; margin-top: 2px; border-radius: 50%;
   background: var(--card-bg); border: 1.5px solid var(--card-border);
-  transform: scale(1); will-change: transform;
+  transform: scale(1);
   transition: background-color 400ms var(--ease-out),
               border-color 400ms var(--ease-out),
               transform 460ms var(--ease-pin),
@@ -1553,7 +1588,7 @@
    thing leaving is a thing you have stopped looking at. transitions.dev's
    toast, on the library's toast. */
 .s-toast {
-  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out), filter 220ms var(--ease-out);
+  transition: opacity var(--t-settle) var(--ease-out), transform var(--t-settle) var(--ease-out), filter var(--t-settle) var(--ease-out);
 }
 @starting-style {
   .s-toast.visible { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.97); filter: blur(4px); }
@@ -1592,7 +1627,7 @@
   transform-origin: left center; transition: transform 160ms var(--ease-out);
   pointer-events: none;
 }
-.b-tick { display: inline-block; animation: b-tick 220ms var(--ease-out) both; }
+.b-tick { display: inline-block; animation: b-tick var(--t-settle) var(--ease-out) both; }
 /* 4px and 2px: a mark appearing in place travels the swap distance, not the
    slide distance, and softens by the swap's blur. 5 and 4 were off every
    step of both scales. */
@@ -3173,7 +3208,7 @@
    here runs on a repaint or a page of the queue turning, because the class
    that starts it is only put on for a change of surface. */
 #wbStage.is-arriving .b-qcard {
-  animation: b-surface-in 220ms var(--ease-out) both;
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
   animation-delay: calc(min(var(--i, 0), 8) * 30ms);
 }
 @media (prefers-reduced-motion: reduce) { #wbStage.is-arriving .b-qcard { animation: none; } }
@@ -3389,7 +3424,7 @@
   padding: 9px 8px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
-  animation: b-surface-in 220ms var(--ease-out) both;
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
   animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
 .b-cal-ev:hover { background: rgba(var(--accent-rgb), 0.10); }
@@ -3534,7 +3569,7 @@
   padding: 7px 8px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
-  animation: b-surface-in 220ms var(--ease-out) both;
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
   animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
 .b-cal-nrow:hover { background: rgba(var(--accent-rgb), 0.10); }
@@ -3616,7 +3651,7 @@
   padding: 11px 12px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
-  animation: b-surface-in 220ms var(--ease-out) both;
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
   animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
 .b-owed-row:hover { background: rgba(var(--accent-rgb), 0.10); }
@@ -3650,7 +3685,7 @@
   padding: 9px 10px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
-  animation: b-surface-in 220ms var(--ease-out) both;
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
   animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
 .b-loop-row:hover { background: rgba(var(--accent-rgb), 0.10); }

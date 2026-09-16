@@ -2955,11 +2955,6 @@
     host.classList.remove('is-arriving');
     void host.offsetWidth;
     host.classList.add('is-arriving');
-    /* Taken off again once it has run. Left on, the next repaint's fresh
-       surface would match the rule and arrive too — which is every write and
-       every page of the queue, the two things this must never animate. */
-    clearTimeout(arrive.t);
-    arrive.t = setTimeout(() => host.classList.remove('is-arriving'), 260);
   }
 
   /* ══ 7. PAINTING ════════════════════════════════════════════════════════ */
@@ -2980,6 +2975,23 @@
      the rebuild and settled after it (bdr.css §32). */
   function prePaint() {
     const out = { bar: null, figs: null };
+    /* ══ THE ARRIVAL IS CLEARED HERE, NOT ON A TIMER ══════════════════════
+       `is-arriving` used to be taken off 260ms after it went on. The
+       animations it gates run var(--t-settle) and are staggered eight steps
+       of var(--t-stagger) behind it — 540ms at the far end — so every card
+       past the second was cut off in mid flight, and the stagger this build
+       already had has never once been seen whole. The 260 was also a second
+       copy of a duration that lives in bdr.css, which is precisely how the
+       swap step drifted: the CSS was lengthened and the number in here was
+       not.
+
+       So there is no duration in here any more. The class comes off at the
+       top of the next paint, which is the only moment it has to be gone by.
+       A repaint rebuilds the surface from a string, so whatever was still
+       animating is thrown away regardless — and the fresh nodes must not
+       arrive unless go() has decided the surface actually changed. */
+    const stage = byId('wbStage');
+    if (stage) stage.classList.remove('is-arriving');
     const on = document.querySelector('.b-switch-btn.is-on');
     if (on) out.bar = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
     if (FIG_TICK) {
@@ -10694,6 +10706,11 @@
     }
     const dot = byId('pipeDot');
     if (dot) dot.classList.toggle('done', finished);
+    /* The card wears the same signal, because bdr.css hangs the compositor
+       hints off it: the ribbon, its head and the four pins are promoted for
+       the length of the run and handed back the moment it ends. */
+    const card = byId('pipeCard');
+    if (card) card.classList.toggle('done', finished);
 
     /* A CLASS, NOT A REWRITE. Two classes decide everything a step looks
        like, and both the time and the sentence it ends on are already in the
