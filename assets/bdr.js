@@ -17148,18 +17148,28 @@
      has only to confirm, and a second note would start to sound like
      another call coming in.
 
-     A QUARTER OF THE RING'S AMPLITUDE — about -12dB, and a little under
-     half as loud to the ear. A fraction rather than a number so it stays
-     a quarter if the ring ever moves, and so it can never be the thing
-     that clips: the note above is AT the ceiling, and this is one note
-     with no downbeat stack under it to add up. Rendered offline at 48k
-     it peaks at 0.2058 against the ring's 0.9899.
+     THE RING'S OWN LEVEL, NOT A FRACTION OF IT. It shipped at a quarter, on
+     the reasoning that a confirmation heard at the desk should not arrive at
+     the volume of an alert meant to cross a room. That reasoning was sound
+     and the result was inaudible: pitched into the bottom of the palette and
+     played back through a laptop speaker, a quarter of the ceiling left
+     nothing to hear at all.
+
+     AND FULL LEVEL COSTS NO HEADROOM, which is the part worth knowing before
+     anybody reaches for this number again. RING_VOL is a ceiling set by the
+     ring's DOWNBEAT, where D4 and D3 sound together with their octaves and
+     reach 1.33 of the constant before rendering. A closing tone has nothing
+     to stack with, so the identical constant lands far below the same
+     ceiling: rendered at 44.1k, 48k and 176.4k it peaks at 0.8234, 0.8234
+     and 0.8236, with no sample at or over 1, and 0.8236 again oversampled
+     four times. That is 18% of headroom, and 1.6dB under the ring instead of
+     13.6 under it.
 
      The voice is RING_VOICE untouched — same two partials, same 6ms
      onset, same 0.42s tail. It is the same instrument playing one note,
      which is the whole idea. */
   const RING_END = [[0.00, 293.66, 0.90]];
-  const RING_END_VOL = RING_VOL * 0.25;
+  const RING_END_VOL = RING_VOL;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
