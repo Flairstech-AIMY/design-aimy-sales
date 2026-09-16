@@ -3148,6 +3148,59 @@
   .s-finding-go:active, .chip:active, .s-way:active, .s-start:active { transform: none; }
 }
 
+/* ══ 62b. THE ONES THE HAND STILL GOT NOTHING FROM ════════════════════════
+   §62 covered this build's own controls and sales.css §21 covered the
+   shell's, and between them eight pressables fell down the gap. Measured
+   against every :active rule that actually applies: sixty-eight clickables
+   on the caller's desk, and these were the ones no rule reached.
+
+   THE BELL PRESSES AND THE RAIL TOGGLE BESIDE IT DOES NOT. One rule in
+   sales.css styles both their hovers on the same line; only the bell is in
+   the press list. The same is true of the chats toggle, the prototype
+   toggle, the mic and the version pill — shell chrome whose neighbours
+   answer the hand and which does not. That is not a component with its own
+   opinion about pressing, the way the chat row lifted from Knowledge is; it
+   is a control that was missed, and the cure is the shell's own value at the
+   shell's own speed so the two feel identical rather than merely similar.
+
+   0.97 IS THE SHELL'S NUMBER, NOT A DERIVED ONE. Working back from the
+   rules already here, a press moves an edge about 1.1px, which at 29px
+   would ask for 0.93 — and the bell, at 29px, presses at 0.97 like
+   everything else. A control that sits next to the bell should feel like
+   the bell, so the convention wins over the arithmetic. The two genuinely
+   argued exceptions in this file stay as they are: the ring's buttons at
+   0.94 and the diary's at 0.96.
+
+   THREE THAT LOOK BARE AND MUST STAY BARE. A queue card's title reports no
+   press rule of its own, and needs none: :active matches ancestors, so
+   pressing the title already presses the card around it, and giving the
+   title its own transform would scale it inside a card scaling with it.
+   `.prod-chev` carries transform: rotate(180deg) while its menu is open —
+   a press scale on the same property would throw the arrow's rotation away
+   at the moment it is most meaningful. And `.slv-n` is a figure set in the
+   middle of the rail's sentence: it is a button, but scaling it moves type
+   inside a line of prose, and a word that jumps while it is being read is
+   worse than a word that does not answer at all.
+
+   `.rail-console` belongs to this set and is not in the rule below it. Its
+   own rule sits further down the file, and a transition written here would
+   be thrown away by the one there, so its press is declared at that rule. */
+.b-menu-item, .b-peek-x, .voice-btn,
+.rail-toggle, .ov-chats-toggle, .proto-toggle, .ver-link {
+  transition: transform var(--t-press) var(--ease-out),
+              background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.b-menu-item:active, .b-peek-x:active, .voice-btn:active,
+.rail-toggle:active, .ov-chats-toggle:active, .proto-toggle:active,
+.ver-link:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .b-menu-item, .b-peek-x, .voice-btn,
+  .rail-toggle, .ov-chats-toggle, .proto-toggle, .ver-link { transition: none; }
+  .b-menu-item:active, .b-peek-x:active, .voice-btn:active,
+  .rail-toggle:active, .ov-chats-toggle:active, .proto-toggle:active,
+  .ver-link:active { transform: none; }
+}
+
 /* ══ 63. ONE SHADOW FOR WHAT FLOATS ════════════════════════════════════════
    Four surfaces sit above the page — a menu, a toast, the bell's panel, the
    run's card — and each carried its own recipe: 12/32 at .42, 18/40 at .5,
@@ -4157,7 +4210,15 @@
      colour that this row sets for itself two lines down. */
   background: none; font-family: inherit; text-align: left; text-decoration: none;
   color: var(--ink-quiet); cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  /* The press lives here rather than in §62b, because this rule is later in
+     the file and a transition set there would be thrown away by this one. */
+  transition: transform var(--t-press) var(--ease-out),
+              background-color var(--t-fast), color var(--t-fast);
+}
+.rail-console:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .rail-console { transition: none; }
+  .rail-console:active { transform: none; }
 }
 .rail-console:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .rail-console:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
