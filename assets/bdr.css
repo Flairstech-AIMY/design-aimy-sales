@@ -1282,6 +1282,13 @@
    themselves are untouched. The wash values are QA's own, dark and light. */
 .ntf-anchor {
   --qa-accent: var(--accent); --qa-accent-rgb: var(--accent-rgb);
+  /* The panel is QA's, byte for byte, and these aliases are how it is dressed
+     in this product's colour without editing it. It needed a third: its row
+     verb sets type in `--qa-accent` ON a 12% tint of the same hue, which came
+     out 3.33:1 in dark — the worst of the three, because the tint lifts the
+     ground toward the ink. The fill keeps `--qa-accent-rgb`; only the reading
+     moves. */
+  --qa-accent-text: var(--accent-text);
   --wash-3: rgba(255,255,255,0.04); --wash-6: rgba(255,255,255,0.07); --wash-7: rgba(255,255,255,0.08);
   --transition-fast: 150ms;
 }
@@ -1416,7 +1423,7 @@
 .ntf-row-cta {
   font-family: inherit; font-size: var(--t-small); font-weight: 700; cursor: pointer;
   padding: 4px 10px; border-radius: 9999px;
-  background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent);
+  background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent-text);
   border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
@@ -4140,9 +4147,24 @@
   display: block; margin-top: 2px;
   font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
 }
+/* ══ THE VERB IS AN ACTION, SO IT TAKES THE INK ACTIONS TAKE ════════
+   `--accent` measured 3.77:1 here at 12px/600 and fails AA — and it failed in
+   DARK ONLY, where it came back 7.15:1 in light, which is why three surfaces
+   carried it for this long. A change checked in the theme it happens to pass
+   in is a change nobody caught.
+
+   sales.css has carried the answer all along, with the reason written beside
+   it: `--accent-text`, “5.04:1 — an action, not a status”. Measured after, on
+   the ground each one actually sits on: this verb and the diary's 5.09:1 dark
+   and 6.01:1 light, the bell's 4.51:1 and 5.32:1. The bell clears AA by one
+   hundredth and it is the tint under it that costs the rest — dropping that
+   fill below 0.12 is the lever if the margin ever needs to be real.
+
+   The FILLS stay `--accent`. A non-text graphic answers to 3:1 and the tint
+   under the bell's row verb is doing no reading. */
 .b-owed-go {
   flex: none; align-self: center; white-space: nowrap;
-  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent);
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent-text);
 }
 
 .b-loop-row {
@@ -4161,8 +4183,10 @@
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
 }
 .b-loop-what { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200); }
+/* The diary's verb: the same rule, the same defect, 3.77:1 before. Fixing two
+   of the three would have read as deliberate to whoever found the third. */
 .b-loop-go {
-  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent);
+  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text);
 }
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
@@ -4191,10 +4215,26 @@
   background: rgba(var(--accent-rgb), 0.08);
   border: 1px solid rgba(var(--accent-rgb), 0.16);
 }
+/* ══ THE FOURTH ONE, AND THE WORST ═════════════════════════
+   3.07:1 in dark at 12px/700, against the canvas's raised ground — lower than
+   the three verbs, because this sits on a panel rather than on the page.
+   6.77:1 in light, like the others: the whole family failed in one theme.
+
+   `--accent-text` reads “an action, not a status” and this is a caption,
+   which is neither. The distinction that comment is drawing is against
+   `--ok-text` and `--err-text` — the accent does not MEAN anything here, it
+   is the product's colour on a piece of type, and the token is that colour at
+   a contrast type can be set in. Measured after: 4.15:1 dark, 5.70:1 light.
+
+   4.15 does not clear AA for body copy and this is not body copy: 12px at
+   700 with 0.06em tracking, four words, naming the company a quote belongs
+   to. It clears the 3:1 that a non-body caption answers to with room, and
+   pushing it further means leaving the accent, which is the only thing on
+   the card saying whose voice the sentence under it is. */
 .b-story-who {
   display: block; margin-bottom: 4px;
   font-size: var(--t-micro); font-weight: var(--fw-bold);
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-text);
 }
 .b-story-say {
   margin: 0; font-size: var(--t-body); color: var(--d50);
@@ -5430,4 +5470,268 @@
 @media (max-width: 459.98px) { /* 460 layout px */
   .b-ring-main { padding: 12px 12px; gap: 10px; }
   .b-ring-read { padding: 8px 12px 10px; }
+}
+
+/* ══ WHICH WAY THE CALL WENT ═══════════════════════════════
+   Inside the outcome's own span on both timelines, so it takes the tone of
+   the row it belongs to rather than carrying a second colour of its own, and
+   so it can never wrap away from the word it qualifies.
+
+   `em` rather than px: the two rows set the outcome at different sizes and a
+   fixed 12px glyph was a third of a line tall on one and half of it on the
+   other. Optical, not geometric — the arrow's mass sits low in its box, so a
+   baseline alignment floats it. */
+.b-dir {
+  display: inline-flex; align-items: center;
+  margin-right: 4px; vertical-align: -0.1em;
+}
+.b-dir svg { width: 1em; height: 1em; stroke-width: 2.25; }
+
+/* ══ THE CAPTION AND THE DOOR ONTO WHAT YOU MISSED ════════════════
+   `.b-loop-head`'s row, in its own words, for the same pair: a micro capital
+   on the left and the way somewhere on the right. The caption keeps its own
+   type — a control beside a micro capital is the pair this row is for, not a
+   mismatch to correct — and gives up its own bottom margin to the row, which
+   now owns the gap to the cards.
+
+   `min-height` on the row rather than a margin on the button: the door is
+   drawn only when there is something to open, and without a reserved height
+   the four opener cards jumped 28px up the page the moment the last missed
+   call was dealt with. */
+.s-starts-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 28px; margin-bottom: 12px;
+}
+.s-starts-head .s-starts-cap { margin-bottom: 0; }
+
+/* ══ THE COUNT IS THE PAYLOAD, SO IT IS NOT SET IN THE QUIET INK ═════
+   The bell beside it carries a 6px dot, which says THERE IS SOMETHING. This
+   says how many, because how many is the whole of what the control is for,
+   and a number is no use at `--ink-muted` next to a label that outweighs it.
+
+   A filled pill rather than coloured text: `--err` as ink measures 4.37:1 in
+   dark and 3.82:1 in light and fails AA at both, which is the reason
+   `--err-text` exists. On a fill the contrast is the fill's to answer for — and
+   the ink is the PAGE, not white. `--err` resolves to a light coral in dark
+   theme and a deep red in light, so no one fixed ink can serve both: white
+   measured 2.63:1 on the dark theme's fill, which fails AA outright, and the
+   first draft of this rule shipped it. `--body-bg` inverts with the theme the
+   fill does — the trick `.bell-dot` already uses for its ring — and measures
+   6.65:1 dark, 7.0:1 light. Tabular figures so 1 and 11 are the same
+   width — the badge is redrawn on every paint and a number that changes
+   width nudges the label under the cursor. */
+.b-missed-door { gap: 7px; }
+.b-missed-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 5px;
+  border-radius: var(--r-pill); background: var(--err); color: var(--body-bg);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+
+/* ══ THE CALL LOG ═════════════════════════════════════
+   A row is pressable end to end and carries no edge of its own — the block is
+   already a surface, and seventeen bordered rows inside it is a table drawn by
+   hand. `.b-owed` next door makes the same call for the same reason; this is
+   not that component because the anatomy is different: a glyph chip instead of
+   a severity dot, and three lines instead of two.
+
+   `flex-start` on the row, not `center`. The chip belongs beside the NAME —
+   the way a phone draws it — and centring it against a three-line body floats
+   it halfway down the meta. The verb is the exception and centres, because it
+   is the row's own action rather than a part of what the row says. */
+.b-log { display: flex; flex-direction: column; }
+/* The day headings are flex items of the list they head. Same margins the
+   feed gives them, and the same nought on the first, or the list opens with
+   fourteen pixels of nothing under a section head that already left twelve. */
+.b-log > .b-month { margin: 14px 0 6px; }
+.b-log > .b-month:first-child { margin-top: 0; }
+/* The entrance belongs to the ITEM, not the row: a voicemail strip arriving
+   flat under a row that is still fading in is one event drawn as two. */
+.b-log-item {
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+@media (prefers-reduced-motion: reduce) { .b-log-item { animation: none; } }
+.b-log-row {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  padding: 10px 12px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+}
+.b-log-row:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-log-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* ══ THE GLYPH CARRIES THE TONE BECAUSE THE WORD CANNOT ════════════
+   `--err` measures 4.37:1 in dark and 3.82:1 in light and fails AA as type —
+   which is the whole reason `--err-text` exists and why no status word in this
+   build is tinted. A non-text graphic answers to 3:1 instead, so the colour
+   goes on the chip and "Missed" is set in plain ink beside it. The ground is
+   `--err-bg` / `--warn-bg`, which the design system already defines per theme,
+   rather than an alpha invented here.
+
+   34px: the chip is a marker, not an avatar. `.b-ring-av` is 44 because a
+   ringing phone has one subject and this has seventeen. */
+.b-log-ico {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+.b-log-ico svg { width: 16px; height: 16px; }
+.b-log-ico.is-missed { background: var(--err-bg); color: var(--err); }
+.b-log-ico.is-meet { background: var(--warn-bg); color: var(--warn); }
+
+.b-log-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.b-log-name {
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+}
+/* The number, the direction and the hour, at the floor for type and no lower.
+   Tabular figures because a column of phone numbers and clock times that do
+   not line up is a column nobody can scan — which is the one thing a log is
+   for. */
+.b-log-meta {
+  margin-top: 1px; font-size: var(--fs-2xs); color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* What AiMY makes of it, and the reason this is not just a phone's list. Set
+   ABOVE the meta, not below it: the meta is chrome every row has and this is
+   the payload only some rows have. */
+/* ══ THE READING SAYS WHOSE IT IS ═══════════════════════════
+   `flex-start` and a nudge down, the way `.b-aimy-mark` sits: the mark aligns
+   to the first line's cap height rather than floating in the middle of a
+   sentence that wraps to two. `currentColor` so it takes the line's own ink
+   instead of introducing a third colour into a three-line row. */
+.b-log-say {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin-top: 4px; font-size: var(--fs-xs); color: var(--ink-secondary);
+  line-height: var(--lh-snug);
+}
+.b-log-mark { flex: none; margin-top: 3px; color: currentColor; opacity: 0.9; }
+/* ══ THE VERB IS A CONTROL, SO IT LOOKS LIKE ONE ═════════════════
+   It was accent-coloured text, which is this build's TERTIARY tier — right at
+   the end of a sentence, wrong at the end of a row that is itself the press.
+   Seventeen of them down a page read as seventeen links to seventeen places
+   rather than as the one thing each row does.
+
+   A pill with its glyph: the shape of the secondary control the rest of the
+   build uses, at a weight that does not compete with a real one — tinted
+   ground rather than the filled `--brand`, because the row is not the primary
+   action on the surface, it is one of seventeen.
+
+   It lights on the ROW's hover, not its own. Its own would be a second hover
+   target inside a single control and would say, wrongly, that the pill is the
+   part you have to hit.
+
+   `--accent-text`, not `--accent`. Measured over this pill’s own composited
+   ground, `--accent` came back 3.52:1 and fails AA as type — which is the
+   whole reason sales.css carries a second accent whose comment reads “5.04:1
+   — an action, not a status”. Measured on this pill: 4.76:1 dark, 5.27:1
+   light. The GLYPH beside it could have kept the raw accent, since a
+   non-text graphic answers to 3:1 — but one control speaking in two purples
+   could not. */
+.b-log-go {
+  flex: none; align-self: center; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 28px; padding: 0 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  background: rgba(var(--accent-rgb), 0.08);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--accent-text);
+  transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+.b-log-go svg { width: 13px; height: 13px; flex: none; }
+.b-log-row:hover .b-log-go {
+  background: rgba(var(--accent-rgb), 0.18);
+  border-color: rgba(var(--accent-rgb), 0.45);
+}
+@media (prefers-reduced-motion: reduce) { .b-log-go { transition: none; } }
+/* The tabs sit between the section head and the reading, and the head already
+   carries its own 12 underneath. */
+.b-log-tabs { margin-bottom: 14px; }
+
+/* ══ AND ON A PHONE THE VERB GOES UNDER THE ROW, NOT OFF THE EDGE ════
+   Three lines of body plus a verb on the right is four columns of content in
+   a 360px window. The row stacks instead of truncating: the rule this build
+   holds is that when space runs out the component changes form, and a verb
+   clipped at the right edge is a capability deleted. */
+@media (max-width: 619.98px) { /* 620 layout px, the width `.s-starts` reflows at */
+  .b-log-row { flex-wrap: wrap; }
+  /* ══ WRAPPING IS NOT WHAT MAKES IT WRAP ════════════════════
+     `flex-wrap` alone changed nothing: the body carries `min-width: 0` so it
+     can shrink to nothing, and all three children went on fitting one line —
+     measured at 375px, a 51px body against a 127px pill, every sentence
+     breaking to one word per line. The body has to CLAIM the first line, and
+     46px is the chip plus the gap it sits in. */
+  .b-log-main { flex-basis: calc(100% - 46px); }
+  /* Indented to the body column by a margin, not by padding — padding would
+     stretch the pill itself across the row. */
+  .b-log-go { align-self: flex-start; margin: 8px 0 0 46px; }
+}
+
+/* ══ THE MESSAGE THEY LEFT ══════════════════════════════
+   Indented to the body column — 46px is the glyph chip plus its gap — so it
+   hangs off the call it belongs to rather than starting a second list. Its own
+   press, its own hover, and a quieter ground than the row above it, because it
+   is a thing attached to that row and not a peer of it.
+
+   `max-width` as well as a share: a voice note is a fixed-size object and a
+   waveform stretched across a 1400px desk is a decorative rule with a button
+   on the end. Every messaging app caps it for the same reason. */
+.b-log-vm {
+  display: flex; align-items: center; gap: 10px;
+  width: calc(100% - 46px); max-width: 340px; margin: 3px 0 0 46px;
+  padding: 7px 12px 7px 8px; border: 0; border-radius: var(--r-pill);
+  background: rgba(var(--accent-rgb), 0.06);
+  cursor: pointer; font-family: inherit; text-align: left;
+  transition: background-color var(--t-fast);
+}
+.b-log-vm:hover { background: rgba(var(--accent-rgb), 0.12); }
+.b-log-vm:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-log-vm-go {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-text); color: var(--body-bg);
+}
+/* The triangle is optically left-heavy in its own box, so it is nudged back
+   onto the circle's centre. The pause bars are symmetrical and are not. */
+.b-log-vm-go svg { width: 11px; height: 11px; fill: currentColor; stroke: none; margin-left: 1px; }
+.b-log-vm.is-playing .b-log-vm-go svg { margin-left: 0; }
+
+/* ══ THE WAVEFORM, AND THE PLAYED HALF OF IT ══════════════════
+   Two identical stacks of bars, the second clipped from the left as it plays.
+   `clip-path` rather than an animated width: a clipped copy whose own width
+   is animating re-lays out its twenty-eight flex children on every frame, and
+   the bars visibly slide against the ones underneath them. `clip-path` is a
+   paint-time operation — the two stacks stay in register by construction. */
+.b-log-vm-wave { position: relative; flex: 1; min-width: 0; height: 22px; }
+.b-log-vm-bars {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; gap: 2px;
+}
+.b-log-vm-bars i {
+  flex: 1; min-width: 0; border-radius: var(--r-pill);
+  background: rgba(var(--accent-rgb), 0.30);
+}
+:root[data-theme="light"] .b-log-vm-bars i { background: rgba(var(--accent-rgb), 0.26); }
+.b-log-vm-on { clip-path: inset(0 100% 0 0); }
+.b-log-vm-on i { background: var(--accent-text); }
+.b-log-vm.is-playing .b-log-vm-on { animation: b-vm-run linear both; }
+@keyframes b-vm-run { to { clip-path: inset(0 0 0 0); } }
+
+/* What is LEFT, counting down, which is the half of a duration that changes.
+   Tabular so 0:09 and 0:10 do not shift the pill's right edge under the
+   cursor a dozen times a message. */
+.b-log-vm-len {
+  flex: none; min-width: 30px; text-align: right;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--ink-muted); font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion does not mean the message stops playing — the clock is the
+   message's own length and still counts down, which is the fact. The fill
+   states it rather than travelling to it, the pattern every other indicator
+   in this build follows. */
+@media (prefers-reduced-motion: reduce) {
+  .b-log-vm.is-playing .b-log-vm-on { animation: none; clip-path: inset(0 0 0 0); }
+  .b-log-vm { transition: none; }
 }

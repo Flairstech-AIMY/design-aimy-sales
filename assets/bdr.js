@@ -437,7 +437,14 @@
      count the digits of to take in. */
   const euro = (n) => '€' + (n >= 1000000 ? (Math.round(n / 100000) / 10) + 'm'
     : n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
-  const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
+  /* ══ "NO ANSWER" IS A SENTENCE ABOUT WHO DIALLED ════════════════
+     A call THEY made that nobody here took is stored under the same
+     outcome as a call WE made that nobody there took — correctly, because
+     the outcome is the same and `dir` is the field that tells them apart.
+     Printing the outcome's own label over it says the opposite of what
+     happened: their phone did not go unanswered, ours did. */
+  const kindLabel = (t) => (wasMissed(t) ? 'Missed'
+    : OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? stepLabel(t.moved[1]) : t.outcome));
 
@@ -2382,6 +2389,172 @@
       a.subs.sort((x, y) => (x.since < y.since ? -1 : 1));
     });
 
+
+    /* ══ THE MEETINGS THAT SLIPPED ═════════════════════════
+       A meeting that came and went with nothing written down is the gap the
+       whole loop exists to close, and the corpus held three of them per desk —
+       enough to prove the derivation, not enough to be a page somebody works.
+
+       The share was never the thing being modelled. The two due-date windows
+       above it were drawn to make a DIARY look right — a caller's meeting lands
+       between six days back and a fortnight ahead, a deal's next step between
+       nine back and twelve ahead — and how many of those fall behind today is
+       a side effect of wanting a week that looks busy.
+
+       So a share of the ones still ahead are moved behind. It moves a DATE
+       rather than inventing a record: the meeting was always on the books, it
+       is now inside the fortnight the log looks back over, and everything that
+       reads a diary — the day, the week, the overdue count, the bell — sees
+       one consistent set because there is only one. Off the id's own salt, so
+       no draw is spent and nothing generated before it moves.
+
+       A thing merely OWED is not a meeting and is left alone: nobody walks out
+       of a proposal with nothing written down. Tested by the verb rather than
+       through `kindOfNext`, which is a `const` four hundred lines below this
+       and would still be in its dead zone when the seed runs. */
+    /* ══ AND IT HAS TO LAND AFTER THE LAST THING RECORDED ══════════
+       `unrecorded` asks whether anything was written on or after the meeting's
+       own day, so a date slipped to BEFORE the deal's last recorded phase is
+       not an unrecorded meeting — it is a superseded one, and correctly
+       invisible. The first pass ignored that and moved fourteen dates to buy
+       two rows. The window is the days between the last phase and today; where
+       there is no room in it the date is left where it was. */
+    const lastPhase = Object.create(null);
+    touch.forEach((t) => {
+      if (t.outcome !== 'phase') return;
+      const d = t.at.slice(0, 10);
+      if (!lastPhase[t.con] || d > lastPhase[t.con]) lastPhase[t.con] = d;
+    });
+    const SLIP_SHARE = 70;
+    const SLIP_BACK = 12;
+    con.forEach((c) => {
+      if (!c.next || !c.next.due || c.next.due <= TODAY_ISO) return;
+      if (!/\b(meeting|demo|dinner)\b/i.test(c.next.what)) return;
+      const h = Math.abs(hash(c.id + ':slipped'));
+      if (h % 100 >= SLIP_SHARE) return;
+      const floor = lastPhase[c.id];
+      let room = SLIP_BACK;
+      if (floor) {
+        room = Math.min(SLIP_BACK, daysBetween(floor, TODAY_ISO) - 1);
+        if (room < 1) return;
+      }
+      c.next.due = dayAdd(-(1 + ((h >> 7) % room)));
+    });
+
+    /* ══ AND THE CALLS THAT CAME THE OTHER WAY ═════════════════════
+       Every touchpoint above is one we MADE. A phone also rings, and when it
+       rings while you are in a room with somebody else nobody picks it up —
+       which is the one event this product knew how to record and then threw
+       away: the widget retires, the toast fades, and nothing counts it.
+
+       ALSO LAST, AND FOR THE REASON THE BLOCK ABOVE GIVES. It went in beside
+       the history it belongs to, two thirds of the way up, and the manager's
+       desk came back with two rows against the caller's fourteen — because
+       the deals a manager actually holds are minted BELOW that point, so
+       two thirds of the people who could ring him did not exist yet when it
+       ran. It reads `con` whole here, and it spends no draw from the shared
+       PRNG — every value comes off the contact's own hash — so running it
+       last changes nothing that was generated before it.
+
+       Who rings: somebody with a conversation already open. A number, no
+       opt-out, and past `not-called`, because nobody rings a caller they have
+       never spoken to and an exit has stopped ringing anybody. Never dated
+       before the last call we made — a missed call already answered by a call
+       back is not something anybody has to deal with — and inside a fortnight,
+       because a missed call from March is not work.
+
+       `by` is whose phone it was, which is `mgrOf`'s question and so it is
+       `mgrOf`'s answer: whoever the lead was handed to, else whoever owns the
+       campaign it is on. Before the hand-over it is the caller's. */
+    /* One in seven of the eligible — the share that puts a readable handful on
+       each desk rather than a page nobody can finish. Measured, then tuned
+       against the measurement, the way the shares above it were. */
+    const MISSED_SHARE = 14;
+    const MISSED_NOTE = [
+      'They rang. Nobody picked up.',
+      'Missed their call.',
+      'They called in while you were out.',
+      'Rang twice. No answer this end.',
+    ];
+    /* ══ AND TWO IN FIVE OF THEM LEFT A MESSAGE ══════════════════
+       Which changes what the row can say. `ringRead` INFERS why somebody was
+       ringing — off their overdue step, their last objection — and hedges
+       accordingly, because an inference that states itself flat is the guess
+       this build refuses. A voicemail is not an inference. They said why.
+
+       So the words are written against the same facts the reading is drawn
+       from, rather than picked at random: somebody chasing an overdue step
+       says so, somebody who asked to be called back says that. A corpus where
+       the message and the record disagree would make every row on the page
+       unreadable — the reader would stop trusting whichever one they checked
+       second. Off the id's own salt, like everything else in this block. */
+    const vmSay = (c, a, h2) => {
+      const first = c.name.split(' ')[0];
+      const at = a ? ' at ' + a.name : '';
+      const owed = c.next && c.next.what ? String(c.next.what).toLowerCase() : null;
+      if (owed && c.next.due < TODAY_ISO) {
+        return 'Hi, ' + first + at + '. I was expecting ' + owed +
+          ' and it has not come. Can you call me back today?';
+      }
+      if (c.checkpoint === 'callback') {
+        return 'Hi, it is ' + first + at + ' returning your call. Try me this ' +
+          (h2 % 2 ? 'afternoon' : 'morning') + ', I am around until five.';
+      }
+      if (owed) {
+        return 'Hi, ' + first + at + '. Just checking you still have ' + owed +
+          ' in hand. Give me a ring when you get this.';
+      }
+      return [
+        'Hi, it is ' + first + at + '. Nothing urgent, but give me a ring back.',
+        'Hi, ' + first + ' here' + at + '. I had a question about what you sent.',
+        'Hi, ' + first + at + '. Can you call me back? I would rather not do this by email.',
+      ][h2 % 3];
+    };
+    const accById = Object.create(null);
+    acc.forEach((a) => (accById[a.id] = a));
+    let mId = 0;
+    con.forEach((c) => {
+      if (!c.phone || c.dnc) return;
+      if (c.checkpoint === 'not-called' || isExit(c.checkpoint)) return;
+      const h = Math.abs(hash(c.id + ':rang'));
+      if (h % 100 >= MISSED_SHARE) return;
+      const vm = Math.abs(hash(c.id + ':vm'));
+      const gap = c.lastCallAt ? daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) : 13;
+      const at = dayOf(-Math.max(0, Math.min((h >> 7) % 14, gap)));
+      at.setHours(9 + ((h >> 3) % 9), (h >> 11) % 60, 0, 0);
+      const kk = c.camps.length ? camp.filter((x) => x.id === c.camps[0])[0] : null;
+      touch.push({
+        /* Its own run of ids. `tId` belongs to the loop that made the
+           history and has been out of scope for four hundred lines; a second
+           counter starting at zero would mint `t0` twice. */
+        id: 'ti' + mId++,
+        con: c.id,
+        camp: c.camps[0] || null,
+        by: c.checkpoint === 'handed-over'
+          ? (c.manager || (kk && kk.owner ? kk.owner : MANAGERS[0].id))
+          : (c.owner || DEFAULT_ME),
+        at: at.toISOString(),
+        secs: 0,
+        outcome: 'no-answer',
+        /* The one field that makes it theirs rather than ours. Everything that
+           measures what a call COST, or reads what was SAID on one, asks
+           `wasMissed` first; everything that lists what is on the record
+           draws it. */
+        dir: 'in',
+        proposals: [], objections: [], openings: [],
+        note: MISSED_NOTE[(h >> 5) % MISSED_NOTE.length],
+        /* Its own salt rather than more bits of `h`: `h` already chose who
+           rings, what day and which note, and reading further up the same
+           number correlates the message with all three — every overdue lead
+           getting the same length of message is the kind of pattern that
+           reads as a bug before anybody works out it is a hash. */
+        vm: vm % 100 < 70
+          ? { secs: 8 + ((vm >> 7) % 27), text: vmSay(c, accById[c.acc], vm >> 3) }
+          : null,
+        lines: [], next: null, moved: null, called: c.checkpoint,
+      });
+    });
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
@@ -2847,6 +3020,31 @@
      product did but the bell. This is that cut. */
   const afterMeeting = (c) => c.checkpoint === 'meeting-set' && !!c.next && c.next.due < TODAY_ISO;
 
+  /* ══ A CALL NOBODY PICKED UP IS AN EVENT, NOT WORK ═════════════════
+     Their call, not ours. It belongs on the record — it is the whole of what
+     the missed log reads — but three kinds of derivation have to step over
+     it, and every one of them was already wrong the day `ringMissed` wrote
+     its first touchpoint, months before the corpus held any.
+
+     WHAT IT COST. `touchCost` charges four minutes of after-call work to
+     every touchpoint. Nobody writes anything up after a call they did not
+     take, so a ringing phone would have put a salary on the Financials.
+
+     WHAT WAS SAID ON IT. `aimySays`, `conLead`, `callPrep` and `ringRead`
+     all open on the newest touch and read its objections, its openings and
+     its outcome. A missed call carries none of the three, so becoming the
+     newest touch silently deleted the sticking point from the card of
+     everybody who had rung back.
+
+     AND WHO CALLED WHOM. Every sentence `callsIn` feeds is about calls made
+     from this end — "12 calls into this company", "3 calls in and nobody
+     here has picked up", the day of the first one. Counting a call they
+     made to us in any of those is the record contradicting itself.
+
+     The four-touch rule is the same claim about effort: a call you did not
+     make is not a touch you spent on them. */
+  const wasMissed = (t) => !!t && t.dir === 'in' && t.outcome === 'no-answer';
+
   /* ══ 6. THE URL IS THE STATE ════════════════════════════════════════════
      One object mirrors the query string, one function writes it, one function
      repaints. A surface that is not in the URL is a surface you cannot send
@@ -3229,6 +3427,7 @@
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
       : S.on === 'notes' ? notesPage()
+      : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
       : S.on === 'deals' ? dealsPage()
@@ -3796,14 +3995,15 @@
   const QUIET_DAYS = 7;
   function quietUnderFour(c) {
     if (isExit(c.checkpoint) || rank(c.checkpoint) < 1 || rank(c.checkpoint) > 3) return 0;
-    const ids = DB.touchesOf[c.id] || [];
+    const ids = (DB.touchesOf[c.id] || []).filter((id) => !wasMissed(TOUCH[id]));
     if (!ids.length || ids.length >= TOUCH_RULE) return 0;
     if (c.next && c.next.due > TODAY_ISO) return 0;
     const last = TOUCH[ids[0]];
     return last && daysBetween(last.at.slice(0, 10), TODAY_ISO) >= QUIET_DAYS ? ids.length : 0;
   }
   const quietSay = (n, c) => {
-    const last = TOUCH[(DB.touchesOf[c.id] || [])[0]];
+    const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
+      .filter((t) => t && !wasMissed(t))[0];
     return plural(n, 'touch', 'touches') + ', then ' + (last ? plural(daysBetween(last.at.slice(0, 10), TODAY_ISO), 'day') : 'a while') +
       ' of nothing. The rule is ' + TOUCH_RULE + ' before you let go.';
   };
@@ -3811,7 +4011,7 @@
   function aimySays(c, onRecord) {
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
-    const last = hist[0];
+    const last = hist.filter((t) => !wasMissed(t))[0];
     const a = accOf(c);
 
     /* A WAY OUT READS AS WHAT IT IS. The hour reading and "call the mobile"
@@ -4320,7 +4520,8 @@
     const o = OUTCOME[t.outcome];
     /* A phase has no outcome row of its own; a lost resolution is the one
        that reads as a way out rather than a step forward. */
-    const tone = o ? o.tone
+    /* Same call the record's timeline makes, in the same words. */
+    const tone = wasMissed(t) ? 'warn' : o ? o.tone
       : (t.outcome === 'phase' ? (t.decision === 'lost' ? 'warn' : 'ok') : 'neutral');
     const head = kindLabel(t);
     return '<div class="s-qrow-id">' +
@@ -4328,6 +4529,7 @@
           esc(c ? c.name : 'Somebody') + '</button>' +
         '<span class="s-qrow-sub">' +
           '<span class="' + (FEED_TONE[tone] || FEED_TONE.neutral) + '">' +
+            (wasMissed(t) ? '<span class="b-dir">' + chIcon('call-in') + '</span>' : '') +
             esc(head) + '</span>' +
           '<span class="b-feed-meta"> · ' + esc(whoDid(t).name) +
             ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
@@ -5106,6 +5308,318 @@
       day = d;
       return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
     }).join('') + '</div>';
+  }
+
+  /* ══ THE PAGE THE DOOR OPENS ═══════════════════════════
+     IT IS A CALL LOG, so it is built like one. Every phone on earth draws
+     this list the same way and the convention is worth more than anything
+     this product could invent: a direction glyph on the left, the name, the
+     number under it, and when. A reader arrives already knowing how to read
+     it, which is the whole of what a convention buys.
+
+     What is ours is the third line. `ringRead` computes why this person is
+     probably ringing you — off their overdue step, their last objection,
+     their checkpoint — and until now it lived for thirty seconds on a widget
+     and was destroyed when the phone stopped. It is the one thing here no
+     phone can tell you, so it is the line the row is really for. `null`
+     means no line, not a hedge: inventing one for a record with no history
+     is the guess this reader refuses everywhere else.
+
+     TWO TABS, NOT TWO SECTIONS. Stacked, the meetings sat under fourteen
+     calls and below the fold on the desk that has the most of both. They are
+     one subject — what came for you and did not get through — read two ways,
+     which is the case the chip row answers everywhere else in this build:
+     the frame holds still and the body swaps. `data-q` is already wired and
+     already keeps `on` through a cut, so the tab is in the URL for free and
+     a link to the meetings tab is a link somebody can send.
+
+     THE COLOUR IS ON THE GLYPH AND NOT ON THE WORD. `--err` measures 4.37:1
+     dark and 3.82:1 light and fails AA as type, which is what `--err-text`
+     exists for and why no status word in this build is tinted. An icon
+     answers to 3:1, so the chip carries the tone and "Missed" is set in
+     plain ink beside it. */
+  const LOG_TABS = [{ k: 'calls', label: 'Calls' }, { k: 'meets', label: 'Meetings' }];
+
+  /* ══ THE MARK, BECAUSE THE LINE IS A CLAIM AND NOT A FIELD ════════
+     `ringRead` derives why somebody is probably ringing you by reading their
+     record against the clock. That is the definition of every other `.b-aimy`
+     in this build, and it was set here as plain page copy — asserting without
+     a mark, on a row where the two lines above it are fields off the record
+     and a reader had no way to tell which kind of thing they were reading.
+
+     The voicemail strip below deliberately does NOT take it. That line is not
+     a reading, it is what the caller said, and putting AiMY's mark on somebody
+     else's words would be the one lie this component could tell. */
+  const sayMark = () =>
+    '<svg class="b-log-mark" width="11" height="13" viewBox="0 0 18 20" aria-hidden="true">' +
+    '<use href="#aimy-logo-small"/></svg>';
+
+  /* ══ TWO CONTROLS, SO TWO BUTTONS, SO A WRAPPER ════════════════
+     The row is pressable end to end and returns the call. Playing the message
+     back is a different act with a different result, and it cannot live inside
+     that button — a nested control is invalid markup, is not reliably
+     focusable, and announces badly. So the item is a wrapper holding the row
+     and, under it, the message as its own press.
+
+     Which is also how a phone models it: the call is one thing in the list and
+     the voicemail is another, attached to it. */
+  function logRow(o, i) {
+    return '<div class="b-log-item" style="--i:' + Math.min(i, 8) + '">' +
+      '<button class="b-log-row" type="button" ' + o.act + '>' +
+      '<span class="b-log-ico ' + esc(o.tone) + '">' + o.ico + '</span>' +
+      '<span class="b-log-main">' +
+        '<span class="b-log-name">' + esc(o.who) + '</span>' +
+        '<span class="b-log-meta">' + o.meta + '</span>' +
+        (o.say ? '<span class="b-log-say">' + sayMark() + '<span>' + o.say +
+          '</span></span>' : '') +
+      '</span>' +
+      /* ══ A SPAN, AND IT HAS TO BE ══════════════════════════
+         The row is the button — pressable end to end, which is what makes a
+         log scannable by thumb — so this cannot be one too. A nested control
+         is invalid markup, is not reliably focusable, and announces badly;
+         the peek card's own comment says so where it made the same mistake.
+         It is drawn as a pill because a pill is what it does, and the row's
+         hover lights it so the two read as one press. */
+      '<span class="b-log-go">' + o.goIco + esc(o.go) + '</span>' +
+    '</button>' +
+    (o.vm ? vmStrip(o.vm, o.vmId) : '') +
+  '</div>';
+  }
+
+  /* ══ A VOICE NOTE, DRAWN THE WAY EVERY MESSAGING APP DRAWS ONE ═════
+     Play, a waveform, and how long is left. It carried the transcript instead
+     and that was two mistakes in one strip: it put a paragraph of somebody
+     else's words in a row whose job is to be scanned, and it answered a
+     question — what did they say — that the reading two lines above already
+     answers off the whole record rather than off one message. A voice note is
+     an OBJECT in a list. You see that it exists, how long it is, and you play
+     it. The words are what playing it is for.
+
+     THE WAVEFORM IS THE MESSAGE'S OWN. Twenty-eight bars off the touchpoint's
+     id, so a given message looks the same every time it is drawn and two
+     different ones never look identical — which is the whole reason a
+     messaging app draws a real waveform rather than a bar: in a column of
+     them, shape is how you tell one from another before you read a word.
+     Decorative in the sense that it is not the amplitude of any real audio,
+     and not decorative in the sense that it is stable and distinguishing.
+
+     There is no voice here — the only audio in the build is `ringToneOn`'s
+     oscillators, and synthesising a human one is not something a prototype can
+     honestly do. So what plays is the message's own length: the fill crosses
+     the wave and the clock counts down to nothing, which is the part of
+     playback that is true whatever is coming out of the speaker. */
+  /* A dot-separated run, with the empties dropped rather than drawn as a gap
+     between two separators — a contact with no number on file is a real case
+     and " ·  · " is what it looked like. */
+  const logMeta = (bits) => bits.filter(Boolean).map((b) => esc(b)).join(' · ');
+
+  /* ══ THE DAY IS A HEADING, SO THE ROW ONLY CARRIES THE HOUR ═════════
+     Every row said "4 days ago at 11:04", which on six consecutive rows from
+     the same afternoon spends a third of each one restating the row above it —
+     and still leaves the reader counting backwards to work out which day that
+     was. A phone answers both at once: one heading per day, and under it the
+     clock alone.
+
+     `dayLabel` and `.b-month` are `feedBlock`'s, unchanged. The company's feed
+     has grouped by day since it was built and this is the same list of the
+     same events read from the other end, so a second way of saying Yesterday
+     would be two vocabularies for one fact. */
+  function logDays(items, dayOf, draw) {
+    let day = '';
+    return items.map((x, i) => {
+      const d = String(dayOf(x)).slice(0, 10);
+      const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(d)) + '</h3>' : '';
+      day = d;
+      return head + draw(x, i);
+    }).join('');
+  }
+
+  const VM_BARS = 28;
+  function vmWave(id) {
+    let out = '';
+    for (let b = 0; b < VM_BARS; b++) {
+      /* 18% to 96% of the strip's height. Its own salt per bar rather than
+         bits shifted off one number, which on twenty-eight draws from a
+         thirty-two bit hash runs out and starts repeating the shape. */
+      out += '<i style="height:' + (18 + (Math.abs(hash(id + ':w' + b)) % 79)) + '%"></i>';
+    }
+    return out;
+  }
+
+  /* How far through, in seconds, for a strip drawn mid-play. A full repaint
+     can happen for any reason while a message is running — a toast lands, a
+     figure ticks — and a fill that restarted from nothing each time would make
+     the page look like it had lost its place. */
+  const vmAt = () => (VM_ON ? Math.min(TOUCH[VM_ON].vm.secs, (Date.now() - VM_T0) / 1000) : 0);
+
+  function vmStrip(vm, id) {
+    const on = VM_ON === id;
+    const el = on ? vmAt() : 0;
+    return '<button class="b-log-vm' + (on ? ' is-playing' : '') + '" type="button" ' +
+      'data-vm="' + esc(id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+      'aria-label="Play the message they left, ' + esc(fmtClock(vm.secs)) + '">' +
+      '<span class="b-log-vm-go">' + chIcon(on ? 'pause' : 'play') + '</span>' +
+      '<span class="b-log-vm-wave">' +
+        '<span class="b-log-vm-bars">' + vmWave(id) + '</span>' +
+        '<span class="b-log-vm-bars b-log-vm-on"' +
+          (on ? ' style="animation-duration:' + vm.secs + 's;animation-delay:-' + el + 's"' : '') +
+          '>' + vmWave(id) + '</span>' +
+      '</span>' +
+      '<span class="b-log-vm-len">' + esc(fmtClock(Math.ceil(vm.secs - el))) + '</span>' +
+    '</button>';
+  }
+
+  /* ══ AND IT DOES NOT REPAINT THE PAGE ═══════════════════════
+     Pressing play called `paint()`, which rebuilds the whole surface: every
+     row re-entered with its stagger, the log flashed, and on a page scrolled
+     halfway down the list it was the most disruptive thing on screen — for a
+     press whose entire result is one button changing shape.
+
+     So the two strips that change are touched by hand, and the clock ticks
+     into a text node. A repaint from anywhere else still draws the right
+     state, because `vmStrip` reads `VM_ON` and `VM_T0` and hands the fill a
+     negative delay, which is the same trick that makes it survive one.
+
+     ONE AT A TIME. A second message starting while the first is running is two
+     people talking, which is what it would be. */
+  function vmPlay(id) {
+    const was = VM_ON;
+    vmStop();
+    if (was === id) return;
+    const t = TOUCH[id];
+    if (!t || !t.vm) return;
+    VM_ON = id;
+    VM_T0 = Date.now();
+    vmDraw(id);
+    VM_TIMER = setTimeout(() => { VM_TIMER = null; vmStop(); }, t.vm.secs * 1000);
+    VM_TICK = setInterval(() => {
+      const el = document.querySelector('[data-vm="' + VM_ON + '"] .b-log-vm-len');
+      if (!el) return;
+      el.textContent = fmtClock(Math.max(0, Math.ceil(TOUCH[VM_ON].vm.secs - vmAt())));
+    }, 250);
+  }
+
+  function vmStop() {
+    if (VM_TIMER) { clearTimeout(VM_TIMER); VM_TIMER = null; }
+    if (VM_TICK) { clearInterval(VM_TICK); VM_TICK = null; }
+    const was = VM_ON;
+    VM_ON = null;
+    if (was) vmDraw(was);
+  }
+
+  /* One strip, redrawn in place. `outerHTML` rather than a run of class and
+     attribute pokes: `vmStrip` is already the one description of what a strip
+     looks like in each state, and a second one written as DOM edits is the
+     pair that drifts. It is one element either way. */
+  function vmDraw(id) {
+    const el = document.querySelector('[data-vm="' + id + '"]');
+    const t = TOUCH[id];
+    if (!el || !t || !t.vm) return;
+    el.outerHTML = vmStrip(t.vm, id);
+  }
+  function missedPage() {
+    const calls = missedCalls();
+    const meets = missedMeets();
+    const on = S.q === 'meets' ? 'meets' : 'calls';
+    const nOf = (k) => (k === 'meets' ? meets.length : calls.length);
+    /* The same chip the queue's cuts use, so the one control in this build
+       that means "same frame, different body" means it here too. */
+    const tabs = '<div class="b-cuts b-log-tabs">' + LOG_TABS.map((t) =>
+      '<button class="filter-chip' + (on === t.k ? ' active' : '') + '" type="button" ' +
+      'data-q="' + esc(t.k) + '"' + (on === t.k ? ' aria-current="true"' : '') + '>' +
+      esc(t.label) + '<span class="b-cut-n">' + commas(nOf(t.k)) + '</span></button>').join('') +
+    '</div>';
+
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="What came for you">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">Call log</h2>' +
+        '</div>' +
+        tabs +
+        (on === 'meets' ? logMeets(meets) : logCalls(calls)) +
+      '</section>' +
+    '</div>';
+  }
+
+  function logCalls(calls) {
+    /* The one piece of good news the page has, so it says so rather than
+       saying nothing — `openLoop`'s rule, and the reason it is worth opening
+       on a quiet day. */
+    if (!calls.length) {
+      return '<p class="b-vfoot">Nobody has rung you and gone unanswered. ' +
+        'Every call that came in got taken.</p>';
+    }
+    return aimyBlock({ text: '<b>' + esc(plural(calls.length, 'person')) + '</b> rang and ' +
+        'nobody picked up. Where there is something on their record worth knowing ' +
+        'before you ring back, it is under their number.',
+      from: 'the record against each number' }) +
+      '<div class="b-log">' + logDays(calls, (t) => t.at, (t, i) => {
+        const c = DB.byCon[t.con];
+        if (!c) return '';
+        return logRow({
+          tone: 'is-missed', ico: chIcon('call-in'),
+          who: c.name,
+          /* The direction first, because it is what the glyph says and a
+             reader checks the two against each other; then the number, which
+             is what a call log is a log OF; then when. */
+          meta: logMeta(['Missed', c.phone, timeOf(t.at)]),
+          say: ringRead(c),
+          vm: t.vm || null, vmId: t.id,
+          /* ══ EVERY ROW CALLS BACK, AND `canRing` WAS THE WRONG TEST ═══
+             Four of the fourteen said "Open the record" instead, because
+             `canRing` came back false for them. That predicate asks whether
+             somebody is still THIS DESK'S TO WORK — `callable` stops at rank 3
+             and parks a callback with a future date — which is the right
+             question for a queue of people to dial through and the wrong one
+             here. They already rang. Whether they are on the caller's part of
+             the ladder has nothing to do with whether their call gets
+             returned, and a log that answers four of them with a page to read
+             is a log that made the reader do the dialling themselves.
+
+             `startCall` gates on a number and an opt-out, and nothing on this
+             page can fail either: a missed call came off a number we hold,
+             and `dnc` is excluded where these are seeded. Where it somehow
+             did, `startCall` already says so in a toast rather than doing
+             nothing. */
+          go: 'Call them back',
+          goIco: chIcon('phone'),
+          act: 'data-call="' + esc(c.id) + '"',
+        }, i);
+      }) + '</div>';
+  }
+
+  function logMeets(meets) {
+    if (!meets.length) {
+      return '<p class="b-vfoot">Every meeting that has been and gone has been ' +
+        'written up.</p>';
+    }
+    return aimyBlock({ text: '<b>' + esc(plural(meets.length, 'meeting')) + '</b>' +
+        (meets.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the ' +
+        'record. Say how it went in a sentence and AiMY writes it up.',
+      from: 'the diary against the record' }) +
+      '<div class="b-log">' + logDays(meets, (m) => m.iso, (m, i) => {
+        const kind = (MEET_KIND[m.kind] || MEET_KIND.meeting).label;
+        return logRow({
+          tone: 'is-meet', ico: chIcon('calendar'),
+          who: m.con.name,
+          /* The hour only where there is one. A caller's commitment carries a
+             day and no time, and drawing it at an invented ten o'clock is the
+             row asserting what it was never told — the call `meetings` already
+             makes one derivation up. */
+          meta: logMeta([kind, m.clock]),
+          say: 'Nothing on the record says how it went.',
+          go: 'Say how it went',
+          /* The pen, not the mic. `data-fill` puts the opening words in the
+             bar and leaves the cursor there — it does not start dictation,
+             and a microphone promising one is a glyph that lies. */
+          goIco: chIcon('pen'),
+          /* The words, not the answer — they are the only one who knows it.
+             The same hand-off the loop on the diary makes. */
+          act: 'data-fill="' + esc('Had a ' + (m.kind === 'owed' ? 'call' : m.kind) +
+            ' with ' + m.con.name + ', ') + '"',
+        }, i);
+      }) + '</div>';
   }
 
   function notesPage() {
@@ -6319,6 +6833,7 @@
     let human = 0, aimy = 0;
     touchesOfCon(c).forEach((t) => {
       if (!inPeriod(t.at.slice(0, 10), p)) return;
+      if (wasMissed(t)) return;
       if (t.auto) aimy += PRICE_TOUCH; else human += touchCost(t);
     });
     return { src: src, enrich: enrich, human: human, aimy: aimy,
@@ -7172,6 +7687,7 @@
       touchesOfCon(c).forEach((t) => {
         if (!inPeriod(t.at.slice(0, 10), p)) return;
         if (t.camp && t.camp !== camp.id) return;
+        if (wasMissed(t)) return;
         if (t.auto) { aimy += PRICE_TOUCH; return; }
         const h = (t.secs || 0) / 3600 + AFTER_CALL_MINS / 60;
         hours += h;
@@ -8901,8 +9417,30 @@
       '</div>' +
       '<div class="slv-body"><p class="slv-line">' +
         briefSentence(here, counts, all, camps) + '</p></div>' +
+      /* ══ AND THE DOOR ONTO WHAT CAME FOR YOU ══════════════════
+         On this caption's row, which is the shape `.b-loop-head` already
+         uses for the same pair: a micro capital naming what is below it, and
+         a door at the right edge onto the thing a reader who has just read
+         it asks for next. Four ways to START, and beside them the one
+         question none of them answers — what already happened without you.
+
+         `topBrief` is the caller's home and the manager's, so one placement
+         is both desks. The count is missed CALLS: the page holds meetings
+         too and they have three other doors already, and a badge that counts
+         two kinds of thing is a badge you cannot act on.
+
+         Drawn only when it is not zero. A door onto an empty page, wearing a
+         nought, is a control that teaches you to ignore it — and the page
+         itself still says the good news to anybody who arrives by URL. */
       '<div class="s-starts-wrap">' +
-        '<span class="s-starts-cap">Start</span>' +
+        '<div class="s-starts-head">' +
+          '<span class="s-starts-cap">Start</span>' +
+          (missedN()
+            ? '<button class="s-insight-lnk b-missed-door" type="button" data-go="' +
+              esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
+              'Call log<span class="b-missed-n">' + commas(missedN()) + '</span></button>'
+            : '') +
+        '</div>' +
         startStrip(here, counts, all, camps) +
       '</div>' +
     '</section>';
@@ -12244,7 +12782,7 @@
        not need the rate; they need to know they have not started and where
        the pitch is. And a caller back from a run needs to see the run. */
     const meId = me().id;
-    const myCalls = DB.touch.filter((t) => t.camp === k.id && t.by === meId && OUTCOME[t.outcome]);
+    const myCalls = callsIn(DB.touch.filter((t) => t.camp === k.id && t.by === meId));
     const today = myCalls.filter((t) => t.at.slice(0, 10) === TODAY_ISO);
     const fresh0 = !myCalls.length;
     /* ══ THREE FIGURES ON A ROW, NONE OF THEM MEASURED ═════════════════
@@ -12771,7 +13309,7 @@
      met by a case study — it is met by the page that says what we do. */
   const DOC_FOR = { pricing: 'pricing', feature: 'deck', service: 'faq', timing: 'case', other: 'faq' };
   function blockersOf(k) {
-    const here = DB.touch.filter((t) => t.camp === k.id && OUTCOME[t.outcome]);
+    const here = callsIn(DB.touch.filter((t) => t.camp === k.id));
     const members = membersOf(k.id);
     const agreed = Object.create(null);
     k.objections.forEach((o) => (agreed[o.k] = o.say));
@@ -13663,7 +14201,17 @@
   /* The calls among a set of touchpoints. A hand-move, a profile going out
      and the director's meetings are on the record and are not calls, and
      four places counted them as calls. */
-  const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome]);
+  /* ══ THE ONLY PLACE THIS BUILD DECIDES WHAT A CALL IS ════════════
+     Six other surfaces spelled the test out for themselves — a campaign's run,
+     a rep's tally, the briefing's "you called N people today", the day's
+     read-back, the first cold call on a record — and every one of them started
+     counting the corpus's inbound calls as calls somebody here had placed. The
+     bell said "You called 1 person today" about a phone that rang while nobody
+     was at the desk.
+
+     They all come through here now. A test written out in seven places is one
+     that will be right in six of them. */
+  const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome] && !wasMissed(t));
 
   function accSays(a, people, hist) {
     /* ══ AND AT A CUSTOMER, WHAT HAPPENED TO THEM GOES FIRST ═══════════
@@ -13821,7 +14369,7 @@
         (function () {
           const say = (id) => {
             const theirs = hist.filter((t) => t.by === id);
-            const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
+            const calls = callsIn(theirs).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
             /* ══ EACH OF THEM COUNTED IN THEIR OWN UNIT, AND NOTHING ELSE ═══
                Nour: what does "theirs to call" add? Nothing. Engy is named
@@ -14318,7 +14866,7 @@
     const a = accOf(c);
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
-    const last = hist[0];
+    const last = hist.filter((t) => !wasMissed(t))[0];
     let door = '';
     if (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
@@ -14406,15 +14954,24 @@
          opens this list to tell apart, and they were the same row. */
       const phTone = ph ? (t.decision === 'lost' ? 'warn'
         : t.out ? MEET_OUT_BY[t.out].tone : 'ok') : null;
+      /* ══ AND IT IS NOT THE NEUTRAL A NO-ANSWER GETS ══════════════
+         `callback` has been permanently amber in every history since this
+         list was built, and nobody reads it as an alarm — amber here is the
+         tone of a call that left something open rather than one that wants
+         you this minute. Somebody reaching for you and not getting through
+         is the same class of event, and drawing it in the grey a rung-out
+         number gets is the row saying nothing happened. */
+      const miss = wasMissed(t);
       return head + '<details class="s-call b-tl-item' + (up || out || ph ? ' is-milestone' : '') + '"' +
         (i === 0 && pg.p === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
-          '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
+          '<span class="b-tl-dot ' + (TL_TONE[miss ? 'warn' : o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
             '" aria-hidden="true"></span>' +
           '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
           '<span class="s-call-by' + (whoDid(t).id === 'aimy' ? ' is-ai' : '') + '">' +
             esc(whoDid(t).name) + '</span>' +
-          '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
+          '<span class="s-call-out tone-' + esc(miss ? 'warn' : o ? o.tone : (phTone || 'neutral')) + '">' +
+            (miss ? '<span class="b-dir">' + chIcon('call-in') + '</span>' : '') +
             esc(kindLabel(t)) + '</span>' +
           /* And said in words beside it, because a colour is not a reading.
              A row nobody described keeps its silence: no word, and the
@@ -14820,6 +15377,72 @@
     return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.free && !m.held && m.kind !== 'owed' &&
       !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
   }
+
+  /* ══ 8b. WHAT CAME FOR YOU AND DID NOT GET THROUGH ═══════════════
+     Two events, one subject: somebody tried to reach you and the product
+     has no record of what came of it. A phone that rang out, and a meeting
+     that came and went with nothing written down.
+
+     Neither is new — the corpus has held missed calls since the seed learned
+     to write them, and the unrecorded meeting is the oldest reading on this
+     desk. What is new is that they are countable together, which is what a
+     door needs before it can carry a number. */
+
+  /* Whose phone it was. NOT "about a lead I own": a call to somebody else's
+     lead still rang on my desk if it rang on my phone, and the question this
+     page answers is what happened to ME while I was out. `by` is the field
+     both writers — the seed and `ringMissed` — already put that in. */
+  function missedCalls() {
+    const meId = me().id;
+    return DB.touch.filter((t) => wasMissed(t) && t.by === meId)
+      .sort((a, b) => (a.at > b.at ? -1 : 1));
+  }
+
+  /* ══ ONE EVENT, TWO LADDERS ═════════════════════════════
+     A meeting that has been and gone with nothing said about it is the same
+     gap on both desks and is stored in two different places, because the two
+     desks record the outcome of a meeting differently: the caller moves a
+     checkpoint, the manager writes a `phase` touchpoint. `afterMeeting` reads
+     the first and `unrecorded` reads the second, and both already existed.
+
+     So this is not a third derivation. It is the two of them flattened to one
+     row shape, so the page can draw them without asking which desk it is on
+     — the call `switcher` and `queue` already make one level up. */
+  function missedMeets() {
+    const out = onBook()
+      ? unrecorded().filter((m) => m.con).map((m) => ({
+        con: m.con, iso: m.iso, what: m.title, kind: m.kind, clock: clockOf(m) }))
+      /* ══ AND THE HOUR IS THE DIARY'S, NOT A SECOND GUESS ═════════
+         A caller's commitment is stored as a day with no time, so this branch
+         had no clock and the log showed one column of hours on the calls tab
+         and none on the meetings tab. `meetTime` is where the diary gets the
+         hour it draws for exactly this case — off the contact and the date,
+         so it is stable — and calling it here means the log and the diary
+         name the same o'clock instead of two. */
+      /* ══ OWNERSHIP, NOT QUEUE MEMBERSHIP ════════════════════
+         `queue(null, 'after')` was the obvious reuse and it is the wrong cut
+         here. A queue answers what to WORK next, so it drops anybody on a
+         campaign that has closed — and a meeting you set on a campaign that
+         has since ended is still a meeting you walked out of without writing
+         anything down. Two of the caller's six were invisible for no reason
+         the reader could have guessed.
+
+         The same call `missedCalls` makes one function up: whose it is, not
+         whether the list still wants them. */
+      : DB.con.filter((c) => c.owner === me().id && afterMeeting(c)).map((c) => {
+        const k = kindOfNext(c.next.what);
+        return { con: c, iso: c.next.due, what: c.next.what, kind: k,
+          clock: clockOf(meetTime(c.id, c.next.due, k)) };
+      });
+    /* ══ NEWEST FIRST, LIKE EVERY OTHER LOG IN THIS BUILD ═══════════
+       Neither source arrives in this order and neither is wrong to: the diary
+       runs forwards because that is how a day is read, and the queue runs by
+       what to work next. A log runs backwards from now, and under day
+       headings the two orders are not a preference — unsorted, the page put
+       11 Sep above Yesterday. */
+    return out.sort((a, b) => (a.iso > b.iso ? -1 : a.iso < b.iso ? 1 : 0));
+  }
+  const missedN = () => missedCalls().length;
 
   /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
      A record read top to bottom is a profile; a profile read as prose is a
@@ -16122,6 +16745,11 @@
     calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
     back: '<path d="m15 18-6-6 6-6"/>',
+    /* The arrow every phone on earth draws beside a call it did not take:
+       in from the top right, head in the corner. Direction is the whole of
+       what separates this row from the one above it, and a word alone does
+       not survive a reader scanning eighteen of them. */
+    'call-in': '<path d="M17 7 7 17"/> <path d="M7 11v6h6"/>',
     fwd: '<path d="m9 18 6-6-6-6"/>',
     /* The same chevron turned, for a panel that goes away downwards rather
        than a page that goes back sideways. Drawn rather than rotated: `back`
@@ -16806,6 +17434,11 @@
      stops being one. A widget that rings for ever is a widget nobody
      believes is connected to anything. */
   const RING_MS = 30000;
+  /* The voicemail the log is playing, and what stops it. */
+  let VM_ON = null;
+  let VM_T0 = 0;
+  let VM_TIMER = null;
+  let VM_TICK = null;
   /* The beat the answered card holds before it retires. Without it the
      banner and the rail swap with nothing connecting them, and the handoff
      is something you infer rather than something you saw. */
@@ -16926,7 +17559,7 @@
   function ringRead(c) {
     if (!c) return null;
     const ts = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
-    const last = ts[0] || null;
+    const last = ts.filter((t) => !wasMissed(t))[0] || null;
     const sell = SELL[sellOf(c)];
     const owed = c.next && c.next.what ? String(c.next.what) : null;
     /* A step keeps the name it is stored under and takes the emphasis, which
@@ -17674,7 +18307,7 @@
           commas(closing.fresh) + ' people never called.',
         cta: 'Show the campaign', ask: closing.k.name });
     }
-    const today = DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO && OUTCOME[t.outcome]);
+    const today = callsIn(DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO));
     if (today.length) {
       tasks.push({ id: 'run-today', sev: 'p3', type: 'Run', when: 'today',
         body: 'You called ' + plural(today.length, 'person') + ' today: ' +
@@ -20280,8 +20913,8 @@
       const from = yday ? dayAdd(-1) : TODAY_ISO;
       const to = yday ? TODAY_ISO : dayAdd(1);
       const label = yday ? 'yesterday' : 'today';
-      const mineT = DB.touch.filter((t) => t.by === me().id && OUTCOME[t.outcome] &&
-        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to);
+      const mineT = callsIn(DB.touch.filter((t) => t.by === me().id &&
+        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to));
       if (!mineT.length) return 'Nothing on the record from you ' + label + '.';
       const by = Object.create(null);
       mineT.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
@@ -20579,7 +21212,7 @@
         esc(a.name) + ' ' + esc(sig.text) + ', ' + esc(sayWhen(sig.at)) + '.']);
     }
     if (c.owner) {
-      const first = hist.filter((t) => OUTCOME[t.outcome]).slice(-1)[0];
+      const first = callsIn(hist).slice(-1)[0];
       know.push(['How it started', esc(actor(c.owner).name) + ' called them cold' +
         (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them warm.']);
     }
@@ -20632,7 +21265,7 @@
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const calls = callsIn(hist);
-    const last = hist[0];
+    const last = hist.filter((t) => !wasMissed(t))[0];
     const sess = DB.call && DB.call.sess;
     /* ══ THE SAME BRIEF, AND IT IS NOT THE SAME CALL ═══════════════════
        Everything below was written for a call somebody here decided to
@@ -20909,12 +21542,16 @@
      a pending call resolves its axes through `logHeard` and states the move
      it WOULD make; a touchpoint on the record already carries both. */
   const factsOfPending = (call, c, mv) => ({
-    outcome: call.outcome,
+    outcome: call.outcome, dir: call.dir || 'out',
     props: logHeard(call).props, objs: logHeard(call).objs, opps: logHeard(call).opps,
     from: c.checkpoint, to: mv.to, next: mv.next,
   });
   const factsOfTouch = (t) => ({
-    outcome: t.outcome,
+    /* Both of these were dropping `dir`, so the card under a missed call
+       had no way to know it was theirs and headed itself "Outcome: No
+       answer" — the outcome of a call somebody here placed, three pixels
+       under a summary line that had just said Missed. */
+    outcome: t.outcome, dir: t.dir || 'out',
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
     called: t.called || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
@@ -20922,8 +21559,13 @@
 
   function callFacts(f, c) {
     const o = OUTCOME[f.outcome];
+    const miss = wasMissed(f);
     const rows = [];
-    if (o) rows.push(['Outcome', o.label, o.tone]);
+    /* A call nobody took takes the shape the other non-call events take —
+       what happened, in words — because the one fact worth the row is who
+       dialled, and "No answer" is a sentence about the wrong end of it. */
+    if (miss) rows.push(['What happened', 'They called. Nobody here picked up.', 'warn']);
+    else if (o) rows.push(['Outcome', o.label, o.tone]);
     /* A step somebody settled by hand and a profile going out are not
        calls, and the card says what they were rather than filing them
        under an outcome they never had. */
@@ -20934,8 +21576,10 @@
         f.decision === 'lost' ? 'warn' : 'ok']);
     }
     /* Stated even when empty. A groundwork call is a thing that happened,
-       and a missing row is indistinguishable from one nobody filled in. */
-    if (o) {
+       and a missing row is indistinguishable from one nobody filled in.
+       Not on a missed one: the row exists to say a call was had and nothing
+       was asked for, and nobody was on this one to ask. */
+    if (o && !miss) {
       rows.push(['Asked for', f.props.length
         ? f.props.map((k) => (PROPOSAL[k] || {}).label || k).join(' · ') : 'nothing',
         f.props.length ? 'ok' : 'neutral']);
@@ -22323,6 +22967,11 @@
       go(Object.assign(cleared(), { on: 'camps' }));
       return;
     }
+
+    /* Before `[data-call]`, because the strip sits inside the item whose row
+       returns the call and a press on it must not do both. */
+    const vm = t.closest('[data-vm]');
+    if (vm) { vmPlay(vm.getAttribute('data-vm')); return; }
 
     const callone = t.closest('[data-call]');
     if (callone) { startCall(callone.getAttribute('data-call')); return; }
