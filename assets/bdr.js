@@ -10785,7 +10785,7 @@
           PIPE.stages.map((x) =>
             '<div class="pipe-step" id="pipeStep-' + esc(x.id) + '" ' +
               'style="flex-grow:' + x.duration + '">' +
-              '<span class="pipe-pin"></span>' +
+              '<span class="pipe-pin">' + pipeCheck(9) + '</span>' +
               '<span class="pipe-step-body">' +
                 '<span class="pipe-step-row">' +
                   '<span class="pipe-step-label">' + esc(x.label) + '</span>' +

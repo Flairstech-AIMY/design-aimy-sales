@@ -1459,6 +1459,37 @@
   background: var(--ok-text); border-color: var(--ok-text); transform: scale(1);
   box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0);
 }
+/* ══ AND THE STEP SIGNS ITSELF ═════════════════════════════════════════════
+   A step finishing turned its dot from blue to green and that was the whole
+   report. Colour alone is the weakest thing a state change can be — it is
+   the one channel a reader may not have, and on a 12px dot at the edge of a
+   card it is a change you have to be looking at to catch. The tick draws
+   itself instead: the stroke arrives left to right in the time the eye takes
+   to get there, so the step says `done` in a shape as well as a hue.
+
+   NOTHING IS MEASURED TO DO THIS. The path carries pathLength="1", which
+   renormalises its length to a single unit whatever the geometry actually
+   is, so the dash is 1 and the offset runs 1 → 0 with no getTotalLength and
+   no reading of the DOM — which matters because the state this hangs off is
+   set on the frame clock, and a measurement between two style writes is a
+   forced synchronous reflow.
+
+   This is a paint rather than a composite, which the rest of the run is
+   careful not to be. It is affordable here and only here: nine pixels, four
+   times in a seven-second run, against a ribbon and a glow that are written
+   sixty times a second. `.score-ring-fill` in the library draws the same
+   way. */
+.pipe-pin > svg {
+  position: absolute; inset: 0; margin: auto; width: 9px; height: 9px;
+  color: var(--card-bg); opacity: 0;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  transition: stroke-dashoffset var(--t-open) var(--ease-out),
+              opacity var(--t-fast) var(--ease-out);
+}
+.pipe-step.is-done .pipe-pin > svg { stroke-dashoffset: 0; opacity: 1; }
+/* Frozen, not removed: the tick is what the step now says, so it is drawn
+   in full at once rather than taken away. */
+@media (prefers-reduced-motion: reduce) { .pipe-pin > svg { transition: none; } }
 
 .pipe-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .pipe-step-row { display: flex; align-items: baseline; gap: 12px; }
