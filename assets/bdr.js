@@ -2954,6 +2954,20 @@
     if (!want) BACK_GUARD = false;
   }
 
+  /* ══ WHAT COUNTS AS A DIFFERENT SURFACE ══════════════════════════════════
+     Written once and read twice — once before the paint to remember where we
+     were, once after it to ask whether that changed — because two copies of
+     this list are two chances for them to disagree about what a new surface
+     is, and the arrival and the skeleton both hang off the answer.
+
+     THE DESK IS PART OF IT. `?as=` was not in this key, so changing desk
+     swapped the whole page — the caller's queue for the manager's board, a
+     three-entry tab strip for a five-entry one, a rail with different doors —
+     with no arrival and no skeleton behind it. It is the single change in
+     this build that replaces everything on screen at once, and it was the one
+     change that said nothing while it did so. */
+  const surfaceKey = () => [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+
   function go(over, replace) {
     if (leavingResult(over)) {
       LEAVE = { over: over, replace: !!replace };
@@ -2962,7 +2976,7 @@
       return;
     }
     const wasOn = S.con + '|' + S.camp;
-    const wasSurface = [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+    const wasSurface = surfaceKey();
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
@@ -2974,7 +2988,7 @@
     /* Decided before the paint rather than after it, because the grids read
        it while they are being built: a surface that is changing draws its
        cards over a skeleton, and a write or a page turn draws them plain. */
-    const fresh = wasSurface !== [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+    const fresh = wasSurface !== surfaceKey();
     SKEL_ON = fresh;
     paint();
     /* ══ A NEW SURFACE ARRIVES; A REPAINT DOES NOT ═════════════════════════
