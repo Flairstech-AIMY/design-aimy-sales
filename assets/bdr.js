@@ -3619,7 +3619,7 @@
     const o = openingAt(a);
     if (o && o.kind === 'open') return { label: 'Opening', tone: 'ok' };
     if (o && o.kind === 'hold') return { label: 'Check in', tone: 'warn' };
-    return { label: 'Customer', tone: 'neutral' };
+    return { label: 'Client', tone: 'neutral' };
   }
   /* Who to ring. The person who signed if the contract has one on it, then
      anybody at the company with a number — and where there is neither, the
@@ -3719,7 +3719,7 @@
   function custGrid(rows) {
     if (!rows.length) {
       return S.find
-        ? '<p class="b-vfoot">No customer matches “' + esc(S.find) + '”. ' +
+        ? '<p class="b-vfoot">No client matches “' + esc(S.find) + '”. ' +
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
         : '<p class="b-vfoot">Nobody is buying from you yet. A deal marked Won lands here.</p>';
     }
@@ -4800,7 +4800,7 @@
        lands you on the pipeline, which is a different list of different
        companies, and the one you were reading is two presses away. */
     if (S.on === 'deals') {
-      return backBtn('data-back', S.q === 'won' ? 'Back to the customers' : 'Back to accounts');
+      return backBtn('data-back', S.q === 'won' ? 'Back to the clients' : 'Back to accounts');
     }
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     if (S.on === 'money') return backBtn('data-back', 'Back to Financials');
@@ -7039,7 +7039,7 @@
     { k: 'contacted', label: 'Contacted' },
     { k: 'replied',   label: 'Replied' },
     { k: 'met',       label: 'Met' },
-    { k: 'won',       label: 'Customers' },
+    { k: 'won',       label: 'Clients' },
   ];
   /* Two config numbers, from finance, set once. Payback reads the margin. */
   const GROSS_MARGIN = 0.72;
@@ -7644,10 +7644,10 @@
           'trustworthy fastest?' });
     }
     if (now.payback != null) {
-      out.push({ label: 'Why a customer takes so long to pay back',
-        ask: 'It takes ' + now.payback.toFixed(1) + ' months for a customer to repay what they ' +
+      out.push({ label: 'Why a client takes so long to pay back',
+        ask: 'It takes ' + now.payback.toFixed(1) + ' months for a client to repay what they ' +
           'cost to win. Break that down into cost per meeting, how many meetings become ' +
-          'customers, and deal size — and tell me which one I can actually move.' });
+          'clients, and deal size — and tell me which one I can actually move.' });
     }
     return out.slice(0, 3);
   }
@@ -9297,7 +9297,7 @@
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
       esc(k) + '">' + esc(label) + '<span class="b-cut-n" data-fig="cut:' + esc(k) + '">' + commas(n) + '</span>' +
       (badge ? '<span class="b-cut-new" data-fig="new:' + esc(k) + '" ' +
-        'title="' + esc(plural(badge, 'customer') + ' moved') + '">' + commas(badge) + '</span>' : '') +
+        'title="' + esc(plural(badge, 'client') + ' moved') + '">' + commas(badge) + '</span>' : '') +
       '</button>';
     /* ══ AND THE BOOK IS NOT ONE OF THE SIX ════════════════════════════
        It was drawn in the loop with the stages, in stage order, between
@@ -9331,11 +9331,11 @@
     const book = onBook() && !S.camp;
     const bookChip = () =>
       '<button class="filter-chip b-cut-book' + (on === 'won' ? ' active' : '') + '" ' +
-      'type="button" data-q="won">' + chIcon('company') + 'Customers' +
+      'type="button" data-q="won">' + chIcon('company') + 'Clients' +
       '<span class="b-cut-n" data-fig="cut:won">' + commas(customers().length) + '</span>' +
       (openings().length
         ? '<span class="b-cut-new" data-fig="new:won" title="' +
-          esc(plural(openings().length, 'customer') + ' moved') + '">' +
+          esc(plural(openings().length, 'client') + ' moved') + '">' +
           commas(openings().length) + '</span>'
         : '') +
       '</button>';
@@ -9480,7 +9480,7 @@
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
         findBox(S.camp ? 'Find someone on this campaign'
-          : book ? 'Find a customer, a sector, a thing that happened'
+          : book ? 'Find a client, a sector, a thing that happened'
           : 'Find a name, a company, a campaign') +
       '</div>' +
       /* THE NUMBER SITS UNDER THE HEADING IT COUNTS. It was at the far end
@@ -9510,7 +9510,7 @@
       /* And on the one cut where a row is a company that pays us, it says
          so. "28 accounts" is true and is the tab's word for a set this
          surface has a better one for. */
-      pager(pg, book ? 'customer' : 'account') +
+      pager(pg, book ? 'client' : 'account') +
     '</section>';
   }
   /* Where you are, and the two ways to move. Never "load more": a caller
@@ -13248,7 +13248,7 @@
        fact about a company goes in the slot reserved for the strongest
        fact, and nothing outranks buying from us. */
     const chip = isCust(a)
-      ? { label: 'Customer', tone: 'ok' }
+      ? { label: 'Client', tone: 'ok' }
       : top && rank(top.checkpoint) >= rank('answered')
       ? { label: stepLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
       : everReached
@@ -13332,7 +13332,7 @@
                how long they have stayed is most of what it means. */
             (isCust(a)
               ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) +
-                ' · a customer for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
+                ' · a client for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
               : '') +
             /* The one date on this page somebody outside the building set.
                It is stated in the relationship block too, as the node the
@@ -15260,7 +15260,7 @@
          cumulative figure rather than off the rate, and then adds a tier to
          a list it is not parallel with. The money is one sentence and what
          the tier asks of you is another. */
-      now: '<b>' + esc(sayFor(subs[0].since)) + '</b> a customer, worth <b>' +
+      now: '<b>' + esc(sayFor(subs[0].since)) + '</b> a client, worth <b>' +
         esc(euro(worth)) + '</b> a year' +
         /* Three marks, not five. How many contracts and which tier are both
            already drawn — the contracts by name in the masthead and the
@@ -17803,8 +17803,8 @@
     const moved = openings();
     if (moved.length) {
       const one = moved[0];
-      tasks.push({ id: 'cust-open', sev: 'p2', type: 'Customers',
-        when: plural(moved.length, 'customer') + ' moved',
+      tasks.push({ id: 'cust-open', sev: 'p2', type: 'Clients',
+        when: plural(moved.length, 'client') + ' moved',
         body: one.acc.name + ' ' + one.news.say + ', which makes a case for ' +
           SELL[one.offer].name + ' — and they do not have it' +
           (moved.length > 1
