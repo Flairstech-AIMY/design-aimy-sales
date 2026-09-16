@@ -3089,6 +3089,25 @@
     if (FIG_TICK) {
       out.figs = Object.create(null);
       document.querySelectorAll('[data-fig]').forEach((el) => { out.figs[el.getAttribute('data-fig')] = el.textContent; });
+      /* ══ AND THE ROWS THOSE FIGURES ARE ABOUT ══════════════════════════════
+         A figure ticking says a number moved. It does not say which person it
+         moved for, and the card that person is on is usually on screen while
+         it happens. The cards are read here the same way and under the same
+         arming, so navigating, paging and cutting the queue snapshot nothing
+         and cost nothing — this runs only when a write set FIG_TICK.
+
+         `data-open` IS THE KEY BECAUSE IT IS AN IDENTITY, NOT A PLACE. All
+         four card renderers already carry it, and `con:p361` is the same
+         person whether they are first in the list or ninth — so a row that
+         only moved up because the row above it left is not mistaken for a row
+         that changed. The whole card's text is the signature: the step, the
+         reason line, the number and the dates all live in it, and comparing
+         one string is cheaper and less brittle than deciding in advance which
+         of them counts. */
+      out.rows = Object.create(null);
+      document.querySelectorAll('#wbStage .b-qcard[data-open]').forEach((el) => {
+        out.rows[el.getAttribute('data-open')] = el.textContent;
+      });
     }
     FIG_TICK = false;
     return out;
@@ -3127,6 +3146,57 @@
       if (was === undefined || was === el.textContent) return;
       el.innerHTML = '<span class="b-tick">' + el.innerHTML + '</span>';
     });
+    /* ══ ONLY WHAT CHANGED MOVES ═══════════════════════════════════════════
+       A card is marked when it was on screen before this write and its text
+       is different after it. Everything else is left absolutely alone, which
+       is the point: a caller works one list for an hour, and a surface that
+       reacts all over every time they log a call is a surface they stop
+       reading.
+
+       A ROW THAT IS ONLY NEW IS NOT A ROW THAT CHANGED. `was === undefined`
+       means this person was not in the list a moment ago, which happens when
+       somebody above them left the cut and pulled a name up from the next
+       page. They did not change; the list did. Marking them would be a small
+       lie told often, so they are skipped and only rows with a before AND an
+       after are compared. */
+    if (!pre.rows) return;
+    const moved = [];
+    document.querySelectorAll('#wbStage .b-qcard[data-open]').forEach((el) => {
+      const was = pre.rows[el.getAttribute('data-open')];
+      if (was === undefined || was === el.textContent) return;
+      moved.push(el);
+    });
+    markChanged(moved);
+  }
+  /* ══ THE TINT IS sales.css's, AND IT HAS NEVER BEEN RENDERED ══════════════
+     `.s-changed` has been sitting in sales.css since it was written, with its
+     own argument above it — that a toast is a receipt saying something
+     happened somewhere else, and this says WHERE. It is used rather than
+     restated, including its reduced-motion case, where the tint holds instead
+     of fading so the signal survives and only the movement goes.
+
+     TWO CLASSES, TWO FRAMES APART, AND NO TIMER BEHIND THEM. `.s-changed` is
+     the tint and `.is-settling` is the instruction to leave. Put on in the
+     same tick the browser folds them into one style computation and nothing
+     transitions — the tint is never drawn, the row goes straight to
+     transparent, and a write reports itself by doing nothing visible.
+
+     A timeout is the wrong net for that, and was the first thing written
+     here. It raced the frames it was meant to back up: in a tab that is not
+     drawing, the timer is the ONLY thing that fires, so it settled a tint
+     that had never been painted — measured, a marked row computing straight
+     to transparent — and in a tab that is drawing it would do the same
+     whenever two frames took longer than the timer.
+
+     There is no timer now. A tab that is not drawing holds the tint until it
+     draws again, which is what should happen anyway: the reader comes back
+     and sees what changed while they were away, and the pair of frames that
+     settles it runs when there are frames to run in. */
+  function markChanged(els) {
+    if (!els.length) return;
+    els.forEach((el) => el.classList.add('s-changed'));
+    requestAnimationFrame(() => requestAnimationFrame(
+      () => els.forEach((el) => el.classList.add('is-settling'))));
   }
   function paint() {
     if (VOICE) micStop();

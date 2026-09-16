@@ -779,6 +779,50 @@
   transition: transform 160ms var(--ease-out), border-color var(--t-fast), box-shadow var(--t-fast);
 }
 .b-qcard[data-open]:active { transform: scale(0.995); }
+/* ══ AND THE CHANGE TINT HAS TO OUTRANK THAT LIST ══════════════════════════
+   sales.css gives `.s-changed` a background-color transition over 1400ms —
+   the marker that says WHERE a write landed. The rule above transitions
+   transform, border-color and box-shadow, and a later `transition` REPLACES
+   an earlier one rather than adding to it, which is the same trap §1 records
+   for the press cluster. So on a card the tint had no transition at all and
+   went straight to transparent the instant it was told to settle: a write
+   reporting itself by doing nothing visible. Measured before this rule
+   existed — the marked card's transition-property read `transform,
+   border-color, box-shadow`, with background-color nowhere in it.
+
+   The list is restated here with the tint at the front. The 1400ms and its
+   200ms delay are sales.css's numbers rather than new ones; that rule is
+   where they are decided, and this is the same values written somewhere the
+   cascade can reach a card.
+
+   AND IT IS RESTATED ON `.is-settling` ONLY, WHICH IS THE WHOLE TRICK. The
+   tint must arrive at once and leave slowly. Put the background transition
+   on `.s-changed` itself and the opposite happens: the card is already
+   painted by the time postPaint marks it — `mountLists` reads a rect on the
+   way past, which flushes style — so adding the class transitions the card
+   INTO the tint over a second and a half, which is a highlight that turns up
+   long after the thing it was highlighting. Measured: the marked card
+   computed its ordinary ground, not the tint.
+
+   Introducing the transition in the same change that retargets the colour is
+   enough for it to run, because a transition is started from the style AFTER
+   the change. So a card wearing only `.s-changed` has no background
+   transition and takes the tint instantly; adding `.is-settling` brings the
+   transition and the new target in together, and it fades. */
+.b-qcard.s-changed.is-settling {
+  transition: background-color 1400ms var(--ease-out) 200ms,
+              transform 160ms var(--ease-out),
+              border-color var(--t-fast), box-shadow var(--t-fast);
+}
+/* Under reduced motion sales.css holds both states at the same tint, so
+   there is nothing for a transition to do; it is taken off so the card keeps
+   the one the shell gives it. */
+@media (prefers-reduced-motion: reduce) {
+  .b-qcard.s-changed.is-settling {
+    transition: transform 160ms var(--ease-out),
+                border-color var(--t-fast), box-shadow var(--t-fast);
+  }
+}
 
 /* [2] HOVER ONLY WHERE THERE IS A HOVER. A touch fires :hover on tap and
    leaves it lit until the next tap somewhere else — a switcher tab that
