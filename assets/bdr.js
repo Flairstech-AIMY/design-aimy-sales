@@ -2390,6 +2390,57 @@
     });
 
 
+    /* ══ THE MEETINGS THAT SLIPPED ═════════════════════════
+       A meeting that came and went with nothing written down is the gap the
+       whole loop exists to close, and the corpus held three of them per desk —
+       enough to prove the derivation, not enough to be a page somebody works.
+
+       The share was never the thing being modelled. The two due-date windows
+       above it were drawn to make a DIARY look right — a caller's meeting lands
+       between six days back and a fortnight ahead, a deal's next step between
+       nine back and twelve ahead — and how many of those fall behind today is
+       a side effect of wanting a week that looks busy.
+
+       So a share of the ones still ahead are moved behind. It moves a DATE
+       rather than inventing a record: the meeting was always on the books, it
+       is now inside the fortnight the log looks back over, and everything that
+       reads a diary — the day, the week, the overdue count, the bell — sees
+       one consistent set because there is only one. Off the id's own salt, so
+       no draw is spent and nothing generated before it moves.
+
+       A thing merely OWED is not a meeting and is left alone: nobody walks out
+       of a proposal with nothing written down. Tested by the verb rather than
+       through `kindOfNext`, which is a `const` four hundred lines below this
+       and would still be in its dead zone when the seed runs. */
+    /* ══ AND IT HAS TO LAND AFTER THE LAST THING RECORDED ══════════
+       `unrecorded` asks whether anything was written on or after the meeting's
+       own day, so a date slipped to BEFORE the deal's last recorded phase is
+       not an unrecorded meeting — it is a superseded one, and correctly
+       invisible. The first pass ignored that and moved fourteen dates to buy
+       two rows. The window is the days between the last phase and today; where
+       there is no room in it the date is left where it was. */
+    const lastPhase = Object.create(null);
+    touch.forEach((t) => {
+      if (t.outcome !== 'phase') return;
+      const d = t.at.slice(0, 10);
+      if (!lastPhase[t.con] || d > lastPhase[t.con]) lastPhase[t.con] = d;
+    });
+    const SLIP_SHARE = 70;
+    const SLIP_BACK = 12;
+    con.forEach((c) => {
+      if (!c.next || !c.next.due || c.next.due <= TODAY_ISO) return;
+      if (!/\b(meeting|demo|dinner)\b/i.test(c.next.what)) return;
+      const h = Math.abs(hash(c.id + ':slipped'));
+      if (h % 100 >= SLIP_SHARE) return;
+      const floor = lastPhase[c.id];
+      let room = SLIP_BACK;
+      if (floor) {
+        room = Math.min(SLIP_BACK, daysBetween(floor, TODAY_ISO) - 1);
+        if (room < 1) return;
+      }
+      c.next.due = dayAdd(-(1 + ((h >> 7) % room)));
+    });
+
     /* ══ AND THE CALLS THAT CAME THE OTHER WAY ═════════════════════
        Every touchpoint above is one we MADE. A phone also rings, and when it
        rings while you are in a room with somebody else nobody picks it up —
@@ -2425,12 +2476,49 @@
       'They called in while you were out.',
       'Rang twice. No answer this end.',
     ];
+    /* ══ AND TWO IN FIVE OF THEM LEFT A MESSAGE ══════════════════
+       Which changes what the row can say. `ringRead` INFERS why somebody was
+       ringing — off their overdue step, their last objection — and hedges
+       accordingly, because an inference that states itself flat is the guess
+       this build refuses. A voicemail is not an inference. They said why.
+
+       So the words are written against the same facts the reading is drawn
+       from, rather than picked at random: somebody chasing an overdue step
+       says so, somebody who asked to be called back says that. A corpus where
+       the message and the record disagree would make every row on the page
+       unreadable — the reader would stop trusting whichever one they checked
+       second. Off the id's own salt, like everything else in this block. */
+    const vmSay = (c, a, h2) => {
+      const first = c.name.split(' ')[0];
+      const at = a ? ' at ' + a.name : '';
+      const owed = c.next && c.next.what ? String(c.next.what).toLowerCase() : null;
+      if (owed && c.next.due < TODAY_ISO) {
+        return 'Hi, ' + first + at + '. I was expecting ' + owed +
+          ' and it has not come. Can you call me back today?';
+      }
+      if (c.checkpoint === 'callback') {
+        return 'Hi, it is ' + first + at + ' returning your call. Try me this ' +
+          (h2 % 2 ? 'afternoon' : 'morning') + ', I am around until five.';
+      }
+      if (owed) {
+        return 'Hi, ' + first + at + '. Just checking you still have ' + owed +
+          ' in hand. Give me a ring when you get this.';
+      }
+      return [
+        'Hi, it is ' + first + at + '. Nothing urgent, but give me a ring back.',
+        'Hi, ' + first + ' here' + at + '. I had a question about what you sent.',
+        'Hi, ' + first + at + '. Can you call me back? I would rather not do this by email.',
+      ][h2 % 3];
+    };
+    const accById = Object.create(null);
+    acc.forEach((a) => (accById[a.id] = a));
     let mId = 0;
     con.forEach((c) => {
       if (!c.phone || c.dnc) return;
       if (c.checkpoint === 'not-called' || isExit(c.checkpoint)) return;
       const h = Math.abs(hash(c.id + ':rang'));
       if (h % 100 >= MISSED_SHARE) return;
+      const vm = Math.abs(hash(c.id + ':vm'));
       const gap = c.lastCallAt ? daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) : 13;
       const at = dayOf(-Math.max(0, Math.min((h >> 7) % 14, gap)));
       at.setHours(9 + ((h >> 3) % 9), (h >> 11) % 60, 0, 0);
@@ -2455,6 +2543,14 @@
         dir: 'in',
         proposals: [], objections: [], openings: [],
         note: MISSED_NOTE[(h >> 5) % MISSED_NOTE.length],
+        /* Its own salt rather than more bits of `h`: `h` already chose who
+           rings, what day and which note, and reading further up the same
+           number correlates the message with all three — every overdue lead
+           getting the same length of message is the kind of pattern that
+           reads as a bug before anybody works out it is a hash. */
+        vm: vm % 100 < 70
+          ? { secs: 8 + ((vm >> 7) % 27), text: vmSay(c, accById[c.acc], vm >> 3) }
+          : null,
         lines: [], next: null, moved: null, called: c.checkpoint,
       });
     });
@@ -5244,14 +5340,38 @@
      plain ink beside it. */
   const LOG_TABS = [{ k: 'calls', label: 'Calls' }, { k: 'meets', label: 'Meetings' }];
 
+  /* ══ THE MARK, BECAUSE THE LINE IS A CLAIM AND NOT A FIELD ════════
+     `ringRead` derives why somebody is probably ringing you by reading their
+     record against the clock. That is the definition of every other `.b-aimy`
+     in this build, and it was set here as plain page copy — asserting without
+     a mark, on a row where the two lines above it are fields off the record
+     and a reader had no way to tell which kind of thing they were reading.
+
+     The voicemail strip below deliberately does NOT take it. That line is not
+     a reading, it is what the caller said, and putting AiMY's mark on somebody
+     else's words would be the one lie this component could tell. */
+  const sayMark = () =>
+    '<svg class="b-log-mark" width="11" height="13" viewBox="0 0 18 20" aria-hidden="true">' +
+    '<use href="#aimy-logo-small"/></svg>';
+
+  /* ══ TWO CONTROLS, SO TWO BUTTONS, SO A WRAPPER ════════════════
+     The row is pressable end to end and returns the call. Playing the message
+     back is a different act with a different result, and it cannot live inside
+     that button — a nested control is invalid markup, is not reliably
+     focusable, and announces badly. So the item is a wrapper holding the row
+     and, under it, the message as its own press.
+
+     Which is also how a phone models it: the call is one thing in the list and
+     the voicemail is another, attached to it. */
   function logRow(o, i) {
-    return '<button class="b-log-row" type="button" ' + o.act +
-      ' style="--i:' + Math.min(i, 8) + '">' +
+    return '<div class="b-log-item" style="--i:' + Math.min(i, 8) + '">' +
+      '<button class="b-log-row" type="button" ' + o.act + '>' +
       '<span class="b-log-ico ' + esc(o.tone) + '">' + o.ico + '</span>' +
       '<span class="b-log-main">' +
         '<span class="b-log-name">' + esc(o.who) + '</span>' +
         '<span class="b-log-meta">' + o.meta + '</span>' +
-        (o.say ? '<span class="b-log-say">' + o.say + '</span>' : '') +
+        (o.say ? '<span class="b-log-say">' + sayMark() + '<span>' + o.say +
+          '</span></span>' : '') +
       '</span>' +
       /* ══ A SPAN, AND IT HAS TO BE ══════════════════════════
          The row is the button — pressable end to end, which is what makes a
@@ -5261,25 +5381,49 @@
          It is drawn as a pill because a pill is what it does, and the row's
          hover lights it so the two read as one press. */
       '<span class="b-log-go">' + o.goIco + esc(o.go) + '</span>' +
-    '</button>';
+    '</button>' +
+    (o.vm ? vmStrip(o.vm, o.vmId) : '') +
+  '</div>';
   }
 
-  /* A dot-separated run, with the empties dropped rather than drawn as a
-     gap between two separators — a contact with no number on file is a real
-     case and " ·  · " is what it looked like. */
+  /* ══ A VOICE NOTE, DRAWN THE WAY EVERY MESSAGING APP DRAWS ONE ═════
+     Play, a waveform, and how long is left. It carried the transcript instead
+     and that was two mistakes in one strip: it put a paragraph of somebody
+     else's words in a row whose job is to be scanned, and it answered a
+     question — what did they say — that the reading two lines above already
+     answers off the whole record rather than off one message. A voice note is
+     an OBJECT in a list. You see that it exists, how long it is, and you play
+     it. The words are what playing it is for.
+
+     THE WAVEFORM IS THE MESSAGE'S OWN. Twenty-eight bars off the touchpoint's
+     id, so a given message looks the same every time it is drawn and two
+     different ones never look identical — which is the whole reason a
+     messaging app draws a real waveform rather than a bar: in a column of
+     them, shape is how you tell one from another before you read a word.
+     Decorative in the sense that it is not the amplitude of any real audio,
+     and not decorative in the sense that it is stable and distinguishing.
+
+     There is no voice here — the only audio in the build is `ringToneOn`'s
+     oscillators, and synthesising a human one is not something a prototype can
+     honestly do. So what plays is the message's own length: the fill crosses
+     the wave and the clock counts down to nothing, which is the part of
+     playback that is true whatever is coming out of the speaker. */
+  /* A dot-separated run, with the empties dropped rather than drawn as a gap
+     between two separators — a contact with no number on file is a real case
+     and " ·  · " is what it looked like. */
   const logMeta = (bits) => bits.filter(Boolean).map((b) => esc(b)).join(' · ');
 
-  /* ══ THE DAY IS A HEADING, SO THE ROW ONLY CARRIES THE HOUR ═══════
+  /* ══ THE DAY IS A HEADING, SO THE ROW ONLY CARRIES THE HOUR ═════════
      Every row said "4 days ago at 11:04", which on six consecutive rows from
-     the same afternoon spends a third of each one restating the row above it
-     — and still leaves the reader counting backwards to work out which day
-     that was. A phone answers both at once: one heading per day, and under it
-     the clock alone.
+     the same afternoon spends a third of each one restating the row above it —
+     and still leaves the reader counting backwards to work out which day that
+     was. A phone answers both at once: one heading per day, and under it the
+     clock alone.
 
-     `dayLabel` and `.b-month` are `feedBlock`'s, unchanged. The company's
-     feed has grouped by day since it was built and this is the same list of
-     the same events read from the other end, so a second way of saying
-     Yesterday would be two vocabularies for one fact. */
+     `dayLabel` and `.b-month` are `feedBlock`'s, unchanged. The company's feed
+     has grouped by day since it was built and this is the same list of the
+     same events read from the other end, so a second way of saying Yesterday
+     would be two vocabularies for one fact. */
   function logDays(items, dayOf, draw) {
     let day = '';
     return items.map((x, i) => {
@@ -5290,6 +5434,89 @@
     }).join('');
   }
 
+  const VM_BARS = 28;
+  function vmWave(id) {
+    let out = '';
+    for (let b = 0; b < VM_BARS; b++) {
+      /* 18% to 96% of the strip's height. Its own salt per bar rather than
+         bits shifted off one number, which on twenty-eight draws from a
+         thirty-two bit hash runs out and starts repeating the shape. */
+      out += '<i style="height:' + (18 + (Math.abs(hash(id + ':w' + b)) % 79)) + '%"></i>';
+    }
+    return out;
+  }
+
+  /* How far through, in seconds, for a strip drawn mid-play. A full repaint
+     can happen for any reason while a message is running — a toast lands, a
+     figure ticks — and a fill that restarted from nothing each time would make
+     the page look like it had lost its place. */
+  const vmAt = () => (VM_ON ? Math.min(TOUCH[VM_ON].vm.secs, (Date.now() - VM_T0) / 1000) : 0);
+
+  function vmStrip(vm, id) {
+    const on = VM_ON === id;
+    const el = on ? vmAt() : 0;
+    return '<button class="b-log-vm' + (on ? ' is-playing' : '') + '" type="button" ' +
+      'data-vm="' + esc(id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+      'aria-label="Play the message they left, ' + esc(fmtClock(vm.secs)) + '">' +
+      '<span class="b-log-vm-go">' + chIcon(on ? 'pause' : 'play') + '</span>' +
+      '<span class="b-log-vm-wave">' +
+        '<span class="b-log-vm-bars">' + vmWave(id) + '</span>' +
+        '<span class="b-log-vm-bars b-log-vm-on"' +
+          (on ? ' style="animation-duration:' + vm.secs + 's;animation-delay:-' + el + 's"' : '') +
+          '>' + vmWave(id) + '</span>' +
+      '</span>' +
+      '<span class="b-log-vm-len">' + esc(fmtClock(Math.ceil(vm.secs - el))) + '</span>' +
+    '</button>';
+  }
+
+  /* ══ AND IT DOES NOT REPAINT THE PAGE ═══════════════════════
+     Pressing play called `paint()`, which rebuilds the whole surface: every
+     row re-entered with its stagger, the log flashed, and on a page scrolled
+     halfway down the list it was the most disruptive thing on screen — for a
+     press whose entire result is one button changing shape.
+
+     So the two strips that change are touched by hand, and the clock ticks
+     into a text node. A repaint from anywhere else still draws the right
+     state, because `vmStrip` reads `VM_ON` and `VM_T0` and hands the fill a
+     negative delay, which is the same trick that makes it survive one.
+
+     ONE AT A TIME. A second message starting while the first is running is two
+     people talking, which is what it would be. */
+  function vmPlay(id) {
+    const was = VM_ON;
+    vmStop();
+    if (was === id) return;
+    const t = TOUCH[id];
+    if (!t || !t.vm) return;
+    VM_ON = id;
+    VM_T0 = Date.now();
+    vmDraw(id);
+    VM_TIMER = setTimeout(() => { VM_TIMER = null; vmStop(); }, t.vm.secs * 1000);
+    VM_TICK = setInterval(() => {
+      const el = document.querySelector('[data-vm="' + VM_ON + '"] .b-log-vm-len');
+      if (!el) return;
+      el.textContent = fmtClock(Math.max(0, Math.ceil(TOUCH[VM_ON].vm.secs - vmAt())));
+    }, 250);
+  }
+
+  function vmStop() {
+    if (VM_TIMER) { clearTimeout(VM_TIMER); VM_TIMER = null; }
+    if (VM_TICK) { clearInterval(VM_TICK); VM_TICK = null; }
+    const was = VM_ON;
+    VM_ON = null;
+    if (was) vmDraw(was);
+  }
+
+  /* One strip, redrawn in place. `outerHTML` rather than a run of class and
+     attribute pokes: `vmStrip` is already the one description of what a strip
+     looks like in each state, and a second one written as DOM edits is the
+     pair that drifts. It is one element either way. */
+  function vmDraw(id) {
+    const el = document.querySelector('[data-vm="' + id + '"]');
+    const t = TOUCH[id];
+    if (!el || !t || !t.vm) return;
+    el.outerHTML = vmStrip(t.vm, id);
+  }
   function missedPage() {
     const calls = missedCalls();
     const meets = missedMeets();
@@ -5338,6 +5565,7 @@
              is what a call log is a log OF; then when. */
           meta: logMeta(['Missed', c.phone, timeOf(t.at)]),
           say: ringRead(c),
+          vm: t.vm || null, vmId: t.id,
           /* ══ EVERY ROW CALLS BACK, AND `canRing` WAS THE WRONG TEST ═══
              Four of the fourteen said "Open the record" instead, because
              `canRing` came back false for them. That predicate asks whether
@@ -15191,7 +15419,17 @@
          hour it draws for exactly this case — off the contact and the date,
          so it is stable — and calling it here means the log and the diary
          name the same o'clock instead of two. */
-      : queue(null, 'after').filter((c) => c.next && c.next.due).map((c) => {
+      /* ══ OWNERSHIP, NOT QUEUE MEMBERSHIP ════════════════════
+         `queue(null, 'after')` was the obvious reuse and it is the wrong cut
+         here. A queue answers what to WORK next, so it drops anybody on a
+         campaign that has closed — and a meeting you set on a campaign that
+         has since ended is still a meeting you walked out of without writing
+         anything down. Two of the caller's six were invisible for no reason
+         the reader could have guessed.
+
+         The same call `missedCalls` makes one function up: whose it is, not
+         whether the list still wants them. */
+      : DB.con.filter((c) => c.owner === me().id && afterMeeting(c)).map((c) => {
         const k = kindOfNext(c.next.what);
         return { con: c, iso: c.next.due, what: c.next.what, kind: k,
           clock: clockOf(meetTime(c.id, c.next.due, k)) };
@@ -17196,6 +17434,11 @@
      stops being one. A widget that rings for ever is a widget nobody
      believes is connected to anything. */
   const RING_MS = 30000;
+  /* The voicemail the log is playing, and what stops it. */
+  let VM_ON = null;
+  let VM_T0 = 0;
+  let VM_TIMER = null;
+  let VM_TICK = null;
   /* The beat the answered card holds before it retires. Without it the
      banner and the rail swap with nothing connecting them, and the handoff
      is something you infer rather than something you saw. */
@@ -22724,6 +22967,11 @@
       go(Object.assign(cleared(), { on: 'camps' }));
       return;
     }
+
+    /* Before `[data-call]`, because the strip sits inside the item whose row
+       returns the call and a press on it must not do both. */
+    const vm = t.closest('[data-vm]');
+    if (vm) { vmPlay(vm.getAttribute('data-vm')); return; }
 
     const callone = t.closest('[data-call]');
     if (callone) { startCall(callone.getAttribute('data-call')); return; }

@@ -5506,17 +5506,21 @@
    fourteen pixels of nothing under a section head that already left twelve. */
 .b-log > .b-month { margin: 14px 0 6px; }
 .b-log > .b-month:first-child { margin-top: 0; }
+/* The entrance belongs to the ITEM, not the row: a voicemail strip arriving
+   flat under a row that is still fading in is one event drawn as two. */
+.b-log-item {
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+@media (prefers-reduced-motion: reduce) { .b-log-item { animation: none; } }
 .b-log-row {
   display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
   padding: 10px 12px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
-  animation: b-surface-in var(--t-settle) var(--ease-out) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
 .b-log-row:hover { background: rgba(var(--accent-rgb), 0.10); }
 .b-log-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-@media (prefers-reduced-motion: reduce) { .b-log-row { animation: none; } }
 
 /* ══ THE GLYPH CARRIES THE TONE BECAUSE THE WORD CANNOT ════════════
    `--err` measures 4.37:1 in dark and 3.82:1 in light and fails AA as type —
@@ -5552,10 +5556,17 @@
 /* What AiMY makes of it, and the reason this is not just a phone's list. Set
    ABOVE the meta, not below it: the meta is chrome every row has and this is
    the payload only some rows have. */
+/* ══ THE READING SAYS WHOSE IT IS ═══════════════════════════
+   `flex-start` and a nudge down, the way `.b-aimy-mark` sits: the mark aligns
+   to the first line's cap height rather than floating in the middle of a
+   sentence that wraps to two. `currentColor` so it takes the line's own ink
+   instead of introducing a third colour into a three-line row. */
 .b-log-say {
+  display: flex; align-items: flex-start; gap: 6px;
   margin-top: 4px; font-size: var(--fs-xs); color: var(--ink-secondary);
   line-height: var(--lh-snug);
 }
+.b-log-mark { flex: none; margin-top: 3px; color: currentColor; opacity: 0.9; }
 /* ══ THE VERB IS A CONTROL, SO IT LOOKS LIKE ONE ═════════════════
    It was accent-coloured text, which is this build's TERTIARY tier — right at
    the end of a sentence, wrong at the end of a row that is itself the press.
@@ -5615,4 +5626,72 @@
   /* Indented to the body column by a margin, not by padding — padding would
      stretch the pill itself across the row. */
   .b-log-go { align-self: flex-start; margin: 8px 0 0 46px; }
+}
+
+/* ══ THE MESSAGE THEY LEFT ══════════════════════════════
+   Indented to the body column — 46px is the glyph chip plus its gap — so it
+   hangs off the call it belongs to rather than starting a second list. Its own
+   press, its own hover, and a quieter ground than the row above it, because it
+   is a thing attached to that row and not a peer of it.
+
+   `max-width` as well as a share: a voice note is a fixed-size object and a
+   waveform stretched across a 1400px desk is a decorative rule with a button
+   on the end. Every messaging app caps it for the same reason. */
+.b-log-vm {
+  display: flex; align-items: center; gap: 10px;
+  width: calc(100% - 46px); max-width: 340px; margin: 3px 0 0 46px;
+  padding: 7px 12px 7px 8px; border: 0; border-radius: var(--r-pill);
+  background: rgba(var(--accent-rgb), 0.06);
+  cursor: pointer; font-family: inherit; text-align: left;
+  transition: background-color var(--t-fast);
+}
+.b-log-vm:hover { background: rgba(var(--accent-rgb), 0.12); }
+.b-log-vm:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-log-vm-go {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-text); color: var(--body-bg);
+}
+/* The triangle is optically left-heavy in its own box, so it is nudged back
+   onto the circle's centre. The pause bars are symmetrical and are not. */
+.b-log-vm-go svg { width: 11px; height: 11px; fill: currentColor; stroke: none; margin-left: 1px; }
+.b-log-vm.is-playing .b-log-vm-go svg { margin-left: 0; }
+
+/* ══ THE WAVEFORM, AND THE PLAYED HALF OF IT ══════════════════
+   Two identical stacks of bars, the second clipped from the left as it plays.
+   `clip-path` rather than an animated width: a clipped copy whose own width
+   is animating re-lays out its twenty-eight flex children on every frame, and
+   the bars visibly slide against the ones underneath them. `clip-path` is a
+   paint-time operation — the two stacks stay in register by construction. */
+.b-log-vm-wave { position: relative; flex: 1; min-width: 0; height: 22px; }
+.b-log-vm-bars {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; gap: 2px;
+}
+.b-log-vm-bars i {
+  flex: 1; min-width: 0; border-radius: var(--r-pill);
+  background: rgba(var(--accent-rgb), 0.30);
+}
+:root[data-theme="light"] .b-log-vm-bars i { background: rgba(var(--accent-rgb), 0.26); }
+.b-log-vm-on { clip-path: inset(0 100% 0 0); }
+.b-log-vm-on i { background: var(--accent-text); }
+.b-log-vm.is-playing .b-log-vm-on { animation: b-vm-run linear both; }
+@keyframes b-vm-run { to { clip-path: inset(0 0 0 0); } }
+
+/* What is LEFT, counting down, which is the half of a duration that changes.
+   Tabular so 0:09 and 0:10 do not shift the pill's right edge under the
+   cursor a dozen times a message. */
+.b-log-vm-len {
+  flex: none; min-width: 30px; text-align: right;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--ink-muted); font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion does not mean the message stops playing — the clock is the
+   message's own length and still counts down, which is the fact. The fill
+   states it rather than travelling to it, the pattern every other indicator
+   in this build follows. */
+@media (prefers-reduced-motion: reduce) {
+  .b-log-vm.is-playing .b-log-vm-on { animation: none; clip-path: inset(0 0 0 0); }
+  .b-log-vm { transition: none; }
 }
