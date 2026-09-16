@@ -561,6 +561,33 @@
   overflow: hidden;
 }
 .b-fn-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
+/* ══ AND THE FUNNEL DRAWS ITSELF ═══════════════════════════════════════════
+   The attainment bar two surfaces away wipes in from the left and this one,
+   which is the thing a campaign page is actually about, appeared at full
+   length. It takes the same keyframe rather than a new one: `s-att-wipe` is
+   `from { scaleX(0) }` with no `to`, so it runs to whatever transform the
+   element already has and leaves nothing behind it.
+
+   THE WIDTH STAYS THE WIDTH. Scaling the bar instead of sizing it would mean
+   carrying scaleX at rest, and `--r-pill` on an 8px bar is a 4px semicircle
+   at each end — squashed to under two pixels by a 0.42 scale, so every bar
+   would end with a differently-shaped cap according to its own value. The
+   percentage still sets the length, which is a write per render and not a
+   thing being animated; the scale is only how it arrives. Nothing here
+   animates a width.
+
+   NO STAGGER, AND THAT IS THE POINT. Five bars arriving one after another
+   are read one after another. They arrive together so the eye gets the
+   profile. sales.css puts it plainly where it draws its own funnel — the
+   narrowing IS the finding — and a narrowing is a shape rather than a
+   sequence. */
+.b-fn-fill { transform-origin: left center; }
+#wbStage.is-arriving .b-fn-fill {
+  animation: s-att-wipe var(--t-emphasis) var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  #wbStage.is-arriving .b-fn-fill { animation: none; }
+}
 .b-fn-fill.tone-ok { background: var(--ok-text); }
 .b-fn-fill.tone-warn { background: var(--warn-text); }
 .b-fn-fill.tone-neutral { background: var(--d300); }
@@ -1275,6 +1302,26 @@
   text-align: left;
 }
 .ntf-panel[hidden] { display: none; }
+/* ══ AND IT ARRIVES AND LEAVES LIKE THE MENUS DO ═══════════════════════════
+   This panel appeared and vanished on `hidden`, which is the same hard cut
+   §47 argues against for a menu, on a bigger surface hung off the same
+   topnav. It takes the menus' own pair rather than a new one — the open at
+   --t-open and the close a rung faster at --t-fast, for the reason written
+   at §47: an open is an invitation and a close gets out of the way.
+
+   THE ORIGIN IS THE OTHER CORNER. `.b-menu` grows from `top left` because it
+   hangs off the left edge of its button; this is `right: 0` under the bell
+   at the end of the topnav, so it grows from `top right` and appears to come
+   out of the bell rather than sliding across from beside it. Same keyframes,
+   different anchor. */
+.ntf-panel {
+  transform-origin: top right;
+  animation: b-menu-in var(--t-open) var(--ease-out) both;
+}
+.ntf-panel.is-closing { animation: b-menu-out var(--t-fast) var(--ease-out) forwards; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ntf-panel, .ntf-panel.is-closing { animation: none; }
+}
 
 /* ══ AND BELOW 520 LAYOUT PX IT IS PINNED TO THE WINDOW ═════════════════
    The bell sits about 90px in from the window edge, so a 360px card hung from

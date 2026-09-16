@@ -17808,18 +17808,25 @@
     return Array.prototype.slice.call(list.querySelectorAll('.ntf-row-cta'));
   }
 
-  function isOpen() { return !panel.hidden; }
+  /* A PANEL ON ITS WAY OUT IS NOT AN OPEN PANEL. It stays un-hidden while
+     the exit runs, so `!panel.hidden` alone would call it open and pressing
+     the bell again during a close would shut it a second time rather than
+     bringing it back. */
+  function isOpen() { return menuIsOpen(panel); }
 
   function openPanel() {
     render();
-    panel.hidden = false;
+    menuOpen(panel);
     bell.setAttribute('aria-expanded', 'true');
     var first = ctas()[0];
     if (first) first.focus();
   }
 
+  /* The bell's own state and the focus go back at once; only the panel takes
+     the exit. A reader who pressed Escape has said where they want to be, and
+     making the focus wait on an animation is how a keyboard user loses it. */
   function closePanel(returnFocus) {
-    panel.hidden = true;
+    menuShut(panel);
     bell.setAttribute('aria-expanded', 'false');
     if (returnFocus) bell.focus();
   }
@@ -22906,9 +22913,15 @@
      bumps the count, and a shut that is no longer the current one does
      nothing at all.
 
-     A READER WITH MOTION OFF IS NOT MADE TO WAIT, and neither is a panel
-     that is not a menu: with no animation nothing fires `animationend`, so
-     the net would BE the close. Both are hidden outright instead. */
+     A READER WITH MOTION OFF IS NOT MADE TO WAIT, and neither is a surface
+     with no exit to run: with no animation nothing fires `animationend`, so
+     the net would BE the close. Both are hidden outright instead.
+
+     TWO SURFACES LEAVE THIS WAY, and they are named rather than marked. A
+     class existing only for JS to read would be a class the audit finds
+     defined nowhere, and a data attribute would be one it finds drawn and
+     unhandled; both would be scaffolding invented to avoid naming two things
+     that are easy to name. If a third ever wants an exit, it goes in here. */
   function menuIsOpen(m) { return !!m && !m.hidden && !m.classList.contains('is-closing'); }
   function menuOpen(m) {
     m._shutId = (m._shutId || 0) + 1;
@@ -22920,7 +22933,8 @@
   function menuShut(m) {
     if (!m || m.hidden || m.classList.contains('is-closing')) return;
     const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (still || !m.classList.contains('b-menu')) { m.hidden = true; return; }
+    const leaves = m.classList.contains('b-menu') || m.classList.contains('ntf-panel');
+    if (still || !leaves) { m.hidden = true; return; }
     const id = (m._shutId = (m._shutId || 0) + 1);
     /* ANIMATIONEND BUBBLES, so a row inside the menu finishing an animation
        of its own would arrive here and hide the menu early. Only the menu's
