@@ -17132,6 +17132,34 @@
      change to the downbeat will clip, and the answer then is a limiter or a
      quieter downbeat, not a bigger number. */
   const RING_VOL = 0.88;
+
+  /* ══ THE CLOSING TONE ═══════════════════════════════════════════
+     One note, and it is the note the ring OPENS on — D4, the root the
+     whole phrase is built over. The ring strikes D4 with D3 under it,
+     climbs to A4 and settles on F#4; coming back to D4 alone is the
+     phrase returning to where it started, which is what an ending is.
+     F#4 would have been prettier and would have said nothing, being the
+     note the ring was already sitting on.
+
+     ONE NOTE RATHER THAN A PHRASE, because nobody is being summoned. A
+     ring has to cross a room and compete for a head that is pointed
+     somewhere else, so it repeats and it climbs. This is heard by
+     somebody whose hand is still on the control they just pressed. It
+     has only to confirm, and a second note would start to sound like
+     another call coming in.
+
+     A QUARTER OF THE RING'S AMPLITUDE — about -12dB, and a little under
+     half as loud to the ear. A fraction rather than a number so it stays
+     a quarter if the ring ever moves, and so it can never be the thing
+     that clips: the note above is AT the ceiling, and this is one note
+     with no downbeat stack under it to add up. Rendered offline at 48k
+     it peaks at 0.2058 against the ring's 0.9899.
+
+     The voice is RING_VOICE untouched — same two partials, same 6ms
+     onset, same 0.42s tail. It is the same instrument playing one note,
+     which is the whole idea. */
+  const RING_END = [[0.00, 293.66, 0.90]];
+  const RING_END_VOL = RING_VOL * 0.25;
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
@@ -17144,11 +17172,11 @@
      multiplicative, so it is undefined there — hence a floor near silence
      and a short linear ramp off it. Landing on the floor and stopping
      would leave a step of its own, which is the click this is avoiding. */
-  function ringBurst(ac, at) {
-    RING_MELODY.forEach((note) => {
+  function ringBurst(ac, at, melody, vol) {
+    melody.forEach((note) => {
       RING_VOICE.forEach((pt) => {
         const t0 = at + note[0];
-        const peak = RING_VOL * pt[1] * note[2];
+        const peak = vol * pt[1] * note[2];
         const life = pt[2];
         const o = ac.createOscillator();
         const g = ac.createGain();
@@ -17200,13 +17228,13 @@
          entirely by a busy tab and the spacing does not move: what it
          controls is when notes get BOOKED, not when they sound. */
       RING_AT = RING_AC.currentTime + 0.05;
-      ringBurst(RING_AC, RING_AT);
+      ringBurst(RING_AC, RING_AT, RING_MELODY, RING_VOL);
       RING_AT += RING_GAP;
       RING_BEAT = setInterval(() => {
         try {
           if (!RING_AC) return;
           while (RING_AT < RING_AC.currentTime + 1.5) {
-            ringBurst(RING_AC, RING_AT);
+            ringBurst(RING_AC, RING_AT, RING_MELODY, RING_VOL);
             RING_AT += RING_GAP;
           }
         } catch (e) {}
@@ -17224,6 +17252,36 @@
       try { if (RING_AC.close) RING_AC.close(); } catch (e) {}
       RING_AC = null;
     }
+  }
+
+  /* ══ ITS OWN CONTEXT, BECAUSE THE RING'S IS ALREADY GONE ════════════
+     Every path to this one goes through `ringRetire` first, and that
+     closes RING_AC — it has to, because closing the context is the only
+     thing that stops a burst already booked on it. So by the moment
+     there is something to confirm, there is nothing left to play it on.
+
+     Hence a fresh context for one note, closed on a timer rather than
+     left for the collector: an audio context is a device handle and a
+     browser stops granting them after about six, so a caller who
+     declines seven calls in a session would get silence on the seventh.
+
+     The same rule as the ring above — every line inside a try, and a
+     failure is silence rather than a thrown error. A phone that has
+     stopped ringing has already said so on screen; not chiming about it
+     is not worth breaking the retire animation for. */
+  function ringEndTone() {
+    if (UI.quiet) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ac = new AC();
+      if (ac.state === 'suspended' && ac.resume) ac.resume();
+      ringBurst(ac, ac.currentTime + 0.02, RING_END, RING_END_VOL);
+      /* 0.49s of sound in total. Closed at 1.5 so the tail is never cut,
+         which would be a click — the exact defect the envelope above
+         spends its last two ramps avoiding. */
+      setTimeout(() => { try { if (ac.close) ac.close(); } catch (e) {} }, 1500);
+    } catch (e) {}
   }
 
   /* ══ START RINGING ══════════════════════════════════════════════════════ */
@@ -17403,6 +17461,10 @@
     if (!r || r.state === 'live') return;
     const c = r.con ? DB.byCon[r.con] : null;
     ringRetire();
+    /* After it, not before: `ringRetire` closes the context the ring was
+       sounding on, and a note booked on a context that is about to close
+       is a note that never sounds. */
+    ringEndTone();
     if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody on the board has that number.'); return; }
     const now = new Date().toISOString();
     const t = {
