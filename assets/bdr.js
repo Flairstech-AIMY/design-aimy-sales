@@ -16298,6 +16298,13 @@
      THEY said. `Them` rather than their name, because the person who picks
      up a switchboard is not the person you called. */
   function transcriptHtml(c) {
+    /* ══ BEFORE THE CALL THERE IS NO TRANSCRIPT, NOT EVEN A LINE ABOUT ONE ═
+       "Not recording. Nothing is being written down." is a report on a live
+       call: it answers a question you have while talking to somebody. Before
+       Start is pressed nothing is recording because nothing is happening,
+       and saying so is the panel describing the absence of a state. The
+       space it leaves goes to the transcript, which is where it was owed. */
+    if (c.state === 'ready') return '';
     if (!c.recording) {
       return '<p class="call-none">Not recording. Nothing is being written down.</p>';
     }
@@ -16636,23 +16643,45 @@
     const sess = call.sess;
     const at = sess ? sess.done.length + sess.skipped.length + 1 : 0;
 
-    return '<div class="call-head">' +
-        '<span class="call-live' + (ready ? ' is-ready' : dialing ? ' is-dialing' : '') +
-          '" aria-hidden="true"></span>' +
-        /* The word replaces the clock rather than sitting beside it: a clock
-           reading 0:00 next to "Connecting" is two things saying one thing,
-           and one of them is a number that has not started. */
-        '<span class="call-timer" id="callTimer">' +
-          (ready ? 'Ready to call' : dialing ? 'Connecting…' : (call.held ? 'On hold · ' : '') + fmtClock(call.secs)) + '</span>' +
+    /* ══ THE CLOCK BELONGS TO THE PERSON, SO IT SITS ON THEIR LINE ═════
+       The head was a row of its own above the name: a dot and a number on
+       one line, then who they are on the next, which spends a whole row of a
+       300px column on four characters and reads as a heading over a heading.
+
+       On the name's line and pushed to its far edge, the two are what they
+       always were — who you are speaking to, and how long you have been
+       speaking to them. Right-aligned because a clock that moves should not
+       move anything else: the name grows from the left, the digits are
+       tabular, and nothing in between shifts as the seconds turn over. */
+    return '<div class="call-who-block">' +
+      '<div class="call-who-top">' +
+        '<p class="call-name">' + esc(c.name) + '</p>' +
+        '<div class="call-head">' +
+        /* ══ NOTHING IS HAPPENING YET, SO NOTHING SAYS SO ══════════════
+           `ready` carried a grey dot and the words "Ready to call", which is
+           the surface reporting the absence of a state. The panel is open,
+           the person's name is on it and the only thing in the row below is
+           a button that says Start call — three things already saying the
+           call has not begun, and this was a fourth in the loudest position.
+
+           Live, there is something to report and the clock reports it. That
+           is the whole of what this line is for. */
+        (ready ? '' :
+          '<span class="call-live' + (dialing ? ' is-dialing' : '') +
+            '" aria-hidden="true"></span>' +
+          /* The word replaces the clock rather than sitting beside it: a
+             clock reading 0:00 next to "Connecting" is two things saying one
+             thing, and one of them is a number that has not started. */
+          '<span class="call-timer" id="callTimer">' +
+            (dialing ? 'Connecting…' : (call.held ? 'On hold · ' : '') + fmtClock(call.secs)) +
+          '</span>') +
         (call.auto
           ? '<span class="work-state ws-drafted" data-work-state="drafted">AiMY placed it</span>'
           : '') +
         (sess ? '<span class="call-of" id="callOf">' + at + ' of ' + sess.ids.length +
           '</span>' : '') +
+        '</div>' +
       '</div>' +
-
-      '<div class="call-who-block">' +
-        '<p class="call-name">' + esc(c.name) + '</p>' +
         '<p class="call-sub">' + esc(c.title) +
           (a ? ' · ' + esc(a.name) : '') + '</p>' +
         /* A stranger IS their number, so the name line is already the
@@ -16661,28 +16690,6 @@
            own phone number has the same problem. */
         (c.phone && c.phone !== c.name
           ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
-        /* ══ A WORKED EXAMPLE HAS TO SAY THAT IT IS ONE ════════════════════
-           Nothing here dials. The transcript grows a line at a time from a
-           script chosen by the person's own hidden `fate`, and it grows at
-           the speed a real one would — which is the point of it and also the
-           problem: on screen it is indistinguishable from a transcription of
-           a conversation that happened, and AiMY then reads it and lights an
-           outcome off it. A reader who takes that for a recording is being
-           misled by the one part of this build that is not derived from the
-           record.
-
-           Said ONCE, in `ready`, under the number that is not going to be
-           dialled: it is the state every call passes through, it is the
-           screen where Start is pressed, and it is the only one with room.
-           A chip repeating it over every line of a running call would be
-           noise on the surface this build exists to keep quiet.
-
-           And it ends where the real call is, because the `tel:` link on the
-           record is not a fixture — it is the one genuine handoff in here. */
-        (ready
-          ? '<p class="call-none call-fixture">Nothing is dialled here — this call and its ' +
-            'transcript are a worked example. The number on the record dials for real.</p>'
-          : '') +
       '</div>' +
 
       /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —
@@ -16690,12 +16697,6 @@
          so leaving it out in `ready` collapsed the whole rail upward and the
          controls floated under the phone number. */
       '<div class="call-lines" id="callLines">' + transcriptHtml(call) + '</div>' +
-
-      '<label class="ds-field call-note-field">' +
-        '<span class="s-field-label">Notes</span>' +
-        '<textarea class="ds-textarea" rows="2" spellcheck="false" data-note ' +
-          'placeholder="Anything worth keeping.">' + esc(call.note) + '</textarea>' +
-      '</label>' +
 
       /* ══ THE NOTICE IS A DOOR, NOT A PANEL ═══════════════════════════════
          Recording cannot start until they have been told, and the asking is
@@ -16731,24 +16732,28 @@
             (call.held ? 'Resume' : 'Hold') + '" title="' + (call.held ? 'Resume' : 'Hold') +
             '">' + chIcon(call.held ? 'play' : 'pause') + '</button>') +
 
-        /* End keeps its word alongside the handset. It is the one
-           irreversible control here and the only one whose mispress costs you
-           the call — Fitts says make it big, and a destructive control states
-           itself. */
+        /* ══ END IS THE HANDSET, AND NOTHING ELSE ════════════════════
+           It kept its word on the argument that a destructive control states
+           itself, and Fitts says make it big. That was already overruled at
+           the width where this panel becomes a strip — the narrow rules put
+           it in a 44px circle and hid the span — and the argument that won
+           there wins everywhere: the row it sits in is Record, Mute and Hold,
+           three circles that say what they do with a glyph, so a labelled
+           rectangle among them is the odd one out. A struck-through handset
+           is not ambiguous; it is the mark every phone on earth ends with.
+
+           The sentence is in `aria-label`, which it always was, so nothing is
+           lost for anyone who is not looking at it. Start call keeps its
+           word: it is not this control, it is affirmative, and it is the only
+           thing on the ready panel to press. */
         (ready
           ? '<button class="call-end call-go" type="button" data-callgo ' +
             'aria-label="Start the call to ' + esc(c.name) + '">' + chIcon('phone') +
             'Start call</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
-            (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
-            /* THE WORD IS IN A SPAN SO A WIDTH CAN TAKE IT. On a phone this
-               control is the handset alone — sales.css decides where — and a
-               bare text node beside the icon is the one thing in this button
-               that cannot be addressed. The button keeps its aria-label either
-               way, so what a screen reader hears does not depend on how wide
-               the panel is. */
-            '<span class="call-end-say">' + (dialing ? 'Stop' : 'End') + '</span>' +
-            '</button>') +
+            (dialing ? 'Stop calling them' : 'End the call') + '" title="' +
+            (dialing ? 'Stop calling them' : 'End the call') + '">' +
+            chIcon('hangup') + '</button>') +
 
         /* ══ AND THE WAY BACK TO THE PAGE, AFTER END ════════════════════
            In this row rather than up in the head, and last in it. The head is
@@ -19006,6 +19011,154 @@
 
   function peekEl() { return byId('aimyPeek'); }
 
+  /* ══ THE DRAWER GOES BEHIND THE COMPOSER ══════════════════════
+     One class does the travel; the rest of this is the part a class cannot
+     do. `inert` takes the answer out of the tab order and out of the
+     pointer's reach while it is under the bar — without it, tabbing out of
+     the input walks into a card nobody can see. And the button says which
+     way it goes, in `aria-expanded` and in words, because a line with no
+     label is a line with no meaning to anyone not looking at it. */
+  function peekShut(on) {
+    const box = peekEl();
+    if (!box) return;
+    box.classList.toggle('is-shut', !!on);
+    const main = byId('peekMain');
+    if (main) { if (on) main.setAttribute('inert', ''); else main.removeAttribute('inert'); }
+    const grip = byId('peekGrip');
+    if (grip) grip.setAttribute('aria-expanded', on ? 'false' : 'true');
+    /* `lbl`, not `say` — `say()` is the function that writes a turn to the
+       thread, and a local of that name inside this one shadows it. */
+    const lbl = byId('peekGripSay');
+    if (lbl) lbl.textContent = on ? 'Bring this answer back' : 'Put this answer away';
+  }
+
+  /* ══ THE HANDLE IS PULLED AS WELL AS PRESSED ════════════════════
+     A press toggles; a pull is a ladder with three rungs and the direction
+     says which way you are going along it:
+
+         behind the composer  ← down — the card — up →  the canvas
+
+     So one gesture reaches all three, and the middle rung is where it starts.
+     Up from shut brings the card back; up again from there is the whole
+     answer and the thread it belongs to, which is what the card has always
+     been a peek OF. A long pull skips the middle: past --peek-far the answer
+     was never the thing being asked for.
+
+     THE CARD FOLLOWS THE POINTER. A drag that decides at the end and does
+     nothing in between is a gesture you have to be told about; one that
+     moves under the hand says what it is for while it is happening. Which
+     also means the drag has to be able to overshoot both ends, with
+     resistance — a square root, so it gives at first and then stops —
+     because an edge that simply refuses to move reads as a bug. */
+  let PEEK_DRAG = null;
+  /* Set by a drag that actually moved, read and cleared by the press
+     handler. A pointer sequence that moved ends in a `click` like any other,
+     and without this the release would be followed by a toggle undoing what
+     the pull had just done. */
+  let PEEK_DRAGGED = false;
+  const PEEK_STEP = 40;   /* far enough to be a pull and not a shaky press */
+  const PEEK_FAR = 150;   /* far enough to mean the canvas, from either rung */
+
+  function peekDragStart(e) {
+    if (e.button) return;
+    const grip = e.target.closest && e.target.closest('#peekGrip');
+    if (!grip) return;
+    const box = peekEl();
+    if (!box || box.hidden) return;
+    const card = box.querySelector('.b-peek-card');
+    if (!card) return;
+    PEEK_DRAGGED = false;
+    const cs = getComputedStyle(box);
+    PEEK_DRAG = {
+      y: e.clientY,
+      moved: false,
+      shut: box.classList.contains('is-shut'),
+      card: card,
+      /* The shut offset, in pixels, from the two custom properties the
+         stylesheet does the same sum with. Read rather than repeated: a
+         drag that lands somewhere the class does not agree with is a card
+         that jumps on release. */
+      down: card.offsetHeight
+        - parseFloat(cs.getPropertyValue('--peek-lip'))
+        + parseFloat(cs.getPropertyValue('--peek-tuck'))
+    };
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* no capture, still tracked */ }
+  }
+
+  function peekDragMove(e) {
+    const d = PEEK_DRAG;
+    if (!d) return;
+    const dy = e.clientY - d.y;
+    if (!d.moved) {
+      /* Three pixels of slop, so a press with a tremor in it is still a
+         press and still toggles. */
+      if (Math.abs(dy) < 3) return;
+      d.moved = true;
+      const box = peekEl();
+      if (box) box.classList.add('is-dragging');
+    }
+    let y = (d.shut ? d.down : 0) + dy;
+    if (y < 0) y = -Math.min(28, Math.sqrt(-y) * 4);
+    else if (y > d.down) y = d.down + Math.min(20, Math.sqrt(y - d.down) * 3);
+    d.card.style.transform = 'translate3d(0, ' + y + 'px, 0)';
+  }
+
+  function peekDragEnd(e, cancelled) {
+    const d = PEEK_DRAG;
+    if (!d) return;
+    PEEK_DRAG = null;
+    const box = peekEl();
+    if (box) box.classList.remove('is-dragging');
+    /* The inline transform goes before the class lands, so what animates is
+       the stylesheet's own position and not a number left on the element. */
+    d.card.style.transform = '';
+    if (!d.moved) return;
+    PEEK_DRAGGED = true;
+    const dy = cancelled ? 0 : (e.clientY - d.y);
+    if (dy <= -PEEK_FAR || (dy <= -PEEK_STEP && !d.shut)) {
+      /* The whole answer, wherever the pull started. Finished first: the
+         canvas is about to show the thread, and half a sentence is not a
+         record of anything. */
+      peekAll();
+      peekShut(false);
+      openCanvas();
+      paintThread();
+    } else if (dy <= -PEEK_STEP) {
+      peekShut(false);
+    } else if (dy >= PEEK_STEP) {
+      if (!d.shut) peekAll();
+      peekShut(true);
+    } else {
+      /* Not far enough to mean anything: back to the rung it started on. */
+      peekShut(d.shut);
+    }
+  }
+
+  /* ══ AND GOING BACK TO THE PAGE PUTS IT AWAY ════════════════════
+     The handle is how you put it away on purpose. This is the other way,
+     and it is the one that gets used: you read the answer, you go back to
+     the rows, and the card should already be out of the way by the time you
+     get there. The composer is not outside — typing the next question is not
+     leaving the answer — and neither is the canvas, which is where the
+     answer goes on being read.
+
+     It SHUTS rather than dismisses. Dismissing is the ×, and a click that
+     lands on the page should not be able to throw away the thing you asked
+     for; the lip stays, so one press has it back.
+
+     `pointerdown` and not `click`: a press that begins on the page and ends
+     with a text selection never fires a click, so the drawer would stay up
+     through the one gesture that most clearly means "I am reading something
+     else now". */
+  function peekAway(e) {
+    const box = peekEl();
+    if (!box || box.hidden || box.classList.contains('is-shut')) return;
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest('.aimy-float-wrap') || t.closest('.aimy-overlay')) return;
+    peekShut(true);
+  }
+
   /* ══ THE SAME CONTROL, AND ONLY ONE THING TO DO WITH IT ════════════════
      While an answer is coming there is nothing to send, so the square is a
      stop and it stops. During the wait nothing has been said yet, so nothing
@@ -19126,6 +19279,10 @@
     box.hidden = false;
     box.classList.add('is-thinking');
     box.classList.remove('is-clipped');
+    /* An answer is the one thing that outranks having put the drawer away:
+       you asked for it, so it comes up. Shutting it again is one press, and
+       the press is where you left it. */
+    peekShut(false);
     byId('peekBody').style.maxHeight = '';
     byId('peekActs').innerHTML = '';
     PEEK_ACTS = '';
@@ -19225,7 +19382,14 @@
   function peekHide() {
     peekStop();
     const box = peekEl();
-    if (box) { box.hidden = true; box.classList.remove('is-thinking', 'is-clipped'); }
+    if (box) {
+      box.hidden = true;
+      box.classList.remove('is-thinking', 'is-clipped');
+      /* Put away and dismissed are different states and the second one ends
+         the first: a drawer hidden while still holding `is-shut` comes back
+         from the next question already down. */
+      peekShut(false);
+    }
     const wrap = byId('aimyFloatWrap');
     if (wrap) wrap.classList.remove('has-peek');
   }
@@ -22502,6 +22666,18 @@
     /* Pressing mid-stream does not wait the rest of it out: the answer is
        written whole and only its words are still arriving, so finishing them
        is one assignment and then the canvas has it in full. */
+    /* The handle, and it finishes the answer on the way down. Putting the
+       drawer away while words are still being typed into it leaves a stream
+       running against a box behind the composer; it is written whole and the
+       drawer keeps it, which is what coming back to it should show. */
+    if (t.closest('#peekGrip')) {
+      if (PEEK_DRAGGED) { PEEK_DRAGGED = false; return; }
+      const box = peekEl();
+      const shut = !!(box && box.classList.contains('is-shut'));
+      if (!shut) peekAll();
+      peekShut(!shut);
+      return;
+    }
     if (t.closest('#peekClose')) { peekAll(); peekHide(); return; }
     /* The card is the door. Mid-thought it does not make you wait — the
        answer is already worked out, so it lands and the canvas opens on it. */
@@ -22755,6 +22931,15 @@
       runInput(v);
     }
   });
+  /* Its own listener rather than a branch in the one below: that handler is
+     a ladder of `return`s, and a rule that has to run whatever the press
+     turned out to be cannot live inside it. Capture, so it is not outrun by
+     a handler that stops the event on its way up. */
+  document.addEventListener('pointerdown', peekAway, true);
+  document.addEventListener('pointerdown', peekDragStart);
+  document.addEventListener('pointermove', peekDragMove);
+  document.addEventListener('pointerup', (e) => peekDragEnd(e, false));
+  document.addEventListener('pointercancel', (e) => peekDragEnd(e, true));
   document.addEventListener('click', (e) => {
     if (e.target.closest('#floatSend')) {
       /* ══ THE SAME CONTROL, AND ONLY ONE THING TO DO WITH IT ═══════════
@@ -22786,22 +22971,15 @@
       DRAFT.name = nm.value === nm.getAttribute('data-auto') ? null : nm.value;
       return;
     }
-
-    const n = e.target.closest('[data-note]');
-    if (!n || !DB.call) return;
-    DB.call.note = n.value;
-    /* NOT `paintCall()`. Repainting the panel replaces the textarea the
-       caret is sitting in, and the caret goes with it — you would lose the
-       cursor on every keystroke. Only what the reading changes is redrawn. */
-    /* Nothing is repainted while you type. The note is read when the call
-       is logged, and the canvas already carries the reading — redrawing the
-       rail here would take the caret with it. */
   });
 
   /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════
      Two hundred calls in a day is two hundred rounds of: read the brief,
      dial, listen, say what happened, next. Every one of those is a key here,
-     and the hand never leaves the home row except to type the note.
+     and the hand never leaves the home row at all — `n` used to take it off
+     to a textarea in the rail, and that textarea is gone: anything worth
+     keeping is said to AiMY, where it is read rather than stored as a string
+     nobody looks at again.
 
      Enter is the whole loop. It means "the obvious next thing" at every
      state — dial the next one, start this one, hang up, log it and go on —
@@ -22852,11 +23030,6 @@
         e.preventDefault();
         if (DB.call) endCall();
         if (PENDING) { PENDING.outcome = n.k; callLogPropose(); }
-        return;
-      }
-      if (e.key === 'n' || e.key === 'N') {
-        const note = byId('callPanel').querySelector('[data-note]');
-        if (note) { e.preventDefault(); note.focus(); }
         return;
       }
       /* `&&` binds tighter than `||`, so the guard only ever applied to the

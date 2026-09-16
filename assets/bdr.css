@@ -2560,8 +2560,43 @@
    that it is a glance: what fits, a fade, and a door to the rest. */
 .b-peek {
   position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
-  display: flex; justify-content: center; pointer-events: none; z-index: 2;
+  display: flex; justify-content: center; pointer-events: none;
+  /* ══ 47e. AND IT CAN BE PUT AWAY, WHICH MEANS SOMEWHERE TO PUT IT ═════
+     Under the bar, not over it. The card painted at z-index 2 against a bar
+     that declares none, which is the one arrangement that cannot be
+     collapsed: a thing in front of the composer has nowhere to go. One is
+     enough to clear the page and stay under the bar's three.
+
+     THE CLIP IS WHAT MAKES IT A DRAWER. Shutting it is a translate, and a
+     translate does not change the box — so without this the card would
+     slide down out of itself and go on painting over the rows below. The
+     clip ends the element at its own bottom edge, so the part that has gone
+     down is not drawn and what is left above is exactly the lip. `inset()`
+     with negative sides because the shadow lives outside the box and
+     clipping it at the border would cost the lift on three sides to gain it
+     on one. */
+  z-index: 1;
+  /* How far past its own bottom edge the clip reaches — how far into the
+     seam the drawer is still drawn. It has to be in the travel as well as in
+     the clip: the translate lands the card so exactly --peek-lip of it is
+     inside the window, and a window 14px taller than the box leaves 14px of
+     the answer showing under the handle. Measured; it read as a line of text
+     trapped in the seam. */
+  --peek-tuck: 14px;
+  /* MEASURED FROM THE BOTTOM OF THE WINDOW, NOT FROM THE BAR. The window
+     reaches --peek-tuck past the seam and the seam is 6, so the lip carries
+     both before any of it is above the composer: 40 is the card's 1px
+     border, its 5 of padding, the 26px strip itself, and the 8 that goes
+     behind the bar. Set to the strip's own height it landed the handle four
+     pixels off the bar — drawn, and pressed against it. */
+  --peek-lip: 40px;
+  clip-path: inset(-64px -64px calc(-1 * var(--peek-tuck)) -64px);
 }
+/* The composer is the drawer front, so it has to be in front. The shell
+   gives this bar `position: relative; isolation: isolate` and no z-index,
+   which put it and the card in painting order — later wins, and the card is
+   later. Three, so there is room under it for the drawer at one. */
+.aimy-float-bar { z-index: 3; }
 /* `display: flex` above outranks the shell's `[hidden] { display: none }` --
    same specificity, later in the cascade -- so the card sat on screen from
    boot with nothing in it. Every element this build hides with the attribute
@@ -2596,8 +2631,17 @@
 .b-peek-card {
   pointer-events: all; position: relative;
   width: 100%; max-width: 760px;
-  display: flex; align-items: flex-start; gap: 4px;
+  /* A column now: the lip you pull, then the answer. It was a row — one
+     answer beside one dismiss — which is the arrangement with nowhere to put
+     a handle that stays reachable once the rest of it is down. */
+  display: flex; flex-direction: column;
   padding: 5px; border-radius: 24px;
+  /* The slide. --t-panel is what every other panel in this build opens on,
+     and a drawer is a panel that happens to travel downwards. The width
+     travels with it — see the shut rule — on the shorter step, so it is
+     finished while the card is still on its way down. */
+  transition: transform var(--t-panel) var(--ease-out),
+              max-width var(--t-base) var(--ease-out);
   background: var(--composer-skin);
   border: 1px solid var(--composer-edge);
   /* The bar's shadow, at a third. Taking its material was right and taking
@@ -2636,6 +2680,94 @@
   from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.985); filter: blur(6px); }
   to { opacity: 1; transform: none; filter: blur(0); }
 }
+/* ══ THE LIP ═══════════════════════════════════════════════════════════════════════
+   The one part of the drawer that is never behind the bar. Shut, this strip
+   IS the drawer — a rounded top edge above the composer with a short line
+   across the middle of it, which is the whole of what Miro shows and the
+   whole of what is needed: something is down there, and it comes up when you
+   pull it.
+
+   Both controls live up here, because a dismiss that goes down with the
+   drawer is a dismiss you have to open the drawer to reach. */
+.b-peek-lip {
+  position: relative; flex: none;
+  display: flex; align-items: center; justify-content: flex-end;
+  height: 26px;
+}
+/* THE GRIP IS THE ROW, NOT THE MARK IN IT. A 36×4 bar is four pixels tall
+   and a target is forty-four; drawn as the button it would be a line you
+   have to hit. So the button is the width of the drawer and the height of
+   the lip, and the line is what it paints at its centre. Nothing here is
+   draggable — a drawer whose only way open is a drag is a drawer that is
+   shut for anyone who does not know it is there. It is a press. */
+.b-peek-grip {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: 0; border: 0; border-radius: 19px 19px 0 0;
+  background: none; cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+/* Pulled as well as pressed. `touch-action: none` is what makes that true on
+   a touch screen: without it the browser claims a vertical drag for the page
+   scroll and the handle never sees the move. */
+.b-peek-grip { cursor: grab; touch-action: none; }
+.b-peek.is-dragging .b-peek-grip { cursor: grabbing; }
+.b-peek-grip:hover { background: rgba(var(--accent-rgb), 0.07); }
+.b-peek-grip:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* --d400 and not a type token: this is a mark, not a word, and it is the one
+   thing in the component that is allowed to be quiet. It answers the cursor
+   by growing rather than by lighting up, which is the gesture it stands for. */
+.b-peek-grip-bar {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--d400);
+  transition: width var(--t-fast) var(--ease-out), background-color var(--t-fast);
+}
+.b-peek-grip:hover .b-peek-grip-bar { width: 48px; background: var(--d300); }
+@media (prefers-reduced-motion: reduce) {
+  .b-peek-grip-bar { transition: background-color var(--t-fast); }
+}
+/* Over the grip, which is `inset: 0` across the whole lip and would otherwise
+   take the press meant for the dismiss. */
+.b-peek-x { z-index: 1; }
+
+/* Under the hand, nothing is animating and nothing is narrow: the card is at
+   the position the pointer put it, at the width it is read at. Both come back
+   under their own transitions the moment it is let go. */
+.b-peek.is-dragging .b-peek-card {
+  transition: none;
+  max-width: 760px;
+}
+.b-peek.is-dragging .b-peek-main { opacity: 1; transition: none; }
+
+/* ══ SHUT ═════════════════════════════════════════════════════════════════════════
+   Down by its own height less the lip, which lands the lip where the card's
+   top edge was and puts the rest under the clip. `100%` of a translate is the
+   element's own height, so this is one declaration for an answer of any
+   length — one line or the full three. */
+.b-peek.is-shut .b-peek-card {
+  transform: translate3d(0, calc(100% - var(--peek-lip) + var(--peek-tuck)), 0);
+  /* ══ AND NARROWER THAN THE THING IT IS BEHIND ═══════════════════
+     At the composer's own 760 the shut drawer is a full-width slab with a
+     line on it, which reads as a second bar that has failed to load rather
+     than as something tucked away. Narrower, it is a tab: the composer's
+     edges are outside it on both sides, so the eye puts it behind.
+
+     Four fifths of the composer, and written twice because the composer's
+     own width is itself a min(): 608 is 80% of its 760 cap, and the bare 80%
+     is what applies below the width where that cap stops binding. A single
+     number is right at exactly one size — 360 was, and it took a quarter off
+     the bar rather than a fifth. Only the shut card is narrowed; open, it is
+     the composer's own 760, because that is the width the answer is read at. */
+  max-width: min(608px, 80%);
+}
+/* The answer rewraps from 760 to 360 as the card narrows, and for the first
+   moment of the collapse the top of it is still above the seam — so the
+   reflow is on screen, and text rewrapping mid-animation reads as a fault.
+   It goes out first and comes back after the width has settled. Cheap:
+   `inert` has already taken this out of reach while it is down. */
+.b-peek-main { transition: opacity var(--t-fast) var(--ease-out) 160ms; }
+.b-peek.is-shut .b-peek-main { opacity: 0; transition-delay: 0s; }
+
 /* The whole card is the press, so the text inside it is left-aligned rather
    than centred the way a button's label would be — and there is no label
    under it saying so. "Open the canvas" was a caption explaining a control
@@ -2727,8 +2859,8 @@
    so the card keeps its proportions and the finger keeps its margin. */
 .b-peek-x {
   position: relative;
-  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
-  margin-top: 8px; margin-right: 7px;
+  flex: none; display: grid; place-items: center; width: 26px; height: 26px;
+  margin-right: 2px;
   border: 0; border-radius: 50%; background: none; color: var(--ink-muted);
   cursor: pointer; transition: color var(--t-fast), background-color var(--t-fast);
 }
@@ -2784,7 +2916,7 @@
   color: var(--ai-text);
   vertical-align: middle;
 }
-@media (prefers-reduced-motion: reduce) { .b-peek-card { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .b-peek-card { animation: none; transition: none; } }
 
 /* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
    They were grey uppercase tags — a status treatment on a thing you open,
@@ -3563,12 +3695,6 @@
    you, which is a hierarchy and not a fade. */
 .call-none { color: var(--ink-muted); }
 .call-who { color: var(--ink-muted); }
-
-/* The notice that this call is a worked example. It is a `.call-none` — the
-   panel's own quiet voice, already defined above — and all this adds is the
-   gap that separates it from the phone number it is about. A second colour
-   or a border would make a disclaimer of it; it is a caption. */
-.call-fixture { margin-top: 10px; }
 
 /* The way back and the way out at opposite edges of one line. The back
    button carries its own bottom margin for the pages that use it bare; in
@@ -5132,51 +5258,58 @@
 }
 
 /* ── Answer and decline ──
-   Filled circles, because these are the two most consequential presses in
-   the build and a ghost button on a card that is already floating reads as
-   optional. The SIGNAL COLOURS ARE FILLS HERE and never text: `--ok` and
-   `--err` measure 4.37:1 and 3.82:1 as small type, which is under the floor,
-   so the glyph on top is white and every word on this card is neutral.
-
-   THE PAIR IS `--answer-fill` / `--hangup-fill`, and it is the rail's too.
-   This was `--ok` over `--err` — a mint and a salmon, the two quietest
-   things in the palette, on the two loudest presses in the build.
-
    Green answers and red refuses because every phone anybody has held for
-   twenty years does, which is the same Jakob's Law argument this component
-   already makes for the handset glyphs themselves.
+   twenty years does — the same Jakob's Law argument this component already
+   makes for the handset glyphs themselves, and the one part of the old note
+   here that survives.
 
-   THE GREEN IS THIS SURFACE'S ALONE, and that is the point of it. `.call-go`
-   in the rail is brand, because dialling somebody you picked off a queue
-   after reading their brief is not the same act as a phone going off in
-   front of you. Green is the colour of a decision somebody else started.
-   `.call-end` IS `--hangup-fill`, though: ending a live call and refusing
-   one that is ringing are the same verb, so they are the same red.
+   THEY WERE SATURATED FILLS WITH A WHITE GLYPH, in a green and a red this
+   product named for itself because `--ok` is a mint and `--err` a salmon and
+   neither can carry white: they measure 1.83:1 and 2.63:1 against it, where
+   a glyph owes 3:1. The fills cleared that floor and the argument for them
+   was entirely that floor.
 
-   Both live in sales.css beside `--ok-text` and its siblings — product-local
-   names, not a re-theme of the family — and both are pinned by contrast
-   against the white glyph rather than by taste. The reasoning and the
-   measurements are on the declaration. */
+   Tinted, the measurement runs the other way — the hue against the card
+   rather than white against the hue — and the family's own values clear 3:1
+   there in both themes. So these are `--ok` and `--err` now, as glyph and
+   edge over a 16% wash of themselves, which is the treatment this build
+   already uses for a tool that is doing something. Two literals and a
+   product-local name went with them.
+
+   What is lost is loudness: a tinted circle is quieter than a fill, and
+   these are still the two most consequential presses in the build. What is
+   gained is that they theme, and that answer and decline are the same green
+   and red as every other verdict on the surface. `.call-go` in the rail is
+   still brand and still not green — dialling somebody you picked off a queue
+   is not a phone going off in front of you. */
 .b-ring-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .b-ring-btn {
-  width: 40px; height: 40px; border-radius: 50%; border: 0;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #fff; padding: 0;
+  cursor: pointer; padding: 0;
   transition: transform var(--t-press) var(--ease-out),
               background-color var(--t-fast) var(--ease-out);
 }
 .b-ring-btn svg { width: 19px; height: 19px; display: block; }
-.b-ring-btn.is-no { background: var(--hangup-fill); }
+.b-ring-btn.is-no {
+  color: var(--err); border-color: var(--err);
+  background: color-mix(in srgb, var(--err) 16%, transparent);
+}
 /* The handset turned down, which is what declining looks like on every
    phone anybody has held. Rotating the same glyph rather than drawing a
    second one keeps the two buttons visibly one pair. */
 .b-ring-btn.is-no svg { transform: rotate(134deg); }
-.b-ring-btn.is-yes { background: var(--answer-fill); }
-/* Both darken, because both are now saturated fills rather than one fill
-   and one brand: lightening a green that is already close to its contrast
-   floor would push it under. */
-.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--hangup-fill) 88%, #000); }
-.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--answer-fill) 88%, #000); }
+.b-ring-btn.is-yes {
+  color: var(--ok); border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+/* Both deepen their own wash. There is no fill left to darken, and raising
+   the tint keeps the hue — which is the whole of what tells these two
+   buttons apart — at full strength on the glyph while the circle gains
+   weight under the cursor. */
+.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--err) 30%, transparent); }
+.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--ok) 30%, transparent); }
 .b-ring-btn:active { transform: scale(0.94); }
 .b-ring-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
