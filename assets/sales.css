@@ -716,55 +716,22 @@ button {
   --err-text:    var(--err);
   --accent-text: #a06ff7;   /* 5.04:1 — an action, not a status */
 
-  /* ══ THE TWO VERBS A TELEPHONE HAS ════════════════════════════════
-     Answer and hang up, and they are NOT the status family. `--ok` is a
-     mint at 157° that says a thing IS fine; this is a button somebody
-     presses, and every phone anybody has held for twenty years makes it
-     green. Jakob's Law, which this build already cites for the handset
-     glyphs themselves.
+  /* ══ AND THE TELEPHONE'S TWO VERBS ARE THE FAMILY AFTER ALL ════════
+     `--answer-fill` and `--hangup-fill` were here: a green and a red
+     picked by hand, pinned by contrast against a WHITE GLYPH, and argued
+     for at length on the grounds that `--ok` is a mint and a telephone is
+     not mint. Both are gone, and so is the argument, because the thing
+     they were pinned against is gone: answer, decline and End are tinted
+     circles now — the family's own hue as the glyph and the edge over a
+     16% wash of itself, which is the treatment `.call-tool.is-rec` has
+     always used for recording.
 
-     ANSWER, NOT START. `--answer-fill` is for a phone that is RINGING —
-     the banner's circle, and nothing else so far. `.call-go` in the rail
-     is `--brand` and stays there: you chose that person off a queue and
-     pressed when you were ready, so it borrows no urgency it has not
-     earned. `--hangup-fill` has no such split; ending a live call and
-     refusing one that is ringing are the same red.
+     That treatment needs 3:1 from the hue against the card, not from
+     white against the hue, and `--ok` and `--err` clear it in both
+     themes where a white glyph on them could not. So the colours are the
+     family's, they theme with it, and a product no longer names two
+     literals the library will never know about. */
 
-     Declared here rather than in aimy-ds.css because a product may name
-     what it needs and may not re-theme the family — same rule the
-     `--accent` revert above states. The library has no green like this
-     and that is a gap to raise there, not a literal to edit in.
-
-     FILLS, NEVER INK — AND THE TWO OWE DIFFERENT FLOORS, BECAUSE ONE OF
-     THEM CARRIES A WORD AND THE OTHER DOES NOT.
-
-     `--hangup-fill` is on `.call-end`, which WAS a wide button with END
-     written across it at 14px bold — ordinary text under WCAG, whose
-     large-text allowance starts at 18.66px bold, so it owed 4.5:1. That
-     is what pinned this red and why it is as deep as it is.
-
-     The word is gone: End is a handset in a circle now, so the floor it
-     actually owes is 3:1, the non-text one. The value stays where it is
-     rather than being relaxed to match — nothing is bought by making the
-     one irreversible control on the panel a lighter red, and a fill that
-     already clears the stricter floor cannot be wrong if a word ever
-     comes back to it.
-
-     `--answer-fill` is on one 40px circle with a handset in it and no
-     text anywhere, so its floor is 3:1 — the non-text floor, which
-     governs both the white glyph on the fill and the fill's own edge
-     against a white card. It was briefly pinned at 4.5:1 too, back when
-     `.call-go` was green and did carry a word. `.call-go` is brand
-     again, so nothing labelled uses this green any more and the
-     stricter floor was buying nothing but a darker button. It sits just
-     under the 3:1 ceiling now, which is as bright as a white glyph on
-     it can legibly get.
-
-     Both measured in the browser, dark and light. Set either as small
-     text and it fails the way `--ok` and `--err` do; that is what
-     `--ok-text` and `--err-text` above are for. */
-  --answer-fill: #18a955;   /* 3.07:1 on white — at the non-text ceiling */
-  --hangup-fill: #dc2f22;   /* 4.70:1 on white — it has END written on it */
 }
 :root[data-theme="light"] {
   /* The three status inks have no light entry any more. They alias --ok /
@@ -5830,6 +5797,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .call-who-top { display: flex; align-items: baseline; gap: 8px; }
 .call-who-top .call-name { flex: 1 1 auto; min-width: 0; }
 .call-who-top .call-head { flex: 0 0 auto; margin-left: auto; }
+/* Before the call the head has nothing in it, and an empty flex child still
+   takes the row's 8px gap — which would push a long name to wrap one word
+   early for a box holding nothing. */
+.call-who-top .call-head:empty { display: none; }
 /* ══ THE WAY BACK TO THE PAGE, AND IT IS .call-tool's SKIN ═══════════════
    It sits in .call-tools, last, past End — that row is everything you can
    press during a call, and the head above it is the three things the call is
@@ -5903,11 +5874,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
    lines up, and `animation: none` there clears the name — a duration on a
    nameless animation animates nothing, which is the correct answer here. */
 .call-live.is-dialing { background: var(--warn); animation-duration: 2.2s; }
-/* READY IS THE ONE STATE THAT DOES NOT PULSE. Nothing is happening yet —
-   the phone has not been picked up and no line is open — and a dot beating
-   on a call nobody has placed is the surface claiming activity it does not
-   have. Grey, still, and waiting for a person, which is what it is. */
-.call-live.is-ready { background: var(--d500); animation: none; }
+/* `.call-live.is-ready` was here: a grey, still dot for a call nobody had
+   placed. There is no dot before the call now — the head is not drawn at
+   all until there is something for it to report — so the state that rule
+   dressed does not reach the screen. */
 
 /* WHICH ONE OF HOW MANY. The only figure in this head that is about the RUN
    rather than about the call, so it sits apart from the clock, in the
@@ -5960,15 +5930,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* ON AIR, IN THE COLOUR THE LIVE DOT ALREADY USES. `is-on` is the accent
    state the other tools carry for "this is doing something"; recording is
    doing something to somebody else, so it takes the same red as the timer's
-   live dot and the End button rather than the surface's own accent. */
+   live dot and the End button rather than the surface's own accent. That red
+   is `--err` now, which is what the dot was using all along. */
 .call-tool.is-rec {
-  color: var(--hangup-fill);
-  border-color: color-mix(in srgb, var(--hangup-fill) 40%, transparent);
-  background: color-mix(in srgb, var(--hangup-fill) 16%, transparent);
+  color: var(--err);
+  border-color: color-mix(in srgb, var(--err) 40%, transparent);
+  background: color-mix(in srgb, var(--err) 16%, transparent);
 }
 .call-tool.is-rec:hover {
-  background: color-mix(in srgb, var(--hangup-fill) 16%, transparent);
-  color: var(--hangup-fill);
+  background: color-mix(in srgb, var(--err) 16%, transparent);
+  color: var(--err);
 }
 .call-tool.is-rec svg { fill: currentColor; }
 
@@ -5996,18 +5967,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the space between it. */
 .call-line { font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-relaxed); }
 .call-line.is-them { color: var(--ink-muted); }
-.call-who {
-  display: block; font-weight: var(--fw-bold); color: var(--ink-muted);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-}
+/* WHO SAID IT, IN THEIR OWN CASE. It was uppercase with the caption's wide
+   tracking, which is this build's treatment for a LABEL — a word naming a
+   field. This is not one: it is a person's name, and a name set in capitals
+   is being shouted rather than ranked. The tracking went with the capitals,
+   because letters are spaced out to make caps readable and sentence case
+   does not want it.
+
+   The rank is carried by weight alone now, which is what is left when case
+   goes and is enough: bold against the regular line under it, at the same
+   size and the same colour. */
+.call-who { display: block; font-weight: var(--fw-bold); color: var(--ink-muted); }
 /* The transcript's empty state is in the transcript, so it is set like it. */
 .call-none { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-relaxed); }
-/* This one is NOT in the transcript — it sits above it, under the number,
-   and it is a disclosure about the build rather than something said on the
-   call. It takes `.call-none`'s size from the rule above and gives back the
-   leading: four tight lines of a paragraph nobody is reading mid-call is a
-   wall, where the same words at normal leading are a note. */
-.call-fixture { line-height: var(--lh-base); margin-top: 8px; }
 
 /* ── The handlers: round icon targets, centred, in the order every phone
    uses. Centred rather than stretched because a round button that grows to
@@ -6053,8 +6025,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
   flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
   width: 44px; height: 44px;
-  border-radius: 50%; border: 1px solid var(--hangup-fill);
-  background: var(--hangup-fill); color: #fff; cursor: pointer;
+  border-radius: 50%;
+  /* ══ THE FAMILY'S RED, AND ONE STEP FIRMER THAN RECORDING ═════════
+     `.call-tool.is-rec` is this exact recipe — `--err` as glyph, a 40%
+     edge, a 16% wash — and the two sit in the same row of the same size.
+     A red circle beside a red circle is a row with two of something, so
+     the edge goes to full strength here and the wash up two points.
+     Recording is a state you can turn off; this is the one press on the
+     panel you cannot take back, and it is drawn as the firmer of the two
+     rather than the louder. The glyphs differ as well: a filled dot, and
+     a handset with a line through it. */
+  border: 1px solid var(--err);
+  background: color-mix(in srgb, var(--err) 18%, transparent);
+  color: var(--err); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast);
 }
 .call-end svg { width: 20px; height: 20px; }
@@ -6062,10 +6045,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
    `#d92d20`, which is what `--err` resolves to in LIGHT — so in light theme
    the hover and the resting state were the same colour and the one control
    that hangs up on a person had no feedback at all. */
-.call-end:hover {
-  background: color-mix(in srgb, var(--hangup-fill) 88%, #000);
-  border-color: color-mix(in srgb, var(--hangup-fill) 88%, #000);
-}
+/* The wash deepens rather than the fill darkening — there is no fill left to
+   darken, and a tint that gains weight under the cursor is the same gesture
+   the outlined tools make with `--accent-dim`. */
+.call-end:hover { background: color-mix(in srgb, var(--err) 30%, transparent); }
 .call-end:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* ══ START CALL TAKES END'S PLACE, AND ITS SHAPE ══════════════════════════
@@ -6098,6 +6081,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
    panel offers. */
 .call-go {
   background: var(--brand);
+  /* White, and stated rather than inherited. `.call-end` is a tinted circle
+     now and its `color` is `--err`; this shares that rule for its geometry
+     and shares nothing else. Left unsaid, the one affirmative control on the
+     panel drew its label and its handset in the colour of hanging up. */
+  color: #fff;
   flex: 1 1 100%; order: 1; gap: 8px;
   width: auto; height: auto; min-height: 44px; padding: 8px 12px;
   border-radius: var(--r-md);

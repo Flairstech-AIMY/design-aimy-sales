@@ -16298,6 +16298,13 @@
      THEY said. `Them` rather than their name, because the person who picks
      up a switchboard is not the person you called. */
   function transcriptHtml(c) {
+    /* ══ BEFORE THE CALL THERE IS NO TRANSCRIPT, NOT EVEN A LINE ABOUT ONE ═
+       "Not recording. Nothing is being written down." is a report on a live
+       call: it answers a question you have while talking to somebody. Before
+       Start is pressed nothing is recording because nothing is happening,
+       and saying so is the panel describing the absence of a state. The
+       space it leaves goes to the transcript, which is where it was owed. */
+    if (c.state === 'ready') return '';
     if (!c.recording) {
       return '<p class="call-none">Not recording. Nothing is being written down.</p>';
     }
@@ -16650,13 +16657,24 @@
       '<div class="call-who-top">' +
         '<p class="call-name">' + esc(c.name) + '</p>' +
         '<div class="call-head">' +
-        '<span class="call-live' + (ready ? ' is-ready' : dialing ? ' is-dialing' : '') +
-          '" aria-hidden="true"></span>' +
-        /* The word replaces the clock rather than sitting beside it: a clock
-           reading 0:00 next to "Connecting" is two things saying one thing,
-           and one of them is a number that has not started. */
-        '<span class="call-timer" id="callTimer">' +
-          (ready ? 'Ready to call' : dialing ? 'Connecting…' : (call.held ? 'On hold · ' : '') + fmtClock(call.secs)) + '</span>' +
+        /* ══ NOTHING IS HAPPENING YET, SO NOTHING SAYS SO ══════════════
+           `ready` carried a grey dot and the words "Ready to call", which is
+           the surface reporting the absence of a state. The panel is open,
+           the person's name is on it and the only thing in the row below is
+           a button that says Start call — three things already saying the
+           call has not begun, and this was a fourth in the loudest position.
+
+           Live, there is something to report and the clock reports it. That
+           is the whole of what this line is for. */
+        (ready ? '' :
+          '<span class="call-live' + (dialing ? ' is-dialing' : '') +
+            '" aria-hidden="true"></span>' +
+          /* The word replaces the clock rather than sitting beside it: a
+             clock reading 0:00 next to "Connecting" is two things saying one
+             thing, and one of them is a number that has not started. */
+          '<span class="call-timer" id="callTimer">' +
+            (dialing ? 'Connecting…' : (call.held ? 'On hold · ' : '') + fmtClock(call.secs)) +
+          '</span>') +
         (call.auto
           ? '<span class="work-state ws-drafted" data-work-state="drafted">AiMY placed it</span>'
           : '') +
@@ -16672,28 +16690,6 @@
            own phone number has the same problem. */
         (c.phone && c.phone !== c.name
           ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
-        /* ══ A WORKED EXAMPLE HAS TO SAY THAT IT IS ONE ════════════════════
-           Nothing here dials. The transcript grows a line at a time from a
-           script chosen by the person's own hidden `fate`, and it grows at
-           the speed a real one would — which is the point of it and also the
-           problem: on screen it is indistinguishable from a transcription of
-           a conversation that happened, and AiMY then reads it and lights an
-           outcome off it. A reader who takes that for a recording is being
-           misled by the one part of this build that is not derived from the
-           record.
-
-           Said ONCE, in `ready`, under the number that is not going to be
-           dialled: it is the state every call passes through, it is the
-           screen where Start is pressed, and it is the only one with room.
-           A chip repeating it over every line of a running call would be
-           noise on the surface this build exists to keep quiet.
-
-           And it ends where the real call is, because the `tel:` link on the
-           record is not a fixture — it is the one genuine handoff in here. */
-        (ready
-          ? '<p class="call-none call-fixture">Nothing is dialled here — this call and its ' +
-            'transcript are a worked example. The number on the record dials for real.</p>'
-          : '') +
       '</div>' +
 
       /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —

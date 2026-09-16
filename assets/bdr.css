@@ -3696,12 +3696,6 @@
 .call-none { color: var(--ink-muted); }
 .call-who { color: var(--ink-muted); }
 
-/* The notice that this call is a worked example. It is a `.call-none` — the
-   panel's own quiet voice, already defined above — and all this adds is the
-   gap that separates it from the phone number it is about. A second colour
-   or a border would make a disclaimer of it; it is a caption. */
-.call-fixture { margin-top: 10px; }
-
 /* The way back and the way out at opposite edges of one line. The back
    button carries its own bottom margin for the pages that use it bare; in
    here the row owns the spacing. */
@@ -5264,51 +5258,58 @@
 }
 
 /* ── Answer and decline ──
-   Filled circles, because these are the two most consequential presses in
-   the build and a ghost button on a card that is already floating reads as
-   optional. The SIGNAL COLOURS ARE FILLS HERE and never text: `--ok` and
-   `--err` measure 4.37:1 and 3.82:1 as small type, which is under the floor,
-   so the glyph on top is white and every word on this card is neutral.
-
-   THE PAIR IS `--answer-fill` / `--hangup-fill`, and it is the rail's too.
-   This was `--ok` over `--err` — a mint and a salmon, the two quietest
-   things in the palette, on the two loudest presses in the build.
-
    Green answers and red refuses because every phone anybody has held for
-   twenty years does, which is the same Jakob's Law argument this component
-   already makes for the handset glyphs themselves.
+   twenty years does — the same Jakob's Law argument this component already
+   makes for the handset glyphs themselves, and the one part of the old note
+   here that survives.
 
-   THE GREEN IS THIS SURFACE'S ALONE, and that is the point of it. `.call-go`
-   in the rail is brand, because dialling somebody you picked off a queue
-   after reading their brief is not the same act as a phone going off in
-   front of you. Green is the colour of a decision somebody else started.
-   `.call-end` IS `--hangup-fill`, though: ending a live call and refusing
-   one that is ringing are the same verb, so they are the same red.
+   THEY WERE SATURATED FILLS WITH A WHITE GLYPH, in a green and a red this
+   product named for itself because `--ok` is a mint and `--err` a salmon and
+   neither can carry white: they measure 1.83:1 and 2.63:1 against it, where
+   a glyph owes 3:1. The fills cleared that floor and the argument for them
+   was entirely that floor.
 
-   Both live in sales.css beside `--ok-text` and its siblings — product-local
-   names, not a re-theme of the family — and both are pinned by contrast
-   against the white glyph rather than by taste. The reasoning and the
-   measurements are on the declaration. */
+   Tinted, the measurement runs the other way — the hue against the card
+   rather than white against the hue — and the family's own values clear 3:1
+   there in both themes. So these are `--ok` and `--err` now, as glyph and
+   edge over a 16% wash of themselves, which is the treatment this build
+   already uses for a tool that is doing something. Two literals and a
+   product-local name went with them.
+
+   What is lost is loudness: a tinted circle is quieter than a fill, and
+   these are still the two most consequential presses in the build. What is
+   gained is that they theme, and that answer and decline are the same green
+   and red as every other verdict on the surface. `.call-go` in the rail is
+   still brand and still not green — dialling somebody you picked off a queue
+   is not a phone going off in front of you. */
 .b-ring-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .b-ring-btn {
-  width: 40px; height: 40px; border-radius: 50%; border: 0;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #fff; padding: 0;
+  cursor: pointer; padding: 0;
   transition: transform var(--t-press) var(--ease-out),
               background-color var(--t-fast) var(--ease-out);
 }
 .b-ring-btn svg { width: 19px; height: 19px; display: block; }
-.b-ring-btn.is-no { background: var(--hangup-fill); }
+.b-ring-btn.is-no {
+  color: var(--err); border-color: var(--err);
+  background: color-mix(in srgb, var(--err) 16%, transparent);
+}
 /* The handset turned down, which is what declining looks like on every
    phone anybody has held. Rotating the same glyph rather than drawing a
    second one keeps the two buttons visibly one pair. */
 .b-ring-btn.is-no svg { transform: rotate(134deg); }
-.b-ring-btn.is-yes { background: var(--answer-fill); }
-/* Both darken, because both are now saturated fills rather than one fill
-   and one brand: lightening a green that is already close to its contrast
-   floor would push it under. */
-.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--hangup-fill) 88%, #000); }
-.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--answer-fill) 88%, #000); }
+.b-ring-btn.is-yes {
+  color: var(--ok); border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+/* Both deepen their own wash. There is no fill left to darken, and raising
+   the tint keeps the hue — which is the whole of what tells these two
+   buttons apart — at full strength on the glyph while the circle gains
+   weight under the cursor. */
+.b-ring-btn.is-no:hover { background: color-mix(in srgb, var(--err) 30%, transparent); }
+.b-ring-btn.is-yes:hover { background: color-mix(in srgb, var(--ok) 30%, transparent); }
 .b-ring-btn:active { transform: scale(0.94); }
 .b-ring-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
