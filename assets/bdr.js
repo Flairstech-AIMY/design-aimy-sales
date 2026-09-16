@@ -2440,6 +2440,49 @@
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
   let FIG_TICK = false;
+  /* ══ A SURFACE ARRIVES THROUGH A SKELETON; A REPAINT DOES NOT ══════════
+     Set by go() when the surface key actually changed, read by cardGrid()
+     while the page is being built, and put down again at the end of the
+     paint that used it — the same shape FIG_TICK has, and for the same
+     reason: a write and a page of the queue turning must not draw one.
+
+     Nothing in this build waits on data. The skeleton is not covering a
+     fetch, because there is no fetch; it is a wait we choose, so that a
+     surface resolves into place rather than being there before the eye has
+     followed the press. That makes its length a design value rather than a
+     measurement, which is why it lives in bdr.css with the rest of them and
+     is read back out rather than written twice. */
+  let SKEL_ON = false;
+  let SKEL_T = null;
+  /* The card's anatomy, not a generic block: a step tag, a name, a role, two
+     fact lines, the AiMY note and a foot. `.s-skel-card` and `.s-skel-line`
+     are sales.css's and are used here rather than restated — they were
+     written for exactly this and had never been rendered. */
+  const SKEL_BAR = (h, w, extra) =>
+    '<div class="s-skel-line skeleton" style="height:' + h + 'px;width:' + w + '%' + (extra || '') + '"></div>';
+  const skelCard = () =>
+    '<div class="b-skel s-skel-card" aria-hidden="true">' +
+      SKEL_BAR(18, 38) + SKEL_BAR(22, 62, ';margin-top:4px') + SKEL_BAR(13, 46) +
+      SKEL_BAR(13, 80) + SKEL_BAR(13, 70) + SKEL_BAR(40, 100, ';margin-top:4px') +
+      '<div class="s-skel-line skeleton is-meta" style="height:26px;width:100%"></div>' +
+    '</div>';
+  /* ONE BOX, TWO STATES. The slot is what the grid lays out, so the skeleton
+     can be pinned to exactly the card's own rectangle without measuring it —
+     and the slot is a grid rather than a block so the card still stretches to
+     the row the way `align-items: stretch` already made it, instead of being
+     given a height of its own, which is the bug §1 records. */
+  /* THE PLACE IN THE CASCADE IS THE SLOT'S, NOT THE CARD'S. Three of the four
+     card renderers wrote `--i` for themselves and the list's did not, so the
+     lists surface was the one grid that arrived all at once — every card at
+     delay zero, because the rule falls back to 0 when nothing sets it. The
+     slot has the index already and a custom property inherits, so writing it
+     here gives all four the same cascade and leaves the renderers that set
+     their own agreeing with it rather than fighting it. Capped at eight in
+     the same breath as the rule that reads it. */
+  const cardGrid = (rows, fn) => '<div class="b-grid">' +
+    rows.map((r, i) => '<div class="b-slot" style="--i:' + Math.min(i, 8) + '">' +
+      (SKEL_ON ? skelCard() : '') + fn(r, i) + '</div>').join('') +
+    '</div>';
   function save() {
     FIG_TICK = true;
     if (saveTimer) clearTimeout(saveTimer);
@@ -2911,6 +2954,20 @@
     if (!want) BACK_GUARD = false;
   }
 
+  /* ══ WHAT COUNTS AS A DIFFERENT SURFACE ══════════════════════════════════
+     Written once and read twice — once before the paint to remember where we
+     were, once after it to ask whether that changed — because two copies of
+     this list are two chances for them to disagree about what a new surface
+     is, and the arrival and the skeleton both hang off the answer.
+
+     THE DESK IS PART OF IT. `?as=` was not in this key, so changing desk
+     swapped the whole page — the caller's queue for the manager's board, a
+     three-entry tab strip for a five-entry one, a rail with different doors —
+     with no arrival and no skeleton behind it. It is the single change in
+     this build that replaces everything on screen at once, and it was the one
+     change that said nothing while it did so. */
+  const surfaceKey = () => [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+
   function go(over, replace) {
     if (leavingResult(over)) {
       LEAVE = { over: over, replace: !!replace };
@@ -2919,7 +2976,7 @@
       return;
     }
     const wasOn = S.con + '|' + S.camp;
-    const wasSurface = [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+    const wasSurface = surfaceKey();
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
@@ -2928,6 +2985,11 @@
        to see what you asked for. */
     railOpen(false);
     parse();
+    /* Decided before the paint rather than after it, because the grids read
+       it while they are being built: a surface that is changing draws its
+       cards over a skeleton, and a write or a page turn draws them plain. */
+    const fresh = wasSurface !== surfaceKey();
+    SKEL_ON = fresh;
     paint();
     /* ══ A NEW SURFACE ARRIVES; A REPAINT DOES NOT ═════════════════════════
        The page is rebuilt from a string, so opening a person from the queue
@@ -2938,7 +3000,7 @@
        the page it is on, and a page of the queue turning is the same list
        under your hands; animating either would charge attention on the two
        things a caller does most. */
-    if (wasSurface !== [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|')) arrive();
+    if (fresh) arrive();
     /* A NEW SURFACE STARTS AT ITS TOP; A NEW PAGE OF ONE DOES NOT.
        Opening a person from row eleven of the queue landed on their record
        eleven rows down it — the header, the ladder and the whole reason you
@@ -2955,11 +3017,25 @@
     host.classList.remove('is-arriving');
     void host.offsetWidth;
     host.classList.add('is-arriving');
-    /* Taken off again once it has run. Left on, the next repaint's fresh
-       surface would match the rule and arrive too — which is every write and
-       every page of the queue, the two things this must never animate. */
-    clearTimeout(arrive.t);
-    arrive.t = setTimeout(() => host.classList.remove('is-arriving'), 260);
+    /* ══ AND A SURFACE OF CARDS RESOLVES OUT OF A SKELETON ═════════════════
+       Only where cardGrid actually drew one: the diary, the financials and a
+       record are pages of prose and panels, and a skeleton over those would
+       be a placeholder shaped like nothing. Those arrive on `is-arriving`
+       alone, the way they already did.
+
+       ONE ATTRIBUTE, NOT A SECOND PAINT. Both states are in the markup the
+       one paint produced — the skeleton over the card, the card beneath it
+       at nothing — so the handoff is a single write and bdr.css runs it.
+       Painting twice would be a rebuild mid-animation, which is the defect
+       the whole run was fixed for.
+
+       THE LENGTH IS READ, NOT WRITTEN. --t-skel lives with the other motion
+       values in bdr.css §28 and is read back here, so the dwell and the
+       stylesheet cannot drift apart the way the swap step once did. */
+    if (!host.querySelector('.b-skel')) return;
+    host.setAttribute('data-load', 'pending');
+    const dwell = parseFloat(getComputedStyle(host).getPropertyValue('--t-skel')) || 0;
+    SKEL_T = setTimeout(() => { host.setAttribute('data-load', 'done'); }, dwell);
   }
 
   /* ══ 7. PAINTING ════════════════════════════════════════════════════════ */
@@ -2980,11 +3056,58 @@
      the rebuild and settled after it (bdr.css §32). */
   function prePaint() {
     const out = { bar: null, figs: null };
+    /* ══ THE ARRIVAL IS CLEARED HERE, NOT ON A TIMER ══════════════════════
+       `is-arriving` used to be taken off 260ms after it went on. The
+       animations it gates run var(--t-settle) and are staggered eight steps
+       of var(--t-stagger) behind it — 540ms at the far end — so every card
+       past the second was cut off in mid flight, and the stagger this build
+       already had has never once been seen whole. The 260 was also a second
+       copy of a duration that lives in bdr.css, which is precisely how the
+       swap step drifted: the CSS was lengthened and the number in here was
+       not.
+
+       So there is no duration in here any more. The class comes off at the
+       top of the next paint, which is the only moment it has to be gone by.
+       A repaint rebuilds the surface from a string, so whatever was still
+       animating is thrown away regardless — and the fresh nodes must not
+       arrive unless go() has decided the surface actually changed. */
+    const stage = byId('wbStage');
+    if (stage) stage.classList.remove('is-arriving');
+    /* AND THE SKELETON'S HANDOFF IS CALLED OFF HERE TOO. The flip to `done`
+       is a timer against the stage that was standing when it was set, and a
+       caller who navigates again, presses a keyboard verb or opens a record
+       inside the dwell gets a new one built underneath it. Left running, it
+       would write `done` onto a surface that never went pending — revealing
+       cards that are meant to be arriving on their own account, or none at
+       all. Cleared at the top of every paint, which is the one place every
+       route through this build passes. */
+    clearTimeout(SKEL_T);
+    SKEL_T = null;
+    if (stage) stage.removeAttribute('data-load');
     const on = document.querySelector('.b-switch-btn.is-on');
     if (on) out.bar = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
     if (FIG_TICK) {
       out.figs = Object.create(null);
       document.querySelectorAll('[data-fig]').forEach((el) => { out.figs[el.getAttribute('data-fig')] = el.textContent; });
+      /* ══ AND THE ROWS THOSE FIGURES ARE ABOUT ══════════════════════════════
+         A figure ticking says a number moved. It does not say which person it
+         moved for, and the card that person is on is usually on screen while
+         it happens. The cards are read here the same way and under the same
+         arming, so navigating, paging and cutting the queue snapshot nothing
+         and cost nothing — this runs only when a write set FIG_TICK.
+
+         `data-open` IS THE KEY BECAUSE IT IS AN IDENTITY, NOT A PLACE. All
+         four card renderers already carry it, and `con:p361` is the same
+         person whether they are first in the list or ninth — so a row that
+         only moved up because the row above it left is not mistaken for a row
+         that changed. The whole card's text is the signature: the step, the
+         reason line, the number and the dates all live in it, and comparing
+         one string is cheaper and less brittle than deciding in advance which
+         of them counts. */
+      out.rows = Object.create(null);
+      document.querySelectorAll('#wbStage .b-qcard[data-open]').forEach((el) => {
+        out.rows[el.getAttribute('data-open')] = el.textContent;
+      });
     }
     FIG_TICK = false;
     return out;
@@ -3023,6 +3146,57 @@
       if (was === undefined || was === el.textContent) return;
       el.innerHTML = '<span class="b-tick">' + el.innerHTML + '</span>';
     });
+    /* ══ ONLY WHAT CHANGED MOVES ═══════════════════════════════════════════
+       A card is marked when it was on screen before this write and its text
+       is different after it. Everything else is left absolutely alone, which
+       is the point: a caller works one list for an hour, and a surface that
+       reacts all over every time they log a call is a surface they stop
+       reading.
+
+       A ROW THAT IS ONLY NEW IS NOT A ROW THAT CHANGED. `was === undefined`
+       means this person was not in the list a moment ago, which happens when
+       somebody above them left the cut and pulled a name up from the next
+       page. They did not change; the list did. Marking them would be a small
+       lie told often, so they are skipped and only rows with a before AND an
+       after are compared. */
+    if (!pre.rows) return;
+    const moved = [];
+    document.querySelectorAll('#wbStage .b-qcard[data-open]').forEach((el) => {
+      const was = pre.rows[el.getAttribute('data-open')];
+      if (was === undefined || was === el.textContent) return;
+      moved.push(el);
+    });
+    markChanged(moved);
+  }
+  /* ══ THE TINT IS sales.css's, AND IT HAS NEVER BEEN RENDERED ══════════════
+     `.s-changed` has been sitting in sales.css since it was written, with its
+     own argument above it — that a toast is a receipt saying something
+     happened somewhere else, and this says WHERE. It is used rather than
+     restated, including its reduced-motion case, where the tint holds instead
+     of fading so the signal survives and only the movement goes.
+
+     TWO CLASSES, TWO FRAMES APART, AND NO TIMER BEHIND THEM. `.s-changed` is
+     the tint and `.is-settling` is the instruction to leave. Put on in the
+     same tick the browser folds them into one style computation and nothing
+     transitions — the tint is never drawn, the row goes straight to
+     transparent, and a write reports itself by doing nothing visible.
+
+     A timeout is the wrong net for that, and was the first thing written
+     here. It raced the frames it was meant to back up: in a tab that is not
+     drawing, the timer is the ONLY thing that fires, so it settled a tint
+     that had never been painted — measured, a marked row computing straight
+     to transparent — and in a tab that is drawing it would do the same
+     whenever two frames took longer than the timer.
+
+     There is no timer now. A tab that is not drawing holds the tint until it
+     draws again, which is what should happen anyway: the reader comes back
+     and sees what changed while they were away, and the pair of frames that
+     settles it runs when there are frames to run in. */
+  function markChanged(els) {
+    if (!els.length) return;
+    els.forEach((el) => el.classList.add('s-changed'));
+    requestAnimationFrame(() => requestAnimationFrame(
+      () => els.forEach((el) => el.classList.add('is-settling'))));
   }
   function paint() {
     if (VOICE) micStop();
@@ -3066,6 +3240,9 @@
     paintProto();
     guardBack();
     postPaint(pre);
+    /* Put down by the paint that used it, so the next one — a write, a page
+       of the queue — draws its cards plain unless go() says otherwise. */
+    SKEL_ON = false;
     if (byId('aimyOverlay').classList.contains('open')) { paintBasis(); paintChats(); }
   }
 
@@ -3546,7 +3723,7 @@
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
         : '<p class="b-vfoot">Nobody is buying from you yet. A deal marked Won lands here.</p>';
     }
-    return '<div class="b-grid">' + rows.map(custCard).join('') + '</div>';
+    return cardGrid(rows, custCard);
   }
 
   function qgrid(rows, emptyText) {
@@ -3563,7 +3740,7 @@
             ? ' <button class="s-inline-btn" type="button" data-q="all">Show everyone</button>'
             : '') + '</p>';
     }
-    return '<div class="b-grid">' + rows.map(qcard).join('') + '</div>';
+    return cardGrid(rows, qcard);
   }
 
   /* ══ WHAT AiMY KNOWS ABOUT THIS ONE ═════════════════════════════════════
@@ -3908,7 +4085,7 @@
   }
   function cgrid(rows) {
     if (!rows.length) return '<p class="b-vfoot">You are on no campaign.</p>';
-    return '<div class="b-grid">' + rows.map(ccard).join('') + '</div>';
+    return cardGrid(rows, ccard);
   }
 
   /* What AiMY makes of a campaign, off its own calls. Ranked by what would
@@ -4036,7 +4213,7 @@
       return '<p class="b-vfoot">You have not built one yet. ' +
         '<button class="s-inline-btn" type="button" data-bopen>Find leads</button></p>';
     }
-    return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
+    return cardGrid(rows, lcard);
   }
 
   /* ══ A BOOLEAN, BECAUSE THAT IS ALL IT EVER ASKED ═════════════════════
@@ -10694,6 +10871,11 @@
     }
     const dot = byId('pipeDot');
     if (dot) dot.classList.toggle('done', finished);
+    /* The card wears the same signal, because bdr.css hangs the compositor
+       hints off it: the ribbon, its head and the four pins are promoted for
+       the length of the run and handed back the moment it ends. */
+    const card = byId('pipeCard');
+    if (card) card.classList.toggle('done', finished);
 
     /* A CLASS, NOT A REWRITE. Two classes decide everything a step looks
        like, and both the time and the sentence it ends on are already in the
@@ -10768,7 +10950,7 @@
           PIPE.stages.map((x) =>
             '<div class="pipe-step" id="pipeStep-' + esc(x.id) + '" ' +
               'style="flex-grow:' + x.duration + '">' +
-              '<span class="pipe-pin"></span>' +
+              '<span class="pipe-pin">' + pipeCheck(9) + '</span>' +
               '<span class="pipe-step-body">' +
                 '<span class="pipe-step-row">' +
                   '<span class="pipe-step-label">' + esc(x.label) + '</span>' +
@@ -16375,7 +16557,16 @@
 
   function paintCall() {
     const host = byId('callPanel');
+    /* ══ THE SHELL ARRIVES ONCE, AND IT SAYS SO WITHOUT A FLAG ═════════════
+       A call goes through four states and each repaints this panel, so the
+       column would have arrived four times over — at Start, at connected, at
+       logging — which is the repaint defect in miniature on the surface least
+       able to afford it. The host is `hidden` whenever there is no call, so
+       the paint that finds it hidden AND has a call to draw is the mount,
+       and every paint after it is not. Nothing else needs to be remembered. */
+    const mounting = host.hidden && !!DB.call;
     host.hidden = !DB.call;
+    host.classList.toggle('is-opening', mounting);
     host.innerHTML = DB.call ? callPanel() : '';
   }
 
@@ -17626,18 +17817,25 @@
     return Array.prototype.slice.call(list.querySelectorAll('.ntf-row-cta'));
   }
 
-  function isOpen() { return !panel.hidden; }
+  /* A PANEL ON ITS WAY OUT IS NOT AN OPEN PANEL. It stays un-hidden while
+     the exit runs, so `!panel.hidden` alone would call it open and pressing
+     the bell again during a close would shut it a second time rather than
+     bringing it back. */
+  function isOpen() { return menuIsOpen(panel); }
 
   function openPanel() {
     render();
-    panel.hidden = false;
+    menuOpen(panel);
     bell.setAttribute('aria-expanded', 'true');
     var first = ctas()[0];
     if (first) first.focus();
   }
 
+  /* The bell's own state and the focus go back at once; only the panel takes
+     the exit. A reader who pressed Escape has said where they want to be, and
+     making the focus wait on an animation is how a keyboard user loses it. */
   function closePanel(returnFocus) {
-    panel.hidden = true;
+    menuShut(panel);
     bell.setAttribute('aria-expanded', 'false');
     if (returnFocus) bell.focus();
   }
@@ -22020,12 +22218,17 @@
          wrong for every other menu on the page — two could sit over each
          other, and the one underneath was still live. */
       shutMenus(panel);
-      panel.hidden = !panel.hidden;
+      /* A MENU ON ITS WAY OUT IS NOT AN OPEN MENU. It stays un-hidden while
+         the exit runs, so `!panel.hidden` would have called it open: pressing
+         the opener again during a close would have shut it a second time
+         rather than bringing it back, and the measuring below would have run
+         against something already leaving. */
+      if (menuIsOpen(panel)) menuShut(panel); else menuOpen(panel);
       const find = panel.querySelector('[data-picksearch]');
-      if (!panel.hidden && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }
+      if (menuIsOpen(panel) && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }
       /* A MENU THAT WOULD RUN OFF THE EDGE HANGS THE OTHER WAY. Measured
          after it is shown, because a hidden element has no width. */
-      if (!panel.hidden && panel.classList.contains('b-menu')) {
+      if (menuIsOpen(panel) && panel.classList.contains('b-menu')) {
         panel.classList.remove('is-right', 'is-up');
         panel.style.maxHeight = '';
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
@@ -22706,8 +22909,63 @@
     }
   }
 
+  /* ══ A MENU LEAVES RATHER THAN VANISHING ═══════════════════════════════
+     `hidden = true` is one frame, and bdr.css §47 now gives these an exit.
+     The class starts it and the stylesheet owns its length, so there is no
+     duration in here to drift out of step with the one over there.
+
+     THE SHUT IS NUMBERED BECAUSE IT CAN BE OVERTAKEN. A menu on its way out
+     can be reopened before it has finished going, and the handlers from the
+     first shut are still pending when that happens: an `animationend` that
+     would arrive at the end of the OPEN and hide a menu somebody has just
+     asked for, and a net that would do the same a moment later. Opening
+     bumps the count, and a shut that is no longer the current one does
+     nothing at all.
+
+     A READER WITH MOTION OFF IS NOT MADE TO WAIT, and neither is a surface
+     with no exit to run: with no animation nothing fires `animationend`, so
+     the net would BE the close. Both are hidden outright instead.
+
+     TWO SURFACES LEAVE THIS WAY, and they are named rather than marked. A
+     class existing only for JS to read would be a class the audit finds
+     defined nowhere, and a data attribute would be one it finds drawn and
+     unhandled; both would be scaffolding invented to avoid naming two things
+     that are easy to name. If a third ever wants an exit, it goes in here. */
+  function menuIsOpen(m) { return !!m && !m.hidden && !m.classList.contains('is-closing'); }
+  function menuOpen(m) {
+    m._shutId = (m._shutId || 0) + 1;
+    clearTimeout(m._shutT);
+    if (m._shutH) { m.removeEventListener('animationend', m._shutH); m._shutH = null; }
+    m.classList.remove('is-closing');
+    m.hidden = false;
+  }
+  function menuShut(m) {
+    if (!m || m.hidden || m.classList.contains('is-closing')) return;
+    const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const leaves = m.classList.contains('b-menu') || m.classList.contains('ntf-panel');
+    if (still || !leaves) { m.hidden = true; return; }
+    const id = (m._shutId = (m._shutId || 0) + 1);
+    /* ANIMATIONEND BUBBLES, so a row inside the menu finishing an animation
+       of its own would arrive here and hide the menu early. Only the menu's
+       own event counts. The listener cannot be `once` for the same reason —
+       a child's event would spend it — so it is taken off by hand, here and
+       in menuOpen. */
+    const done = (e) => {
+      if (e && e.target !== m) return;
+      if (m._shutId !== id) return;
+      clearTimeout(m._shutT);
+      m.removeEventListener('animationend', done);
+      m._shutH = null;
+      m.classList.remove('is-closing');
+      m.hidden = true;
+    };
+    m.classList.add('is-closing');
+    m._shutH = done;
+    m.addEventListener('animationend', done);
+    m._shutT = setTimeout(done, 700);
+  }
   function shutMenus(keep) {
-    document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) m.hidden = true; });
+    document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) menuShut(m); });
   }
   document.addEventListener('click', (e) => {
     if (e.target.closest && (e.target.closest('.b-menu') || e.target.closest('[data-pickopen]'))) return;
