@@ -16557,7 +16557,16 @@
 
   function paintCall() {
     const host = byId('callPanel');
+    /* ══ THE SHELL ARRIVES ONCE, AND IT SAYS SO WITHOUT A FLAG ═════════════
+       A call goes through four states and each repaints this panel, so the
+       column would have arrived four times over — at Start, at connected, at
+       logging — which is the repaint defect in miniature on the surface least
+       able to afford it. The host is `hidden` whenever there is no call, so
+       the paint that finds it hidden AND has a call to draw is the mount,
+       and every paint after it is not. Nothing else needs to be remembered. */
+    const mounting = host.hidden && !!DB.call;
     host.hidden = !DB.call;
+    host.classList.toggle('is-opening', mounting);
     host.innerHTML = DB.call ? callPanel() : '';
   }
 

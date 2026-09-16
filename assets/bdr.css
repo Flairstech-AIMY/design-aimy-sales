@@ -5197,6 +5197,38 @@
   from { opacity: 0; transform: translate3d(0, -14px, 0) scale(0.97); filter: blur(3px); }
   to { opacity: 1; transform: none; filter: blur(0); }
 }
+/* ══ AND THE CALL COLUMN ARRIVES FROM THE EDGE IT CAME FROM ════════════════
+   Pressing Call put a 300px column into the flex row and the page was simply
+   narrower on the next frame. The column itself arrives now — eight pixels
+   in from the right, 200ms, on the same curve as everything else. From the
+   right rather than from below, for the reason the ring comes down from the
+   top: it entered at that edge, and an entrance that ignores where a thing
+   came from is a fade with extra steps.
+
+   ONLY THE COLUMN, AND ONLY ONCE. The page narrowing around it is a layout
+   change — a flex sibling appearing and a composer recomputing its width off
+   --fb-reserve — and there is no honest way to tween that. Animating a width
+   is layout on every frame, and FLIPping it means scaling live text
+   horizontally for a quarter of a second. It is a cut, and it should be.
+
+   The canvas behind it does not move either, though `body.is-calling` shifts
+   it 300px. `.aimy-overlay` carries backdrop-filter: blur(28px) over the
+   whole viewport, and §93 already says why that cannot be animated: moving
+   it re-samples the entire shell every frame. A jump is cheaper than that,
+   and the canvas is on its way out of the reader's attention anyway.
+
+   `is-opening` is put on for the paint that mounts the panel and taken off
+   by the next one, so the four state changes a call goes through — ready,
+   connecting, live, logging — rebuild it without it arriving again. It goes
+   on `#callPanel` itself, which IS the column: the host carries `.app-call`
+   rather than containing it, so this is one element and not a descendant. */
+.app-call.is-opening {
+  animation: b-call-in var(--t-base) var(--ease-out) both;
+}
+@keyframes b-call-in { from { opacity: 0; transform: translateX(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .app-call.is-opening { animation: none; }
+}
 .b-ring.is-leaving {
   animation: b-ring-out var(--t-open) var(--ease-out) forwards;
   pointer-events: none;
