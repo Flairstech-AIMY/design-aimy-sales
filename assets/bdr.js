@@ -2471,10 +2471,10 @@
        against the measurement, the way the shares above it were. */
     const MISSED_SHARE = 14;
     const MISSED_NOTE = [
-      'They rang. Nobody picked up.',
+      'They called. Nobody picked up.',
       'Missed their call.',
       'They called in while you were out.',
-      'Rang twice. No answer this end.',
+      'Called twice. No answer this end.',
     ];
     /* ══ AND TWO IN FIVE OF THEM LEFT A MESSAGE ══════════════════
        Which changes what the row can say. `ringRead` INFERS why somebody was
@@ -2502,10 +2502,10 @@
       }
       if (owed) {
         return 'Hi, ' + first + at + '. Just checking you still have ' + owed +
-          ' in hand. Give me a ring when you get this.';
+          ' in hand. Give me a call when you get this.';
       }
       return [
-        'Hi, it is ' + first + at + '. Nothing urgent, but give me a ring back.',
+        'Hi, it is ' + first + at + '. Nothing urgent, but give me a call back.',
         'Hi, ' + first + ' here' + at + '. I had a question about what you sent.',
         'Hi, ' + first + at + '. Can you call me back? I would rather not do this by email.',
       ][h2 % 3];
@@ -5547,13 +5547,19 @@
        saying nothing — `openLoop`'s rule, and the reason it is worth opening
        on a quiet day. */
     if (!calls.length) {
-      return '<p class="b-vfoot">Nobody has rung you and gone unanswered. ' +
+      return '<p class="b-vfoot">Nobody has called you and gone unanswered. ' +
         'Every call that came in got taken.</p>';
     }
-    return aimyBlock({ text: '<b>' + esc(plural(calls.length, 'person')) + '</b> rang and ' +
+    /* ══ BARE, BECAUSE THE BASIS IS THE PAGE ════════════════════
+       A `from` earns its line where a reading could have come from several
+       places and the reader needs telling which. Here it said "the record
+       against each number" directly above a list of numbers each carrying a
+       line off its own record — naming, in a quieter type, the thing the
+       reader is already looking at. The mark says it is AiMY's; the page says
+       what it read. */
+    return aimyBlock({ text: '<b>' + esc(plural(calls.length, 'person')) + '</b> called and ' +
         'nobody picked up. Where there is something on their record worth knowing ' +
-        'before you ring back, it is under their number.',
-      from: 'the record against each number' }) +
+        'before you call back, it is under their number.' }, true) +
       '<div class="b-log">' + logDays(calls, (t) => t.at, (t, i) => {
         const c = DB.byCon[t.con];
         if (!c) return '';
@@ -5594,10 +5600,11 @@
       return '<p class="b-vfoot">Every meeting that has been and gone has been ' +
         'written up.</p>';
     }
+    /* Bare for the reason the calls tab is: the rows under it are the diary
+       against the record, so the strip would be labelling the list. */
     return aimyBlock({ text: '<b>' + esc(plural(meets.length, 'meeting')) + '</b>' +
         (meets.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the ' +
-        'record. Say how it went in a sentence and AiMY writes it up.',
-      from: 'the diary against the record' }) +
+        'record. Say how it went in a sentence and AiMY writes it up.' }, true) +
       '<div class="b-log">' + logDays(meets, (m) => m.iso, (m, i) => {
         const kind = (MEET_KIND[m.kind] || MEET_KIND.meeting).label;
         return logRow({
@@ -16468,7 +16475,10 @@
         '<button class="proto-link" type="button" data-inbound="anon">' +
           'A stranger calls in, and will not say</button>' +
         '<button class="proto-link" type="button" data-quiet>' +
-          (UI.quiet ? 'Ring out loud' : 'Ring silently') + '</button>' +
+          /* Not "ring": the verb in this product is always call, and this
+             control is about the SOUND rather than about phoning anybody, so
+             the old label was reaching for the wrong word twice over. */
+          (UI.quiet ? 'Sound on' : 'Sound off') + '</button>' +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
