@@ -1674,11 +1674,19 @@
   transform-origin: left center; transition: transform 160ms var(--ease-out);
   pointer-events: none;
 }
-.b-tick { display: inline-block; animation: b-tick var(--t-settle) var(--ease-out) both; }
+/* The blur is split off and given no fill, for the reason §67 sets out: a
+   `forwards` fill holds the INTERPOLATED end of a filter, and interpolating
+   toward `none` means interpolating toward blur(0px) — which is a composited
+   layer and grey-edged text kept for as long as the element lives. Ending
+   with no fill lets it fall back to having no filter at all. */
+.b-tick { display: inline-block;
+  animation: b-tick var(--t-settle) var(--ease-out) both,
+             b-tick-blur var(--t-settle) var(--ease-out); }
 /* 4px and 2px: a mark appearing in place travels the swap distance, not the
    slide distance, and softens by the swap's blur. 5 and 4 were off every
    step of both scales. */
-@keyframes b-tick { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes b-tick { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes b-tick-blur { from { filter: blur(2px); } }
 @media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }
 
 /* ══ 33. A NEW TURN ARRIVES ════════════════════════════════════════════════
@@ -1686,8 +1694,13 @@
    already in place. It comes up 6px through 4px of blur now, 200ms, and
    nothing already read moves. The read-back card is a turn, so it arrives
    the same way. */
-.chat-msg.b-arrive { animation: b-arrive 200ms var(--ease-out) both; }
-@keyframes b-arrive { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+/* Split for the same reason as §67 and the tick above: the rise fills, the
+   blur does not, so a turn that has arrived is not left holding a layer for
+   the life of the conversation it is in. */
+.chat-msg.b-arrive { animation: b-arrive 200ms var(--ease-out) both,
+                                b-arrive-blur 200ms var(--ease-out); }
+@keyframes b-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes b-arrive-blur { from { filter: blur(4px); } }
 @media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }
 
 :root {
@@ -1802,7 +1815,8 @@
 .s-pick-tick .s-tick:checked::after { clip-path: inset(0 0 0 0); }
 .s-pick-tick .s-tick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-.b-gate { animation: b-arrive 200ms var(--ease-out) both; }
+.b-gate { animation: b-arrive 200ms var(--ease-out) both,
+                     b-arrive-blur 200ms var(--ease-out); }
 
 @media (prefers-reduced-motion: reduce) {
   .s-call::details-content, .s-trace::details-content,
@@ -3367,13 +3381,37 @@
    which only runs when the surface key changed — so a write and a page of
    the queue turning draw their cards plain, exactly as before. */
 #wbStage[data-load] .b-qcard { opacity: 0; }
+/* ══ THE BLUR IS ITS OWN ANIMATION, AND IT DOES NOT FILL ═══════════════════
+   Writing `filter: none` in the last frame is not the same as ending with no
+   filter. To interpolate from blur(4px) the browser reads that `none` as
+   blur(0px), and a `forwards` fill then holds the INTERPOLATED value — so
+   every card finished the arrival still carrying blur(0px). Measured here
+   before it was split: the computed filter on a settled card was blur(0px),
+   not none.
+
+   A zero blur is not free. It keeps the card on its own composited layer and
+   its text on grey antialiasing for as long as the card lives, which on this
+   surface is fifteen cards held that way for the life of the page — for an
+   effect that finished in a fifth of a second.
+
+   So the rise and the blur are two animations. The rise fills both ways,
+   because the card has to be down and invisible through its stagger delay
+   and settled after it. The blur fills neither way, so the moment it is over
+   the card falls back to the filter its own rule gives it, which is none at
+   all. Knowledge's entry animation is split for the same reason and says so
+   at knowledge.css:1270. */
 #wbStage[data-load="done"] .b-qcard {
-  animation: b-card-in var(--t-settle) var(--ease-out) both;
+  animation: b-card-in var(--t-settle) var(--ease-out) both,
+             b-card-blur var(--t-settle) var(--ease-out);
   animation-delay: calc(min(var(--i, 0), 8) * 30ms);
 }
 @keyframes b-card-in {
-  from { opacity: 0; transform: translateY(6px); filter: blur(var(--blur-arrive)); }
-  to   { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+/* No `to`, on purpose: the end is whatever the card already is. */
+@keyframes b-card-blur {
+  from { filter: blur(var(--blur-arrive)); }
 }
 /* Frozen, not removed. The skeleton is a state rather than a motion, so it
    still stands and still hands over — it simply does not fade, and the cards

@@ -2471,8 +2471,17 @@
      and the slot is a grid rather than a block so the card still stretches to
      the row the way `align-items: stretch` already made it, instead of being
      given a height of its own, which is the bug §1 records. */
+  /* THE PLACE IN THE CASCADE IS THE SLOT'S, NOT THE CARD'S. Three of the four
+     card renderers wrote `--i` for themselves and the list's did not, so the
+     lists surface was the one grid that arrived all at once — every card at
+     delay zero, because the rule falls back to 0 when nothing sets it. The
+     slot has the index already and a custom property inherits, so writing it
+     here gives all four the same cascade and leaves the renderers that set
+     their own agreeing with it rather than fighting it. Capped at eight in
+     the same breath as the rule that reads it. */
   const cardGrid = (rows, fn) => '<div class="b-grid">' +
-    rows.map((r, i) => '<div class="b-slot">' + (SKEL_ON ? skelCard() : '') + fn(r, i) + '</div>').join('') +
+    rows.map((r, i) => '<div class="b-slot" style="--i:' + Math.min(i, 8) + '">' +
+      (SKEL_ON ? skelCard() : '') + fn(r, i) + '</div>').join('') +
     '</div>';
   function save() {
     FIG_TICK = true;
