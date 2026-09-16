@@ -1741,6 +1741,15 @@ body {
    the conversation drawer's scrim, which is right — a drawer standing over
    the canvas covers the canvas's own controls with it. */
 .overlay-close { z-index: 10; }
+/* AND THE BADGE, for the same reason and it was missed. `.overlay-badge` comes
+   from aimy-ds.css with no `z-index`, which is `auto` — the same level the
+   thread paints on, and the thread paints later. The × beside it was raised
+   when this was found; the badge was not, so a bubble scrolling under the
+   header still passes over it. Nothing presses a badge, so this is not a lost
+   control — it is a label a message slides across, which reads as a rendering
+   fault. Same 10, so the pair stay on one level and the drawer's scrim at 20
+   still covers both. */
+.overlay-badge { z-index: 10; }
 
 /* Present at every width, painted at none of them until the drawer exists. */
 .ov-chats-scrim { display: none; }
@@ -1896,6 +1905,26 @@ body.is-calling { --fb-reserve: var(--call-width); }
    it cannot disturb the thread's flex layout. Not in the design system; QA
    and Knowledge both had to build it locally, which is the argument for the
    system owning it (../GAPS.md). */
+/* ══ AND IT LEAVES ON THE FIRST SCROLL ═══════════════════════════════════
+   Absolute over the thread, which is right at the top of a conversation and
+   wrong once you are reading one. `visibility` rides with the opacity so a
+   faded bar is not still in the tab order — delayed on the way out, flipped at
+   0s on the way in. AiMY Knowledge carries the same pair for the same reason;
+   its canvas also has a badge to hide, and this product removed that already.
+
+   The close button does NOT go with it: a control you need is not chrome you
+   are done with. */
+.aimy-overlay .overlay-context-bar {
+  transition: opacity var(--t-base) var(--ease-out), visibility 0s;
+}
+.aimy-overlay.is-scrolled .overlay-context-bar {
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--t-fast) var(--ease-out), visibility 0s linear var(--t-fast);
+}
+@media (prefers-reduced-motion: reduce) {
+  .aimy-overlay .overlay-context-bar,
+  .aimy-overlay.is-scrolled .overlay-context-bar { transition: none; }
+}
 .overlay-context-bar {
   position: absolute; top: 66px; left: 50%;
   transform: translateX(-50%);
