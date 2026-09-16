@@ -18955,7 +18955,7 @@
         ch++; budget--;
         r.node.nodeValue = r.full.slice(0, ch);
       }
-      if (at < runs.length) { PEEK_RAF = requestAnimationFrame(tick); return; }
+      if (at < runs.length) { peekEnd(); PEEK_RAF = requestAnimationFrame(tick); return; }
       PEEK_RAF = 0;
       if (whenDone) whenDone();
     };
@@ -18981,19 +18981,76 @@
       const chips = host.querySelectorAll('.s-insight-lnk');
       for (let i = 0; i < chips.length; i++) chips[i].style.setProperty('--i', i);
     }
-    body.style.maxHeight = '';
-    const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
-    /* Half a line, not a whole one. The cap is three, so a fourth line is a
-       real fourth line and fades — but an answer that overruns by a few
-       pixels rather than by a line is shown instead, which is the case this
-       guard was written for: a trailing control makes its line taller than
-       the ones above it, and a fade over six pixels promises a canvas full
-       of something already on screen. */
-    if (body.scrollHeight - body.clientHeight > lh / 2) {
-      box.classList.add('is-clipped');
-    } else if (body.scrollHeight > body.clientHeight) {
-      body.style.maxHeight = 'none';
+    /* The cut and its fade are gone with the cap they measured. What is
+       left to do at the end of an answer is the thing the cut used to make
+       unnecessary: put the end of it on screen. The chips land last and are
+       part of the answer, so this runs after them, not before. */
+    peekEnd();
+  }
+
+  /* ══ THE END OF IT IS WHAT YOU WANT TO SEE ═══════════════════════
+     A scroller that holds its position while something is being written into
+     it shows you the top of an answer and hides the part that is arriving.
+     Called on every frame of the stream as well as at the end of it, so the
+     words come up past the seam rather than landing below it.
+
+     `scrollTop` and not `scrollIntoView`: the second one scrolls every
+     ancestor that can scroll, and one of those is the page. */
+  function peekEnd() {
+    const roll = byId('peekRoll');
+    if (!roll) return;
+    roll.scrollTop = roll.scrollHeight;
+    /* And whether there is anything above the lip to have scrolled past.
+       Measured here rather than watched with a listener: the only two things
+       that change it are the roll growing and the roll being scrolled, and
+       both of them come through this function. */
+    const box = peekEl();
+    if (box) box.classList.toggle('is-over', roll.scrollHeight > roll.clientHeight + 1);
+  }
+
+  /* ══ WHAT WAS SAID BEFORE THIS ════════════════════════════════
+     Every turn already in the thread, drawn by the thread's own builder, so
+     the drawer is a window onto the canvas rather than a second rendering of
+     it. The live answer is NOT in here — it is still owed, and it lands in
+     `.b-peek-main` underneath as prose on the card's own ground.
+
+     Six, which is three exchanges. The roll scrolls and the canvas has all
+     of it, so the cap is about how much of the page a drawer may take before
+     it stops being a drawer, not about how much is worth keeping.
+
+     A placeholder turn is skipped: the wait is already drawn once, in the
+     box below, and drawing it twice says two things are being worked out. */
+  function peekPast() {
+    const host = byId('peekPast');
+    if (!host) return;
+    const keep = [];
+    for (let i = TURNS.length - 1; i >= 0 && keep.length < 6; i--) {
+      if (TURNS[i].thinking) continue;
+      keep.unshift(TURNS[i]);
     }
+    host.innerHTML = keep.map(turnHtml).join('');
+  }
+
+  /* ══ THE DRAWER GOES BEHIND THE COMPOSER ══════════════════════
+     One class does the travel; the rest of this is the part a class cannot
+     do. `inert` takes the roll out of the tab order and out of the pointer's
+     reach while it is under the bar — without it, tabbing out of the input
+     walks into an answer nobody can see. And the button says which way it
+     goes, in `aria-expanded` and in words, because a line with no label is a
+     line with no meaning to anyone not looking at it. */
+  function peekShut(on) {
+    const box = peekEl();
+    if (!box) return;
+    box.classList.toggle('is-shut', !!on);
+    const roll = byId('peekRoll');
+    if (roll) { if (on) roll.setAttribute('inert', ''); else roll.removeAttribute('inert'); }
+    const grip = byId('peekGrip');
+    if (grip) grip.setAttribute('aria-expanded', on ? 'false' : 'true');
+    /* `lbl`, not `say` — `say()` is the function that writes a turn to the
+       thread, and a local of that name inside this one shadows it. */
+    const lbl = byId('peekGripSay');
+    if (lbl) lbl.textContent = on ? 'Bring this conversation back' : 'Put this conversation away';
+    if (!on) peekEnd();
   }
 
   /* Stopping fills the words in rather than leaving them half-written. The
@@ -19125,8 +19182,14 @@
     }
     box.hidden = false;
     box.classList.add('is-thinking');
-    box.classList.remove('is-clipped');
-    byId('peekBody').style.maxHeight = '';
+    /* An answer is the one thing that outranks having put the drawer away:
+       you asked for it, so it comes up. Shutting it again is one press, and
+       the press is where you left it. */
+    peekShut(false);
+    /* What is already in the thread, before what is about to be added to it.
+       Drawn now rather than when the answer lands, so the question you just
+       asked is on screen while it is being worked out. */
+    peekPast();
     byId('peekActs').innerHTML = '';
     PEEK_ACTS = '';
     byId('aimyFloatWrap').classList.add('has-peek');
@@ -19225,7 +19288,16 @@
   function peekHide() {
     peekStop();
     const box = peekEl();
-    if (box) { box.hidden = true; box.classList.remove('is-thinking', 'is-clipped'); }
+    if (box) {
+      box.hidden = true;
+      box.classList.remove('is-thinking', 'is-over');
+      /* Put away and dismissed are different states and the second one ends
+         the first: a drawer that is hidden while still holding `is-shut`
+         comes back from the next question already down. */
+      peekShut(false);
+      const past = byId('peekPast');
+      if (past) past.innerHTML = '';
+    }
     const wrap = byId('aimyFloatWrap');
     if (wrap) wrap.classList.remove('has-peek');
   }
@@ -22502,6 +22574,16 @@
     /* Pressing mid-stream does not wait the rest of it out: the answer is
        written whole and only its words are still arriving, so finishing them
        is one assignment and then the canvas has it in full. */
+    /* The handle, and it finishes the answer on the way down. Putting the
+       drawer away while words are still being typed into it leaves a stream
+       running against a box behind the composer; it is written whole and the
+       drawer keeps it, which is what coming back to it should show. */
+    if (t.closest('#peekGrip')) {
+      const box = peekEl();
+      if (box && !box.classList.contains('is-shut')) peekAll();
+      peekShut(box ? !box.classList.contains('is-shut') : true);
+      return;
+    }
     if (t.closest('#peekClose')) { peekAll(); peekHide(); return; }
     /* The card is the door. Mid-thought it does not make you wait — the
        answer is already worked out, so it lands and the canvas opens on it. */
