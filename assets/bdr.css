@@ -2561,37 +2561,35 @@
 .b-peek {
   position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
   display: flex; justify-content: center; pointer-events: none;
-  /* ══ 47e. AND IT IS A DRAWER, WHICH MEANS SOMETHING TO GO BEHIND ═══════
-     Under the bar, not over it. The card used to paint at z-index 2 against
-     a bar that declares none, which is the one arrangement that cannot be
-     collapsed: a thing that is in front of the composer has nowhere to go.
-     One is enough to clear the page and stay under the bar's three.
+  /* ══ 47e. AND IT CAN BE PUT AWAY, WHICH MEANS SOMEWHERE TO PUT IT ═════
+     Under the bar, not over it. The card painted at z-index 2 against a bar
+     that declares none, which is the one arrangement that cannot be
+     collapsed: a thing in front of the composer has nowhere to go. One is
+     enough to clear the page and stay under the bar's three.
 
-     THE CLIP IS THE DRAWER FRONT. Shutting it is a translate, and a
-     translate does not change the box, so the card would slide down out of
-     the card and go on painting over the rows below. The clip ends the
-     element at its own bottom edge, which is the seam — so the part that
-     has gone down is not drawn, and what is left above the seam is exactly
-     the lip. `inset()` with negative sides because the card's shadow lives
-     outside its box and clipping it at the border would cost the lift on
-     three sides to gain it on one. The bottom gets 14 rather than 0: the
-     shadow's own 4/16 needs somewhere to fall at rest, and the bar covers
-     that strip anyway. */
+     THE CLIP IS WHAT MAKES IT A DRAWER. Shutting it is a translate, and a
+     translate does not change the box — so without this the card would
+     slide down out of itself and go on painting over the rows below. The
+     clip ends the element at its own bottom edge, so the part that has gone
+     down is not drawn and what is left above is exactly the lip. `inset()`
+     with negative sides because the shadow lives outside the box and
+     clipping it at the border would cost the lift on three sides to gain it
+     on one. */
   z-index: 1;
-  /* THE LIP IS MEASURED FROM THE BOTTOM OF THE WINDOW, NOT FROM THE BAR.
-     The window reaches --peek-tuck past the seam and the seam is 6, so the
-     lip has to carry both before any of it is above the composer: 40 is the
-     card's 1px border, its 5 of padding, the 26px strip itself, and the 8
-     that goes behind the bar. Set to the strip's own height it landed the
-     handle four pixels off the bar — drawn, and pressed against it. */
-  --peek-lip: 40px;
-  /* How far past its own bottom edge the clip reaches, which is how far into
-     the seam the drawer is still drawn. It has to be in the travel as well
-     as in the clip: the translate lands the card so that exactly --peek-lip
-     of it is inside the window, and a window that is 14px taller than the
-     box leaves 14px of the conversation showing under the handle. Measured,
-     and it read as a line of text trapped in the seam. */
+  /* How far past its own bottom edge the clip reaches — how far into the
+     seam the drawer is still drawn. It has to be in the travel as well as in
+     the clip: the translate lands the card so exactly --peek-lip of it is
+     inside the window, and a window 14px taller than the box leaves 14px of
+     the answer showing under the handle. Measured; it read as a line of text
+     trapped in the seam. */
   --peek-tuck: 14px;
+  /* MEASURED FROM THE BOTTOM OF THE WINDOW, NOT FROM THE BAR. The window
+     reaches --peek-tuck past the seam and the seam is 6, so the lip carries
+     both before any of it is above the composer: 40 is the card's 1px
+     border, its 5 of padding, the 26px strip itself, and the 8 that goes
+     behind the bar. Set to the strip's own height it landed the handle four
+     pixels off the bar — drawn, and pressed against it. */
+  --peek-lip: 40px;
   clip-path: inset(-64px -64px calc(-1 * var(--peek-tuck)) -64px);
 }
 /* The composer is the drawer front, so it has to be in front. The shell
@@ -2633,15 +2631,17 @@
 .b-peek-card {
   pointer-events: all; position: relative;
   width: 100%; max-width: 760px;
-  /* A column, and the order is the drawer's: the lip you pull is at the top
-     where it can be reached when the rest of it is down, and the roll is
-     under it. It was a row — one answer beside one dismiss — which is the
-     arrangement that has no room for a second turn or a handle. */
-  display: flex; flex-direction: column; min-height: 0;
+  /* A column now: the lip you pull, then the answer. It was a row — one
+     answer beside one dismiss — which is the arrangement with nowhere to put
+     a handle that stays reachable once the rest of it is down. */
+  display: flex; flex-direction: column;
   padding: 5px; border-radius: 24px;
-  /* The slide itself. --t-panel is what every other panel in this build
-     opens on, and a drawer is a panel that happens to travel downwards. */
-  transition: transform var(--t-panel) var(--ease-out);
+  /* The slide. --t-panel is what every other panel in this build opens on,
+     and a drawer is a panel that happens to travel downwards. The width
+     travels with it — see the shut rule — on the shorter step, so it is
+     finished while the card is still on its way down. */
+  transition: transform var(--t-panel) var(--ease-out),
+              max-width var(--t-base) var(--ease-out);
   background: var(--composer-skin);
   border: 1px solid var(--composer-edge);
   /* The bar's shadow, at a third. Taking its material was right and taking
@@ -2682,13 +2682,13 @@
 }
 /* ══ THE LIP ═══════════════════════════════════════════════════════════════════════
    The one part of the drawer that is never behind the bar. Shut, this strip
-   IS the drawer — a rounded top edge above the seam with a short line across
-   the middle of it, which is the whole of what Miro shows and the whole of
-   what is needed: something is down there, and it comes up when you pull it.
+   IS the drawer — a rounded top edge above the composer with a short line
+   across the middle of it, which is the whole of what Miro shows and the
+   whole of what is needed: something is down there, and it comes up when you
+   pull it.
 
-   26 plus the card's own 5 of padding is the 31 the collapse translates to.
-   The two numbers are written apart because one is a box and the other is a
-   distance; changing the box means changing --peek-lip to match. */
+   Both controls live up here, because a dismiss that goes down with the
+   drawer is a dismiss you have to open the drawer to reach. */
 .b-peek-lip {
   position: relative; flex: none;
   display: flex; align-items: center; justify-content: flex-end;
@@ -2707,6 +2707,11 @@
   background: none; cursor: pointer;
   transition: background-color var(--t-fast);
 }
+/* Pulled as well as pressed. `touch-action: none` is what makes that true on
+   a touch screen: without it the browser claims a vertical drag for the page
+   scroll and the handle never sees the move. */
+.b-peek-grip { cursor: grab; touch-action: none; }
+.b-peek.is-dragging .b-peek-grip { cursor: grabbing; }
 .b-peek-grip:hover { background: rgba(var(--accent-rgb), 0.07); }
 .b-peek-grip:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 /* --d400 and not a type token: this is a mark, not a word, and it is the one
@@ -2725,104 +2730,43 @@
    take the press meant for the dismiss. */
 .b-peek-x { z-index: 1; }
 
-/* ══ THE ROLL ══════════════════════════════════════════════════════════════════════
-   The card held one answer, clipped at three lines, with a fade that said
-   there was more and a canvas one press away that had it. That was right for
-   a card whose whole content was the last thing said. It is a conversation
-   now — what you asked, what came back, and the turns before it — and a
-   conversation that shows you three lines of its last line is not one.
-
-   So the cut is gone and this scrolls. The old comment argued against
-   exactly this, that a scroller above a text field is a second place to put
-   the wheel; `overscroll-behavior: contain` is the answer it did not have,
-   and the cap keeps it from ever being the tallest thing on the page. */
-.b-peek-roll {
-  flex: 1 1 auto; min-height: 0;
-  overflow-y: auto; overscroll-behavior: contain;
-  max-height: min(42vh, 360px);
-  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+/* Under the hand, nothing is animating and nothing is narrow: the card is at
+   the position the pointer put it, at the width it is read at. Both come back
+   under their own transitions the moment it is let go. */
+.b-peek.is-dragging .b-peek-card {
+  transition: none;
+  max-width: 760px;
 }
-.b-peek-roll::-webkit-scrollbar { width: 4px; }
-.b-peek-roll::-webkit-scrollbar-track { background: transparent; }
-.b-peek-roll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.06); border-radius: 2px; }
-:root[data-theme="light"] .b-peek-roll { scrollbar-color: rgba(16, 24, 40, 0.12) transparent; }
-:root[data-theme="light"] .b-peek-roll::-webkit-scrollbar-thumb { background: rgba(16, 24, 40, 0.12); }
-
-/* ══ AND IT SAYS WHERE IT RUNS OUT ═════════════════════════════════
-   The roll opens at the bottom, so the first thing a long conversation does
-   is cut its earliest line in half against the lip. A scrollbar says it is
-   scrollable and a hard edge still reads as a rendering fault, which is the
-   job the three-line card's fade used to do at the other end.
-
-   On the lip rather than on the roll: a mask over a scroller fades its
-   content at rest as well as in motion, and there is nothing to fade when
-   the whole conversation fits. `is-over` is set only when it does not. */
-.b-peek-lip::after {
-  content: ''; position: absolute; left: 5px; right: 5px; top: 100%; height: 18px;
-  background: linear-gradient(to bottom, var(--composer-skin), transparent);
-  opacity: 0; transition: opacity var(--t-fast);
-  pointer-events: none;
-}
-.b-peek.is-over .b-peek-lip::after { opacity: 1; }
-/* Nothing is running under it when the drawer is down. */
-.b-peek.is-shut .b-peek-lip::after { opacity: 0; }
-
-/* ══ WHAT WAS SAID BEFORE ═══════════════════════════════════════════════════════
-   The canvas's own turns, drawn by the canvas's own builder, so the drawer
-   and the thread it is a window onto are one component at two sizes rather
-   than two renderings of the same sentence. One size down, because a 28px
-   avatar and a 16px bubble are built for a canvas column and this is a strip
-   above a text field. Nothing else changes: the bubble's ground, its border,
-   its corner pointing at whoever said it. */
-.b-peek-past { display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 0; }
-.b-peek-past:empty { display: none; }
-.b-peek-past .chat-msg { gap: 8px; padding: 0; }
-
-/* ══ AND AiMY DOES NOT SPEAK IN A BOX HERE ═══════════════════════════
-   The first cut of this drew the canvas's turns unchanged, which meant an
-   answer arrived as prose on the card's own ground and then, the moment the
-   next question was asked, became a small bubble with a mark beside it. The
-   same sentence in two shapes, and the change happened while you were
-   looking at it — a glance at the drawer a second later is a glance at a
-   different component.
-
-   So there is one treatment and the live answer is the one that keeps it:
-   AiMY speaks as prose, at the reading size, edge to edge. What is left of
-   the bubble is on YOUR turns, where it does real work — a short pill on
-   the right is what makes the column a conversation rather than a log — and
-   your turns never change hands, so nothing shifts under them. */
-.b-peek-past .chat-msg.aimy .msg-avatar { display: none; }
-.b-peek-past .chat-msg.aimy .msg-bubble {
-  max-width: none; padding: 0;
-  background: none; border: 0; border-radius: 0;
-  font-size: var(--t-body); line-height: var(--lh-base);
-  color: var(--d100);
-}
-.b-peek-past .chat-msg.user .msg-avatar {
-  width: 22px; height: 22px; border-radius: var(--r-sm); margin-top: 1px;
-}
-.b-peek-past .chat-msg.user .msg-bubble {
-  max-width: 78%; padding: 7px 12px; border-radius: var(--r-md);
-  font-size: var(--t-small); line-height: var(--lh-base);
-}
-/* No rule between the record and the live answer. It was there to say which
-   one was new, and it said it by drawing a line across a conversation —
-   which is a thing a conversation does not have. Being last says it. */
-.b-peek-past:not(:empty) + .b-peek-main { margin-top: 14px; }
+.b-peek.is-dragging .b-peek-main { opacity: 1; transition: none; }
 
 /* ══ SHUT ═════════════════════════════════════════════════════════════════════════
-   Down by its own height less the lip, which lands the lip exactly where the
-   card's top edge was and puts everything else under the clip. `100%` of a
-   translate is the element's own height, so this is one declaration for a
-   drawer of any content — three turns or thirty. */
+   Down by its own height less the lip, which lands the lip where the card's
+   top edge was and puts the rest under the clip. `100%` of a translate is the
+   element's own height, so this is one declaration for an answer of any
+   length — one line or the full three. */
 .b-peek.is-shut .b-peek-card {
   transform: translate3d(0, calc(100% - var(--peek-lip) + var(--peek-tuck)), 0);
+  /* ══ AND NARROWER THAN THE THING IT IS BEHIND ═══════════════════
+     At the composer's own 760 the shut drawer is a full-width slab with a
+     line on it, which reads as a second bar that has failed to load rather
+     than as something tucked away. Narrower, it is a tab: the composer's
+     edges are outside it on both sides, so the eye puts it behind.
+
+     Four fifths of the composer, and written twice because the composer's
+     own width is itself a min(): 608 is 80% of its 760 cap, and the bare 80%
+     is what applies below the width where that cap stops binding. A single
+     number is right at exactly one size — 360 was, and it took a quarter off
+     the bar rather than a fifth. Only the shut card is narrowed; open, it is
+     the composer's own 760, because that is the width the answer is read at. */
+  max-width: min(608px, 80%);
 }
-/* The roll is behind the bar and must not be reachable from it. `inert` on
-   the element does the tab order and the pointer both; this is the part
-   `inert` cannot do, which is stop a scroll landing in a thing nobody can
-   see. */
-.b-peek.is-shut .b-peek-roll { overflow: hidden; }
+/* The answer rewraps from 760 to 360 as the card narrows, and for the first
+   moment of the collapse the top of it is still above the seam — so the
+   reflow is on screen, and text rewrapping mid-animation reads as a fault.
+   It goes out first and comes back after the width has settled. Cheap:
+   `inert` has already taken this out of reach while it is down. */
+.b-peek-main { transition: opacity var(--t-fast) var(--ease-out) 160ms; }
+.b-peek.is-shut .b-peek-main { opacity: 0; transition-delay: 0s; }
 
 /* The whole card is the press, so the text inside it is left-aligned rather
    than centred the way a button's label would be — and there is no label
@@ -2844,10 +2788,11 @@
 @media (prefers-reduced-motion: reduce) { .b-peek-open:active { transform: none; } }
 .b-peek-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-peek-body {
-  position: relative; display: block;
-  /* No cap. Three lines was the right cut for a card that held one answer and
-     had a canvas behind it for the rest; the drawer holds the conversation and
-     scrolls, so an answer is read where it landed. */
+  position: relative; display: block; overflow: hidden;
+  /* Three. A peek is a glance and four lines is a paragraph — and with the
+     chips lifted out of this box, three lines of prose is all it ever holds,
+     so the cut lands on reading rather than on something to press. */
+  max-height: calc(var(--t-body) * var(--lh-base) * 3);
   font-size: var(--t-body); line-height: var(--lh-base);
   color: var(--d100); text-wrap: pretty;
 }
@@ -2894,6 +2839,21 @@
 @media (prefers-reduced-motion: reduce) {
   .b-peek-acts .s-insight-lnk { animation: none; opacity: 1; }
 }
+/* Only where there is more, and now it is the ONLY thing that says so —
+   the caption under it is gone. That is the right amount: a sentence cut
+   mid-air says there is more of it, and a reader who wants the rest presses
+   the thing they are already reading.
+
+   Drawn on the card's own ground, which is a wash rather than a flat colour
+   now, so the fade ends on the colour the bottom of the card actually is
+   rather than on the one the top of it started as. */
+.b-peek.is-clipped .b-peek-body::after {
+  /* One line's worth. Over a three-line box a 2.4em fade covered most of
+     what it was meant to be revealing. */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1.7em;
+  background: linear-gradient(to bottom, transparent, var(--composer-skin));
+  pointer-events: none;
+}
 /* 32px of button under a 14px mark, and a thumb wants 44. The target grows
    and the button does not: an invisible box centred on it takes the press,
    so the card keeps its proportions and the finger keeps its margin. */
@@ -2927,8 +2887,9 @@
    media query itself and draws the mark once, at rest, because the state is
    information and only the movement is decoration.
 
-   Nothing holds the wait back any more: the box it lands in has no cap to
-   come off, because the roll it sits in scrolls. */
+   The clip comes off while it thinks. There is nothing to fade to when what
+   is in the box is a mark and four words. */
+.b-peek.is-thinking .b-peek-body { max-height: none; }
 /* ══ THE PILL, ONE SIZE DOWN ═══════════════════════════════════════════════
    The design system's `.ai-thinking` is built for a chat bubble, where it
    stands in for a whole message and is sized to hold that place. Here it sits

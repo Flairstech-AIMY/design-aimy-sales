@@ -18955,7 +18955,7 @@
         ch++; budget--;
         r.node.nodeValue = r.full.slice(0, ch);
       }
-      if (at < runs.length) { peekEnd(); PEEK_RAF = requestAnimationFrame(tick); return; }
+      if (at < runs.length) { PEEK_RAF = requestAnimationFrame(tick); return; }
       PEEK_RAF = 0;
       if (whenDone) whenDone();
     };
@@ -18981,76 +18981,19 @@
       const chips = host.querySelectorAll('.s-insight-lnk');
       for (let i = 0; i < chips.length; i++) chips[i].style.setProperty('--i', i);
     }
-    /* The cut and its fade are gone with the cap they measured. What is
-       left to do at the end of an answer is the thing the cut used to make
-       unnecessary: put the end of it on screen. The chips land last and are
-       part of the answer, so this runs after them, not before. */
-    peekEnd();
-  }
-
-  /* ══ THE END OF IT IS WHAT YOU WANT TO SEE ═══════════════════════
-     A scroller that holds its position while something is being written into
-     it shows you the top of an answer and hides the part that is arriving.
-     Called on every frame of the stream as well as at the end of it, so the
-     words come up past the seam rather than landing below it.
-
-     `scrollTop` and not `scrollIntoView`: the second one scrolls every
-     ancestor that can scroll, and one of those is the page. */
-  function peekEnd() {
-    const roll = byId('peekRoll');
-    if (!roll) return;
-    roll.scrollTop = roll.scrollHeight;
-    /* And whether there is anything above the lip to have scrolled past.
-       Measured here rather than watched with a listener: the only two things
-       that change it are the roll growing and the roll being scrolled, and
-       both of them come through this function. */
-    const box = peekEl();
-    if (box) box.classList.toggle('is-over', roll.scrollHeight > roll.clientHeight + 1);
-  }
-
-  /* ══ WHAT WAS SAID BEFORE THIS ════════════════════════════════
-     Every turn already in the thread, drawn by the thread's own builder, so
-     the drawer is a window onto the canvas rather than a second rendering of
-     it. The live answer is NOT in here — it is still owed, and it lands in
-     `.b-peek-main` underneath as prose on the card's own ground.
-
-     Six, which is three exchanges. The roll scrolls and the canvas has all
-     of it, so the cap is about how much of the page a drawer may take before
-     it stops being a drawer, not about how much is worth keeping.
-
-     A placeholder turn is skipped: the wait is already drawn once, in the
-     box below, and drawing it twice says two things are being worked out. */
-  function peekPast() {
-    const host = byId('peekPast');
-    if (!host) return;
-    const keep = [];
-    for (let i = TURNS.length - 1; i >= 0 && keep.length < 6; i--) {
-      if (TURNS[i].thinking) continue;
-      keep.unshift(TURNS[i]);
+    body.style.maxHeight = '';
+    const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
+    /* Half a line, not a whole one. The cap is three, so a fourth line is a
+       real fourth line and fades — but an answer that overruns by a few
+       pixels rather than by a line is shown instead, which is the case this
+       guard was written for: a trailing control makes its line taller than
+       the ones above it, and a fade over six pixels promises a canvas full
+       of something already on screen. */
+    if (body.scrollHeight - body.clientHeight > lh / 2) {
+      box.classList.add('is-clipped');
+    } else if (body.scrollHeight > body.clientHeight) {
+      body.style.maxHeight = 'none';
     }
-    host.innerHTML = keep.map(turnHtml).join('');
-  }
-
-  /* ══ THE DRAWER GOES BEHIND THE COMPOSER ══════════════════════
-     One class does the travel; the rest of this is the part a class cannot
-     do. `inert` takes the roll out of the tab order and out of the pointer's
-     reach while it is under the bar — without it, tabbing out of the input
-     walks into an answer nobody can see. And the button says which way it
-     goes, in `aria-expanded` and in words, because a line with no label is a
-     line with no meaning to anyone not looking at it. */
-  function peekShut(on) {
-    const box = peekEl();
-    if (!box) return;
-    box.classList.toggle('is-shut', !!on);
-    const roll = byId('peekRoll');
-    if (roll) { if (on) roll.setAttribute('inert', ''); else roll.removeAttribute('inert'); }
-    const grip = byId('peekGrip');
-    if (grip) grip.setAttribute('aria-expanded', on ? 'false' : 'true');
-    /* `lbl`, not `say` — `say()` is the function that writes a turn to the
-       thread, and a local of that name inside this one shadows it. */
-    const lbl = byId('peekGripSay');
-    if (lbl) lbl.textContent = on ? 'Bring this conversation back' : 'Put this conversation away';
-    if (!on) peekEnd();
   }
 
   /* Stopping fills the words in rather than leaving them half-written. The
@@ -19062,6 +19005,154 @@
   }
 
   function peekEl() { return byId('aimyPeek'); }
+
+  /* ══ THE DRAWER GOES BEHIND THE COMPOSER ══════════════════════
+     One class does the travel; the rest of this is the part a class cannot
+     do. `inert` takes the answer out of the tab order and out of the
+     pointer's reach while it is under the bar — without it, tabbing out of
+     the input walks into a card nobody can see. And the button says which
+     way it goes, in `aria-expanded` and in words, because a line with no
+     label is a line with no meaning to anyone not looking at it. */
+  function peekShut(on) {
+    const box = peekEl();
+    if (!box) return;
+    box.classList.toggle('is-shut', !!on);
+    const main = byId('peekMain');
+    if (main) { if (on) main.setAttribute('inert', ''); else main.removeAttribute('inert'); }
+    const grip = byId('peekGrip');
+    if (grip) grip.setAttribute('aria-expanded', on ? 'false' : 'true');
+    /* `lbl`, not `say` — `say()` is the function that writes a turn to the
+       thread, and a local of that name inside this one shadows it. */
+    const lbl = byId('peekGripSay');
+    if (lbl) lbl.textContent = on ? 'Bring this answer back' : 'Put this answer away';
+  }
+
+  /* ══ THE HANDLE IS PULLED AS WELL AS PRESSED ════════════════════
+     A press toggles; a pull is a ladder with three rungs and the direction
+     says which way you are going along it:
+
+         behind the composer  ← down — the card — up →  the canvas
+
+     So one gesture reaches all three, and the middle rung is where it starts.
+     Up from shut brings the card back; up again from there is the whole
+     answer and the thread it belongs to, which is what the card has always
+     been a peek OF. A long pull skips the middle: past --peek-far the answer
+     was never the thing being asked for.
+
+     THE CARD FOLLOWS THE POINTER. A drag that decides at the end and does
+     nothing in between is a gesture you have to be told about; one that
+     moves under the hand says what it is for while it is happening. Which
+     also means the drag has to be able to overshoot both ends, with
+     resistance — a square root, so it gives at first and then stops —
+     because an edge that simply refuses to move reads as a bug. */
+  let PEEK_DRAG = null;
+  /* Set by a drag that actually moved, read and cleared by the press
+     handler. A pointer sequence that moved ends in a `click` like any other,
+     and without this the release would be followed by a toggle undoing what
+     the pull had just done. */
+  let PEEK_DRAGGED = false;
+  const PEEK_STEP = 40;   /* far enough to be a pull and not a shaky press */
+  const PEEK_FAR = 150;   /* far enough to mean the canvas, from either rung */
+
+  function peekDragStart(e) {
+    if (e.button) return;
+    const grip = e.target.closest && e.target.closest('#peekGrip');
+    if (!grip) return;
+    const box = peekEl();
+    if (!box || box.hidden) return;
+    const card = box.querySelector('.b-peek-card');
+    if (!card) return;
+    PEEK_DRAGGED = false;
+    const cs = getComputedStyle(box);
+    PEEK_DRAG = {
+      y: e.clientY,
+      moved: false,
+      shut: box.classList.contains('is-shut'),
+      card: card,
+      /* The shut offset, in pixels, from the two custom properties the
+         stylesheet does the same sum with. Read rather than repeated: a
+         drag that lands somewhere the class does not agree with is a card
+         that jumps on release. */
+      down: card.offsetHeight
+        - parseFloat(cs.getPropertyValue('--peek-lip'))
+        + parseFloat(cs.getPropertyValue('--peek-tuck'))
+    };
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* no capture, still tracked */ }
+  }
+
+  function peekDragMove(e) {
+    const d = PEEK_DRAG;
+    if (!d) return;
+    const dy = e.clientY - d.y;
+    if (!d.moved) {
+      /* Three pixels of slop, so a press with a tremor in it is still a
+         press and still toggles. */
+      if (Math.abs(dy) < 3) return;
+      d.moved = true;
+      const box = peekEl();
+      if (box) box.classList.add('is-dragging');
+    }
+    let y = (d.shut ? d.down : 0) + dy;
+    if (y < 0) y = -Math.min(28, Math.sqrt(-y) * 4);
+    else if (y > d.down) y = d.down + Math.min(20, Math.sqrt(y - d.down) * 3);
+    d.card.style.transform = 'translate3d(0, ' + y + 'px, 0)';
+  }
+
+  function peekDragEnd(e, cancelled) {
+    const d = PEEK_DRAG;
+    if (!d) return;
+    PEEK_DRAG = null;
+    const box = peekEl();
+    if (box) box.classList.remove('is-dragging');
+    /* The inline transform goes before the class lands, so what animates is
+       the stylesheet's own position and not a number left on the element. */
+    d.card.style.transform = '';
+    if (!d.moved) return;
+    PEEK_DRAGGED = true;
+    const dy = cancelled ? 0 : (e.clientY - d.y);
+    if (dy <= -PEEK_FAR || (dy <= -PEEK_STEP && !d.shut)) {
+      /* The whole answer, wherever the pull started. Finished first: the
+         canvas is about to show the thread, and half a sentence is not a
+         record of anything. */
+      peekAll();
+      peekShut(false);
+      openCanvas();
+      paintThread();
+    } else if (dy <= -PEEK_STEP) {
+      peekShut(false);
+    } else if (dy >= PEEK_STEP) {
+      if (!d.shut) peekAll();
+      peekShut(true);
+    } else {
+      /* Not far enough to mean anything: back to the rung it started on. */
+      peekShut(d.shut);
+    }
+  }
+
+  /* ══ AND GOING BACK TO THE PAGE PUTS IT AWAY ════════════════════
+     The handle is how you put it away on purpose. This is the other way,
+     and it is the one that gets used: you read the answer, you go back to
+     the rows, and the card should already be out of the way by the time you
+     get there. The composer is not outside — typing the next question is not
+     leaving the answer — and neither is the canvas, which is where the
+     answer goes on being read.
+
+     It SHUTS rather than dismisses. Dismissing is the ×, and a click that
+     lands on the page should not be able to throw away the thing you asked
+     for; the lip stays, so one press has it back.
+
+     `pointerdown` and not `click`: a press that begins on the page and ends
+     with a text selection never fires a click, so the drawer would stay up
+     through the one gesture that most clearly means "I am reading something
+     else now". */
+  function peekAway(e) {
+    const box = peekEl();
+    if (!box || box.hidden || box.classList.contains('is-shut')) return;
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest('.aimy-float-wrap') || t.closest('.aimy-overlay')) return;
+    peekShut(true);
+  }
 
   /* ══ THE SAME CONTROL, AND ONLY ONE THING TO DO WITH IT ════════════════
      While an answer is coming there is nothing to send, so the square is a
@@ -19182,14 +19273,12 @@
     }
     box.hidden = false;
     box.classList.add('is-thinking');
+    box.classList.remove('is-clipped');
     /* An answer is the one thing that outranks having put the drawer away:
        you asked for it, so it comes up. Shutting it again is one press, and
        the press is where you left it. */
     peekShut(false);
-    /* What is already in the thread, before what is about to be added to it.
-       Drawn now rather than when the answer lands, so the question you just
-       asked is on screen while it is being worked out. */
-    peekPast();
+    byId('peekBody').style.maxHeight = '';
     byId('peekActs').innerHTML = '';
     PEEK_ACTS = '';
     byId('aimyFloatWrap').classList.add('has-peek');
@@ -19290,13 +19379,11 @@
     const box = peekEl();
     if (box) {
       box.hidden = true;
-      box.classList.remove('is-thinking', 'is-over');
+      box.classList.remove('is-thinking', 'is-clipped');
       /* Put away and dismissed are different states and the second one ends
-         the first: a drawer that is hidden while still holding `is-shut`
-         comes back from the next question already down. */
+         the first: a drawer hidden while still holding `is-shut` comes back
+         from the next question already down. */
       peekShut(false);
-      const past = byId('peekPast');
-      if (past) past.innerHTML = '';
     }
     const wrap = byId('aimyFloatWrap');
     if (wrap) wrap.classList.remove('has-peek');
@@ -22579,9 +22666,11 @@
        running against a box behind the composer; it is written whole and the
        drawer keeps it, which is what coming back to it should show. */
     if (t.closest('#peekGrip')) {
+      if (PEEK_DRAGGED) { PEEK_DRAGGED = false; return; }
       const box = peekEl();
-      if (box && !box.classList.contains('is-shut')) peekAll();
-      peekShut(box ? !box.classList.contains('is-shut') : true);
+      const shut = !!(box && box.classList.contains('is-shut'));
+      if (!shut) peekAll();
+      peekShut(!shut);
       return;
     }
     if (t.closest('#peekClose')) { peekAll(); peekHide(); return; }
@@ -22837,6 +22926,15 @@
       runInput(v);
     }
   });
+  /* Its own listener rather than a branch in the one below: that handler is
+     a ladder of `return`s, and a rule that has to run whatever the press
+     turned out to be cannot live inside it. Capture, so it is not outrun by
+     a handler that stops the event on its way up. */
+  document.addEventListener('pointerdown', peekAway, true);
+  document.addEventListener('pointerdown', peekDragStart);
+  document.addEventListener('pointermove', peekDragMove);
+  document.addEventListener('pointerup', (e) => peekDragEnd(e, false));
+  document.addEventListener('pointercancel', (e) => peekDragEnd(e, true));
   document.addEventListener('click', (e) => {
     if (e.target.closest('#floatSend')) {
       /* ══ THE SAME CONTROL, AND ONLY ONE THING TO DO WITH IT ═══════════
