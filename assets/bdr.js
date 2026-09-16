@@ -17093,28 +17093,100 @@
      0.052 was set against sixteen overlapping notes and then kept when the
      melody came down to six with air between them, which is the arithmetic
      that made it too quiet: the accumulation it was backing away from had
-     stopped happening. Doubled to 0.104, then asked for half again on top of
-     that and given exactly that — 0.156, which is 3x the original and +9.5dB
-     on it.
+     Doubled to 0.104, then half again on top of that — 0.156 — and it is now
+     0.88, which is not a preference but a ceiling: the loudest this melody can
+     be without a single sample reaching 1. That is 5.6x the last value, +15dB
+     on it, and about 17x the original.
 
      AMPLITUDE, NOT PERCEIVED LOUDNESS, at each step. Twice as loud to the ear
      is about +10dB and 3.2x the amplitude; somebody turning a volume up is
-     asking for the number, not the psychoacoustics. Said here because the two
-     readings diverge fast and the next person to raise this should know which
-     one the last two raises meant.
+     asking for the number, not the psychoacoustics. It matters less here than
+     it did — this is the top either way — but the next person to read these
+     figures should know which one the raises before it meant.
 
      THE ONE SCALAR EVERY PEAK IS DERIVED FROM, so the balance between the
      partials and between the notes is untouched: ringBurst multiplies this
      by the voice's share and the note's, and both of those are ratios.
 
-     STILL NOT CLIPPING, measured rather than assumed, because this is the one
-     number here that can. The loudest instant is the downbeat, where D4 and
-     D3 sound together with their octaves — 0.85 + 0.102 + 0.34 + 0.041 = 1.33
-     of this constant. Summed output through an analyser on a real ring: 0.176
-     peak against a ceiling of 1, which is 15dB of headroom. There is room to
-     go louder again if it is still not enough; there is not room to keep
-     doing it for ever, and past about 0.6 this comment stops being true. */
-  const RING_VOL = 0.156;
+     WHERE THE CEILING IS, measured rather than assumed. The loudest instant is
+     the downbeat, where D4 and D3 sound together with their octaves — 0.85 +
+     0.102 + 0.34 + 0.041 = 1.33 of this constant — and the rendered peak comes
+     out at 1.1253 times it. Rendered through an OfflineAudioContext and read
+     sample by sample at 44.1k, 48k and 176.4k: 0.9899, 0.9901 and 0.9903, with
+     no sample at or over 1 at any of them. At 0.889 twelve samples reach 1.
+     At 0.90, a hundred and ten. The same method returns 0.176 for the old
+     0.156, which is what an analyser on a live ring gave, so it is the old
+     measurement taken a cheaper way — no gesture, no speaker, and the whole
+     curve instead of whatever the meter caught.
+
+     INTER-SAMPLE PEAKS ARE NOT A FACTOR HERE, which is why a tenth of a
+     decibel of margin is enough. Oversampling four times moves the peak by
+     0.00dB: these are sine partials with 6ms onsets and exponential tails,
+     and there is no transient for the reconstruction to overshoot on.
+
+     AND THERE IS NO ROOM LEFT. The old note here said this stopped being true
+     past about 0.6; that was right about the direction and short on the
+     number, and it is spent now either way. The margin only holds because the
+     signal is fixed — the same melody, the same frequencies, the same
+     envelopes, every ring. A new note, a louder partial, a fifth voice or any
+     change to the downbeat will clip, and the answer then is a limiter or a
+     quieter downbeat, not a bigger number. */
+  const RING_VOL = 0.88;
+
+  /* ══ THE CLOSING TONE ═════════════════════════════════════════════════════
+     Two quick tones falling, A3 to F#3. Picked against a comparison page
+     holding six falling pairs and four single notes across four gaps, four
+     tail lengths, four brightnesses and four levels — _endtone.html,
+     which sits beside _arrive.html and _panhead.html and is excluded from
+     the repository the same way.
+
+     A FALLING THIRD THAT LANDS ON THE THIRD, which is the softest ending on
+     that page rather than the most final one. The pairs that land on D —
+     A3 to D3, F#3 to D3 — land on the root and put a full stop on the
+     call. Heard one after another, that is too much: a declined call does
+     not want a full stop, it wants an acknowledgement. Landing on the third
+     leaves the chord standing instead of closing it, so the sound finishes
+     without being final.
+
+     BOTH NOTES ARE OCTAVES OF NOTES THE RING ALREADY PLAYS. A3 is exactly
+     half the ring's A4 (440), and F#3 half its F#4 (369.99, so 185.00 is
+     that octave to within a twentieth of a cent). The ring climbs to A4 and
+     settles on F#4; this falls the same interval, an octave lower and much
+     faster. It is the ring's own gesture played downward.
+
+     100ms APART, which is close enough to read as one event rather than as
+     two notes. The second is struck at 0.78 against the first's 0.90 — a
+     hand coming off, not a second strike of equal force.
+
+     THE RING'S OWN LEVEL, NOT A FRACTION OF IT. It shipped at a quarter, on
+     the reasoning that a confirmation heard at the desk should not arrive at
+     the volume of an alert meant to cross a room. That reasoning was sound
+     and the result was inaudible: pitched down into the bottom of the
+     palette and played back through a laptop speaker, a quarter of the
+     ceiling left nothing to hear at all.
+
+     AND THERE IS LESS ROOM HERE THAN THERE WAS. The single note this
+     replaced peaked at 0.8234 and left 18%. Two notes 100ms apart with 420ms
+     tails overlap, and the brighter partial adds on top of them: rendered at
+     44.1k, 48k and 176.4k this peaks at 0.8907, 0.8907 and 0.8908, with no
+     sample at or over 1, and 0.8908 again oversampled to 192k, so there is
+     no inter-sample overshoot either. That is 11% of headroom and 0.9dB
+     under the ring — still clear, and no longer far from the edge. A third
+     note, a louder partial or a shorter gap wants measuring before it
+     ships. */
+  const RING_END = [[0.00, 220.00, 0.90], [0.10, 185.00, 0.78]];
+  const RING_END_VOL = RING_VOL;
+
+  /* RING_VOICE with a single number changed: the fourth partial's share
+     goes 0.12 to 0.20. Same fundamental, same 6ms onset, the same 0.42s and
+     0.16s tails — the same instrument, struck harder.
+
+     THE BRIGHTNESS IS NOT DECORATION. At 185Hz a laptop speaker reproduces
+     almost nothing of the fundamental; the fourth partial, at 740Hz, is most
+     of what is actually heard down there. Dialling it back is what makes a
+     low tone vanish on the hardware these calls are taken on — the same
+     mistake the quarter-volume made, arrived at from the other side. */
+  const RING_END_VOICE = [[1, 1, 0.42], [4, 0.20, 0.16]];
   let RING_AC = null;
   let RING_BEAT = null;
   let RING_AT = 0;
@@ -17127,11 +17199,11 @@
      multiplicative, so it is undefined there — hence a floor near silence
      and a short linear ramp off it. Landing on the floor and stopping
      would leave a step of its own, which is the click this is avoiding. */
-  function ringBurst(ac, at) {
-    RING_MELODY.forEach((note) => {
-      RING_VOICE.forEach((pt) => {
+  function ringBurst(ac, at, melody, vol, voice) {
+    melody.forEach((note) => {
+      voice.forEach((pt) => {
         const t0 = at + note[0];
-        const peak = RING_VOL * pt[1] * note[2];
+        const peak = vol * pt[1] * note[2];
         const life = pt[2];
         const o = ac.createOscillator();
         const g = ac.createGain();
@@ -17183,13 +17255,13 @@
          entirely by a busy tab and the spacing does not move: what it
          controls is when notes get BOOKED, not when they sound. */
       RING_AT = RING_AC.currentTime + 0.05;
-      ringBurst(RING_AC, RING_AT);
+      ringBurst(RING_AC, RING_AT, RING_MELODY, RING_VOL, RING_VOICE);
       RING_AT += RING_GAP;
       RING_BEAT = setInterval(() => {
         try {
           if (!RING_AC) return;
           while (RING_AT < RING_AC.currentTime + 1.5) {
-            ringBurst(RING_AC, RING_AT);
+            ringBurst(RING_AC, RING_AT, RING_MELODY, RING_VOL, RING_VOICE);
             RING_AT += RING_GAP;
           }
         } catch (e) {}
@@ -17207,6 +17279,36 @@
       try { if (RING_AC.close) RING_AC.close(); } catch (e) {}
       RING_AC = null;
     }
+  }
+
+  /* ══ ITS OWN CONTEXT, BECAUSE THE RING'S IS ALREADY GONE ════════════
+     Every path to this one goes through `ringRetire` first, and that
+     closes RING_AC — it has to, because closing the context is the only
+     thing that stops a burst already booked on it. So by the moment
+     there is something to confirm, there is nothing left to play it on.
+
+     Hence a fresh context for two notes, closed on a timer rather than
+     left for the collector: an audio context is a device handle and a
+     browser stops granting them after about six, so a caller who
+     declines seven calls in a session would get silence on the seventh.
+
+     The same rule as the ring above — every line inside a try, and a
+     failure is silence rather than a thrown error. A phone that has
+     stopped ringing has already said so on screen; not chiming about it
+     is not worth breaking the retire animation for. */
+  function ringEndTone() {
+    if (UI.quiet) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ac = new AC();
+      if (ac.state === 'suspended' && ac.resume) ac.resume();
+      ringBurst(ac, ac.currentTime + 0.02, RING_END, RING_END_VOL, RING_END_VOICE);
+      /* 0.62s of sound scheduled, audible for 0.47 of it. Closed at 1.5
+         so the tail is never cut, which would be a click — the exact
+         defect the envelope above spends its last two ramps avoiding. */
+      setTimeout(() => { try { if (ac.close) ac.close(); } catch (e) {} }, 1500);
+    } catch (e) {}
   }
 
   /* ══ START RINGING ══════════════════════════════════════════════════════ */
@@ -17386,6 +17488,10 @@
     if (!r || r.state === 'live') return;
     const c = r.con ? DB.byCon[r.con] : null;
     ringRetire();
+    /* After it, not before: `ringRetire` closes the context the ring was
+       sounding on, and a note booked on a context that is about to close
+       is a note that never sounds. */
+    ringEndTone();
     if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody on the board has that number.'); return; }
     const now = new Date().toISOString();
     const t = {
