@@ -2372,6 +2372,28 @@
 }
 .b-menu-item:hover { background: rgba(var(--accent-rgb), 0.14); color: var(--d50); }
 .b-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* ══ AND THE WAY OUT TO V1, ONLY WHILE ITS PILL IS GONE ════════════════════
+   sales.css hides `.ver-link` under 1000 layout px, where the topnav runs out
+   of room before anything else does. It was the one control this build let a
+   breakpoint delete rather than move: the tab strip becomes the product
+   chevron, the rail becomes a drawer, the call column becomes its minimised
+   self, and this just went.
+
+   It is in the desk menu now, under a hairline so it reads as a different
+   kind of thing from the three people above it. Shown at exactly the width
+   the pill is not, so the two are never both there and never both missing —
+   one number, stated in two rules, and sales.css owns it.
+
+   An anchor brings a browser underline and an inherited link colour, so it
+   sets both for itself; the same note `.rail-console` carries. */
+.b-menu-ver {
+  display: none;
+  margin-top: 4px; padding-top: 10px;
+  border-top: 1px solid var(--card-border);
+  text-decoration: none; color: var(--d100);
+}
+.b-menu-ver-ico { width: 13px; height: 13px; flex: none; opacity: 0.75; }
+@media (max-width: 999.98px) { /* 1000 layout px */ .b-menu-ver { display: flex; } }
 @media (prefers-reduced-motion: reduce) { .b-menu, .b-menu.is-closing { animation: none; } }
 .b-menu-open[aria-expanded] { color: var(--d50); }
 .b-menu-wrap:has(.b-menu:not([hidden])) .b-menu-open { color: var(--d50); border-color: var(--accent); }

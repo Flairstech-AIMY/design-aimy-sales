@@ -5001,7 +5001,39 @@
             '<span class="b-menu-name">' + esc(r.name) + '</span>' +
             '<span class="b-menu-sub">' + esc(jobSay(r)) + '</span>' +
           '</span>' +
-        '</button>').join('');
+        '</button>').join('') + verItem();
+  }
+  /* ══ THE WAY OUT TO V1 FOLLOWS ITS PILL INTO THIS MENU ══════════════════
+     `.ver-link` is hidden under 1000 layout px, which is the topnav running
+     out of room before anything else does. It was the one control in this
+     build that a breakpoint deleted rather than moved — everything else that
+     goes narrow changes form: the tab strip becomes the product chevron, the
+     rail becomes a drawer, the call column becomes its minimised self.
+
+     THE HREF IS READ, NOT REPEATED. index.html owns the address and the
+     title; copying either into here would be two places to change it and one
+     of them would eventually be missed. If the pill is not in the markup
+     there is nothing to mirror and this draws nothing.
+
+     WHICH OF THE TWO SHOWS IS bdr.css's, not this function's. The item is in
+     the menu at every width and shown at exactly the width the pill is not,
+     so the two are never both present and never both missing — and neither
+     has to know the number. */
+  function verItem() {
+    const pill = document.querySelector('.ver-link');
+    if (!pill) return '';
+    const href = pill.getAttribute('href') || '';
+    const label = (pill.textContent || 'V1').trim();
+    return '<a class="b-menu-item b-menu-ver" role="menuitem" target="_blank" ' +
+      'rel="noopener noreferrer" href="' + esc(href) + '">' +
+      '<svg class="b-menu-ver-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M15 3h6v6"/><path d="M10 14 21 3"/>' +
+      '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>' +
+      '<span class="b-menu-line">' +
+        '<span class="b-menu-name">Open ' + esc(label) + '</span>' +
+        '<span class="b-menu-sub">the previous build, in a new tab</span>' +
+      '</span></a>';
   }
 
   /* ══ HOME — the two things a BDR opens this to see ══════════════════════
