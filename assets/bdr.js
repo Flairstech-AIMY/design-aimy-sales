@@ -2382,6 +2382,76 @@
       a.subs.sort((x, y) => (x.since < y.since ? -1 : 1));
     });
 
+
+    /* ══ AND THE CALLS THAT CAME THE OTHER WAY ═════════════════════
+       Every touchpoint above is one we MADE. A phone also rings, and when it
+       rings while you are in a room with somebody else nobody picks it up —
+       which is the one event this product knew how to record and then threw
+       away: the widget retires, the toast fades, and nothing counts it.
+
+       ALSO LAST, AND FOR THE REASON THE BLOCK ABOVE GIVES. It went in beside
+       the history it belongs to, two thirds of the way up, and the manager's
+       desk came back with two rows against the caller's fourteen — because
+       the deals a manager actually holds are minted BELOW that point, so
+       two thirds of the people who could ring him did not exist yet when it
+       ran. It reads `con` whole here, and it spends no draw from the shared
+       PRNG — every value comes off the contact's own hash — so running it
+       last changes nothing that was generated before it.
+
+       Who rings: somebody with a conversation already open. A number, no
+       opt-out, and past `not-called`, because nobody rings a caller they have
+       never spoken to and an exit has stopped ringing anybody. Never dated
+       before the last call we made — a missed call already answered by a call
+       back is not something anybody has to deal with — and inside a fortnight,
+       because a missed call from March is not work.
+
+       `by` is whose phone it was, which is `mgrOf`'s question and so it is
+       `mgrOf`'s answer: whoever the lead was handed to, else whoever owns the
+       campaign it is on. Before the hand-over it is the caller's. */
+    /* One in seven of the eligible — the share that puts a readable handful on
+       each desk rather than a page nobody can finish. Measured, then tuned
+       against the measurement, the way the shares above it were. */
+    const MISSED_SHARE = 14;
+    const MISSED_NOTE = [
+      'They rang. Nobody picked up.',
+      'Missed their call.',
+      'They called in while you were out.',
+      'Rang twice. No answer this end.',
+    ];
+    let mId = 0;
+    con.forEach((c) => {
+      if (!c.phone || c.dnc) return;
+      if (c.checkpoint === 'not-called' || isExit(c.checkpoint)) return;
+      const h = Math.abs(hash(c.id + ':rang'));
+      if (h % 100 >= MISSED_SHARE) return;
+      const gap = c.lastCallAt ? daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) : 13;
+      const at = dayOf(-Math.max(0, Math.min((h >> 7) % 14, gap)));
+      at.setHours(9 + ((h >> 3) % 9), (h >> 11) % 60, 0, 0);
+      const kk = c.camps.length ? camp.filter((x) => x.id === c.camps[0])[0] : null;
+      touch.push({
+        /* Its own run of ids. `tId` belongs to the loop that made the
+           history and has been out of scope for four hundred lines; a second
+           counter starting at zero would mint `t0` twice. */
+        id: 'ti' + mId++,
+        con: c.id,
+        camp: c.camps[0] || null,
+        by: c.checkpoint === 'handed-over'
+          ? (c.manager || (kk && kk.owner ? kk.owner : MANAGERS[0].id))
+          : (c.owner || DEFAULT_ME),
+        at: at.toISOString(),
+        secs: 0,
+        outcome: 'no-answer',
+        /* The one field that makes it theirs rather than ours. Everything that
+           measures what a call COST, or reads what was SAID on one, asks
+           `wasMissed` first; everything that lists what is on the record
+           draws it. */
+        dir: 'in',
+        proposals: [], objections: [], openings: [],
+        note: MISSED_NOTE[(h >> 5) % MISSED_NOTE.length],
+        lines: [], next: null, moved: null, called: c.checkpoint,
+      });
+    });
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
@@ -2846,6 +2916,31 @@
      by, the flowchart asks whether they turned up, and nothing in the
      product did but the bell. This is that cut. */
   const afterMeeting = (c) => c.checkpoint === 'meeting-set' && !!c.next && c.next.due < TODAY_ISO;
+
+  /* ══ A CALL NOBODY PICKED UP IS AN EVENT, NOT WORK ═════════════════
+     Their call, not ours. It belongs on the record — it is the whole of what
+     the missed log reads — but three kinds of derivation have to step over
+     it, and every one of them was already wrong the day `ringMissed` wrote
+     its first touchpoint, months before the corpus held any.
+
+     WHAT IT COST. `touchCost` charges four minutes of after-call work to
+     every touchpoint. Nobody writes anything up after a call they did not
+     take, so a ringing phone would have put a salary on the Financials.
+
+     WHAT WAS SAID ON IT. `aimySays`, `conLead`, `callPrep` and `ringRead`
+     all open on the newest touch and read its objections, its openings and
+     its outcome. A missed call carries none of the three, so becoming the
+     newest touch silently deleted the sticking point from the card of
+     everybody who had rung back.
+
+     AND WHO CALLED WHOM. Every sentence `callsIn` feeds is about calls made
+     from this end — "12 calls into this company", "3 calls in and nobody
+     here has picked up", the day of the first one. Counting a call they
+     made to us in any of those is the record contradicting itself.
+
+     The four-touch rule is the same claim about effort: a call you did not
+     make is not a touch you spent on them. */
+  const wasMissed = (t) => !!t && t.dir === 'in' && t.outcome === 'no-answer';
 
   /* ══ 6. THE URL IS THE STATE ════════════════════════════════════════════
      One object mirrors the query string, one function writes it, one function
@@ -3796,14 +3891,15 @@
   const QUIET_DAYS = 7;
   function quietUnderFour(c) {
     if (isExit(c.checkpoint) || rank(c.checkpoint) < 1 || rank(c.checkpoint) > 3) return 0;
-    const ids = DB.touchesOf[c.id] || [];
+    const ids = (DB.touchesOf[c.id] || []).filter((id) => !wasMissed(TOUCH[id]));
     if (!ids.length || ids.length >= TOUCH_RULE) return 0;
     if (c.next && c.next.due > TODAY_ISO) return 0;
     const last = TOUCH[ids[0]];
     return last && daysBetween(last.at.slice(0, 10), TODAY_ISO) >= QUIET_DAYS ? ids.length : 0;
   }
   const quietSay = (n, c) => {
-    const last = TOUCH[(DB.touchesOf[c.id] || [])[0]];
+    const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
+      .filter((t) => t && !wasMissed(t))[0];
     return plural(n, 'touch', 'touches') + ', then ' + (last ? plural(daysBetween(last.at.slice(0, 10), TODAY_ISO), 'day') : 'a while') +
       ' of nothing. The rule is ' + TOUCH_RULE + ' before you let go.';
   };
@@ -3811,7 +3907,7 @@
   function aimySays(c, onRecord) {
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
-    const last = hist[0];
+    const last = hist.filter((t) => !wasMissed(t))[0];
     const a = accOf(c);
 
     /* A WAY OUT READS AS WHAT IT IS. The hour reading and "call the mobile"
@@ -6319,6 +6415,7 @@
     let human = 0, aimy = 0;
     touchesOfCon(c).forEach((t) => {
       if (!inPeriod(t.at.slice(0, 10), p)) return;
+      if (wasMissed(t)) return;
       if (t.auto) aimy += PRICE_TOUCH; else human += touchCost(t);
     });
     return { src: src, enrich: enrich, human: human, aimy: aimy,
@@ -7172,6 +7269,7 @@
       touchesOfCon(c).forEach((t) => {
         if (!inPeriod(t.at.slice(0, 10), p)) return;
         if (t.camp && t.camp !== camp.id) return;
+        if (wasMissed(t)) return;
         if (t.auto) { aimy += PRICE_TOUCH; return; }
         const h = (t.secs || 0) / 3600 + AFTER_CALL_MINS / 60;
         hours += h;
@@ -13663,7 +13761,7 @@
   /* The calls among a set of touchpoints. A hand-move, a profile going out
      and the director's meetings are on the record and are not calls, and
      four places counted them as calls. */
-  const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome]);
+  const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome] && !wasMissed(t));
 
   function accSays(a, people, hist) {
     /* ══ AND AT A CUSTOMER, WHAT HAPPENED TO THEM GOES FIRST ═══════════
@@ -14318,7 +14416,7 @@
     const a = accOf(c);
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
-    const last = hist[0];
+    const last = hist.filter((t) => !wasMissed(t))[0];
     let door = '';
     if (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
@@ -16926,7 +17024,7 @@
   function ringRead(c) {
     if (!c) return null;
     const ts = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
-    const last = ts[0] || null;
+    const last = ts.filter((t) => !wasMissed(t))[0] || null;
     const sell = SELL[sellOf(c)];
     const owed = c.next && c.next.what ? String(c.next.what) : null;
     /* A step keeps the name it is stored under and takes the emphasis, which
@@ -20632,7 +20730,7 @@
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const calls = callsIn(hist);
-    const last = hist[0];
+    const last = hist.filter((t) => !wasMissed(t))[0];
     const sess = DB.call && DB.call.sess;
     /* ══ THE SAME BRIEF, AND IT IS NOT THE SAME CALL ═══════════════════
        Everything below was written for a call somebody here decided to
