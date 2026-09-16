@@ -1282,6 +1282,13 @@
    themselves are untouched. The wash values are QA's own, dark and light. */
 .ntf-anchor {
   --qa-accent: var(--accent); --qa-accent-rgb: var(--accent-rgb);
+  /* The panel is QA's, byte for byte, and these aliases are how it is dressed
+     in this product's colour without editing it. It needed a third: its row
+     verb sets type in `--qa-accent` ON a 12% tint of the same hue, which came
+     out 3.33:1 in dark — the worst of the three, because the tint lifts the
+     ground toward the ink. The fill keeps `--qa-accent-rgb`; only the reading
+     moves. */
+  --qa-accent-text: var(--accent-text);
   --wash-3: rgba(255,255,255,0.04); --wash-6: rgba(255,255,255,0.07); --wash-7: rgba(255,255,255,0.08);
   --transition-fast: 150ms;
 }
@@ -1416,7 +1423,7 @@
 .ntf-row-cta {
   font-family: inherit; font-size: var(--t-small); font-weight: 700; cursor: pointer;
   padding: 4px 10px; border-radius: 9999px;
-  background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent);
+  background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent-text);
   border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
@@ -4140,9 +4147,24 @@
   display: block; margin-top: 2px;
   font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
 }
+/* ══ THE VERB IS AN ACTION, SO IT TAKES THE INK ACTIONS TAKE ════════
+   `--accent` measured 3.77:1 here at 12px/600 and fails AA — and it failed in
+   DARK ONLY, where it came back 7.15:1 in light, which is why three surfaces
+   carried it for this long. A change checked in the theme it happens to pass
+   in is a change nobody caught.
+
+   sales.css has carried the answer all along, with the reason written beside
+   it: `--accent-text`, “5.04:1 — an action, not a status”. Measured after, on
+   the ground each one actually sits on: this verb and the diary's 5.09:1 dark
+   and 6.01:1 light, the bell's 4.51:1 and 5.32:1. The bell clears AA by one
+   hundredth and it is the tint under it that costs the rest — dropping that
+   fill below 0.12 is the lever if the margin ever needs to be real.
+
+   The FILLS stay `--accent`. A non-text graphic answers to 3:1 and the tint
+   under the bell's row verb is doing no reading. */
 .b-owed-go {
   flex: none; align-self: center; white-space: nowrap;
-  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent);
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent-text);
 }
 
 .b-loop-row {
@@ -4161,8 +4183,10 @@
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
 }
 .b-loop-what { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200); }
+/* The diary's verb: the same rule, the same defect, 3.77:1 before. Fixing two
+   of the three would have read as deliberate to whoever found the third. */
 .b-loop-go {
-  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent);
+  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text);
 }
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
