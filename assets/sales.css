@@ -8109,8 +8109,16 @@ div.s-pipe-cell { cursor: default; }
    and squeezed them to 290, where "Lost the person who wanted this, and
    nobody has replaced them." is three lines. Below 900 the comparison is not
    worth the wrapping, so they stack — the same width the campaign row drops
-   its reason at. */
-@media (max-width: 1058.82px) {
+   its reason at.
+
+   AND UNTIL NOW IT WAS NOT THAT WIDTH. This was the one query in the file
+   written as a bare `900px` while every other threshold was written as
+   `layout x 0.85` — the design number left in the machinery's slot, never
+   converted. So it fired at 1059 layout, and the two rules this sentence
+   calls the same width were 159 layout px apart for as long as both have
+   existed. They are both 899.98 now, and with the width floor gone that is
+   900 layout px, which is what the sentence always said. */
+@media (max-width: 899.98px) { /* 900 layout px */
   .s-wrong { grid-template-columns: minmax(0, 1fr); gap: 24px; }
 }
 /* The tally closes the flow section; the next head owns the gap after it. */
@@ -8970,6 +8978,13 @@ body.is-figures .filter-tray { display: none; }
 @media (max-width: 1179.98px) {
   .s-pans { grid-template-columns: 1fr; }
 }
+/* Converted from a bare `700px` — the other threshold in this file written
+   without a layout comment, and the one the `900` above it turned out to be.
+   Unlike that one there is no sentence here saying what it meant, and the
+   layout does not settle it either: measured at 900, 824, 760 and 700 layout
+   px the head's two children need 301-309px against a container of 591-791,
+   so the head is never crowded and this stack is defensive at any threshold
+   it could have. Today's behaviour is kept rather than a number guessed at. */
 @media (max-width: 823.53px) {
   .s-pan-head { flex-direction: column; gap: 4px; }
   .s-pan-total { font-size: var(--fs-lg); }
