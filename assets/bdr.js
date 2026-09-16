@@ -5215,117 +5215,167 @@
   }
 
   /* ══ THE PAGE THE DOOR OPENS ═══════════════════════════
-     TWO SECTIONS, NOT ONE STREAM. A missed call and a missed meeting are the
-     same subject and not the same event, and the verbs are different — one
-     wants the phone and the other wants a sentence. Merged into one list by
-     date, every row would have to explain which kind it was before it could
-     be acted on, and the reader would be sorting them by eye to find the
-     ones they can do right now.
+     IT IS A CALL LOG, so it is built like one. Every phone on earth draws
+     this list the same way and the convention is worth more than anything
+     this product could invent: a direction glyph on the left, the name, the
+     number under it, and when. A reader arrives already knowing how to read
+     it, which is the whole of what a convention buys.
 
-     THE ROW IS `.b-owed-row`, which the bell and Today already draw. What is
-     owed, ranked, with the verb on the right is exactly this shape, and a
-     second row component for the same job is the thing that drifts.
-
-     AND THE BODY OF A CALL ROW IS `ringRead`. It computes why this person is
+     What is ours is the third line. `ringRead` computes why this person is
      probably ringing you — off their overdue step, their last objection,
-     their checkpoint — and until now it lived for thirty seconds on a
-     widget and was destroyed when the phone stopped. It is the one thing on
-     this page no other surface can tell you, so it is the payload of every
-     row that has one. `null` means no strip, here as there: a hedge with
-     nothing behind it teaches people to stop reading the column. */
-  function missedRow(o, i) {
-    return '<button class="b-owed-row" type="button" ' + o.act +
+     their checkpoint — and until now it lived for thirty seconds on a widget
+     and was destroyed when the phone stopped. It is the one thing here no
+     phone can tell you, so it is the line the row is really for. `null`
+     means no line, not a hedge: inventing one for a record with no history
+     is the guess this reader refuses everywhere else.
+
+     TWO TABS, NOT TWO SECTIONS. Stacked, the meetings sat under fourteen
+     calls and below the fold on the desk that has the most of both. They are
+     one subject — what came for you and did not get through — read two ways,
+     which is the case the chip row answers everywhere else in this build:
+     the frame holds still and the body swaps. `data-q` is already wired and
+     already keeps `on` through a cut, so the tab is in the URL for free and
+     a link to the meetings tab is a link somebody can send.
+
+     THE COLOUR IS ON THE GLYPH AND NOT ON THE WORD. `--err` measures 4.37:1
+     dark and 3.82:1 light and fails AA as type, which is what `--err-text`
+     exists for and why no status word in this build is tinted. An icon
+     answers to 3:1, so the chip carries the tone and "Missed" is set in
+     plain ink beside it. */
+  const LOG_TABS = [{ k: 'calls', label: 'Calls' }, { k: 'meets', label: 'Meetings' }];
+
+  function logRow(o, i) {
+    return '<button class="b-log-row" type="button" ' + o.act +
       ' style="--i:' + Math.min(i, 8) + '">' +
-      '<span class="b-owed-sev ' + (o.sev || '') + '" aria-hidden="true"></span>' +
-      '<span class="b-owed-main">' +
-        '<span class="b-owed-head">' +
-          '<span class="b-owed-type">' + esc(o.who) + '</span>' +
-          '<span class="b-owed-when">' + esc(o.when) + '</span>' +
-        '</span>' +
-        (o.body ? '<span class="b-owed-body">' + o.body + '</span>' : '') +
+      '<span class="b-log-ico ' + esc(o.tone) + '">' + o.ico + '</span>' +
+      '<span class="b-log-main">' +
+        '<span class="b-log-name">' + esc(o.who) + '</span>' +
+        '<span class="b-log-meta">' + o.meta + '</span>' +
+        (o.say ? '<span class="b-log-say">' + o.say + '</span>' : '') +
       '</span>' +
-      '<span class="b-owed-go">' + esc(o.go) + '</span>' +
+      /* ══ A SPAN, AND IT HAS TO BE ══════════════════════════
+         The row is the button — pressable end to end, which is what makes a
+         log scannable by thumb — so this cannot be one too. A nested control
+         is invalid markup, is not reliably focusable, and announces badly;
+         the peek card's own comment says so where it made the same mistake.
+         It is drawn as a pill because a pill is what it does, and the row's
+         hover lights it so the two read as one press. */
+      '<span class="b-log-go">' + o.goIco + esc(o.go) + '</span>' +
     '</button>';
+  }
+
+  /* A dot-separated run, with the empties dropped rather than drawn as a
+     gap between two separators — a contact with no number on file is a real
+     case and " ·  · " is what it looked like. */
+  const logMeta = (bits) => bits.filter(Boolean).map((b) => esc(b)).join(' · ');
+
+  /* ══ THE DAY IS A HEADING, SO THE ROW ONLY CARRIES THE HOUR ═══════
+     Every row said "4 days ago at 11:04", which on six consecutive rows from
+     the same afternoon spends a third of each one restating the row above it
+     — and still leaves the reader counting backwards to work out which day
+     that was. A phone answers both at once: one heading per day, and under it
+     the clock alone.
+
+     `dayLabel` and `.b-month` are `feedBlock`'s, unchanged. The company's
+     feed has grouped by day since it was built and this is the same list of
+     the same events read from the other end, so a second way of saying
+     Yesterday would be two vocabularies for one fact. */
+  function logDays(items, dayOf, draw) {
+    let day = '';
+    return items.map((x, i) => {
+      const d = String(dayOf(x)).slice(0, 10);
+      const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(d)) + '</h3>' : '';
+      day = d;
+      return head + draw(x, i);
+    }).join('');
   }
 
   function missedPage() {
     const calls = missedCalls();
     const meets = missedMeets();
-    /* The count is the calls', because the badge that brought you here
-       counts calls and a page that opens on a different number than the
-       door promised is a page that got it wrong. */
-    const say = (n2, noun) => '<span class="s-block-say">' + esc(plural(n2, noun)) + '</span>';
+    const on = S.q === 'meets' ? 'meets' : 'calls';
+    const nOf = (k) => (k === 'meets' ? meets.length : calls.length);
+    /* The same chip the queue's cuts use, so the one control in this build
+       that means "same frame, different body" means it here too. */
+    const tabs = '<div class="b-cuts b-log-tabs">' + LOG_TABS.map((t) =>
+      '<button class="filter-chip' + (on === t.k ? ' active' : '') + '" type="button" ' +
+      'data-q="' + esc(t.k) + '"' + (on === t.k ? ' aria-current="true"' : '') + '>' +
+      esc(t.label) + '<span class="b-cut-n">' + commas(nOf(t.k)) + '</span></button>').join('') +
+    '</div>';
+
     return '<div class="s-home">' +
       '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="Calls you missed">' +
+      '<section class="s-block s-block-wide" aria-label="What came for you">' +
         '<div class="s-camp-list-head">' +
-          '<h2 class="s-block-h">Missed calls</h2>' +
-          (calls.length ? say(calls.length, 'call') : '') +
+          '<h2 class="s-block-h">Call log</h2>' +
         '</div>' +
-        (calls.length
-          ? aimyBlock({ text: '<b>' + esc(plural(calls.length, 'person')) + '</b> rang and ' +
-              'nobody picked up. Where there is something on their record worth ' +
-              'knowing before you ring back, it is under their name.',
-            from: 'the record against each number' }) +
-            '<div class="b-owed">' + calls.map((t, i) => {
-              const c = DB.byCon[t.con];
-              if (!c) return '';
-              const why = ringRead(c);
-              /* ══ SEVENTEEN RED DOTS IS A COLUMN THAT SAYS NOTHING ═════
-                 Every row here was `p1`, so the marker that exists to separate
-                 two poles was drawn identically on all of them — decoration
-                 repeated down a page, and the bell's own rule ("one of these
-                 rows is about something that went wrong and the others are
-                 about things that have not happened yet") broken on the
-                 surface that borrowed the component.
-
-                 The real split, and the only one: whether the person who rang
-                 is already owed something that is late. That is the case
-                 `ringRead` opens on too, so the dot and the sentence beside it
-                 are making the same claim off the same field rather than two
-                 claims a reader has to reconcile. */
-              return missedRow({
-                who: c.name, when: sayAgo(t.at), body: why,
-                sev: c.next && c.next.due < TODAY_ISO ? 'p1' : '',
-                go: canRing(c) ? 'Ring them back' : 'Open the record',
-                act: canRing(c) ? 'data-call="' + esc(c.id) + '"'
-                  : 'data-con="' + esc(c.id) + '"',
-              }, i);
-            }).join('') + '</div>'
-          /* The one piece of good news either section has, so it says so
-             rather than saying nothing — `openLoop`'s rule, and the reason
-             this page is worth opening on a quiet day. */
-          : '<p class="b-vfoot">Nobody has rung you and gone unanswered. ' +
-            'Every call that came in got taken.</p>') +
-      '</section>' +
-      '<section class="s-block s-block-wide" aria-label="Meetings nobody wrote up">' +
-        '<div class="s-camp-list-head">' +
-          '<h2 class="s-block-h">Missed meetings</h2>' +
-          (meets.length ? say(meets.length, 'meeting') : '') +
-        '</div>' +
-        (meets.length
-          ? aimyBlock({ text: '<b>' + esc(plural(meets.length, 'meeting')) + '</b>' +
-              (meets.length === 1 ? ' has' : ' have') + ' been and gone with nothing on ' +
-              'the record. Say how it went in a sentence and AiMY writes it up.',
-            from: 'the diary against the record' }) +
-            /* No pole in this section. Every row in it is the same event at a
-               different date — been and gone, nothing written — so there is
-               nothing for a second colour to separate, and the marker keeps
-               the two sections' text on one left edge. */
-            '<div class="b-owed">' + meets.map((m, i) => missedRow({
-              who: m.con.name, when: sayAgo(m.iso), sev: '',
-              body: 'Your ' + esc((MEET_KIND[m.kind] || MEET_KIND.meeting).label.toLowerCase()) +
-                ' with them has been and gone, and nothing says how it went.',
-              go: 'Say how it went',
-              /* The words, not the answer — they are the only one who knows
-                 it. The same hand-off the loop on the diary makes. */
-              act: 'data-fill="' + esc('Had a ' + (m.kind === 'owed' ? 'call' : m.kind) +
-                ' with ' + m.con.name + ', ') + '"',
-            }, i)).join('') + '</div>'
-          : '<p class="b-vfoot">Every meeting that has been and gone has been ' +
-            'written up.</p>') +
+        tabs +
+        (on === 'meets' ? logMeets(meets) : logCalls(calls)) +
       '</section>' +
     '</div>';
+  }
+
+  function logCalls(calls) {
+    /* The one piece of good news the page has, so it says so rather than
+       saying nothing — `openLoop`'s rule, and the reason it is worth opening
+       on a quiet day. */
+    if (!calls.length) {
+      return '<p class="b-vfoot">Nobody has rung you and gone unanswered. ' +
+        'Every call that came in got taken.</p>';
+    }
+    return aimyBlock({ text: '<b>' + esc(plural(calls.length, 'person')) + '</b> rang and ' +
+        'nobody picked up. Where there is something on their record worth knowing ' +
+        'before you ring back, it is under their number.',
+      from: 'the record against each number' }) +
+      '<div class="b-log">' + logDays(calls, (t) => t.at, (t, i) => {
+        const c = DB.byCon[t.con];
+        if (!c) return '';
+        return logRow({
+          tone: 'is-missed', ico: chIcon('call-in'),
+          who: c.name,
+          /* The direction first, because it is what the glyph says and a
+             reader checks the two against each other; then the number, which
+             is what a call log is a log OF; then when. */
+          meta: logMeta(['Missed', c.phone, timeOf(t.at)]),
+          say: ringRead(c),
+          go: canRing(c) ? 'Ring them back' : 'Open the record',
+          goIco: canRing(c) ? chIcon('phone') : chIcon('user'),
+          act: canRing(c) ? 'data-call="' + esc(c.id) + '"' : 'data-con="' + esc(c.id) + '"',
+        }, i);
+      }) + '</div>';
+  }
+
+  function logMeets(meets) {
+    if (!meets.length) {
+      return '<p class="b-vfoot">Every meeting that has been and gone has been ' +
+        'written up.</p>';
+    }
+    return aimyBlock({ text: '<b>' + esc(plural(meets.length, 'meeting')) + '</b>' +
+        (meets.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the ' +
+        'record. Say how it went in a sentence and AiMY writes it up.',
+      from: 'the diary against the record' }) +
+      '<div class="b-log">' + logDays(meets, (m) => m.iso, (m, i) => {
+        const kind = (MEET_KIND[m.kind] || MEET_KIND.meeting).label;
+        return logRow({
+          tone: 'is-meet', ico: chIcon('calendar'),
+          who: m.con.name,
+          /* The hour only where there is one. A caller's commitment carries a
+             day and no time, and drawing it at an invented ten o'clock is the
+             row asserting what it was never told — the call `meetings` already
+             makes one derivation up. */
+          meta: logMeta([kind, m.clock]),
+          say: 'Nothing on the record says how it went.',
+          go: 'Say how it went',
+          /* The pen, not the mic. `data-fill` puts the opening words in the
+             bar and leaves the cursor there — it does not start dictation,
+             and a microphone promising one is a glyph that lies. */
+          goIco: chIcon('pen'),
+          /* The words, not the answer — they are the only one who knows it.
+             The same hand-off the loop on the diary makes. */
+          act: 'data-fill="' + esc('Had a ' + (m.kind === 'owed' ? 'call' : m.kind) +
+            ' with ' + m.con.name + ', ') + '"',
+        }, i);
+      }) + '</div>';
   }
 
   function notesPage() {
@@ -12488,7 +12538,7 @@
        not need the rate; they need to know they have not started and where
        the pitch is. And a caller back from a run needs to see the run. */
     const meId = me().id;
-    const myCalls = DB.touch.filter((t) => t.camp === k.id && t.by === meId && OUTCOME[t.outcome]);
+    const myCalls = callsIn(DB.touch.filter((t) => t.camp === k.id && t.by === meId));
     const today = myCalls.filter((t) => t.at.slice(0, 10) === TODAY_ISO);
     const fresh0 = !myCalls.length;
     /* ══ THREE FIGURES ON A ROW, NONE OF THEM MEASURED ═════════════════
@@ -13015,7 +13065,7 @@
      met by a case study — it is met by the page that says what we do. */
   const DOC_FOR = { pricing: 'pricing', feature: 'deck', service: 'faq', timing: 'case', other: 'faq' };
   function blockersOf(k) {
-    const here = DB.touch.filter((t) => t.camp === k.id && OUTCOME[t.outcome]);
+    const here = callsIn(DB.touch.filter((t) => t.camp === k.id));
     const members = membersOf(k.id);
     const agreed = Object.create(null);
     k.objections.forEach((o) => (agreed[o.k] = o.say));
@@ -13907,6 +13957,16 @@
   /* The calls among a set of touchpoints. A hand-move, a profile going out
      and the director's meetings are on the record and are not calls, and
      four places counted them as calls. */
+  /* ══ THE ONLY PLACE THIS BUILD DECIDES WHAT A CALL IS ════════════
+     Six other surfaces spelled the test out for themselves — a campaign's run,
+     a rep's tally, the briefing's "you called N people today", the day's
+     read-back, the first cold call on a record — and every one of them started
+     counting the corpus's inbound calls as calls somebody here had placed. The
+     bell said "You called 1 person today" about a phone that rang while nobody
+     was at the desk.
+
+     They all come through here now. A test written out in seven places is one
+     that will be right in six of them. */
   const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome] && !wasMissed(t));
 
   function accSays(a, people, hist) {
@@ -14065,7 +14125,7 @@
         (function () {
           const say = (id) => {
             const theirs = hist.filter((t) => t.by === id);
-            const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
+            const calls = callsIn(theirs).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
             /* ══ EACH OF THEM COUNTED IN THEIR OWN UNIT, AND NOTHING ELSE ═══
                Nour: what does "theirs to call" add? Nothing. Engy is named
@@ -15105,12 +15165,28 @@
      row shape, so the page can draw them without asking which desk it is on
      — the call `switcher` and `queue` already make one level up. */
   function missedMeets() {
-    if (onBook()) {
-      return unrecorded().filter((m) => m.con).map((m) => ({
-        con: m.con, iso: m.iso, what: m.title, kind: m.kind }));
-    }
-    return queue(null, 'after').filter((c) => c.next && c.next.due).map((c) => ({
-      con: c, iso: c.next.due, what: c.next.what, kind: kindOfNext(c.next.what) }));
+    const out = onBook()
+      ? unrecorded().filter((m) => m.con).map((m) => ({
+        con: m.con, iso: m.iso, what: m.title, kind: m.kind, clock: clockOf(m) }))
+      /* ══ AND THE HOUR IS THE DIARY'S, NOT A SECOND GUESS ═════════
+         A caller's commitment is stored as a day with no time, so this branch
+         had no clock and the log showed one column of hours on the calls tab
+         and none on the meetings tab. `meetTime` is where the diary gets the
+         hour it draws for exactly this case — off the contact and the date,
+         so it is stable — and calling it here means the log and the diary
+         name the same o'clock instead of two. */
+      : queue(null, 'after').filter((c) => c.next && c.next.due).map((c) => {
+        const k = kindOfNext(c.next.what);
+        return { con: c, iso: c.next.due, what: c.next.what, kind: k,
+          clock: clockOf(meetTime(c.id, c.next.due, k)) };
+      });
+    /* ══ NEWEST FIRST, LIKE EVERY OTHER LOG IN THIS BUILD ═══════════
+       Neither source arrives in this order and neither is wrong to: the diary
+       runs forwards because that is how a day is read, and the queue runs by
+       what to work next. A log runs backwards from now, and under day
+       headings the two orders are not a preference — unsorted, the page put
+       11 Sep above Yesterday. */
+    return out.sort((a, b) => (a.iso > b.iso ? -1 : a.iso < b.iso ? 1 : 0));
   }
   const missedN = () => missedCalls().length;
 
@@ -17972,7 +18048,7 @@
           commas(closing.fresh) + ' people never called.',
         cta: 'Show the campaign', ask: closing.k.name });
     }
-    const today = DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO && OUTCOME[t.outcome]);
+    const today = callsIn(DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO));
     if (today.length) {
       tasks.push({ id: 'run-today', sev: 'p3', type: 'Run', when: 'today',
         body: 'You called ' + plural(today.length, 'person') + ' today: ' +
@@ -20578,8 +20654,8 @@
       const from = yday ? dayAdd(-1) : TODAY_ISO;
       const to = yday ? TODAY_ISO : dayAdd(1);
       const label = yday ? 'yesterday' : 'today';
-      const mineT = DB.touch.filter((t) => t.by === me().id && OUTCOME[t.outcome] &&
-        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to);
+      const mineT = callsIn(DB.touch.filter((t) => t.by === me().id &&
+        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to));
       if (!mineT.length) return 'Nothing on the record from you ' + label + '.';
       const by = Object.create(null);
       mineT.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
@@ -20877,7 +20953,7 @@
         esc(a.name) + ' ' + esc(sig.text) + ', ' + esc(sayWhen(sig.at)) + '.']);
     }
     if (c.owner) {
-      const first = hist.filter((t) => OUTCOME[t.outcome]).slice(-1)[0];
+      const first = callsIn(hist).slice(-1)[0];
       know.push(['How it started', esc(actor(c.owner).name) + ' called them cold' +
         (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them warm.']);
     }

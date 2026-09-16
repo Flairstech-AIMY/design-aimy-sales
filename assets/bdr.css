@@ -5488,3 +5488,131 @@
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; line-height: 1;
 }
+
+/* ══ THE CALL LOG ═════════════════════════════════════
+   A row is pressable end to end and carries no edge of its own — the block is
+   already a surface, and seventeen bordered rows inside it is a table drawn by
+   hand. `.b-owed` next door makes the same call for the same reason; this is
+   not that component because the anatomy is different: a glyph chip instead of
+   a severity dot, and three lines instead of two.
+
+   `flex-start` on the row, not `center`. The chip belongs beside the NAME —
+   the way a phone draws it — and centring it against a three-line body floats
+   it halfway down the meta. The verb is the exception and centres, because it
+   is the row's own action rather than a part of what the row says. */
+.b-log { display: flex; flex-direction: column; }
+/* The day headings are flex items of the list they head. Same margins the
+   feed gives them, and the same nought on the first, or the list opens with
+   fourteen pixels of nothing under a section head that already left twelve. */
+.b-log > .b-month { margin: 14px 0 6px; }
+.b-log > .b-month:first-child { margin-top: 0; }
+.b-log-row {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  padding: 10px 12px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in var(--t-settle) var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-log-row:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-log-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .b-log-row { animation: none; } }
+
+/* ══ THE GLYPH CARRIES THE TONE BECAUSE THE WORD CANNOT ════════════
+   `--err` measures 4.37:1 in dark and 3.82:1 in light and fails AA as type —
+   which is the whole reason `--err-text` exists and why no status word in this
+   build is tinted. A non-text graphic answers to 3:1 instead, so the colour
+   goes on the chip and "Missed" is set in plain ink beside it. The ground is
+   `--err-bg` / `--warn-bg`, which the design system already defines per theme,
+   rather than an alpha invented here.
+
+   34px: the chip is a marker, not an avatar. `.b-ring-av` is 44 because a
+   ringing phone has one subject and this has seventeen. */
+.b-log-ico {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+.b-log-ico svg { width: 16px; height: 16px; }
+.b-log-ico.is-missed { background: var(--err-bg); color: var(--err); }
+.b-log-ico.is-meet { background: var(--warn-bg); color: var(--warn); }
+
+.b-log-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.b-log-name {
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+}
+/* The number, the direction and the hour, at the floor for type and no lower.
+   Tabular figures because a column of phone numbers and clock times that do
+   not line up is a column nobody can scan — which is the one thing a log is
+   for. */
+.b-log-meta {
+  margin-top: 1px; font-size: var(--fs-2xs); color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* What AiMY makes of it, and the reason this is not just a phone's list. Set
+   ABOVE the meta, not below it: the meta is chrome every row has and this is
+   the payload only some rows have. */
+.b-log-say {
+  margin-top: 4px; font-size: var(--fs-xs); color: var(--ink-secondary);
+  line-height: var(--lh-snug);
+}
+/* ══ THE VERB IS A CONTROL, SO IT LOOKS LIKE ONE ═════════════════
+   It was accent-coloured text, which is this build's TERTIARY tier — right at
+   the end of a sentence, wrong at the end of a row that is itself the press.
+   Seventeen of them down a page read as seventeen links to seventeen places
+   rather than as the one thing each row does.
+
+   A pill with its glyph: the shape of the secondary control the rest of the
+   build uses, at a weight that does not compete with a real one — tinted
+   ground rather than the filled `--brand`, because the row is not the primary
+   action on the surface, it is one of seventeen.
+
+   It lights on the ROW's hover, not its own. Its own would be a second hover
+   target inside a single control and would say, wrongly, that the pill is the
+   part you have to hit.
+
+   `--accent-text`, not `--accent`. Measured over this pill’s own composited
+   ground, `--accent` came back 3.52:1 and fails AA as type — which is the
+   whole reason sales.css carries a second accent whose comment reads “5.04:1
+   — an action, not a status”. Measured on this pill: 4.76:1 dark, 5.27:1
+   light. The GLYPH beside it could have kept the raw accent, since a
+   non-text graphic answers to 3:1 — but one control speaking in two purples
+   could not. */
+.b-log-go {
+  flex: none; align-self: center; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 28px; padding: 0 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  background: rgba(var(--accent-rgb), 0.08);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--accent-text);
+  transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+.b-log-go svg { width: 13px; height: 13px; flex: none; }
+.b-log-row:hover .b-log-go {
+  background: rgba(var(--accent-rgb), 0.18);
+  border-color: rgba(var(--accent-rgb), 0.45);
+}
+@media (prefers-reduced-motion: reduce) { .b-log-go { transition: none; } }
+/* The tabs sit between the section head and the reading, and the head already
+   carries its own 12 underneath. */
+.b-log-tabs { margin-bottom: 14px; }
+
+/* ══ AND ON A PHONE THE VERB GOES UNDER THE ROW, NOT OFF THE EDGE ════
+   Three lines of body plus a verb on the right is four columns of content in
+   a 360px window. The row stacks instead of truncating: the rule this build
+   holds is that when space runs out the component changes form, and a verb
+   clipped at the right edge is a capability deleted. */
+@media (max-width: 619.98px) { /* 620 layout px, the width `.s-starts` reflows at */
+  .b-log-row { flex-wrap: wrap; }
+  /* ══ WRAPPING IS NOT WHAT MAKES IT WRAP ════════════════════
+     `flex-wrap` alone changed nothing: the body carries `min-width: 0` so it
+     can shrink to nothing, and all three children went on fitting one line —
+     measured at 375px, a 51px body against a 127px pill, every sentence
+     breaking to one word per line. The body has to CLAIM the first line, and
+     46px is the chip plus the gap it sits in. */
+  .b-log-main { flex-basis: calc(100% - 46px); }
+  /* Indented to the body column by a margin, not by padding — padding would
+     stretch the pill itself across the row. */
+  .b-log-go { align-self: flex-start; margin: 8px 0 0 46px; }
+}
