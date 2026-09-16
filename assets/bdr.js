@@ -437,7 +437,14 @@
      count the digits of to take in. */
   const euro = (n) => '€' + (n >= 1000000 ? (Math.round(n / 100000) / 10) + 'm'
     : n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
-  const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
+  /* ══ "NO ANSWER" IS A SENTENCE ABOUT WHO DIALLED ════════════════
+     A call THEY made that nobody here took is stored under the same
+     outcome as a call WE made that nobody there took — correctly, because
+     the outcome is the same and `dir` is the field that tells them apart.
+     Printing the outcome's own label over it says the opposite of what
+     happened: their phone did not go unanswered, ours did. */
+  const kindLabel = (t) => (wasMissed(t) ? 'Missed'
+    : OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? stepLabel(t.moved[1]) : t.outcome));
 
@@ -4416,7 +4423,8 @@
     const o = OUTCOME[t.outcome];
     /* A phase has no outcome row of its own; a lost resolution is the one
        that reads as a way out rather than a step forward. */
-    const tone = o ? o.tone
+    /* Same call the record's timeline makes, in the same words. */
+    const tone = wasMissed(t) ? 'warn' : o ? o.tone
       : (t.outcome === 'phase' ? (t.decision === 'lost' ? 'warn' : 'ok') : 'neutral');
     const head = kindLabel(t);
     return '<div class="s-qrow-id">' +
@@ -4424,6 +4432,7 @@
           esc(c ? c.name : 'Somebody') + '</button>' +
         '<span class="s-qrow-sub">' +
           '<span class="' + (FEED_TONE[tone] || FEED_TONE.neutral) + '">' +
+            (wasMissed(t) ? '<span class="b-dir">' + chIcon('call-in') + '</span>' : '') +
             esc(head) + '</span>' +
           '<span class="b-feed-meta"> · ' + esc(whoDid(t).name) +
             ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
@@ -14504,15 +14513,24 @@
          opens this list to tell apart, and they were the same row. */
       const phTone = ph ? (t.decision === 'lost' ? 'warn'
         : t.out ? MEET_OUT_BY[t.out].tone : 'ok') : null;
+      /* ══ AND IT IS NOT THE NEUTRAL A NO-ANSWER GETS ══════════════
+         `callback` has been permanently amber in every history since this
+         list was built, and nobody reads it as an alarm — amber here is the
+         tone of a call that left something open rather than one that wants
+         you this minute. Somebody reaching for you and not getting through
+         is the same class of event, and drawing it in the grey a rung-out
+         number gets is the row saying nothing happened. */
+      const miss = wasMissed(t);
       return head + '<details class="s-call b-tl-item' + (up || out || ph ? ' is-milestone' : '') + '"' +
         (i === 0 && pg.p === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
-          '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
+          '<span class="b-tl-dot ' + (TL_TONE[miss ? 'warn' : o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
             '" aria-hidden="true"></span>' +
           '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
           '<span class="s-call-by' + (whoDid(t).id === 'aimy' ? ' is-ai' : '') + '">' +
             esc(whoDid(t).name) + '</span>' +
-          '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
+          '<span class="s-call-out tone-' + esc(miss ? 'warn' : o ? o.tone : (phTone || 'neutral')) + '">' +
+            (miss ? '<span class="b-dir">' + chIcon('call-in') + '</span>' : '') +
             esc(kindLabel(t)) + '</span>' +
           /* And said in words beside it, because a colour is not a reading.
              A row nobody described keeps its silence: no word, and the
@@ -16220,6 +16238,11 @@
     calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
     back: '<path d="m15 18-6-6 6-6"/>',
+    /* The arrow every phone on earth draws beside a call it did not take:
+       in from the top right, head in the corner. Direction is the whole of
+       what separates this row from the one above it, and a word alone does
+       not survive a reader scanning eighteen of them. */
+    'call-in': '<path d="M17 7 7 17"/> <path d="M7 11v6h6"/>',
     fwd: '<path d="m9 18 6-6-6-6"/>',
     /* The same chevron turned, for a panel that goes away downwards rather
        than a page that goes back sideways. Drawn rather than rotated: `back`
@@ -21007,12 +21030,16 @@
      a pending call resolves its axes through `logHeard` and states the move
      it WOULD make; a touchpoint on the record already carries both. */
   const factsOfPending = (call, c, mv) => ({
-    outcome: call.outcome,
+    outcome: call.outcome, dir: call.dir || 'out',
     props: logHeard(call).props, objs: logHeard(call).objs, opps: logHeard(call).opps,
     from: c.checkpoint, to: mv.to, next: mv.next,
   });
   const factsOfTouch = (t) => ({
-    outcome: t.outcome,
+    /* Both of these were dropping `dir`, so the card under a missed call
+       had no way to know it was theirs and headed itself "Outcome: No
+       answer" — the outcome of a call somebody here placed, three pixels
+       under a summary line that had just said Missed. */
+    outcome: t.outcome, dir: t.dir || 'out',
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
     called: t.called || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
@@ -21020,8 +21047,13 @@
 
   function callFacts(f, c) {
     const o = OUTCOME[f.outcome];
+    const miss = wasMissed(f);
     const rows = [];
-    if (o) rows.push(['Outcome', o.label, o.tone]);
+    /* A call nobody took takes the shape the other non-call events take —
+       what happened, in words — because the one fact worth the row is who
+       dialled, and "No answer" is a sentence about the wrong end of it. */
+    if (miss) rows.push(['What happened', 'They called. Nobody here picked up.', 'warn']);
+    else if (o) rows.push(['Outcome', o.label, o.tone]);
     /* A step somebody settled by hand and a profile going out are not
        calls, and the card says what they were rather than filing them
        under an outcome they never had. */
@@ -21032,8 +21064,10 @@
         f.decision === 'lost' ? 'warn' : 'ok']);
     }
     /* Stated even when empty. A groundwork call is a thing that happened,
-       and a missing row is indistinguishable from one nobody filled in. */
-    if (o) {
+       and a missing row is indistinguishable from one nobody filled in.
+       Not on a missed one: the row exists to say a call was had and nothing
+       was asked for, and nobody was on this one to ask. */
+    if (o && !miss) {
       rows.push(['Asked for', f.props.length
         ? f.props.map((k) => (PROPOSAL[k] || {}).label || k).join(' · ') : 'nothing',
         f.props.length ? 'ok' : 'neutral']);

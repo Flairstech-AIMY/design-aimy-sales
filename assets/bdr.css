@@ -5431,3 +5431,18 @@
   .b-ring-main { padding: 12px 12px; gap: 10px; }
   .b-ring-read { padding: 8px 12px 10px; }
 }
+
+/* ══ WHICH WAY THE CALL WENT ═══════════════════════════════
+   Inside the outcome's own span on both timelines, so it takes the tone of
+   the row it belongs to rather than carrying a second colour of its own, and
+   so it can never wrap away from the word it qualifies.
+
+   `em` rather than px: the two rows set the outcome at different sizes and a
+   fixed 12px glyph was a third of a line tall on one and half of it on the
+   other. Optical, not geometric — the arrow's mass sits low in its box, so a
+   baseline alignment floats it. */
+.b-dir {
+  display: inline-flex; align-items: center;
+  margin-right: 4px; vertical-align: -0.1em;
+}
+.b-dir svg { width: 1em; height: 1em; stroke-width: 2.25; }
