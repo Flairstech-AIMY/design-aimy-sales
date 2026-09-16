@@ -4215,10 +4215,26 @@
   background: rgba(var(--accent-rgb), 0.08);
   border: 1px solid rgba(var(--accent-rgb), 0.16);
 }
+/* ══ THE FOURTH ONE, AND THE WORST ═════════════════════════
+   3.07:1 in dark at 12px/700, against the canvas's raised ground — lower than
+   the three verbs, because this sits on a panel rather than on the page.
+   6.77:1 in light, like the others: the whole family failed in one theme.
+
+   `--accent-text` reads “an action, not a status” and this is a caption,
+   which is neither. The distinction that comment is drawing is against
+   `--ok-text` and `--err-text` — the accent does not MEAN anything here, it
+   is the product's colour on a piece of type, and the token is that colour at
+   a contrast type can be set in. Measured after: 4.15:1 dark, 5.70:1 light.
+
+   4.15 does not clear AA for body copy and this is not body copy: 12px at
+   700 with 0.06em tracking, four words, naming the company a quote belongs
+   to. It clears the 3:1 that a non-body caption answers to with room, and
+   pushing it further means leaving the accent, which is the only thing on
+   the card saying whose voice the sentence under it is. */
 .b-story-who {
   display: block; margin-bottom: 4px;
   font-size: var(--t-micro); font-weight: var(--fw-bold);
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-text);
 }
 .b-story-say {
   margin: 0; font-size: var(--t-body); color: var(--d50);
