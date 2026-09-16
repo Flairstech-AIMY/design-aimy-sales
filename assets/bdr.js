@@ -3331,6 +3331,7 @@
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
       : S.on === 'notes' ? notesPage()
+      : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
       : S.on === 'deals' ? dealsPage()
@@ -5211,6 +5212,120 @@
       day = d;
       return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
     }).join('') + '</div>';
+  }
+
+  /* ══ THE PAGE THE DOOR OPENS ═══════════════════════════
+     TWO SECTIONS, NOT ONE STREAM. A missed call and a missed meeting are the
+     same subject and not the same event, and the verbs are different — one
+     wants the phone and the other wants a sentence. Merged into one list by
+     date, every row would have to explain which kind it was before it could
+     be acted on, and the reader would be sorting them by eye to find the
+     ones they can do right now.
+
+     THE ROW IS `.b-owed-row`, which the bell and Today already draw. What is
+     owed, ranked, with the verb on the right is exactly this shape, and a
+     second row component for the same job is the thing that drifts.
+
+     AND THE BODY OF A CALL ROW IS `ringRead`. It computes why this person is
+     probably ringing you — off their overdue step, their last objection,
+     their checkpoint — and until now it lived for thirty seconds on a
+     widget and was destroyed when the phone stopped. It is the one thing on
+     this page no other surface can tell you, so it is the payload of every
+     row that has one. `null` means no strip, here as there: a hedge with
+     nothing behind it teaches people to stop reading the column. */
+  function missedRow(o, i) {
+    return '<button class="b-owed-row" type="button" ' + o.act +
+      ' style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-owed-sev ' + (o.sev || '') + '" aria-hidden="true"></span>' +
+      '<span class="b-owed-main">' +
+        '<span class="b-owed-head">' +
+          '<span class="b-owed-type">' + esc(o.who) + '</span>' +
+          '<span class="b-owed-when">' + esc(o.when) + '</span>' +
+        '</span>' +
+        (o.body ? '<span class="b-owed-body">' + o.body + '</span>' : '') +
+      '</span>' +
+      '<span class="b-owed-go">' + esc(o.go) + '</span>' +
+    '</button>';
+  }
+
+  function missedPage() {
+    const calls = missedCalls();
+    const meets = missedMeets();
+    /* The count is the calls', because the badge that brought you here
+       counts calls and a page that opens on a different number than the
+       door promised is a page that got it wrong. */
+    const say = (n2, noun) => '<span class="s-block-say">' + esc(plural(n2, noun)) + '</span>';
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="Calls you missed">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">Missed calls</h2>' +
+          (calls.length ? say(calls.length, 'call') : '') +
+        '</div>' +
+        (calls.length
+          ? aimyBlock({ text: '<b>' + esc(plural(calls.length, 'person')) + '</b> rang and ' +
+              'nobody picked up. Where there is something on their record worth ' +
+              'knowing before you ring back, it is under their name.',
+            from: 'the record against each number' }) +
+            '<div class="b-owed">' + calls.map((t, i) => {
+              const c = DB.byCon[t.con];
+              if (!c) return '';
+              const why = ringRead(c);
+              /* ══ SEVENTEEN RED DOTS IS A COLUMN THAT SAYS NOTHING ═════
+                 Every row here was `p1`, so the marker that exists to separate
+                 two poles was drawn identically on all of them — decoration
+                 repeated down a page, and the bell's own rule ("one of these
+                 rows is about something that went wrong and the others are
+                 about things that have not happened yet") broken on the
+                 surface that borrowed the component.
+
+                 The real split, and the only one: whether the person who rang
+                 is already owed something that is late. That is the case
+                 `ringRead` opens on too, so the dot and the sentence beside it
+                 are making the same claim off the same field rather than two
+                 claims a reader has to reconcile. */
+              return missedRow({
+                who: c.name, when: sayAgo(t.at), body: why,
+                sev: c.next && c.next.due < TODAY_ISO ? 'p1' : '',
+                go: canRing(c) ? 'Ring them back' : 'Open the record',
+                act: canRing(c) ? 'data-call="' + esc(c.id) + '"'
+                  : 'data-con="' + esc(c.id) + '"',
+              }, i);
+            }).join('') + '</div>'
+          /* The one piece of good news either section has, so it says so
+             rather than saying nothing — `openLoop`'s rule, and the reason
+             this page is worth opening on a quiet day. */
+          : '<p class="b-vfoot">Nobody has rung you and gone unanswered. ' +
+            'Every call that came in got taken.</p>') +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Meetings nobody wrote up">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">Missed meetings</h2>' +
+          (meets.length ? say(meets.length, 'meeting') : '') +
+        '</div>' +
+        (meets.length
+          ? aimyBlock({ text: '<b>' + esc(plural(meets.length, 'meeting')) + '</b>' +
+              (meets.length === 1 ? ' has' : ' have') + ' been and gone with nothing on ' +
+              'the record. Say how it went in a sentence and AiMY writes it up.',
+            from: 'the diary against the record' }) +
+            /* No pole in this section. Every row in it is the same event at a
+               different date — been and gone, nothing written — so there is
+               nothing for a second colour to separate, and the marker keeps
+               the two sections' text on one left edge. */
+            '<div class="b-owed">' + meets.map((m, i) => missedRow({
+              who: m.con.name, when: sayAgo(m.iso), sev: '',
+              body: 'Your ' + esc((MEET_KIND[m.kind] || MEET_KIND.meeting).label.toLowerCase()) +
+                ' with them has been and gone, and nothing says how it went.',
+              go: 'Say how it went',
+              /* The words, not the answer — they are the only one who knows
+                 it. The same hand-off the loop on the diary makes. */
+              act: 'data-fill="' + esc('Had a ' + (m.kind === 'owed' ? 'call' : m.kind) +
+                ' with ' + m.con.name + ', ') + '"',
+            }, i)).join('') + '</div>'
+          : '<p class="b-vfoot">Every meeting that has been and gone has been ' +
+            'written up.</p>') +
+      '</section>' +
+    '</div>';
   }
 
   function notesPage() {
@@ -9008,8 +9123,30 @@
       '</div>' +
       '<div class="slv-body"><p class="slv-line">' +
         briefSentence(here, counts, all, camps) + '</p></div>' +
+      /* ══ AND THE DOOR ONTO WHAT CAME FOR YOU ══════════════════
+         On this caption's row, which is the shape `.b-loop-head` already
+         uses for the same pair: a micro capital naming what is below it, and
+         a door at the right edge onto the thing a reader who has just read
+         it asks for next. Four ways to START, and beside them the one
+         question none of them answers — what already happened without you.
+
+         `topBrief` is the caller's home and the manager's, so one placement
+         is both desks. The count is missed CALLS: the page holds meetings
+         too and they have three other doors already, and a badge that counts
+         two kinds of thing is a badge you cannot act on.
+
+         Drawn only when it is not zero. A door onto an empty page, wearing a
+         nought, is a control that teaches you to ignore it — and the page
+         itself still says the good news to anybody who arrives by URL. */
       '<div class="s-starts-wrap">' +
-        '<span class="s-starts-cap">Start</span>' +
+        '<div class="s-starts-head">' +
+          '<span class="s-starts-cap">Start</span>' +
+          (missedN()
+            ? '<button class="s-insight-lnk b-missed-door" type="button" data-go="' +
+              esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
+              'Call log<span class="b-missed-n">' + commas(missedN()) + '</span></button>'
+            : '') +
+        '</div>' +
         startStrip(here, counts, all, camps) +
       '</div>' +
     '</section>';
@@ -14936,6 +15073,46 @@
     return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.free && !m.held && m.kind !== 'owed' &&
       !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
   }
+
+  /* ══ 8b. WHAT CAME FOR YOU AND DID NOT GET THROUGH ═══════════════
+     Two events, one subject: somebody tried to reach you and the product
+     has no record of what came of it. A phone that rang out, and a meeting
+     that came and went with nothing written down.
+
+     Neither is new — the corpus has held missed calls since the seed learned
+     to write them, and the unrecorded meeting is the oldest reading on this
+     desk. What is new is that they are countable together, which is what a
+     door needs before it can carry a number. */
+
+  /* Whose phone it was. NOT "about a lead I own": a call to somebody else's
+     lead still rang on my desk if it rang on my phone, and the question this
+     page answers is what happened to ME while I was out. `by` is the field
+     both writers — the seed and `ringMissed` — already put that in. */
+  function missedCalls() {
+    const meId = me().id;
+    return DB.touch.filter((t) => wasMissed(t) && t.by === meId)
+      .sort((a, b) => (a.at > b.at ? -1 : 1));
+  }
+
+  /* ══ ONE EVENT, TWO LADDERS ═════════════════════════════
+     A meeting that has been and gone with nothing said about it is the same
+     gap on both desks and is stored in two different places, because the two
+     desks record the outcome of a meeting differently: the caller moves a
+     checkpoint, the manager writes a `phase` touchpoint. `afterMeeting` reads
+     the first and `unrecorded` reads the second, and both already existed.
+
+     So this is not a third derivation. It is the two of them flattened to one
+     row shape, so the page can draw them without asking which desk it is on
+     — the call `switcher` and `queue` already make one level up. */
+  function missedMeets() {
+    if (onBook()) {
+      return unrecorded().filter((m) => m.con).map((m) => ({
+        con: m.con, iso: m.iso, what: m.title, kind: m.kind }));
+    }
+    return queue(null, 'after').filter((c) => c.next && c.next.due).map((c) => ({
+      con: c, iso: c.next.due, what: c.next.what, kind: kindOfNext(c.next.what) }));
+  }
+  const missedN = () => missedCalls().length;
 
   /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
      A record read top to bottom is a profile; a profile read as prose is a

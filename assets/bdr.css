@@ -5446,3 +5446,45 @@
   margin-right: 4px; vertical-align: -0.1em;
 }
 .b-dir svg { width: 1em; height: 1em; stroke-width: 2.25; }
+
+/* ══ THE CAPTION AND THE DOOR ONTO WHAT YOU MISSED ════════════════
+   `.b-loop-head`'s row, in its own words, for the same pair: a micro capital
+   on the left and the way somewhere on the right. The caption keeps its own
+   type — a control beside a micro capital is the pair this row is for, not a
+   mismatch to correct — and gives up its own bottom margin to the row, which
+   now owns the gap to the cards.
+
+   `min-height` on the row rather than a margin on the button: the door is
+   drawn only when there is something to open, and without a reserved height
+   the four opener cards jumped 28px up the page the moment the last missed
+   call was dealt with. */
+.s-starts-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 28px; margin-bottom: 12px;
+}
+.s-starts-head .s-starts-cap { margin-bottom: 0; }
+
+/* ══ THE COUNT IS THE PAYLOAD, SO IT IS NOT SET IN THE QUIET INK ═════
+   The bell beside it carries a 6px dot, which says THERE IS SOMETHING. This
+   says how many, because how many is the whole of what the control is for,
+   and a number is no use at `--ink-muted` next to a label that outweighs it.
+
+   A filled pill rather than coloured text: `--err` as ink measures 4.37:1 in
+   dark and 3.82:1 in light and fails AA at both, which is the reason
+   `--err-text` exists. On a fill the contrast is the fill's to answer for — and
+   the ink is the PAGE, not white. `--err` resolves to a light coral in dark
+   theme and a deep red in light, so no one fixed ink can serve both: white
+   measured 2.63:1 on the dark theme's fill, which fails AA outright, and the
+   first draft of this rule shipped it. `--body-bg` inverts with the theme the
+   fill does — the trick `.bell-dot` already uses for its ring — and measures
+   6.65:1 dark, 7.0:1 light. Tabular figures so 1 and 11 are the same
+   width — the badge is redrawn on every paint and a number that changes
+   width nudges the label under the cursor. */
+.b-missed-door { gap: 7px; }
+.b-missed-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 5px;
+  border-radius: var(--r-pill); background: var(--err); color: var(--body-bg);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
