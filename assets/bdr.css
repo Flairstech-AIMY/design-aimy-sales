@@ -2167,6 +2167,27 @@
 }
 @keyframes b-menu-in { from { opacity: 0; transform: scale(0.97) translateY(-4px); } to { opacity: 1; transform: none; } }
 .b-menu[hidden] { display: none; }
+/* ══ AND IT LEAVES. A MENU THAT VANISHES WAS NEVER THERE ══════════════════
+   The open above is argued at --t-open and the close was `hidden = true`:
+   one frame the menu, the next frame nothing. A surface that takes 250ms to
+   arrive and no time at all to go does not read as the same object leaving;
+   it reads as the page having dropped it, which is the same defect as a
+   status line blinking, in a bigger box.
+
+   ONE RUNG FASTER AND A SHORTER MOVE. --t-fast against the open's --t-open,
+   for the reason written above it: a close gets out of the way, an open is
+   an invitation. And 0.99 against the open's 0.97, because the eye is being
+   released here rather than led — the exit only has to say `gone on
+   purpose`, and anything larger asks to be watched. The menu that opened
+   upwards leaves downwards, back the way it came.
+
+   No duration is written in bdr.js for this. The class starts the exit, the
+   length lives here, and `hidden` goes on when the animation reports that it
+   is over. */
+.b-menu.is-closing { animation: b-menu-out var(--t-fast) var(--ease-out) forwards; pointer-events: none; }
+.b-menu.is-up.is-closing { animation-name: b-menu-up-out; }
+@keyframes b-menu-out { to { opacity: 0; transform: scale(0.99) translateY(-2px); } }
+@keyframes b-menu-up-out { to { opacity: 0; transform: scale(0.99) translateY(2px); } }
 .b-menu-cap {
   padding: 4px 10px 6px;
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
@@ -2181,7 +2202,7 @@
 }
 .b-menu-item:hover { background: rgba(var(--accent-rgb), 0.14); color: var(--d50); }
 .b-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-@media (prefers-reduced-motion: reduce) { .b-menu { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .b-menu, .b-menu.is-closing { animation: none; } }
 .b-menu-open[aria-expanded] { color: var(--d50); }
 .b-menu-wrap:has(.b-menu:not([hidden])) .b-menu-open { color: var(--d50); border-color: var(--accent); }
 .b-menu.is-right { left: auto; right: 0; transform-origin: top right; }

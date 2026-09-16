@@ -22037,12 +22037,17 @@
          wrong for every other menu on the page — two could sit over each
          other, and the one underneath was still live. */
       shutMenus(panel);
-      panel.hidden = !panel.hidden;
+      /* A MENU ON ITS WAY OUT IS NOT AN OPEN MENU. It stays un-hidden while
+         the exit runs, so `!panel.hidden` would have called it open: pressing
+         the opener again during a close would have shut it a second time
+         rather than bringing it back, and the measuring below would have run
+         against something already leaving. */
+      if (menuIsOpen(panel)) menuShut(panel); else menuOpen(panel);
       const find = panel.querySelector('[data-picksearch]');
-      if (!panel.hidden && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }
+      if (menuIsOpen(panel) && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }
       /* A MENU THAT WOULD RUN OFF THE EDGE HANGS THE OTHER WAY. Measured
          after it is shown, because a hidden element has no width. */
-      if (!panel.hidden && panel.classList.contains('b-menu')) {
+      if (menuIsOpen(panel) && panel.classList.contains('b-menu')) {
         panel.classList.remove('is-right', 'is-up');
         panel.style.maxHeight = '';
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
@@ -22723,8 +22728,56 @@
     }
   }
 
+  /* ══ A MENU LEAVES RATHER THAN VANISHING ═══════════════════════════════
+     `hidden = true` is one frame, and bdr.css §47 now gives these an exit.
+     The class starts it and the stylesheet owns its length, so there is no
+     duration in here to drift out of step with the one over there.
+
+     THE SHUT IS NUMBERED BECAUSE IT CAN BE OVERTAKEN. A menu on its way out
+     can be reopened before it has finished going, and the handlers from the
+     first shut are still pending when that happens: an `animationend` that
+     would arrive at the end of the OPEN and hide a menu somebody has just
+     asked for, and a net that would do the same a moment later. Opening
+     bumps the count, and a shut that is no longer the current one does
+     nothing at all.
+
+     A READER WITH MOTION OFF IS NOT MADE TO WAIT, and neither is a panel
+     that is not a menu: with no animation nothing fires `animationend`, so
+     the net would BE the close. Both are hidden outright instead. */
+  function menuIsOpen(m) { return !!m && !m.hidden && !m.classList.contains('is-closing'); }
+  function menuOpen(m) {
+    m._shutId = (m._shutId || 0) + 1;
+    clearTimeout(m._shutT);
+    if (m._shutH) { m.removeEventListener('animationend', m._shutH); m._shutH = null; }
+    m.classList.remove('is-closing');
+    m.hidden = false;
+  }
+  function menuShut(m) {
+    if (!m || m.hidden || m.classList.contains('is-closing')) return;
+    const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still || !m.classList.contains('b-menu')) { m.hidden = true; return; }
+    const id = (m._shutId = (m._shutId || 0) + 1);
+    /* ANIMATIONEND BUBBLES, so a row inside the menu finishing an animation
+       of its own would arrive here and hide the menu early. Only the menu's
+       own event counts. The listener cannot be `once` for the same reason —
+       a child's event would spend it — so it is taken off by hand, here and
+       in menuOpen. */
+    const done = (e) => {
+      if (e && e.target !== m) return;
+      if (m._shutId !== id) return;
+      clearTimeout(m._shutT);
+      m.removeEventListener('animationend', done);
+      m._shutH = null;
+      m.classList.remove('is-closing');
+      m.hidden = true;
+    };
+    m.classList.add('is-closing');
+    m._shutH = done;
+    m.addEventListener('animationend', done);
+    m._shutT = setTimeout(done, 700);
+  }
   function shutMenus(keep) {
-    document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) m.hidden = true; });
+    document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) menuShut(m); });
   }
   document.addEventListener('click', (e) => {
     if (e.target.closest && (e.target.closest('.b-menu') || e.target.closest('[data-pickopen]'))) return;
