@@ -16636,7 +16636,20 @@
     const sess = call.sess;
     const at = sess ? sess.done.length + sess.skipped.length + 1 : 0;
 
-    return '<div class="call-head">' +
+    /* ══ THE CLOCK BELONGS TO THE PERSON, SO IT SITS ON THEIR LINE ═════
+       The head was a row of its own above the name: a dot and a number on
+       one line, then who they are on the next, which spends a whole row of a
+       300px column on four characters and reads as a heading over a heading.
+
+       On the name's line and pushed to its far edge, the two are what they
+       always were — who you are speaking to, and how long you have been
+       speaking to them. Right-aligned because a clock that moves should not
+       move anything else: the name grows from the left, the digits are
+       tabular, and nothing in between shifts as the seconds turn over. */
+    return '<div class="call-who-block">' +
+      '<div class="call-who-top">' +
+        '<p class="call-name">' + esc(c.name) + '</p>' +
+        '<div class="call-head">' +
         '<span class="call-live' + (ready ? ' is-ready' : dialing ? ' is-dialing' : '') +
           '" aria-hidden="true"></span>' +
         /* The word replaces the clock rather than sitting beside it: a clock
@@ -16649,10 +16662,8 @@
           : '') +
         (sess ? '<span class="call-of" id="callOf">' + at + ' of ' + sess.ids.length +
           '</span>' : '') +
+        '</div>' +
       '</div>' +
-
-      '<div class="call-who-block">' +
-        '<p class="call-name">' + esc(c.name) + '</p>' +
         '<p class="call-sub">' + esc(c.title) +
           (a ? ' · ' + esc(a.name) : '') + '</p>' +
         /* A stranger IS their number, so the name line is already the
@@ -16691,12 +16702,6 @@
          controls floated under the phone number. */
       '<div class="call-lines" id="callLines">' + transcriptHtml(call) + '</div>' +
 
-      '<label class="ds-field call-note-field">' +
-        '<span class="s-field-label">Notes</span>' +
-        '<textarea class="ds-textarea" rows="2" spellcheck="false" data-note ' +
-          'placeholder="Anything worth keeping.">' + esc(call.note) + '</textarea>' +
-      '</label>' +
-
       /* ══ THE NOTICE IS A DOOR, NOT A PANEL ═══════════════════════════════
          Recording cannot start until they have been told, and the asking is
          one line with two answers rather than a block explaining the law. */
@@ -16731,24 +16736,28 @@
             (call.held ? 'Resume' : 'Hold') + '" title="' + (call.held ? 'Resume' : 'Hold') +
             '">' + chIcon(call.held ? 'play' : 'pause') + '</button>') +
 
-        /* End keeps its word alongside the handset. It is the one
-           irreversible control here and the only one whose mispress costs you
-           the call — Fitts says make it big, and a destructive control states
-           itself. */
+        /* ══ END IS THE HANDSET, AND NOTHING ELSE ════════════════════
+           It kept its word on the argument that a destructive control states
+           itself, and Fitts says make it big. That was already overruled at
+           the width where this panel becomes a strip — the narrow rules put
+           it in a 44px circle and hid the span — and the argument that won
+           there wins everywhere: the row it sits in is Record, Mute and Hold,
+           three circles that say what they do with a glyph, so a labelled
+           rectangle among them is the odd one out. A struck-through handset
+           is not ambiguous; it is the mark every phone on earth ends with.
+
+           The sentence is in `aria-label`, which it always was, so nothing is
+           lost for anyone who is not looking at it. Start call keeps its
+           word: it is not this control, it is affirmative, and it is the only
+           thing on the ready panel to press. */
         (ready
           ? '<button class="call-end call-go" type="button" data-callgo ' +
             'aria-label="Start the call to ' + esc(c.name) + '">' + chIcon('phone') +
             'Start call</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
-            (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
-            /* THE WORD IS IN A SPAN SO A WIDTH CAN TAKE IT. On a phone this
-               control is the handset alone — sales.css decides where — and a
-               bare text node beside the icon is the one thing in this button
-               that cannot be addressed. The button keeps its aria-label either
-               way, so what a screen reader hears does not depend on how wide
-               the panel is. */
-            '<span class="call-end-say">' + (dialing ? 'Stop' : 'End') + '</span>' +
-            '</button>') +
+            (dialing ? 'Stop calling them' : 'End the call') + '" title="' +
+            (dialing ? 'Stop calling them' : 'End the call') + '">' +
+            chIcon('hangup') + '</button>') +
 
         /* ══ AND THE WAY BACK TO THE PAGE, AFTER END ════════════════════
            In this row rather than up in the head, and last in it. The head is
@@ -22966,22 +22975,15 @@
       DRAFT.name = nm.value === nm.getAttribute('data-auto') ? null : nm.value;
       return;
     }
-
-    const n = e.target.closest('[data-note]');
-    if (!n || !DB.call) return;
-    DB.call.note = n.value;
-    /* NOT `paintCall()`. Repainting the panel replaces the textarea the
-       caret is sitting in, and the caret goes with it — you would lose the
-       cursor on every keystroke. Only what the reading changes is redrawn. */
-    /* Nothing is repainted while you type. The note is read when the call
-       is logged, and the canvas already carries the reading — redrawing the
-       rail here would take the caret with it. */
   });
 
   /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════
      Two hundred calls in a day is two hundred rounds of: read the brief,
      dial, listen, say what happened, next. Every one of those is a key here,
-     and the hand never leaves the home row except to type the note.
+     and the hand never leaves the home row at all — `n` used to take it off
+     to a textarea in the rail, and that textarea is gone: anything worth
+     keeping is said to AiMY, where it is read rather than stored as a string
+     nobody looks at again.
 
      Enter is the whole loop. It means "the obvious next thing" at every
      state — dial the next one, start this one, hang up, log it and go on —
@@ -23032,11 +23034,6 @@
         e.preventDefault();
         if (DB.call) endCall();
         if (PENDING) { PENDING.outcome = n.k; callLogPropose(); }
-        return;
-      }
-      if (e.key === 'n' || e.key === 'N') {
-        const note = byId('callPanel').querySelector('[data-note]');
-        if (note) { e.preventDefault(); note.focus(); }
         return;
       }
       /* `&&` binds tighter than `||`, so the guard only ever applied to the

@@ -738,10 +738,17 @@ button {
      FILLS, NEVER INK — AND THE TWO OWE DIFFERENT FLOORS, BECAUSE ONE OF
      THEM CARRIES A WORD AND THE OTHER DOES NOT.
 
-     `--hangup-fill` is on `.call-end`, a wide button with END written
-     across it at 14px bold. WCAG's large-text allowance starts at
-     18.66px bold, so 14px is ordinary text and owes 4.5:1. That is what
-     pins this red, and it is why it is as deep as it is.
+     `--hangup-fill` is on `.call-end`, which WAS a wide button with END
+     written across it at 14px bold — ordinary text under WCAG, whose
+     large-text allowance starts at 18.66px bold, so it owed 4.5:1. That
+     is what pinned this red and why it is as deep as it is.
+
+     The word is gone: End is a handset in a circle now, so the floor it
+     actually owes is 3:1, the non-text one. The value stays where it is
+     rather than being relaxed to match — nothing is bought by making the
+     one irreversible control on the panel a lighter red, and a fill that
+     already clears the stricter floor cannot be wrong if a word ever
+     comes back to it.
 
      `--answer-fill` is on one 40px circle with a handset in it and no
      text anywhere, so its floor is 3:1 — the non-text floor, which
@@ -5794,8 +5801,14 @@ body.is-calling { --fb-reserve: var(--call-width); }
    and `End` is pinned by `.call-tools { margin-top: auto }`. */
 .app-call {
   width: var(--call-width); flex-shrink: 0;
-  display: flex; flex-direction: column; gap: 16px;
-  padding: 20px 16px;
+  /* ══ EVERY ROW BUT ONE IS FIXED, SO EVERY ROW BUT ONE IS A COST ═════
+     `.call-lines` is `flex: 1 1 0`: it gets exactly what the fixed rows
+     leave. So the gap between those rows and the padding around them come
+     straight off the transcript, which is the only thing on this panel that
+     is actually being read. 12 and 14 rather than 16 and 20 — still the
+     scale's own steps, and twenty pixels back for the words. */
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 16px;
   overflow: hidden;
   border-left: 1px solid var(--hairline);
   background: var(--card-bg);
@@ -5808,6 +5821,15 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .app-call[hidden] { display: none; }
 
 .call-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* The name and the clock, one line, opposite ends. `baseline` and not
+   `center`: they are two sizes — the name at the body step, the clock a step
+   up and extrabold — and two different sizes centred on one row sit on two
+   different lines of type. On their shared baseline they read as one line,
+   which is what they are. `min-width: 0` on the name so a long one ellipses
+   into the gap instead of pushing the clock off the panel. */
+.call-who-top { display: flex; align-items: baseline; gap: 8px; }
+.call-who-top .call-name { flex: 1 1 auto; min-width: 0; }
+.call-who-top .call-head { flex: 0 0 auto; margin-left: auto; }
 /* ══ THE WAY BACK TO THE PAGE, AND IT IS .call-tool's SKIN ═══════════════
    It sits in .call-tools, last, past End — that row is everything you can
    press during a call, and the head above it is the three things the call is
@@ -5836,13 +5858,24 @@ body.is-calling { --fb-reserve: var(--call-width); }
    right now rather than true as of the last paint, and motion is how that
    reads without a word for it. */
 .call-live {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--err);
+  width: 6px; height: 6px; border-radius: 50%; background: var(--err);
   flex-shrink: 0; animation: callPulse 1.6s ease-in-out infinite;
 }
 @keyframes callPulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .call-live { animation: none; } }
+/* ══ AND THE CLOCK IS A VALUE, NOT A HEADING ══════════════════════
+   18px extrabold was right while this had a row to itself and was the first
+   thing on the panel: it was the heading, and the name was the line under
+   it. On the name's own line that ranking is upside down — the subject of
+   this panel is the person, and how long you have been talking to them is a
+   figure about the call.
+
+   So it comes down to the meta step and keeps its weight, which is what
+   stops it reading as another qualifier under the name. Tabular still, and
+   more load-bearing now than it was: at 14px a proportional digit set shifts
+   the whole row every time a 1 turns into a 2. */
 .call-timer {
-  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold);
   color: var(--d50); font-variant-numeric: tabular-nums;
   line-height: var(--lh-tight);
 }
@@ -5851,8 +5884,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
    thing rather than three lines. */
 .call-who-block { display: flex; flex-direction: column; }
 .call-name { font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50); line-height: var(--lh-tight); }
-.call-sub { font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 4px; }
-.call-num { font-size: var(--fs-xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
+/* 2 rather than 4. The ratio rule the block's own note states is about the
+   gap INSIDE the group being smaller than the one around it, and the panel's
+   own gap came down to 12 — so this comes down with it or the group stops
+   reading as one thing. */
+.call-sub { font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 2px; line-height: var(--lh-tight); }
+.call-num { font-size: var(--fs-xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; margin-top: 2px; line-height: var(--lh-tight); }
 
 /* ══ IT RINGS BEFORE IT IS LIVE ═══════════════════════════════════════════
 
@@ -5946,14 +5983,31 @@ body.is-calling { --fb-reserve: var(--call-width); }
   flex: 1 1 0; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: 8px;
 }
-.call-line { font-size: var(--fs-base); color: var(--d200); line-height: var(--lh-relaxed); }
+/* ══ ONE STEP DOWN, AND THE LEADING STAYS ════════════════════════
+   The body step in a 300px column is about six words to the line, so a
+   transcript set at it spends most of its height on line breaks. At the meta
+   step the same exchange is a third shorter and more of it is on screen,
+   which is the only thing this panel is being asked for.
+
+   `--lh-relaxed` is untouched on purpose. Smaller type in a narrow measure
+   needs MORE leading, not less — this is read at a glance by somebody who is
+   mid-sentence with another person, and lines that run together are lines
+   they lose their place in. The height comes back from the type, not from
+   the space between it. */
+.call-line { font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-relaxed); }
 .call-line.is-them { color: var(--ink-muted); }
 .call-who {
   display: block; font-weight: var(--fw-bold); color: var(--ink-muted);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
 }
-.call-none { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-relaxed); }
-.call-note-field { display: flex; flex-direction: column; gap: 4px; }
+/* The transcript's empty state is in the transcript, so it is set like it. */
+.call-none { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-relaxed); }
+/* This one is NOT in the transcript — it sits above it, under the number,
+   and it is a disclosure about the build rather than something said on the
+   call. It takes `.call-none`'s size from the rule above and gives back the
+   leading: four tight lines of a paragraph nobody is reading mid-call is a
+   wall, where the same words at normal leading are a note. */
+.call-fixture { line-height: var(--lh-base); margin-top: 8px; }
 
 /* ── The handlers: round icon targets, centred, in the order every phone
    uses. Centred rather than stretched because a round button that grows to
@@ -5991,15 +6045,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
    describing anything, it is an alarm, and hanging up on somebody mid-call
    is the case an alarm exists for. Muted, it read as a suggestion. */
 .call-end {
-  flex: 1 1 100%; order: 1;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; padding: 8px 12px;
-  border-radius: var(--r-md); border: 1px solid var(--hangup-fill);
-  background: var(--hangup-fill); color: #fff;
-  font-size: var(--fs-xs); font-weight: var(--fw-bold); cursor: pointer;
+  /* .call-tool's geometry, to the pixel, because it is one of them now — the
+     fourth circle in a row of circles. What it does NOT share is the skin:
+     the others are outlined and quiet because they are reversible, and this
+     one is filled because it is not. That is the whole difference, and it is
+     the only difference worth drawing. */
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 50%; border: 1px solid var(--hangup-fill);
+  background: var(--hangup-fill); color: #fff; cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast);
 }
-.call-end svg { width: 18px; height: 18px; }
+.call-end svg { width: 20px; height: 20px; }
 /* Darkened FROM the resting value rather than pinned to a literal. It was
    `#d92d20`, which is what `--err` resolves to in LIGHT — so in light theme
    the hover and the resting state were the same colour and the one control
@@ -6032,7 +6090,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
    a line is not the irreversible half. Ending one is, and that is the
    only control in this panel wearing an alarm. */
 .call-go, .call-go:hover { border-color: var(--brand); }
-.call-go { background: var(--brand); }
+/* AND START IS STILL A BUTTON WITH A WORD ON IT. The wide geometry used to
+   live on `.call-end` and this rule only recoloured it; End is a circle now,
+   so the shape moves here, to the control that was always the one wanting
+   it. `order: 1` and a full basis put Start on a line of its own under the
+   chevron, which is where it has always sat and is the only thing a ready
+   panel offers. */
+.call-go {
+  background: var(--brand);
+  flex: 1 1 100%; order: 1; gap: 8px;
+  width: auto; height: auto; min-height: 44px; padding: 8px 12px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+}
 /* Darkens rather than lightens. White on brand is 4.56:1 against the
    14px bold label — over the 4.5 floor and not by much — so the hover
    this rule used to lighten toward #fff would have taken it under. */
@@ -6152,42 +6222,26 @@ body.is-calling .overlay-chats { display: none; }
      transcript and the note standing in a row 190px tall. Three children are
      the strip; everything else folds. Still in the tree, still one press away
      on the same chevron: this is the panel folded, not the panel cut. */
-  body.is-call-min .app-call > :not(.call-head):not(.call-who-block):not(.call-tools) {
+  body.is-call-min .app-call > :not(.call-who-block):not(.call-tools) {
     display: none;
   }
-  body.is-call-min .call-who-block > :not(.call-name) { display: none; }
+  /* One name fewer than it used to carry: the clock moved inside this block,
+     so the strip keeps the ROW — name and clock together — rather than the
+     name alone with the clock as a separate child of the panel. */
+  body.is-call-min .call-who-block > :not(.call-who-top) { display: none; }
   body.is-call-min .call-tool { display: none; }
 
-  /* ══ THE NOTE TAKES THE PANEL'S WIDTH ═════════════════════════
-     `.ds-field` caps at 380 and `.ds-textarea` at 420, which are measures for
-     a field in a form on a page and never bit while this panel was 300px
-     wide. Full width, they left a 380px box in a 427px column with 47px of
-     nothing down one side — the only ragged edge on the surface. A note taken
-     during a call is not prose with a measure; it is as wide as the thing it
-     is written on. */
-  .call-note-field, .call-note-field .ds-textarea { max-width: none; }
-
   /* ══ AND THE WAY BACK SITS BESIDE End, NOT UNDER IT ════════════════
-     `.call-end` is `flex: 1 1 100%; order: 1`, so it takes a line of its own
+     `.call-go` is `flex: 1 1 100%; order: 1`, so it takes a line of its own
      and sorts after anything at order 0 — which put the chevron on the line
-     ABOVE the button, centred, reading as a control belonging to the note.
-     Ordered last and given a basis it can share, the two sit on one line with
-     End taking everything the 44px circle does not. */
-  /* ══ AND End IS THE HANDSET, NOT THE WORD ═══════════════════════
-     The note on .call-end says a destructive control states itself, and that
-     is an argument about a panel 300px wide beside a page. Here the panel IS
-     the page and the row it sits in is Record, Mute and Hold — three 44px
-     circles that say what they do with a glyph — so a labelled rectangle in
-     the middle of them is the odd one out, and the word costs the strip the
-     room the name needs. A struck-through handset is not ambiguous, it is the
-     same mark the platform's own call UI ends with, and `aria-label` carries
-     the sentence for anyone who is not looking at it.
-
-     Start call keeps its word: it is not this control, it is affirmative, and
-     it is the only thing on the ready panel to press. */
-  .call-tools .call-end { flex: 0 0 auto; width: 44px; padding: 0; border-radius: 50%; }
-  .call-tools .call-end .call-end-say { display: none; }
-  .call-tools .call-end.call-go { flex: 1 1 auto; width: auto; padding: 8px 12px; border-radius: var(--r-md); }
+     ABOVE the button, centred, reading as a control belonging to whatever sat
+     over it. Ordered last and given a basis it can share, the two sit on one
+     line with Start taking everything the 44px circle does not. */
+  /* End is the handset at every width now — this block used to be where that
+     was true, and the three rules that made it true here are the base rules.
+     What is still only true here is Start: the strip is one line, so it takes
+     what the chevron leaves rather than a line of its own. */
+  .call-tools .call-end.call-go { flex: 1 1 auto; }
   .call-min { order: 2; }
   /* The clock is the strip's subject, so it keeps its size while the name
      beside it gives way — a name is a string of unknown length and the only
