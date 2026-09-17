@@ -637,7 +637,7 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-block-h {
 /* <strong> pinned to a weight we actually load. The UA gives it
    `font-weight: bolder`, which is RELATIVE: inside a 600 parent it computes
    to 900 — a face the webfont request never included. */
-strong, b { font-weight: var(--fw-bold); }
+strong, b { font-weight: var(--fw-semibold); }
 
 /* Bare <code> falls back to the UA's generic monospace. The library styles
    .copy-field code and .ds-code but never the element itself.
@@ -1415,7 +1415,7 @@ body {
 .ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; }
 .ntf-head b {
   font-family: var(--font-display); font-size: var(--fs-sm);
-  font-weight: var(--fw-bold); color: var(--d50);
+  font-weight: var(--fw-semibold); color: var(--d50);
 }
 .ntf-count {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
@@ -2490,7 +2490,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-relaxed);
 }
 .s-lf { white-space: nowrap; }
-.s-listhead-facts b { color: var(--d100); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.s-listhead-facts b { color: var(--d100); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 /* What the list is for, at body size and full width under both columns —
    it is the one piece of prose on the surface and the thing a re-run reads
    back, so it is not a caption. */
@@ -2580,7 +2580,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base);
 }
 .s-disc-ico { flex: none; transform: translateY(2px); color: var(--ink-muted); }
-.s-disc-text strong { color: var(--d200); font-weight: var(--fw-bold); }
+.s-disc-text strong { color: var(--d200); font-weight: var(--fw-semibold); }
 /* A client is not in a degraded state, they are in a bounded one — so the
    engagement is named in the accent rather than warned about in amber. */
 .s-disclosure[data-client="1"] { border-color: rgba(var(--accent-rgb), 0.3); }
@@ -2628,7 +2628,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--ty-meta); color: var(--ink-faint);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.s-task-count b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-task-count b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 .s-task-fail { color: var(--err-text); }
 
 /* The status distribution band is gone from both cards — a 4px full-width
@@ -2679,7 +2679,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-task-num { font-size: var(--fs-xs); color: var(--ink-muted); }
 .s-task-num b {
   display: block; font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d100);
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--d100);
   line-height: var(--lh-tight);
 }
 .s-task-num.is-fail b { color: var(--err); }
@@ -2702,7 +2702,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-sess { display: flex; flex-direction: column; gap: 12px; }
 .s-sess-head { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
 .s-sess-head b {
-  font-family: var(--font-display); font-weight: var(--fw-bold);
+  font-family: var(--font-display); font-weight: var(--fw-semibold);
   color: var(--d100); font-variant-numeric: tabular-nums;
 }
 .s-sess-rows { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -3018,7 +3018,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   line-height: var(--lh-base); color: var(--ink-primary);
   margin: 8px 0 16px; text-wrap: pretty;
 }
-.s-findings-say b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-findings-say b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 /* One finding means the set IS the finding — arriving from a gate, every
    record here has it by construction. The block keeps the mark, the sentence
    and the bulk verbs, and drops the list that would restate the sentence
@@ -3051,7 +3051,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The subject of the sentence: full ink, heaviest weight, lining figures so
    a column of them still lines up despite being inline. */
 .s-finding-say b {
-  color: var(--ink-primary); font-weight: var(--fw-bold);
+  color: var(--ink-primary); font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
 /* Selection, not navigation — you are already inside the set, so the useful
@@ -3089,7 +3089,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--ty-body); color: var(--ink-secondary);
   padding: 8px 0 0; max-width: 62ch;
 }
-.s-findings-tail b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-findings-tail b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 .s-findings-acts { margin-top: 12px; }
 
 /* ══ THE LEAD WORKLIST ═════════════════════════════════════════════════════
@@ -3568,7 +3568,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The facts inside the sentence, and nothing else. `<strong>` is pinned to
    800 further up this file; this is the same emphasis at the weight the
    surrounding 500 can carry without the line going lumpy. */
-.s-insight-txt b { color: var(--d50); font-weight: var(--fw-bold); }
+.s-insight-txt b { color: var(--d50); font-weight: var(--fw-semibold); }
 .s-insight-acts { flex: 1 1 100%; display: flex; gap: 8px; flex-wrap: wrap; }
 /* Both of these are declared with the tiers at the top of this file, because
    they ARE the tiers — `.s-insight-lnk` is secondary and `.primary` is the
@@ -3727,7 +3727,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--ty-body); line-height: var(--lh-base);
   color: var(--ink-secondary); max-width: 62ch;
 }
-.s-offer-fix b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-offer-fix b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 .s-offer-fix-cap {
   display: block; margin-bottom: 4px;
   font-size: var(--ty-micro); font-weight: var(--fw-medium);
@@ -4393,7 +4393,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-xs); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d100); margin: 0 0 12px;
 }
-.rail-conclusion b { font-weight: var(--fw-bold); color: var(--d50); }
+.rail-conclusion b { font-weight: var(--fw-semibold); color: var(--d50); }
 .rail-act { width: 100%; justify-content: center; }
 
 /* ── THE FINDINGS ──
@@ -4626,7 +4626,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-base); color: var(--d200); white-space: nowrap;
 }
 .s-persona b {
-  color: var(--d50); font-weight: var(--fw-bold);
+  color: var(--d50); font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
 /* ── WHO IT IS FOR, AND WHO TURNED UP ──
@@ -4681,7 +4681,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* One step down and secondary ink — not faded, because it carries the only
    number on the row and the number is the reason the row is here. */
 .s-clist-facts { font-size: var(--fs-xs); color: var(--d200); }
-.s-clist-facts b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.s-clist-facts b { color: var(--d50); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 
 .s-money-crew { display: flex; flex-direction: column; margin-top: 12px; }
 .s-money-row {
@@ -5230,7 +5230,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--ty-meta); color: var(--ink-faint); margin-top: 8px;
 }
 .s-listrow-fig b {
-  font-size: var(--ty-heading); font-weight: var(--fw-bold);
+  font-size: var(--ty-heading); font-weight: var(--fw-semibold);
   color: var(--ink-primary); letter-spacing: var(--ls-tight);
   font-variant-numeric: tabular-nums;
 }
@@ -5243,7 +5243,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--ty-body); color: var(--ink-secondary);
   line-height: var(--lh-base); max-width: 72ch; margin-top: 8px;
 }
-.s-listrow-say b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-listrow-say b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 /* Whose it is, and whether it keeps itself — attribution, so it sits under
    the sentence it qualifies at the quietest step the card uses. */
 .s-listrow-facts { font-size: var(--ty-meta); color: var(--ink-faint); }
@@ -5290,7 +5290,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   color: var(--ink-primary); letter-spacing: var(--ls-tight);
 }
 .s-way-why { font-size: var(--ty-meta); color: var(--ink-faint); line-height: var(--lh-base); }
-.s-way-why b { color: var(--ink-secondary); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.s-way-why b { color: var(--ink-secondary); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 
 /* ── WHAT IT HEARD, WHERE THE FIELD USED TO BE ──
    The textarea has gone to the bar at the foot of the surface. What is left
@@ -5344,7 +5344,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-sugg-row + .s-sugg-row { border-top: 1px solid var(--hairline); }
 .s-sugg-say { font-size: var(--ty-meta); color: var(--ink-secondary); line-height: var(--lh-base); }
-.s-sugg-say b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-sugg-say b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 
 /* ══ THE LIST ARRIVING ═════════════════════════════════════════════════════
    A search that returns instantly reads as a lookup. This one is going out to
@@ -5386,7 +5386,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--ty-body); color: var(--ink-secondary); line-height: var(--lh-base);
 }
 .s-build-total b {
-  color: var(--ink-primary); font-weight: var(--fw-bold);
+  color: var(--ink-primary); font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
 .s-build-go { white-space: nowrap; }
@@ -6448,7 +6448,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-brief-run-say b { color: var(--d100); font-variant-numeric: tabular-nums; }
 .s-brief-run-acts { display: flex; flex-wrap: wrap; gap: 12px; }
 .s-callp b {
-  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
+  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--ink-muted);
 }
 /* Who said to remember it. Quieter than the line, because the judgement is
    the thing you read and the attribution is what you check afterwards. */
@@ -6756,7 +6756,7 @@ body.is-calling .overlay-chats { display: none; }
   font-size: var(--fs-xs); color: var(--d200); white-space: nowrap;
 }
 .s-camp-row-fig b {
-  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50);
+  font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50);
   font-variant-numeric: tabular-nums;
 }
 .s-camp-row-why { font-size: var(--fs-base); color: var(--d200); min-width: 0; }
@@ -7198,7 +7198,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
   font-size: var(--ty-body); line-height: var(--lh-base);
   color: var(--ink-secondary); max-width: 62ch; margin-bottom: 16px;
 }
-.s-work-say b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.s-work-say b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 .s-when-own > summary {
   font-size: var(--ty-meta); font-weight: var(--fw-bold);
   color: var(--ink-quiet); cursor: pointer; list-style: none;
@@ -7250,7 +7250,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
   color: var(--d50); line-height: var(--lh-base);
   margin: 0 0 4px; text-wrap: pretty;
 }
-.s-commit-lead b { font-weight: var(--fw-bold); color: var(--d50); }
+.s-commit-lead b { font-weight: var(--fw-semibold); color: var(--d50); }
 
 /* The tones the status word shares with the cards and the rail. */
 .tone-err { color: var(--err-text); }

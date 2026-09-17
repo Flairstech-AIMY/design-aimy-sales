@@ -308,7 +308,7 @@
   font-size: var(--fs-base); font-weight: var(--fw-semibold);
   line-height: var(--lh-snug); color: var(--ink-primary);
 }
-.b-qcard-why b { font-weight: var(--fw-bold); }
+.b-qcard-why b { font-weight: var(--fw-semibold); }
 
 /* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
    The fix above moved the note's TEXT off the edge and left its rule behind.
@@ -366,7 +366,7 @@
 
    Scoped to `.b-qcard`, so no other card in the product moves. */
 .b-qcard .tc-type {
-  font-size: var(--t-small); font-weight: var(--fw-bold); color: var(--ink-muted);
+  font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--ink-muted);
 }
 .b-qcard .tc-title {
   font-size: var(--fs-lg); font-weight: var(--fw-bold);
@@ -508,7 +508,7 @@
   min-width: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium);
   line-height: var(--lh-snug); color: var(--ink-secondary);
 }
-.b-aimy-say b { font-weight: var(--fw-bold); }
+.b-aimy-say b { font-weight: var(--fw-semibold); }
 .b-aimy-from {
   display: block; margin-top: 4px;
   font-size: var(--fs-2xs); font-weight: var(--fw-medium);
@@ -1118,7 +1118,7 @@
   margin: -8px 0 16px; font-size: var(--fs-xs); color: var(--d200);
   font-variant-numeric: tabular-nums;
 }
-.b-lead-today b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-lead-today b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* THE FIGURE STRIP, TIGHTER, WITH THE FUNNEL BREATHING UNDER IT. The four
    figures had 24px between columns and 32 below, then the bars started 4px
@@ -1166,7 +1166,7 @@
   font-size: var(--fs-base); line-height: var(--lh-base); color: var(--d100);
   max-width: 70ch; text-wrap: pretty;
 }
-.b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-reading b { color: var(--d50); font-weight: var(--fw-semibold); }
 /* The one reading here that has something you can do about it: the sentence,
    then the door under it — the shell's own order for an insight.
 
@@ -1535,7 +1535,7 @@
 .ntf-sev.p2, .ntf-sev.p3 { background: var(--d500); }
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
-.ntf-row-type { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
+.ntf-row-type { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); }
 .ntf-row-when { margin-left: auto; font-size: var(--t-small); color: var(--ink-muted); flex-shrink: 0; }
 /* The sentence the row is for. It was the smallest and faintest thing in the
    panel, under a label that was neither. */
@@ -2006,7 +2006,7 @@
 .b-nmo-sum::-webkit-details-marker { display: none; }
 .b-nmo-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-nmo-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-primary);
 }
 /* Its own month's, right where the eye already stops. */
 .b-nmo-n { margin-left: auto; font-size: var(--fs-2xs); color: var(--ink-quiet); }
@@ -2241,7 +2241,7 @@
 }
 
 /* Who has it now — a fact about the record, not a thing to press. */
-.b-managed b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-managed b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 
 /* ══ 39. THE STORY, AS A STORY ═════════════════════════════════════════════
@@ -2251,11 +2251,16 @@
    than scrolls: a horizontal scroller inside a page that scrolls is two
    scrollbars arguing. */
 .b-story { padding-top: 4px; }
+/* IT WAS SET AT ITS OWN HEADING’S SIZE. --t-deck is 18 and .s-block-h above
+   it is 18, so the section title and the sentence under it were the same
+   step, with the <b> inside the sentence matching the title’s weight as
+   well. A heading that shares both axes with its body is not a heading.
+   --t-body puts the sentence one step under the thing that introduces it. */
 .b-story-now {
   margin: 0 0 16px; max-width: 62ch; text-wrap: pretty;
-  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-tight); color: var(--d100);
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d100);
 }
-.b-story-now b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-story-now b { font-weight: var(--fw-semibold); color: var(--d50); }
 .b-story-now b.tone-ok { color: var(--ok-text); }
 .b-story-now b.tone-warn { color: var(--warn-text); }
 .b-story-now b.tone-err { color: var(--err-text); }
@@ -2657,7 +2662,7 @@
 }
 .b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
 .b-nm-then { font-size: var(--t-ui); color: var(--d200); max-width: 66ch; text-wrap: pretty; }
-.b-nm-then b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-nm-then b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-nm-said {
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base);
   color: var(--d50); max-width: 62ch; text-wrap: pretty;
@@ -2707,7 +2712,7 @@
   margin: 0; font-size: var(--t-lead); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d50); max-width: 62ch; text-wrap: pretty;
 }
-.b-state-say b { font-weight: var(--fw-bold); }
+.b-state-say b { font-weight: var(--fw-semibold); }
 .b-state-moves { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .b-state.is-ask { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
@@ -3019,7 +3024,7 @@
   font-size: var(--t-body); line-height: var(--lh-base);
   color: var(--d100); text-wrap: pretty;
 }
-.b-peek-body b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-peek-body b { color: var(--d50); font-weight: var(--fw-semibold); }
 /* Outside the cap and outside the press, so it is never cut and never
    opens the canvas; gone entirely when the answer carries no chips, so it
    costs no space of its own. The padding is the button's own, minus the
@@ -3183,7 +3188,7 @@
 /* The one figure the chips add up to, under the heading rather than at the
    far end of its row, where a section's actions live. */
 .b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
-.b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-tocall b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* A menu row that names a person: the step as a dot, the name, what they do. */
 .b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -3339,7 +3344,7 @@
 .b-cmeta-say { font-size: var(--t-body); color: var(--d100); }
 .b-cmeta-p { margin: 0 0 10px; line-height: var(--lh-base); max-width: 44ch; text-wrap: pretty; }
 .b-cmeta-p:last-child { margin-bottom: 0; }
-.b-cmeta-p b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-cmeta-p b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
 
 /* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
@@ -3383,7 +3388,7 @@
   margin: 0 0 22px; font-size: var(--fs-lg); color: var(--d100);
   line-height: var(--lh-snug, 1.35); max-width: 62ch; text-wrap: pretty;
 }
-.b-way-lead b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-way-lead b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* Two populations, two groups. The caption carries the ground its figures
    are counted against, so "of 8 reasons" under a number has been explained
@@ -3608,7 +3613,7 @@
   display: table;
   padding: 1px 8px; border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--ink-primary) 5%, transparent);
-  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  font-size: var(--t-micro); font-weight: var(--fw-semibold);
   line-height: var(--lh-snug); color: var(--ink-muted);
   margin: 0 0 4px;
 }
@@ -3660,7 +3665,7 @@
   margin: 0; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); max-width: 68ch; text-wrap: pretty;
 }
-.b-exp-say b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-exp-say b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* A rule above the foot is the section separator this build took out
    everywhere else; the space under the block above it says the same thing. */
@@ -5139,7 +5144,7 @@
    paragraph cannot inherit over it. No colour: the ink is already at the
    top of the ramp, and a mark that changes two things at once is a second
    rank nobody asked for. */
-.s-lead-deck b, .s-lead-deck strong { font-weight: var(--fw-bold); }
+.s-lead-deck b, .s-lead-deck strong { font-weight: var(--fw-semibold); }
 
 /* ══ 88. THE DECK WAS BALANCING ITSELF INTO A COLUMN ═══════════════════════
    `text-wrap: balance` on the deck, from the shell. It is a HEADING rule:
@@ -5208,7 +5213,7 @@
    these are four points smaller, so the same 58 would have set them in a
    column two thirds the width of the paragraph above and reintroduced the
    ragged gutter §88 exists to remove. */
-.b-lead-then b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-lead-then b { font-weight: var(--fw-semibold); color: var(--d50); }
 /* The glyph is drawn on a 24 grid and has no size of its own; without this
    it fills the flex item, which is the width of the line. It follows the
    text down a size, and `margin-top` optically centres it on the first line
@@ -5656,7 +5661,7 @@
 /* The step, the obstacle or the offering the sentence is about. It is the
    one word a caller scans this strip for, and the rest of the build already
    sets a next step in bold inside its own sentence. */
-.b-ring-said b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-ring-said b { font-weight: var(--fw-semibold); color: var(--d50); }
 
 /* ── Answered, on the way out ──
    The card does not vanish the instant it is pressed. It becomes the thing
@@ -6047,3 +6052,25 @@
    card and its thumb at 6% white reads against it, where the canvas ground is
    a dark glass and the same value all but disappears. The ask was to move the
    bar, not to restyle it, and moving it is the whole of what this does. */
+
+/* ══ INSIDE A CARD, NOTHING OUTRANKS THE CARD’S OWN TITLE ════════════
+   The queue card sets its title at 18/600 and then set three things beneath
+   it at 600 as well: the phone at 16, the action at 14, the state chip at
+   12. Size held them apart from each other and nothing held them under the
+   name at the top — four things at the same weight in a box the size of a
+   postcard.
+
+   The phone is the worst of the three because it is the closest: 16 against
+   18 is one step, so weight was the only axis left and it was spent. It is
+   also plain data rather than a control, which is the case where a tie
+   reads as a mistake rather than as emphasis.
+
+   All three drop to --fw-semibold. The ladder inside a card is then 600 for
+   the name, 500 for anything that acts or states, 400 for the sentences —
+   which is the same three-rank ladder the rest of the build now uses, and
+   leaves --fw-extrabold for the page name outside the card entirely.
+
+   Declared here, at the end, because bdr.css is the last stylesheet and all
+   three of these are set earlier: .b-qcard-num above in this file, .tag and
+   .s-insight-lnk in sales.css. Equal specificity, so the last one wins. */
+.tag, .s-insight-lnk, .b-qcard-num, .tc-type { font-weight: var(--fw-semibold); }
