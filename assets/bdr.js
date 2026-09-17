@@ -9525,8 +9525,12 @@
              quality tool. A reader meets that as a contradiction or a bug,
              and either way stops trusting the column. Same for the two
              called "time to first resolution". */
-          '<b>' + esc(PROM_SAY[r.k] || r.say) +
-            (r.eng ? '<span class="s-pan-unit"> &middot; ' + esc(r.eng.name) + '</span>' : '') +
+          /* Part of the name, not a span beside it. `.s-pan-unit` is a
+             caption that sits UNDER a figure — block, right-aligned — so
+             the engagement broke onto a centred line of its own and the
+             row read as two things. It is one phrase: which promise, on
+             which of the three. */
+          '<b>' + esc((PROM_SAY[r.k] || r.say) + (r.eng ? ' · ' + r.eng.name : '')) +
             '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
               (kept ? 'kept' : 'behind') + '</span></b>' +
           '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
@@ -9662,6 +9666,105 @@
           'were not being covered &mdash; which is not money and is not added to it. ' +
           'The figure above is what the year cost, not what it was worth.</p>';
       }()) +
+    '</section>';
+  }
+
+  /* ══ AND THEN SOMEBODY HAS TO SAY WHAT SHOULD CHANGE ═══════════════════
+     The page states the year and then offers three questions the reader can
+     ask us. That is a reading, not a position, and a client thirteen days
+     from a renewal they can no longer stop is owed one: what we think
+     should happen to each of these, and where the answer costs us
+     something.
+
+     DERIVED, NOT WRITTEN DOWN. A recommendation somebody typed once is a
+     slide; this reads the same promises the ledger does and turns on one
+     question — when a promise was missed, was it ours or theirs. Ours means
+     we say so and put the fee on the table. Theirs means the honest answer
+     is that the thing works and the movement is at their end, which is a
+     harder sentence to write and the reason it has to be derived rather
+     than composed.
+
+     It sits at the bottom. AiMY reads the year at the top of this page and
+     takes a position at the end of it, because a position before the
+     evidence is an assertion. */
+  function engStand(e, now, pipe, scope) {
+    const scored = (e.promises || [])
+      .map((p) => { const r = Object.assign({}, p, { eng: e });
+        return { r: r, got: promiseGot(r, now, pipe) }; })
+      .filter((x) => x.got != null);
+    const behind = scored.filter((x) => !promKept(x.r, x.got));
+    const ours = behind.filter((x) => x.r.ours);
+    const name = '<b>' + esc(e.name) + '</b>';
+    if (!behind.length) {
+      return name + ' kept every promise on it. Renew it as it stands.';
+    }
+    if (!ours.length) {
+      /* Every miss is on their side of the line. Saying "renew it" here is
+         the uncomfortable version, because the easy sentence would be to
+         take the blame and discount it. */
+      /* "both of those" was written for the two-miss case and drew over a
+         single one. The count is not decoration here — it is the subject of
+         the clause after it. */
+      return name + ' is behind on ' +
+        esc(behind.map((x) => PROM_SAY[x.r.k] || x.r.k).join(' and ')) +
+        ', and ' + (behind.length === 1 ? 'that moves' : 'those move') +
+        ' at your end rather than ours &mdash; we score it, your people act on it. ' +
+        'Renew it as it stands and we will show you where the acting is not happening.';
+    }
+    /* Ours. Name the reason where the corpus can produce one, because "we
+       missed it" without a cause is an apology rather than a proposal. */
+    let why = '';
+    if (e.kind === 'outbound') {
+      const cold = (scope || []).filter((c) => c.checkpoint === 'not-called').length;
+      if (cold) {
+        why = ' The reason is ours: ' + esc(commas(cold)) +
+          ' of the people we found were never called.';
+      }
+    } else {
+      const f = floorOf(myClient(), e.k);
+      if (f && f.evals.length) {
+        const weak = QA_GOALS.map((g) => {
+          const n = f.evals.filter((x) => x.goals.filter((y) => y.k === g.k && y.pass).length).length;
+          return { g: g, pc: Math.round((n / f.evals.length) * 100) };
+        }).sort((a, b) => a.pc - b.pc)[0];
+        if (weak) {
+          why = ' It is one goal doing most of it: ' + esc(weak.g.title.toLowerCase()) +
+            ' passes on ' + esc(commas(weak.pc)) + '% of conversations.';
+        }
+      }
+    }
+    return name + ' missed ' + esc(plural(ours.length, 'promise')) +
+      ' we answer for.' + why +
+      ' We would not ask you to renew this one at the same fee.';
+  }
+
+  function buyerStand(now, pipe, scope) {
+    const d = dealOf(myClient());
+    if (!d) return '';
+    const es = engsOf(d);
+    const here = myEng() ? [myEng()] : es;
+    const lines = here.map((e) => engStand(e, now, pipe, scope))
+      .map((s) => '<p class="slv-line">' + s + '</p>').join('');
+    /* The renewal is one fact about the whole contract, so it is said once
+       and only where all of it is in view. */
+    let close = '';
+    if (!myEng() && d.notice) {
+      const pd = periodOf('deal');
+      const shut = isoAdd(pd.end, -d.notice);
+      close = '<p class="slv-line">' +
+        (TODAY_ISO > shut
+          ? 'All three renew on ' + esc(sayDay(isoAdd(pd.end, 1))) +
+            ', because the notice window closed on ' + esc(sayDay(shut)) +
+            '. If any of that should change, it is a conversation this week rather than a clause.'
+          : 'You have until ' + esc(sayDay(shut)) + ' to change any of it.') +
+        '</p>';
+    }
+    return '<section class="slv" aria-label="What AiMY thinks should change">' +
+      '<div class="slv-head">' +
+        '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+        '<h2 class="slv-title">What we think should change</h2>' +
+      '</div>' +
+      '<div class="slv-body">' + lines + close + '</div>' +
     '</section>';
   }
 
@@ -11156,6 +11259,7 @@
             : '<p class="s-odds-note">Nothing has been lost.</p>')) +
       '</div>') +
 
+      (isBuyer() ? buyerStand(now, pipe, scope) : '') +
       askRow(isBuyer() ? buyerAsks(now, pipe, loss) : execAsks(now, pipe)) +
       '</section>' +
     '</div>';
