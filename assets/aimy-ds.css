@@ -507,9 +507,22 @@
 
     /* ── AiMY Canvas — follows the theme. In light mode the chat bar, filter
        tray, and overlay become light surfaces; text tokens already flip. ── */
+    /* ══ OFF-WHITE, NOT WHITE ═════════════════════════════
+       Pure white is the brightest thing the light theme can produce, and the
+       composer was wearing it on every surface — over a page at #f4f6f9 and
+       over a canvas that is pale glass. It read as a slab punched out of both
+       rather than as a control resting on them.
+
+       #fafcfe is the value that works in both places, and finding it took
+       measuring rather than taste. Translucency does nothing here: 72% white
+       over near-white glass composites back to near-white. Going properly
+       below the page — #f1f5fa, which looks right on the canvas — puts the
+       bar DARKER than the body it floats over, so it sinks instead of rising.
+       This sits above #f4f6f9 and below #ffffff, which is the only band where
+       a raised control can be both. */
     :root[data-theme="light"] .aimy-float-bar,
     :root[data-theme="light"] .overlay-input-bar {
-      background: #ffffff;
+      background: #fafcfe;
       border-color: rgba(16,24,40,0.14);
       box-shadow: 0 8px 32px rgba(16,24,40,0.14), 0 0 0 1px rgba(16,24,40,0.03);
     }
@@ -557,7 +570,12 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
-    :root[data-theme="light"] .chat-msg.aimy .msg-bubble { background: #ffffff; border-color: rgba(16,24,40,0.10); }
+    /* A message is not a raised control, so it does not need to sit above the
+       ground the way the bar does — it can go properly below white and settle
+       into the canvas instead of floating on it. The reader's own bubble is
+       the accent and stays the loud one, which is right: one of the two is a
+       thing you said. */
+    :root[data-theme="light"] .chat-msg.aimy .msg-bubble { background: #edf2f8; border-color: rgba(16,24,40,0.10); }
     :root[data-theme="light"] .aimy-badge { color: #1f5fd0; border-color: rgba(0,102,255,0.3); }
     /* Logo tiles — the dark navy/purple surfaces sit too close to the logo's own
        blues in light mode; flip them to bright lavender so the mark reads clearly */

@@ -2630,7 +2630,11 @@
    copy: until the shell adopts these, the composer's material has to be
    changed in both places. */
 :root { --composer-skin: #1e2428; --composer-edge: rgba(255, 255, 255, 0.09); }
-:root[data-theme="light"] { --composer-skin: #ffffff; --composer-edge: rgba(16, 24, 40, 0.14); }
+/* Off-white for the reason the design system's copy of this gives: white is
+   the brightest thing light can make, and a composer wearing it is a slab
+   rather than a control. #fafcfe sits above the page and below white, which
+   is the only band where a raised surface can be both. */
+:root[data-theme="light"] { --composer-skin: #fafcfe; --composer-edge: rgba(16, 24, 40, 0.14); }
 /* The prose and the chips stack; the dismiss sits beside both. Two boxes
    rather than three flex children, so the chips line up under the sentence
    instead of beside it. */
