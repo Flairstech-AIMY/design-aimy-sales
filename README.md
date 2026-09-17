@@ -203,9 +203,7 @@ in full:
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
-| Marit Okonjo, client | `?as=kestrel` | the same, bounded by who the campaign was run for — and read from the other side of the invoice |
-| Sigrid Aalto, client | `?as=nordwind` | one surface, because they bought the tool rather than the outbound: their year, their floor, and every conversation it was averaged from |
-| Bernard Ofori, client | `?as=lambourne` | the same shape again, with the desk ours rather than theirs — and the fee beside what it cost them to run it themselves |
+| Marit Okonjo, client | `?as=kestrel` | their year, read from the other side of the invoice — and `?eng=` for which of the three things they bought |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -223,13 +221,22 @@ not narrowed but cut — their whole narrative is which supplier we asked and
 what each one charges us in hit rate — and so are the notes, which are
 authored-by-me and would ship empty.
 
-**And two of the four are clients, on different books.** `bookKind` is the
-split: a client who bought reach has a pipeline and every surface the manager
-works; one who bought the tool has a floor — their own people, their own
-conversations, and no campaign of ours anywhere. So the attainment bar, three
-of the four tiles, both cuts and the losses draw only where there is a
-pipeline, and what stands in their place is the promise ledger, which every
-client has, and the twelve weeks that are the whole argument.
+**One of the four is a client, and they bought three things.** There were
+three client desks for a while — one per thing bought — and the margin on
+`DESKS` is why there is one now: three client desks are three FACES of one
+reading. What differs between them was never the reading, it was the book.
+So it is `?eng=` and a row of chips on the report, and `engagements` on the
+deal carries the kind, the fee, the line, the floor and the promises, while
+the deal itself carries only what is true of the relationship — a client does
+not sign three different years.
+
+`bookKind` is the split: `outbound` reads a pipeline and gets every surface
+the manager works; `software` and `service` read a floor — people, scored
+conversations, and no campaign anywhere; `all` is the overview and reads
+none of them. So the attainment bar, three of the four tiles, both cuts and
+the losses draw only where there is a pipeline, and what stands in their
+place is the promise ledger, which every book has, plus the twelve weeks or
+the three engagements side by side.
 
 A promise on a floor is a promise to MOVE a number rather than reach one, so
 it carries `was` — the baseline, set at signing — and reads down as often as
@@ -257,9 +264,10 @@ longer there. It also keeps the build out of cost per ticket, headcount
 avoided and FTE saved — unmodelled everywhere in this ecosystem, and not
 things to invent for a customer's screen.
 
-Six desks means every question about a figure has six answers. Check all of
-them, and on the clients' check what is NOT there: sweeps over 234 and 85 of
-their surfaces are the only reason to believe them.
+Four desks and three books means every question about a figure has six
+answers. Check all of them, and on the client's check what is NOT there: a
+sweep over 45 of its surfaces, one per engagement, is the only reason to
+believe it.
 
 ## The customer book
 
