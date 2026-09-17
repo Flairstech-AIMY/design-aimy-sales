@@ -23345,7 +23345,7 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' +
+            '<span class="b-back-k">' +
               esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
@@ -23508,7 +23508,7 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' +
+            '<span class="b-back-k">' +
               esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';

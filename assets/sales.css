@@ -1608,7 +1608,7 @@ body {
 /* 8 under the label, 20 between groups — the ratio rule, and it is what makes
    a group read as a group rather than as a list with a heading in it. */
 .ov-chat-cap {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--d500); padding: 0 0.5rem; margin-bottom: 0.5rem;
 }
@@ -1955,7 +1955,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    there is a basis to show. */
 .aimy-overlay:has(.overlay-context-tag) .overlay-thread { padding-top: 104px; }
 .overlay-context-label {
-  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--d500); flex-shrink: 0;
 }
@@ -2188,8 +2188,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-cal-panel[hidden] { display: none; }
 .s-cal-field { display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; margin-bottom: 8px; border-bottom: 1px solid var(--hairline); }
 .s-cal-field-label {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
 }
 .s-cal-field .seg { width: 100%; }
 .s-cal-field .seg-btn { flex: 1; }
@@ -2621,7 +2620,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   padding-top: 16px; border-top: 1px solid var(--hairline);
 }
 .s-sess-cap {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-sess-say { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
@@ -2654,7 +2653,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: var(--d900);
 }
 .s-basis-title {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium); color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: var(--ls-wide); margin-bottom: 8px;
 }
 .s-basis-row {
@@ -2941,7 +2940,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Selection, not navigation — you are already inside the set, so the useful
    verb is "work these together" rather than another door into them. */
 .s-finding-pick {
-  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-secondary); cursor: pointer; white-space: nowrap;
   padding: 4px 8px; border-radius: var(--r-pill);
@@ -3335,7 +3334,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-rec-why { margin-top: 24px; }
 .s-rec-cap {
   font-family: inherit; margin: 0;
-  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  font-size: var(--ty-meta); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
   line-height: var(--lh-base);
 }
@@ -3608,7 +3607,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-offer-fix b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
 .s-offer-fix-cap {
   display: block; margin-bottom: 4px;
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -4345,7 +4344,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The refusal offers two lists — what it can be asked and what it can be told
    to do — and without a caption each they read as one long run of chips. */
 .s-ans-cap {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
   margin: 16px 0 8px;
 }
@@ -4770,7 +4769,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-tally-key {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-faint);
 }
 .s-tally-key::before { content: ""; width: 8px; height: 8px; border-radius: var(--r-pill); flex-shrink: 0; }
@@ -4810,7 +4808,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    block's emphasis belongs to the goal and the figures. */
 .s-crew-cap {
   flex: none;
-  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  font-size: var(--ty-meta); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-secondary);
 }
@@ -5552,7 +5550,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    in step. Named once here rather than repeated on every row. */
 .s-reasons-head {
   padding: 0 12px 8px;
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -5645,7 +5643,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    survives is the goal's marker, because a figure row has nowhere else to
    put it. */
 .s-fn-goal {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--accent-text);
 }
 /* Bounces are not a stage. Stated beside the funnel they distort, with the
@@ -5748,7 +5746,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    already saying "new section" louder than any rule could. */
 .s-kicker {
   display: block;
-  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  font-size: var(--ty-meta); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-faint);
   margin-bottom: 12px;
@@ -6313,8 +6311,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-brief-run-say b { color: var(--d100); font-variant-numeric: tabular-nums; }
 .s-brief-run-acts { display: flex; flex-wrap: wrap; gap: 12px; }
 .s-callp b {
-  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
+  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
 }
 /* Who said to remember it. Quieter than the line, because the judgement is
    the thing you read and the attribution is what you check afterwards. */
@@ -6348,7 +6345,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-callsum-row { display: flex; align-items: baseline; gap: 12px; }
 .s-callsum-cap {
   flex: 0 0 96px; text-align: right;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-callsum-val { font-size: var(--fs-xs); color: var(--d100); min-width: 0; }
@@ -6786,7 +6783,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-starts-wrap { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(var(--accent-rgb), 0.18); }
 .s-starts-cap {
   display: block; margin-bottom: 12px;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 /* Declared columns, not `auto-fit`. Four openers in a row that reflows to
@@ -6926,7 +6923,7 @@ body.is-calling .overlay-chats { display: none; }
 }
 .s-work-evidence { margin-bottom: 16px; }
 .s-work-ev-h {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
   margin-bottom: 8px;
 }
@@ -8019,7 +8016,6 @@ div.s-pipe-cell { cursor: default; }
 }
 .s-pipe-unit {
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-faint);
 }
 
@@ -8108,7 +8104,7 @@ div.s-pipe-cell { cursor: default; }
    sit below the section kicker and above nothing else. `--d500` was the
    faintest ink in the product on the labels doing the most wayfinding. */
 .s-sub-h {
-  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  font-size: var(--ty-meta); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-secondary);
   margin-bottom: 12px;
 }
@@ -8324,7 +8320,7 @@ div.s-pipe-cell { cursor: default; }
 .proto-sec { margin-bottom: 16px; }
 .proto-sec:last-child { margin-bottom: 0; }
 .proto-h {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px;
 }
 .proto-link {
@@ -8516,7 +8512,7 @@ body.is-figures .filter-tray { display: none; }
    a kicker was that it sat ABOVE a heading, not how it was set. */
 .s-exec-eyebrow {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--ink-faint); margin: 0;
 }
@@ -8623,7 +8619,7 @@ body.is-figures .filter-tray { display: none; }
 .s-af .s-af-sub { margin-top: 6px; }
 .s-af-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
 }
 .s-af-val {
@@ -8654,7 +8650,7 @@ body.is-figures .filter-tray { display: none; }
 .s-odds-cap {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--font-sans); font-size: var(--fs-2xs);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
 }
 .s-odds-cap svg { color: var(--ai-text); }
@@ -8944,7 +8940,7 @@ body.is-figures .filter-tray { display: none; }
    word competing with the figure for the same line. */
 .s-pan-unit {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-faint);
   text-align: right; margin-top: 4px;
 }
 
@@ -8989,7 +8985,7 @@ body.is-figures .filter-tray { display: none; }
    headings and the unit under a figure wear, so it reads as the heading of
    the three rows under it and not as a fourth row. */
 .s-pan-restitle {
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--ink-faint); margin-bottom: -2px;
 }
@@ -9138,7 +9134,7 @@ body.is-figures .filter-tray { display: none; }
 .s-asks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 20px; }
 .s-asks-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
   margin-right: 4px;
 }
@@ -9240,7 +9236,7 @@ body.is-figures .filter-tray { display: none; }
    restating the plan immediately above the plan. `.s-plan-cap` survives: the
    call summary and the find flow both use it as a lead-in label. */
 .s-plan-cap {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 
@@ -9373,7 +9369,7 @@ body.is-figures .filter-tray { display: none; }
    its own. */
 .s-hist-h-sub {
   display: block; margin: var(--sp-4) 0 var(--sp-3);
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-hist-more { margin-top: var(--sp-2); }

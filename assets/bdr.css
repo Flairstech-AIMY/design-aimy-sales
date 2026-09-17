@@ -481,7 +481,7 @@
 .b-aimy-say b { font-weight: var(--fw-bold); }
 .b-aimy-from {
   display: block; margin-top: 4px;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 
@@ -662,7 +662,7 @@
    brief's, the pair underneath is the one this build already drew. */
 .b-brief-cap {
   margin: 18px 0 10px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  font-size: var(--t-micro); font-weight: var(--fw-medium);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
 /* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
@@ -999,7 +999,7 @@
 /* The month over a run of touchpoints. Small, at full ink, with the space
    above it doing the separating — a rule would compete with the cards. */
 .b-month {
-  margin: 14px 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  margin: 14px 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-calls > .b-month:first-child { margin-top: 0; }
@@ -2268,36 +2268,52 @@
    send are the quiet ends. */
 .b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
 .b-back:last-child { margin-bottom: 0; }
-/* ══ A GRID CANNOT SEE THE BOX IT IS IN ════════════════════════
-   This row was two columns, `minmax(96px, max-content) 1fr`, and it stacked
-   at a VIEWPORT breakpoint of 720px. The panel it actually lives in is the
-   answer body in the AiMY canvas, which is about 330px wide on a 1250px
-   screen — so the breakpoint never fired and the wide layout ran inside a
-   narrow box. Measured there, reproducing the real panel at 329px:
+/* ══ THE LABEL SITS ABOVE ITS ANSWER, AND STOPS SHOUTING ═══════════
+   Two faults, one row.
 
-     grid resolved to   95.99px + 227.86px
-     the tag needs      68px  — so 28px of that column was empty
+   It wore `tag tag-warn`, deliberately — the note below still describes
+   that as tagging their words in the warning tone. But the panel put four
+   amber pills on screen at once: Callback, Services, Pricing, Features. Only
+   ONE thing in that panel is actually urgent, .b-prep-due.is-late, and it is
+   amber too, so the colour that means "late" was being outvoted three to one
+   by colour that means "category". The loudest treatment in the build was
+   being spent on the word Pricing. These are neutral now and amber means
+   late again.
+
+   It cannot simply borrow .b-brief-cap's eyebrow either. That is 12px bold
+   uppercase and tracked, and so is .b-prep-line b — the panel already sets
+   two different levels in one treatment, and a third would make the section
+   heading "If they push back" identical to the three labels under it. So
+   this one separates on case and tracking instead: same 12px step, bold,
+   but sentence case and untracked. Against the heading that is three axes;
+   against its own answer at 16/400/--d50 it is size, weight and ink.
+
+   ── and the measure, which is why the row moved in the first place ──
+
+   It was two columns, `minmax(96px, max-content) 1fr`, stacking at a
+   VIEWPORT breakpoint of 720px. It lives in the canvas answer body, about
+   330px wide on a 1250px screen, so the breakpoint never fired and the wide
+   layout ran inside a narrow box. Measured there, reproducing it at 329px:
+
+     grid resolved to   95.99px + 227.86px, for a tag needing 68px
      .b-back-v got      26 characters per line
-     everything else
-     in the same panel  35 to 44
+     same panel, rest   35 to 44
+     its max-width      62ch, resolving to 622px against a 221px column
 
-   62ch never bound: it resolves to 622px against a 221px column. A line of
-   26 characters is less than half the comfortable measure and it is why
-   this block reads as a wall rather than as three answers.
-
-   Flex-wrap fixes it without a media query or a container query, because
-   the row then decides from ITS OWN width rather than the window's: the
-   answer keeps its place beside the label only while it can hold a real
-   measure, and drops to its own full-width line when it cannot. 24rem is
-   that threshold — about 45 characters at the body step, the bottom of the
-   comfortable range. Wide surfaces are unchanged; the narrow panel stacks
-   and the answer goes from 26 characters to the panel's full 39. */
+   26 characters is under half a comfortable measure, and it is why the
+   block read as a wall rather than as three answers. Stacking settles it at
+   every width without a media query or a container query: the answer always
+   has the full column, 62ch caps it on a wide surface, and nothing depends
+   on the window's width to describe a box the window knows nothing about. */
 .b-back-row {
-  display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
 }
-.b-back-k { flex: none; }
+.b-back-k {
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  line-height: var(--lh-snug); color: var(--d200);
+}
 .b-back-v {
-  margin: 0; flex: 1 1 24rem; max-width: 62ch; text-wrap: pretty;
+  margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
 @media (max-width: 719.98px) { /* 720 layout px */
@@ -2427,7 +2443,7 @@
 @keyframes b-menu-up-out { to { opacity: 0; transform: scale(0.99) translateY(2px); } }
 .b-menu-cap {
   padding: 4px 10px 6px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-menu-item {
@@ -3181,7 +3197,7 @@
 .b-cmeta-part { min-width: 0; }
 .b-cmeta-cap {
   display: block; margin: 0 0 8px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-cmeta-say { font-size: var(--t-body); color: var(--d100); }
@@ -3247,7 +3263,7 @@
 .b-way-group + .b-way-group { margin-top: 26px; }
 .b-way-cap {
   margin: 0 0 2px; font-family: var(--font-sans); font-size: var(--fs-2xs);
-  font-weight: var(--fw-bold); text-transform: uppercase;
+  font-weight: var(--fw-medium); text-transform: uppercase;
   letter-spacing: var(--ls-wide); color: var(--d200);
 }
 
@@ -3368,7 +3384,7 @@
 }
 .b-open-cap {
   display: block; margin-bottom: 6px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--accent-text);
 }
 .b-open-say {
@@ -3386,8 +3402,7 @@
 }
 .b-prep-line b {
   display: block; margin-bottom: 1px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--ink-muted);
+  font-size: var(--t-micro); font-weight: var(--fw-bold); color: var(--ink-muted);
 }
 
 /* 4. What arrives mid-call: which one they actually raise, then the script. */
@@ -3424,7 +3439,7 @@
 .b-srcs { display: flex; flex-direction: column; gap: 8px; }
 .b-srcs-cap {
   margin-bottom: 4px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--d200);
 }
 .b-src { display: flex; align-items: baseline; gap: 10px; font-size: var(--t-body); }
@@ -3799,7 +3814,7 @@
   margin-top: 12px;
 }
 .b-ask-cap {
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted); margin-right: 2px;
 }
 
@@ -3955,7 +3970,7 @@
 
 .b-cal-cap {
   margin: 0; padding: 16px 8px 8px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-cal-agenda { display: flex; flex-direction: column; }
@@ -4174,7 +4189,7 @@
   padding-right: 10px;
 }
 .b-loop-cap {
-  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-medium);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
 /* The sentence under the caption is an `.b-aimy` now, so the measure it was
