@@ -5735,3 +5735,38 @@
   .b-log-vm.is-playing .b-log-vm-on { animation: none; clip-path: inset(0 0 0 0); }
   .b-log-vm { transition: none; }
 }
+
+/* ══ THE CANVAS SCROLLS ON THE WINDOW, NOT ON THE COLUMN ══════════
+   `.overlay-thread` is the scroller AND the measure — 720px wide, centred by
+   the flex parent — so its scrollbar was drawn against the right edge of the
+   prose, four hundred pixels in from the window, with empty canvas either
+   side of it. It read as a rule down the middle of the surface rather than as
+   the edge of a scrolling region, and it had no relationship to the close
+   button it should have sat under.
+
+   THE MEASURE MOVES TO THE PADDING AND NOTHING ELSE CHANGES. The obvious
+   version — drop the max-width, centre the children with `align-items` —
+   rewrites how every child of this thread is laid out, and the thread holds
+   rows that set their own `align-self`. Padding leaves all of that alone: the
+   element is full width, so the scrollbar is at the window's edge, and the
+   content box is still 720 in the middle of it.
+
+   `max()` keeps the 24px gutter the design system set, for the widths where
+   there is less than 720 to give. Below that the two agree and the rule is
+   inert. */
+.overlay-thread {
+  max-width: none;
+  /* 672, not 720. The rule this replaces was `max-width: 720px` on a
+     border-box element carrying 24px of its own side padding, so the measure
+     the prose actually had was 672 — and a padding calc written off 720 gave
+     it 43px more and moved every line. The column is identical to what it
+     was; only the bar it is scrolled by has moved. */
+  padding-left: max(24px, calc((100% - 672px) / 2));
+  padding-right: max(24px, calc((100% - 672px) / 2));
+}
+
+/* Its APPEARANCE is left alone on purpose. `.ntf-panel`'s treatment was the
+   obvious thing to copy across and it is wrong here: that panel is an opaque
+   card and its thumb at 6% white reads against it, where the canvas ground is
+   a dark glass and the same value all but disappears. The ask was to move the
+   bar, not to restyle it, and moving it is the whole of what this does. */
