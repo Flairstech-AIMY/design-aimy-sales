@@ -592,7 +592,17 @@
            word for where the floor stood before us, set at signing; this is
            a corpus built to be consistent with it, and if the two ever drift
            the contract is right and the corpus has a bug. */
-        team: { deployedAt: 2, weeks: 12, agents: 24 },
+        /* `from` is which field on a scored conversation the week's figure
+           is averaged out of, so a second client measuring different things
+           needs a different list here rather than a second generator.
+           `whose` is whose floor it is — theirs, running our tool. */
+        team: { deployedAt: 2, weeks: 12, agents: 24, whose: 'yours',
+          metrics: [
+            { k: 'cover', from: 'cover', label: 'Conversations reviewed', unit: 'pc' },
+            { k: 'latency', from: 'lag', label: 'Days to first look', unit: 'days' },
+            { k: 'quality', from: 'score', label: 'Average quality score', unit: 'pc' },
+            { k: 'resolve', from: 'mins', label: 'Time to first resolution', unit: 'mins' },
+          ] },
         promises: [
           { k: 'cover', read: 'team.cover', unit: 'pc', was: 2, to: 100, ours: true,
             say: 'Every conversation scored, not two in every hundred' },
@@ -603,15 +613,50 @@
           { k: 'resolve', read: 'team.resolve', unit: 'mins', was: 48, to: 34, ours: false,
             say: 'First resolution thirty per cent faster than the day we started' },
         ] } },
+    /* ══ AND ONE WHERE WE DO THE WORK ITSELF ═══════════════════════════
+       Kestrel buys reach and Nordwind buys a tool. Lambourne buys the desk:
+       our people, answering their customers, on their systems. So the floor
+       is ours and the report says so — `whose: 'ours'` — and the promises
+       are about what the desk covers rather than what a market returned.
+
+       THE CLAIM IS CAPACITY, NOT A SMALLER PAYROLL, and that is a decision
+       rather than a softening. Knowledge's own Nordwind write-up sets the
+       standard this build is held to: reviewer headcount was unchanged,
+       nobody was replaced, and the story should never be told as though
+       anybody was. So `spend.was` sits beside the fee and the two numbers
+       are nearly the same — the argument is the hours and the contacts they
+       could not cover before, at a cost that did not move, and there is not
+       a figure anywhere on this desk for a person who is no longer there.
+
+       It also keeps us out of a number we cannot stand behind. Cost per
+       ticket, headcount avoided and FTE saved are unmodelled everywhere in
+       this ecosystem, and inventing one to put on a customer's screen is
+       the opposite of what the rest of this desk was built for. */
     { k: 'ostend', name: 'Lambourne Care', sells: ['support'],
-      what: 'outsourced customer support. We open the market and hand every meeting over',
-      deal: { kind: 'outbound', fee: 140000, since: '2026-02-01', term: 12,
-        line: 'We open the market and hand every meeting over.',
+      what: 'outsourced customer support. Our people, their customers, their systems',
+      deal: { kind: 'service', fee: 140000, since: '2025-12-01', term: 12,
+        /* What the desk cost them to run themselves, agreed at signing.
+           The fee beside it is the whole commercial argument and neither
+           number is derived from the other. */
+        spend: { was: 138000 },
+        line: 'We answer every contact, at every hour, and score every one. ' +
+          'Anything that needs your own systems comes back to you.',
+        team: { deployedAt: 3, weeks: 12, agents: 18, whose: 'ours',
+          metrics: [
+            { k: 'volume', from: 'held', label: 'Contacts answered a week', unit: 'count' },
+            { k: 'reply', from: 'lag', label: 'Time to a first reply', unit: 'mins' },
+            { k: 'quality', from: 'score', label: 'Quality on the desk', unit: 'pc' },
+            { k: 'resolve', from: 'mins', label: 'Time to resolve', unit: 'mins' },
+          ] },
         promises: [
-          { k: 'met', read: 'funnel.met', unit: 'count', to: 35, was: null, ours: true,
-            say: 'Thirty-five qualified meetings handed over' },
-          { k: 'arr', read: 'arr', unit: 'money', to: 160000, was: null, ours: false,
-            say: 'A hundred and sixty thousand signed off them' },
+          { k: 'volume', read: 'team.volume', unit: 'count', was: 640, to: 1600, ours: true,
+            say: 'Sixteen hundred contacts a week answered, including the hours you could not cover' },
+          { k: 'reply', read: 'team.reply', unit: 'mins', was: 340, to: 30, ours: true,
+            say: 'A first reply inside half an hour rather than most of a day' },
+          { k: 'quality', read: 'team.quality', unit: 'pc', was: 71, to: 85, ours: true,
+            say: 'Eighty-five per cent quality on every contact, scored not sampled' },
+          { k: 'resolve', read: 'team.resolve', unit: 'mins', was: 420, to: 90, ours: false,
+            say: 'Resolved inside ninety minutes, which needs your systems as well as our desk' },
         ] } },
   ];
   const CLIENT = Object.create(null);
@@ -624,8 +669,22 @@
      reads the ones we actually run campaigns for and appending another of
      those is still the one change that has to be checked in the console.
      Same guard on the draft editor, which offered the whole list as owners
-     for a campaign being built. */
-  const CAMP_CLIENTS = CLIENTS.filter((c) => !c.deal || c.deal.kind === 'outbound');
+     for a campaign being built.
+
+     ══ AND THE KEYS ARE WRITTEN OUT RATHER THAN FILTERED ═══════════════
+     This was `CLIENTS.filter(c => c.deal.kind === 'outbound')` for one
+     commit, which is the same four rows and a far worse way to say it. The
+     length is what every campaign's client depends on, and a filter makes
+     that length a consequence of a field on every row — so changing
+     Lambourne's deal from an outbound one to a service one, which is a
+     statement about Lambourne and nothing else, re-dealt every campaign in
+     the build: Kestrel went from three campaigns to two and its book from
+     ten deals to two, silently, with the audit green.
+
+     Four keys, written down. The only way this list changes is somebody
+     editing this line, which is the only way it should ever have been. */
+  const CAMP_CLIENT_KEYS = ['norvant', 'harlow', 'peregrin', 'ostend'];
+  const CAMP_CLIENTS = CAMP_CLIENT_KEYS.map((k) => CLIENT[k]);
 
   /* ══ WHO WE ASK FOR, AND WHY THEY WOULD TAKE THE CALL ═══════════════════
      The one thing every caller has to know before dialling and the one thing
@@ -831,6 +890,9 @@
        no lead and no deal, and the question their desk asks is the same
        one. */
     { id: 'nordwind', name: 'Sigrid Aalto', initials: 'SA', fn: 'client', client: 'nordwind' },
+    /* The third client desk and the third book: not a pipeline, not their
+       floor, but ours running their desk. */
+    { id: 'lambourne', name: 'Bernard Ofori', initials: 'BO', fn: 'client', client: 'ostend' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -880,7 +942,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina', 'sherif', 'kestrel', 'nordwind'];
+  const DESKS = ['engy', 'lina', 'sherif', 'kestrel', 'nordwind', 'lambourne'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -1423,7 +1485,18 @@
      to say, written down once so the campaign page and the pre-call brief
      quote the same words. */
   const ANSWERS = {
-    pricing: 'Price it against the headcount it replaces, not against a licence. Ask what one unfilled seat costs them a month.',
+    /* ══ NOT "THE HEADCOUNT IT REPLACES" ═══════════════════════════════
+       That was the line for a while, and it fails a standard this company
+       already holds itself to in writing: Knowledge's own account of the
+       Nordwind rollout says reviewer headcount was unchanged, nobody was
+       replaced, and the story should never be told as though anybody was.
+       A caller's script is where that standard is actually kept or lost.
+
+       The selling logic is untouched — price against the work, not against
+       a licence — and an unfilled seat is a vacancy they already have
+       rather than a person who stopped being there. It also reads on a
+       client's own campaign record now, which is where this was found. */
+    pricing: 'Price it against what the work costs them today, not against a licence. Ask what one unfilled seat costs them a month.',
     timing: 'Agree the quarter, book the meeting inside it. A date in the diary survives a budget freeze; a promise to call back does not.',
     feature: 'Ask which one thing is missing, then say plainly whether we do it. A maybe here costs the meeting two calls later.',
     service: 'Name what we do not do before they find it. The list of what we do run is longer than they expect.',
@@ -8795,14 +8868,22 @@
     const r = rng(Math.abs(hash('floor:' + key)) || 1);
     const weeks = t.weeks || 12;
     const dep = t.deployedAt || 0;
-    const to = Object.create(null);
-    (d.promises || []).forEach((p) => {
-      if (p.read.indexOf('team.') === 0) to[p.read.slice(5)] = p;
+    /* ══ KEYED BY THE FIELD, NOT BY THE METRIC'S NAME ══════════════════
+       `from` already says which field on a conversation a metric is read
+       out of, so it is also the only sane thing to ramp by. Keyed on the
+       metric's own name instead, this walked `latency` towards its promise
+       and left Lambourne — who call the same field `reply` — with no ramp
+       at all: a first reply promised inside half an hour, generated at one
+       minute, and nothing in the page to say it was nonsense. A second
+       client is where a name used as a key stops being a name. */
+    const byFrom = Object.create(null);
+    (t.metrics || []).forEach((m) => {
+      const p = (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0];
+      if (p && m.from) byFrom[m.from] = p;
     });
-    const at = (k, frac) => {
-      const p = to[k];
-      if (!p) return 0;
-      return p.was + (p.to - p.was) * frac;
+    const at = (from, frac) => {
+      const p = byFrom[from];
+      return p ? p.was + (p.to - p.was) * frac : null;
     };
     /* Fast then settling: most of a deployment's effect lands in the first
        weeks after it, and a straight line would say the opposite. */
@@ -8823,28 +8904,49 @@
     const byWeek = [];
     for (let w = 0; w < weeks; w++) {
       const frac = w < dep ? 0 : ease(Math.min(1, (w - dep) / span));
-      const cover = at('cover', frac) / 100;
-      const lag = at('latency', frac);
-      const qual = at('quality', frac) / 100;
-      const mins = at('resolve', frac);
+      /* ══ AND NO COVERAGE PROMISE MEANS ALL OF IT ══════════════════════
+         A client who bought the tool is promised a rising share of a steady
+         load, so `cover` ramps. A client who handed us the desk is promised
+         that every contact is scored rather than sampled — there is no
+         coverage promise because there is nothing to ramp, and reading a
+         missing one as zero scored nothing at all and left three of their
+         four metrics with no conversations to average. */
+      const cover = byFrom.cover ? at('cover', frac) / 100 : 1;
+      /* A floor with no promise about one of these still produces it, so
+         the drill has something to show — it just is not the thing anybody
+         committed to. */
+      const lag = at('lag', frac) == null ? 3 : at('lag', frac);
+      const qual = at('score', frac) == null ? 80 : at('score', frac);
+      const mins = at('mins', frac) == null ? 40 : at('mins', frac);
+      /* ══ AND SOMETIMES CAPACITY IS THE THING THAT MOVES ═══════════════
+         A floor running our tool reviews a rising share of a steady load.
+         A desk we run for somebody answers a load that RISES, because the
+         hours they could not cover before are hours somebody is now
+         picking up. So a `volume` promise, where there is one, sets how
+         many conversations a week there are rather than how many of them
+         get looked at. */
+      const vol = byFrom.held ? at('held', frac) : null;
+      const per = vol ? Math.max(1, vol / agents.length) : 6.5;
       let held = 0, seen = 0;
       agents.forEach((a) => {
-        const n = 4 + Math.floor(r() * 6);
+        const n = Math.max(1, Math.round(per + (r() - 0.5) * per * 0.5));
         held += n;
         for (let c = 0; c < n; c++) {
           if (!chance(r, cover)) continue;
           seen += 1;
           const goals = QA_GOALS.map((g) => {
-            const p = Math.max(0.04, Math.min(0.99, qual + g.bias + a.edge));
+            const p = Math.max(0.04, Math.min(0.99, (qual / 100) + g.bias + a.edge));
             return { k: g.k, pass: chance(r, p) };
           });
           const score = goals.reduce((n2, g) => n2 + (g.pass ? QA_GOAL[g.k].weight : 0), 0);
           evals.push({
             id: 'e' + evals.length, w: w, agent: a.id, score: score, goals: goals,
             chan: pick(r, FLOOR_CHAN), subj: pick(r, FLOOR_SUBJ),
-            /* Rounded where it is read, not here: a floor that took 6.4 days
-               to look at something took six or seven, never both. */
-            lag: Math.max(1, Math.round(lag + (r() - 0.5) * 2)),
+            /* Jitter in proportion, not in units. A flat plus-or-minus one
+               is most of the spread on eleven days and none at all on three
+               hundred and forty minutes, so the same line produced a
+               believable floor and a suspiciously smooth desk. */
+            lag: Math.max(1, Math.round(lag + (r() - 0.5) * Math.max(2, lag * 0.3))),
             mins: Math.max(4, Math.round(mins + (r() - 0.5) * 16)),
           });
         }
@@ -8859,24 +8961,22 @@
   /* The four figures the report reads, each one a pass over the records
      above rather than a number written beside them. Same derivation every
      week, so the series and the headline cannot disagree. */
-  const FLOOR_METRICS = [
-    { k: 'cover', label: 'Conversations reviewed', unit: 'pc' },
-    { k: 'latency', label: 'Days to first look', unit: 'days' },
-    { k: 'quality', label: 'Average quality score', unit: 'pc' },
-    { k: 'resolve', label: 'Time to first resolution', unit: 'mins' },
-  ];
   function floorSeries(key) {
     const f = floorOf(key);
-    if (!f) return [];
+    const d = dealOf(key);
+    if (!f || !d || !d.team) return [];
     const mean = (xs) => (xs.length ? xs.reduce((n, x) => n + x, 0) / xs.length : 0);
-    return FLOOR_METRICS.map((m) => ({ k: m.k, label: m.label, unit: m.unit,
+    return (d.team.metrics || []).map((m) => ({ k: m.k, label: m.label, unit: m.unit,
       w: f.byWeek.map((wk) => {
+        /* Two of these are facts about the WEEK and the rest are averages
+           over the conversations in it, which is why `from` names a field
+           rather than the list being positional. */
+        if (m.from === 'cover') return Math.round((wk.seen / (wk.held || 1)) * 100);
+        if (m.from === 'held') return wk.held;
+        if (m.from === 'seen') return wk.seen;
         const es = f.evals.filter((e) => e.w === wk.w);
-        if (m.k === 'cover') return Math.round((wk.seen / (wk.held || 1)) * 100);
         if (!es.length) return null;
-        if (m.k === 'latency') return Math.round(mean(es.map((e) => e.lag)));
-        if (m.k === 'quality') return Math.round(mean(es.map((e) => e.score)));
-        return Math.round(mean(es.map((e) => e.mins)));
+        return Math.round(mean(es.map((e) => e[m.from])));
       }) }));
   }
   /* The last week that produced anything. A week nobody reviewed has no
@@ -8924,7 +9024,8 @@
       '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the year') + '</div>' +
       '<section class="s-exec-sec s-block-wide">' +
         '<div class="s-sec-head">' +
-          '<h1 class="s-exec-h">Your floor</h1>' +
+          '<h1 class="s-exec-h">' +
+            ((myDeal().team || {}).whose === 'ours' ? 'The desk we run' : 'Your floor') + '</h1>' +
         '</div>' +
         '<p class="s-exec-scope">' + esc(plural(rows.length, 'person')) + ' &middot; ' +
           esc(commas(f.evals.length)) + ' conversations scored &middot; worst first</p>' +
@@ -9105,7 +9206,8 @@
     lines: 'both services in the market', reach: 'regions opened',
     arr: 'signed revenue', live: 'deals live at the year end',
     cover: 'coverage', latency: 'time to a first look',
-    quality: 'average quality', resolve: 'time to first resolution' };
+    quality: 'average quality', resolve: 'time to first resolution',
+    volume: 'contacts answered', reply: 'time to a first reply' };
 
   /* ══ THE FUNNEL, AND IT IS WHERE THE LINE ALREADY FALLS ════════════════
      `now.funnel` has been computed since the aggregate was written and has
@@ -9302,7 +9404,8 @@
     }).join('');
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
-        '<h2 class="s-exec-eyebrow">What your floor did</h2>' +
+        '<h2 class="s-exec-eyebrow">' +
+          (t.whose === 'ours' ? 'What the desk did' : 'What your floor did') + '</h2>' +
       '</div>' +
       '<div class="b-funnel">' +
         '<div class="b-fn-head"><span class="b-fn-name">Over twelve weeks</span>' +
@@ -9311,8 +9414,9 @@
         rows +
       '</div>' +
       '<p class="s-exec-note">Nothing moved for the first ' +
-        esc(plural(t.deployedAt, 'week')) + ' &mdash; that is how long it took to go live. ' +
-        esc(d.line) + '</p>' +
+        esc(plural(t.deployedAt, 'week')) + ' &mdash; ' +
+        esc(t.whose === 'ours' ? 'that is how long the handover took' : 'that is how long it took to go live') +
+        '. ' + esc(d.line) + '</p>' +
       /* ══ AND THE FIGURES OPEN ═══════════════════════════════════════
          Four averages over nine hundred and sixty-five conversations. The
          argument for scoring all of them instead of two in a hundred is
@@ -9325,7 +9429,8 @@
         return '<div class="s-lead-acts"><button class="s-insight-lnk primary" ' +
           'type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
-          'Show the ' + esc(plural(f.agents.length, 'person')) + ' behind it</button></div>';
+          'Show the ' + esc(plural(f.agents.length, 'person')) +
+          (t.whose === 'ours' ? ' on it' : ' behind it') + '</button></div>';
       }()) +
     '</section>';
   }
@@ -9726,8 +9831,13 @@
               ? esc(CLIENT[myClient()].name) + ' &middot; ' +
                 /* What the fee is counted in: campaigns where we run them,
                    seats where they run the tool. */
+                /* What the fee is counted in: campaigns where we run them,
+                   seats where they run the tool, people where the desk is
+                   ours. */
                 esc(onPipeline() ? plural(myCamps().length, 'campaign')
-                  : plural(myDeal().seats || 0, 'seat')) + ' &middot; to ' +
+                  : myDeal().seats ? plural(myDeal().seats, 'seat')
+                  : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
+                ' &middot; to ' +
                 esc(sayDay(periodOf('deal').end))
               : 'Your book &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
@@ -9957,9 +10067,19 @@
            their deals. What they are owed here is the one number they
            actually parted with: the fee, for the year, undivided. Three
            tiles left of it are pure attainment and carry no cost at all. */
+        /* ══ AND WHERE THERE IS A BEFORE, THE TILE IS THE ARGUMENT ═══════
+           A client who handed us a desk they used to run has one question
+           about the fee, and it is not what it buys — it is whether it is
+           more than they were already spending. Both numbers, side by side,
+           and nothing on the page divides one by the other: at a hundred
+           and forty against a hundred and thirty-eight the answer is "about
+           the same", which two figures on one tile already say. */
         (isBuyer()
           ? attFig('Your fee', myDeal() ? fmtMoney(myDeal().fee) : '—',
-            myDeal() ? 'for the year to ' + sayDay(periodOf('deal').end) : '')
+            !myDeal() ? ''
+              : myDeal().spend && myDeal().spend.was != null
+                ? 'was ' + fmtMoney(myDeal().spend.was) + ' to run it yourselves'
+                : 'for the year to ' + sayDay(periodOf('deal').end))
           : attFig('Spent', fmtMoney(now.spend.total),
           !now.spend.total ? 'nothing spent in this window'
             : now.cac == null ? 'nothing signed against it yet'

@@ -205,6 +205,7 @@ in full:
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
 | Marit Okonjo, client | `?as=kestrel` | the same, bounded by who the campaign was run for — and read from the other side of the invoice |
 | Sigrid Aalto, client | `?as=nordwind` | one surface, because they bought the tool rather than the outbound: their year, their floor, and every conversation it was averaged from |
+| Bernard Ofori, client | `?as=lambourne` | the same shape again, with the desk ours rather than theirs — and the fee beside what it cost them to run it themselves |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -240,8 +241,24 @@ campaign and moves every figure on every client's desk. `CAMP_CLIENTS` is the
 guard; the check is `BDR.db.camp.map(c => [c.id, c.client])` in the console,
 and it is the one thing to run before and after touching that list.
 
-Five desks means every question about a figure has five answers. Check all of
-them, and on the clients' check what is NOT there: sweeps over 234 and 69 of
+Three client kinds, and `bookKind` is the only thing that knows: `outbound`
+reads a pipeline, `software` and `service` read a floor. A floor's metrics say
+which field on a scored conversation they average — `from` — and that is also
+what the generator ramps by, because a second client is where a metric's NAME
+used as a key stops being a name.
+
+**Lambourne's claim is capacity, not a smaller payroll, and that is a decision
+rather than a softening.** Knowledge's own account of the Nordwind rollout
+sets the standard: reviewer headcount was unchanged, nobody was replaced, and
+the story should never be told as though anybody was. So the fee sits beside
+what the desk cost them to run themselves, the two numbers are nearly the
+same, and there is no figure anywhere on that desk for a person who is no
+longer there. It also keeps the build out of cost per ticket, headcount
+avoided and FTE saved — unmodelled everywhere in this ecosystem, and not
+things to invent for a customer's screen.
+
+Six desks means every question about a figure has six answers. Check all of
+them, and on the clients' check what is NOT there: sweeps over 234 and 85 of
 their surfaces are the only reason to believe them.
 
 ## The customer book
