@@ -340,13 +340,10 @@ html {
    theme, so one value serves both and nothing forks. */
 :root { --badge-ground: #d92d20; }
 
-/* A PILL BELOW THE SIZE FLOOR. .overlay-badge is 11px in aimy-ds.css, and
-   11 is not on this scale — the rule is even, and never below twelve. It is
-   uppercase and tracked as well, which is the treatment that needs the most
-   size rather than the least. Its ink was --d400, two steps under the --d200
-   type floor this product set for itself. Both corrected here rather than
-   there, like every other divergence from the library. */
-.overlay-badge { font-size: var(--fs-2xs); color: var(--ink-muted); }
+/* .overlay-badge sets 11px at --d400 in the library and keeps both here.
+   It is canvas chrome — it renders in the assistant, not on this product’s
+   surface, and in fact never renders in Sales at all — so the 12px floor
+   and the --d200 ink floor are not this file’s to apply to it. */
 
 /* TWELVE IS THE TAG SIZE, NOT JUST THE METADATA SIZE. The scale calls 12 the
    minimal step and describes it as a tag, a work state, a timestamp. The tags
@@ -367,18 +364,22 @@ html {
    canvas copy is left alone. */
 .s-block .filter-chip, .chip { font-size: var(--fs-2xs); }
 
+/* THE CANVAS KEEPS THE LIBRARY’S TYPE, so no size and no weight here — the
+   note further down this file is right that re-scaling the float bar makes
+   the assistant look different depending on which agent opened it, and 9px
+   at 800 is what the library ships.
+
+   The GROUND and the ink do stay ours. #fff on --err-strong measures
+   3.15:1 and fails AA at any size; white on --badge-ground is 4.83:1 with
+   the pill still reading 3.79:1 against the page. That is a contrast fix
+   rather than a scale one, and reverting it would put back a failure. */
 .float-badge {
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-2xs);
-                                                                    
-                                                                           
-  line-height: var(--lh-none);
   background: var(--badge-ground);
   color: #ffffff;
 }
 
 .aimy-toast-title, .aimy-toast-undo, .avatar, .btn, .cite, .entry-action,
-.evidence-pill .val, .msg-avatar, .overlay-badge, .tag, .tc-gov strong,
+.evidence-pill .val, .msg-avatar, .tag, .tc-gov strong,
 .tc-title, .tc-type, .type-label, .work-state {
   font-weight: var(--fw-bold);
 }

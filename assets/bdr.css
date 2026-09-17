@@ -2644,10 +2644,22 @@
 .b-nm-do { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
 .b-nm-do.is-done { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 28%, transparent); }
 .b-nm-note { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+/* THE TILE IS 28px AND THE GLYPH IS NOT. The svg inside carried no width or
+   height, so it filled the tile edge to edge — a 28px checkmark beside a 12px
+   pill and a 16px sentence, which is the loudest thing in the block and says
+   the least. §76 of this file already states the rule for marks on a card: a
+   mark that outsizes the line it sits on is the wrong way round. 16px matches
+   the sentence it marks and leaves the tile its padding. */
 .b-nm-mark {
-  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; margin-top: 1px;
+  /* The FALLBACK mark, drawn only when there is no due chip to carry it.
+     Shrinking the glyph alone left a 28px tile holding 16px of icon beside a
+     16px sentence — the box was still the largest thing in the row. Tile and
+     glyph come down together: 22px around 14px keeps the same padding ratio
+     and stops the mark outsizing the line it marks. */
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; margin-top: 1px;
   color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18);
 }
+.b-nm-mark > svg { width: 14px; height: 14px; }
 .b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
 .b-nm-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .b-nm-say {
@@ -2660,10 +2672,28 @@
   /* A pill on the product surface, so it takes the tag step. It was
      --t-small at 14 and the sweep that found the others missed it: that
      one walked five list routes and no detail page, and this lives on a
-     customer record. */
+     customer record.
+
+     IT CARRIES THE MARK NOW, and the mark’s colours with it — the accent
+     tint the tile used to wear, one step deeper than the block behind it so
+     the same hue still separates them. The glyph sits at 12px, the size of
+     the words beside it: §76 of this file says a 13px mark beside 12px type
+     is the loudest thing in the corner, and a leading glyph in a chip has
+     even less licence than that. */
+  display: inline-flex; align-items: center; gap: 5px;
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.01em;
-  color: var(--d100); background: var(--card-bg); border: 1px solid var(--card-border);
+  /* --accent-label, not --accent-text. The tile this replaced held an ICON,
+     which AA judges at 3:1; the chip holds WORDS, judged at 4.5, and putting
+     --accent-text on an 0.18 tint of its own hue measured 3.94 — the tint
+     lifts the ground toward the ink, which aimy-ds.css already records for
+     --qa-accent a few hundred lines away. --accent-label is the lighter
+     violet kept for exactly this, and .tag-qa already pairs it with an accent
+     ground. 4.61 against the composited ground. */
+  color: var(--accent-label); background: rgba(var(--accent-rgb), 0.18);
+  border: 1px solid transparent;
 }
+.b-nm-due > svg { width: 12px; height: 12px; flex: none; }
+.b-nm-do.is-done .b-nm-due { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
 .b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
 .b-nm-then { font-size: var(--t-ui); color: var(--d200); max-width: 66ch; text-wrap: pretty; }
 .b-nm-then b { color: var(--d50); font-weight: var(--fw-semibold); }

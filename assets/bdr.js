@@ -17760,13 +17760,23 @@
         ? '<div class="b-nm">' +
             (o.next
               ? '<div class="b-nm-do' + (o.done ? ' is-done' : '') + '">' +
-                  '<span class="b-nm-mark">' + (o.done ? nmTick() : nmClock()) + '</span>' +
+                  /* THE MARK BELONGS IN THE BADGE. It was a 28px tile of its
+                     own beside a 12px chip — two objects saying one thing,
+                     and the louder of them saying the less. Inside the chip
+                     it is a leading glyph on the words it marks, and the
+                     chip takes the tile’s own colours so nothing is lost.
+
+                     The tile survives only when there is no chip to host
+                     it: no due date, no badge, and the mark still has to
+                     land somewhere. */
+                  (o.due ? '' : '<span class="b-nm-mark">' + (o.done ? nmTick() : nmClock()) + '</span>') +
                   '<span class="b-nm-text">' +
                     /* THE CHIP IS ABOVE THE SENTENCE. Trailing it, the chip
                        wrapped onto its own line anyway and read as an
                        afterthought to the instruction; what is owed and when
                        is the thing you look for first. */
                     (o.due ? '<span class="b-nm-due' + (o.due.late ? ' is-late' : '') + '">' +
+                      (o.done ? nmTick() : nmClock()) +
                       esc(o.due.what) + ' · ' + esc(o.due.when) + '</span>' : '') +
                     '<span class="b-nm-say">' + o.next + '</span>' +
                     (o.hand ? '<span class="b-nm-then">' + o.hand + '</span>' : '') +
