@@ -588,7 +588,16 @@
           { k: 'tool', kind: 'software', name: 'Quality tool', fee: 96000, seats: 800,
             line: 'We score every conversation and say why. ' +
               'What you do about a bad one is yours.',
-            team: { deployedAt: 2, weeks: 12, agents: 24, whose: 'yours',
+            /* ══ THE TERM, NOT A QUARTER OF IT ═══════════════════════════
+               Twelve weeks of a fifty-week contract left thirty-eight
+               unevidenced and put the go-live ten weeks ago on a
+               relationship approaching renewal. `weeks` is the term now,
+               `ramp` is how long the change took rather than how long the
+               chart is, and `sample` is how many scored conversations a
+               week are kept as records — the counts stay true, the drill
+               reads a sample of them, and the page says which is which. */
+            team: { deployedAt: 2, weeks: 48, ramp: 9, sample: 55,
+              agents: 24, whose: 'yours',
               metrics: [
                 { k: 'cover', from: 'cover', label: 'Conversations reviewed', unit: 'pc' },
                 { k: 'latency', from: 'lag', label: 'Days to first look', unit: 'days' },
@@ -613,7 +622,8 @@
             spend: { was: 138000 },
             line: 'We answer every contact, at every hour, and score every one. ' +
               'Anything that needs your own systems comes back to you.',
-            team: { deployedAt: 3, weeks: 12, agents: 18, whose: 'ours',
+            team: { deployedAt: 3, weeks: 48, ramp: 11, sample: 55,
+              agents: 18, whose: 'ours',
               metrics: [
                 { k: 'volume', from: 'held', label: 'Contacts answered a week', unit: 'count' },
                 { k: 'reply', from: 'lag', label: 'Time to a first reply', unit: 'mins' },
@@ -8913,7 +8923,10 @@
     /* Fast then settling: most of a deployment's effect lands in the first
        weeks after it, and a straight line would say the opposite. */
     const ease = (x) => 1 - Math.pow(1 - x, 2);
-    const span = Math.max(1, weeks - 1 - dep);
+    /* How long the change took, which is not how long the chart is. Spanning
+       the ramp across the whole term made a rollout that finished in ten
+       weeks look like one that crawled for a year. */
+    const span = Math.max(1, t.ramp || (weeks - 1 - dep));
 
     const agents = [];
     for (let i = 0; i < (t.agents || 24); i++) {
@@ -8952,6 +8965,20 @@
          get looked at. */
       const vol = byFrom.held ? at('held', frac) : null;
       const per = vol ? Math.max(1, vol / agents.length) : 6.5;
+      /* ══ COUNTED IN FULL, KEPT IN PART ════════════════════════════════
+         A support desk answering sixteen hundred contacts a week across a
+         year is sixty thousand conversations, and holding a record for each
+         one to draw four averages and a drill is a corpus built for its own
+         sake. The WEEKLY COUNTS are true — they are what the volume and
+         coverage promises are read off — and the records behind them are a
+         sample, spread across the floor rather than taken off the front of
+         it so every person still has a history to open.
+
+         The page says so. A number a reader cannot check is the thing this
+         desk exists to avoid, and a sampled average presented as a census
+         is the same fault wearing better clothes. */
+      const cap = t.sample || 0;
+      const keep = cap ? Math.min(1, cap / Math.max(1, per * agents.length * cover)) : 1;
       let held = 0, seen = 0;
       agents.forEach((a) => {
         const n = Math.max(1, Math.round(per + (r() - 0.5) * per * 0.5));
@@ -8959,6 +8986,7 @@
         for (let c = 0; c < n; c++) {
           if (!chance(r, cover)) continue;
           seen += 1;
+          if (keep < 1 && !chance(r, keep)) continue;
           const goals = QA_GOALS.map((g) => {
             const p = Math.max(0.04, Math.min(0.99, (qual / 100) + g.bias + a.edge));
             return { k: g.k, pass: chance(r, p) };
@@ -8979,7 +9007,10 @@
       byWeek.push({ w: w, held: held, seen: seen });
     }
     FLOOR_CACHE[key] = { agents: agents, evals: evals, byWeek: byWeek,
-      weeks: weeks, deployedAt: dep };
+      weeks: weeks, deployedAt: dep,
+      /* The true totals, which are not `evals.length` once a cap is on. */
+      held: byWeek.reduce((n, w) => n + w.held, 0),
+      seen: byWeek.reduce((n, w) => n + w.seen, 0) };
     return FLOOR_CACHE[key];
   }
 
@@ -9012,6 +9043,56 @@
     for (let i = rows.length - 1; i >= 0; i--) if (rows[i] != null) return rows[i];
     return null;
   };
+
+  /* ══ WHAT DID NOT WORK, WHEN NO DEAL HAS DIED YET ═════════════════════
+     "How deals collapse" is the strongest thing on this page — a report that
+     only ever shows what worked is not believed — and on a client with ten
+     deals, two signed and none lost it rendered as "Nothing has been lost."
+     True, and the one block built to be uncomfortable said nothing at all.
+
+     Nobody has lost a DEAL. Plenty of people left before becoming one, and
+     that is the same question asked a stage earlier: of everybody we found
+     for you, here is who is not going to be a conversation and why. It is
+     read off the ladder rather than off `LOST_WHY`, so it needs no seeded
+     reason and cannot be empty while the funnel above it has a top. */
+  const EXIT_SAY = [
+    { k: 'declined', say: 'said no once we got to them' },
+    { k: 'wrong-number', say: 'the number on the record was not theirs' },
+    { k: 'do-not-call', say: 'asked not to be called again' },
+    { k: 'not-called', say: 'have not been reached yet' },
+  ];
+  function buyerExits(scope) {
+    const n = Object.create(null);
+    (scope || []).forEach((c) => (n[c.checkpoint] = (n[c.checkpoint] || 0) + 1));
+    const rows = EXIT_SAY.map((r) => ({ r: r, n: n[r.k] || 0 }))
+      .filter((x) => x.n).sort((x, y) => y.n - x.n);
+    if (!rows.length) return '<p class="s-odds-note">Nobody has left the ladder.</p>';
+    /* ══ AND NOT REACHED IS NOT THE SAME AS GONE ══════════════════════
+       The first draft of this line added the four rows together and called
+       the total "people who are not going to be a deal". Three of the four
+       are gone; the fourth is seventy-four people nobody has rung yet, and
+       with thirteen days left that is not attrition, it is the most
+       actionable number on the page. It also said "the four reasons" over
+       three rows, because a reason with nobody behind it is not drawn. */
+    const left = rows.filter((x) => x.r.k !== 'not-called')
+      .reduce((t2, x) => t2 + x.n, 0);
+    const cold = (n['not-called'] || 0);
+    return '<div class="s-odds-rows">' + rows.map((x) =>
+      '<span class="s-pan-p">' +
+        '<span class="s-pan-who">' +
+          '<b>' + esc(EXIT_LABEL[x.r.k] || x.r.k) + '</b>' +
+          '<span class="s-pan-meta">' + esc(x.r.say) + '</span>' +
+        '</span>' +
+        '<span class="s-pan-cost">' + esc(commas(x.n)) + '</span>' +
+      '</span>').join('') + '</div>' +
+      '<p class="s-odds-note">No deal has been lost yet' +
+        (left ? ', and ' + esc(plural(left, 'person')) + ' left the ladder for the reasons above'
+          : '') + '.' +
+        (cold ? ' ' + esc(commas(cold)) + ' of the people we found have not been reached at all.'
+          : '') + '</p>';
+  }
+  const EXIT_LABEL = { 'declined': 'Said no', 'wrong-number': 'Wrong number',
+    'do-not-call': 'Asked us to stop', 'not-called': 'Not reached yet' };
 
   /* ══ THE FLOOR, RANKED BY WHO NEEDS AN AFTERNOON ══════════════════════
      Worst first, which is the one ordering that makes this a surface rather
@@ -9053,7 +9134,14 @@
             ((myDeal().team || {}).whose === 'ours' ? 'The desk we run' : 'Your floor') + '</h1>' +
         '</div>' +
         '<p class="s-exec-scope">' + esc(plural(rows.length, 'person')) + ' &middot; ' +
-          esc(commas(f.evals.length)) + ' conversations scored &middot; worst first</p>' +
+          esc(commas(f.seen)) + ' of ' + esc(commas(f.held)) +
+          ' conversations scored &middot; worst first</p>' +
+        /* Said where the records are, not in a footnote somewhere else. */
+        (f.seen > f.evals.length
+          ? '<p class="s-exec-note">The averages are over all ' + esc(commas(f.seen)) +
+            '. The conversations you can open are ' + esc(commas(f.evals.length)) +
+            ' of them, spread across the year and the floor.</p>'
+          : '') +
         rule('Wants an afternoon', rows.filter((x) => x.avg < 65)) +
         rule('Worth watching', rows.filter((x) => x.avg >= 65 && x.avg < 80)) +
         rule('On track', rows.filter((x) => x.avg >= 80)) +
@@ -9472,6 +9560,31 @@
           '<span class="s-pan-cost">' + esc(fmtMoney(e.fee || 0)) + '</span>' +
         '</button>';
       }).join('') + '</div>' +
+      /* ══ AND THE SUM NOBODY SHOULD MAKE ═══════════════════════════════
+         The fee at the top is one number because three fees add up. What
+         they returned does not: one of these produces signed revenue and
+         the other two produce coverage, speed and hours that were not being
+         covered. Adding a euro of new business to a day taken off a
+         response time is the arithmetic every source on this says never to
+         do, and a page that simply declines to do it — and says nothing —
+         leaves the reader to notice the absence and wonder what is being
+         kept from them.
+
+         So it is said. Which engagement answers in money, which do not, and
+         that the total at the top is what the year COST rather than what it
+         was worth. */
+      (function () {
+        const money = es.filter((x) => (x.promises || []).some((p) => p.read === 'arr'));
+        const other = es.filter((x) => !(x.promises || []).some((p) => p.read === 'arr'));
+        if (!money.length || !other.length) return '';
+        return '<p class="s-exec-note">' +
+          esc(money.map((x) => x.name).join(' and ')) +
+          (money.length === 1 ? ' answers' : ' answer') + ' in money. ' +
+          esc(other.map((x) => x.name).join(' and ')) +
+          (other.length === 1 ? ' answers' : ' answer') + ' in coverage, speed and hours that ' +
+          'were not being covered &mdash; which is not money and is not added to it. ' +
+          'The figure above is what the year cost, not what it was worth.</p>';
+      }()) +
     '</section>';
   }
 
@@ -9547,9 +9660,12 @@
            Naming both removes the reading where "before us" means "twelve
            weeks ago". The figures are unchanged; every one of them was
            already the thing these words now say it is. */
-        '<div class="b-fn-head"><span class="b-fn-name">The first ' +
+        /* "The first twelve weeks" was right while the chart was twelve
+           weeks of fifty. It covers the term now, so the last column is
+           today again and the first is the whole of it. */
+        '<div class="b-fn-head"><span class="b-fn-name">Across ' +
             esc(plural(t.weeks || 12, 'week')) + '</span>' +
-          '<span></span><span class="b-fn-n">by then</span>' +
+          '<span></span><span class="b-fn-n">now</span>' +
           '<span class="b-fn-conv">at signing</span></div>' +
         rows +
       '</div>' +
@@ -10913,7 +11029,11 @@
            sits directly over the figures. One `.s-pan-unit` there is the
            column heading this wanted to be, in the same treatment, once. */
         '<div class="s-odds-top">' +
-          '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
+          '<span class="s-odds-cap">' + aiMark() +
+            /* Not "who is not going to be a deal" — the biggest row in it
+               is people nobody has rung yet, who still might be. */
+            (isBuyer() && !loss.rows.length ? 'Where people are stopping'
+              : 'How deals collapse') + '</span>' +
           /* The block stays whole — where deals die is the one thing on
              this page a client can act on, and a report that only ever
              shows what worked is not believed. What changes is the column:
@@ -10953,7 +11073,8 @@
         '</div>' +
         '<p class="s-odds-note">' + lossNote + '</p>' +
         (lossActs ? '<div class="s-lead-acts">' + lossActs + '</div>' : '')
-          : '<p class="s-odds-note">Nothing has been lost.</p>') +
+          : (isBuyer() ? buyerExits(scope)
+            : '<p class="s-odds-note">Nothing has been lost.</p>')) +
       '</div>') +
 
       askRow(isBuyer() ? buyerAsks(now, pipe, loss) : execAsks(now, pipe)) +
