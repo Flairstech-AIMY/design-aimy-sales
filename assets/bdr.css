@@ -107,7 +107,15 @@
    reach a chip that was appended to the sentence as a word. */
 .b-cuts:not(.b-cuts-row) { margin-top: 10px; }
 .b-cuts:not(.b-cuts-row):last-child { margin-bottom: 0; }
-.b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }
+/* The 0.65 here was how this number was "set quiet on purpose", and it put
+   it at 3.26:1 against its ground where AA asks 4.5. Opacity is the same
+   fault as a dim ink token, just spelled differently — it moves the
+   composited colour without anything in the palette recording that it did.
+   Quiet is --ink-secondary, which IS the quiet floor and passes. */
+.b-cut-n {
+  font-variant-numeric: tabular-nums; margin-left: 4px;
+  color: var(--ink-secondary);
+}
 
 /* §4 held a campaign row. Campaigns are cards in the same grid as people
    now, so the row and its five rules are gone with it. */

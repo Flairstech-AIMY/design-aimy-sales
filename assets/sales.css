@@ -309,7 +309,24 @@ html {
    sets out a few sections up: the extracted stylesheet stays a faithful
    copy of the library and every divergence stays visible. Load order makes
    it work — aimy-ds.css, then this. */
-.float-badge { font-weight: var(--fw-extrabold); }
+/* Two floors at once. It set 9px, where the scale says twelve and even and
+   never below; and #fff on --err-strong measures 3.15:1, which fails AA for
+   anything under 18.66px. The note in aimy-ds.css shows this was already
+   argued once — it moved off --err to --err-strong and got from 2.5 to
+   3.15, which is better and still short.
+
+   Keeping the hot red and inverting the ink is what clears it, and it is
+   not a new idea here: .b-missed-n already puts --body-bg on a vivid
+   ground for exactly this reason. Theme-aware in both directions — near-
+   black on #ff5268 in dark, near-white on #b42318 in light. */
+.float-badge {
+  font-weight: var(--fw-extrabold);
+  font-size: var(--fs-2xs);
+  /* 12px of type in a 16px circle needs its leading taken away: the
+     inherited 18px line box overflowed the badge and clipped the digit. */
+  line-height: var(--lh-none);
+  color: var(--body-bg);
+}
 
 .aimy-toast-title, .aimy-toast-undo, .avatar, .btn, .cite, .entry-action,
 .evidence-pill .val, .msg-avatar, .overlay-badge, .tag, .tc-gov strong,
@@ -2027,10 +2044,15 @@ body.is-calling { --fb-reserve: var(--call-width); }
    below it the first message lands underneath — so make room, but only when
    there is a basis to show. */
 .aimy-overlay:has(.overlay-context-tag) .overlay-thread { padding-top: 104px; }
+/* --d500 is #637280. This file says a few sections up that --d500 and
+   --d600 are for chrome — a placeholder, a disabled control — and never for
+   content, and the type floor for this product is --d200. It measured
+   3.53:1 against its ground, failing AA at 12px, and it is a label somebody
+   is meant to read. --ink-secondary is the floor and clears it. */
 .overlay-context-label {
   font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d500); flex-shrink: 0;
+  color: var(--ink-secondary); flex-shrink: 0;
 }
 .overlay-context-tags { display: flex; align-items: center; gap: 4px; overflow: hidden; }
 .overlay-context-tag {
