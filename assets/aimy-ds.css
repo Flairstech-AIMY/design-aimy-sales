@@ -542,7 +542,21 @@
     :root[data-theme="light"] .overlay-close,
     :root[data-theme="light"] .overlay-badge { background: rgba(16,24,40,0.05); border-color: rgba(16,24,40,0.12); }
     :root[data-theme="light"] .overlay-close:hover { background: rgba(16,24,40,0.1); border-color: rgba(16,24,40,0.2); }
-    :root[data-theme="light"] .overlay-sugg-chip { background: #ffffff; border-color: rgba(16,24,40,0.14); }
+    /* ══ A SUGGESTION IS AN OFFER, NOT A CARD ═══════════════════
+       Solid white, which on a dark canvas is the obvious read and on a light
+       one turns every chip into an opaque tile sitting ON the surface. They
+       are the lightest thing the page offers — four questions you may or may
+       not want — and they were the most solid object on it.
+
+       60% and a blur, so the ground they float on comes through them: the
+       gate's bloom under one, the canvas glass under another. The border does
+       the containing now, which is what a border is for. */
+    :root[data-theme="light"] .overlay-sugg-chip {
+      background: rgba(255,255,255,0.60);
+      border-color: rgba(16,24,40,0.14);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
     :root[data-theme="light"] .chat-msg.aimy .msg-bubble { background: #ffffff; border-color: rgba(16,24,40,0.10); }
     :root[data-theme="light"] .aimy-badge { color: #1f5fd0; border-color: rgba(0,102,255,0.3); }
     /* Logo tiles — the dark navy/purple surfaces sit too close to the logo's own
