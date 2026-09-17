@@ -358,7 +358,14 @@ html {
    somebody is meant to read and press — a control with sentence-length text,
    not a tag — so it keeps the meta step. The counts inside these chips set no
    size of their own and come down with them. */
-.filter-chip, .chip { font-size: var(--fs-2xs); }
+/* .filter-chip renders in two places: six on the desk inside .s-block, and
+   four in the float bar. The note below — "the canvas and the float bar keep
+   the library’s type" — is about the second kind and is right: that surface
+   is the same component in all three agents, and re-scaling it here makes
+   the assistant look different depending on which product you opened it
+   from. So the local step is scoped to the product’s own surface, and the
+   canvas copy is left alone. */
+.s-block .filter-chip, .chip { font-size: var(--fs-2xs); }
 
 .float-badge {
   font-weight: var(--fw-bold);
@@ -616,7 +623,10 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-block-h {
 .conf-badge, .conf-badge .conf-val, .cite-action, .agent-step-meta,
 .aiu-note, .ss-clear { font-size: var(--fs-2xs); }
 
-.chip, .aimy-toast-undo, .tl-time, .ss-scope,
+/* .chip was here and is not any more: it renders only on this product’s own
+   surface (nine on the money page, none in the canvas), so it takes the tag
+   step with every other pill rather than the library’s 14. */
+.aimy-toast-undo, .tl-time, .ss-scope,
 .dz-consequence, .entry-action, .aiu-body, .tc-summary,
 .tl-body, .agent-step-label,
 .ds-field .field-help { font-size: var(--fs-xs); }
@@ -5911,8 +5921,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The line the kicker introduces, and the loudest text in the section. */
 .s-sect-deck {
   flex: 1 1 auto; min-width: 0;
-  font-size: var(--ty-body); font-weight: var(--fw-bold);
-  line-height: var(--lh-tight); color: var(--ink-primary);
+  font-size: var(--ty-body); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--ink-primary);
   max-width: 46ch; text-wrap: pretty; margin: 0;
 }
 /* ── A QUALIFIER IS NOT A DISCLAIMER ──
