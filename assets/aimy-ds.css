@@ -202,8 +202,15 @@
 
       /* ── Typography ── */
       /* Pairing: Urbanist (primary — UI & body) + Poppins (display — headings) */
-      --font-sans:    "Urbanist", system-ui, sans-serif;  /* primary / body */
-      --font-display: "Poppins", system-ui, sans-serif;   /* pairing / headings */
+      /* ══ THE PAIR SWAPPED ═════════════════════════════════
+         Poppins carries the body and Urbanist the headings. Measured before
+         the swap so the cost is on the record rather than discovered later:
+         the same body sentence sets 13% wider in Poppins than in Urbanist
+         (439px against 389px at 14px/400), so every measure wraps sooner and
+         every dense row grows. Watch the queue cards and the call log, which
+         are the tightest things in this build. */
+      --font-sans:    "Poppins", system-ui, sans-serif;   /* primary / body */
+      --font-display: "Urbanist", system-ui, sans-serif;  /* pairing / headings */
       --font-mono:    "JetBrains Mono", monospace;
 
       /* Font style */
