@@ -523,7 +523,22 @@
       background: rgba(16,24,40,0.05);
       border-color: rgba(16,24,40,0.12);
     }
-    :root[data-theme="light"] .aimy-overlay { background: rgba(238,242,246,0.6); }
+    /* ══ LIGHT GLASS BRIGHTENS; IT DOES NOT DIM ═════════════════
+       The base rule's `brightness(0.85)` is what gives the dark canvas its
+       depth: the page behind sinks a stop and the panel floats. Light
+       inherited it unchanged, and there the same filter is a grey cast — the
+       backdrop goes muddy while a 60% veil sits on top of it, so the surface
+       reads as frosted plastic rather than as glass. Nothing was wrong with
+       the blur; the two adjustments either side of it pointed the wrong way
+       for the theme.
+
+       So light brightens instead, and the veil comes down to let the page
+       through, which is the whole of what makes it read as glass. */
+    :root[data-theme="light"] .aimy-overlay {
+      background: rgba(255,255,255,0.45);
+      backdrop-filter: blur(28px) saturate(1.5) brightness(1.06);
+      -webkit-backdrop-filter: blur(28px) saturate(1.5) brightness(1.06);
+    }
     :root[data-theme="light"] .overlay-close,
     :root[data-theme="light"] .overlay-badge { background: rgba(16,24,40,0.05); border-color: rgba(16,24,40,0.12); }
     :root[data-theme="light"] .overlay-close:hover { background: rgba(16,24,40,0.1); border-color: rgba(16,24,40,0.2); }

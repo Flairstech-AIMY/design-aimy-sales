@@ -711,6 +711,21 @@ button {
      word sitting beside a vivid pill. `--accent-text` is not a status: it
      is the ink every text action in this product wears, and an affordance
      is not a verdict, so it keeps its own brighter value. */
+  /* ══ THE AiMY WASH, AND WHY LIGHT GETS LESS OF IT ═══════════════
+     The tinted ground every block AiMY speaks from wears. It was written out
+     at each of them with the same two alphas for both themes, and the same
+     alpha is not the same weight: 10% of a deep purple over a near-white page
+     is a lavender panel you read as a coloured box, where 10% of a bright one
+     over near-black is a breath on the surface. The light token block already
+     states the rule this follows — grounds and borders drop their alpha,
+     because dark-on-light reads heavier than the reverse — and this is the
+     one ground that had not.
+
+     A token rather than copies, because it WAS copies and they would have to
+     be found again next time. */
+  --aimy-wash: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
+  --aimy-wash-edge: rgba(var(--accent-rgb), 0.20);
+
   --ok-text:     var(--ok);
   --warn-text:   var(--warn);
   --err-text:    var(--err);
@@ -747,6 +762,12 @@ button {
      read. These are the three values the hues themselves carried until
      today — picked against white and re-measured inside a nested tint, since
      a tag sits on a wash of its own hue and composites darker than the card. */
+  /* Just over half the dark alphas, judged against the page it sits on
+     rather than derived: the wash has to read as a tint OF the surface, not
+     as a card laid on one. */
+  --aimy-wash: linear-gradient(120deg, rgba(var(--accent-rgb), 0.055), rgba(0, 102, 255, 0.022));
+  --aimy-wash-edge: rgba(var(--accent-rgb), 0.13);
+
   --ok-text:     #066640;
   --warn-text:   #6b4500;
   --err-text:    #a81029;
@@ -2864,8 +2885,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
    block stays a quiet raised card, because there it is a reading and nothing
    more. */
 .s-findings.is-panel {
-  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  background: var(--aimy-wash);
+  border: 1px solid var(--aimy-wash-edge);
   padding: 20px; max-width: none;
 }
 .s-findings-say {
@@ -6649,8 +6670,8 @@ body.is-calling .overlay-chats { display: none; }
    a score hero applies unchanged: "a score is orientation you already had;
    this is what moved while you were away." */
 .slv {
-  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  background: var(--aimy-wash);
+  border: 1px solid var(--aimy-wash-edge);
   border-radius: var(--r-lg);
   padding: 20px;
   margin-bottom: 32px;
@@ -8145,7 +8166,7 @@ div.s-pipe-cell { cursor: default; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 32px;
   align-items: start;
-  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
+  background: var(--aimy-wash);
   padding: 20px;
   border-radius: var(--r-lg);
   /* THE SECTION BREAK BELONGS TO THE PANEL. It used to come from the first
