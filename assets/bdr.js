@@ -558,7 +558,12 @@
          And a deal with no `engagements` is still a deal: `engsOf` reads it
          as one engagement that never needed naming, so the other three
          clients here are untouched. */
-      deal: { since: '2025-10-01', term: 12,
+      /* `notice` is how long before the end they have to say something. It
+         is on the deal rather than an engagement because it is a fact about
+         the contract, and it is here at all because thirteen days from the
+         end of a year it is the only question a C-level is actually
+         asking. */
+      deal: { since: '2025-10-01', term: 12, notice: 60,
         engagements: [
           { k: 'reach', kind: 'outbound', name: 'Outbound', fee: 180000,
             line: 'We find them, qualify them and put them in a room with you. ' +
@@ -9253,10 +9258,29 @@
      denominator named in the header — not the ratio of money to money this
      page has thrown out twice. */
   const BUYER_FN = { sourced: 'Found', reachable: 'Reachable', contacted: 'Called',
-    replied: 'Answered', met: 'Met', won: 'Signed' };
+    replied: 'Answered', met: 'Met', handed: 'Handed to you', won: 'Signed' };
   function buyerFunnel(now) {
-    const rows = (now.funnel || []).filter((r) => r.n != null);
-    if (!rows.length) return '';
+    const base = (now.funnel || []).filter((r) => r.n != null);
+    if (!base.length) return '';
+    /* ══ AND THE STAGE THE WHOLE DESK TURNS ON WAS NOT IN IT ═════════════
+       `FUNNEL` runs met straight into won, which on this desk read "Met 24,
+       Signed 2" — a ninety-two per cent collapse, and not what happened.
+       Fourteen of those twenty-four had not been handed over yet: still
+       being worked, still ours. Of the ten that reached Kestrel, eight are
+       live and two are signed.
+
+       The handover is the line this entire desk is drawn on — `reindex`
+       will not put a lead on a client's book without it — and leaving it
+       out of the one picture that is supposed to SHOW the line made the
+       client's own conversion look catastrophic and the omission invisible.
+
+       Read off `dealBook`, which is the same count the board shows, so the
+       two surfaces cannot disagree about how many reached them. */
+    const rows = [];
+    base.forEach((r) => {
+      rows.push(r);
+      if (r.k === 'met') rows.push({ k: 'handed', label: 'Handed to you', n: dealBook().length });
+    });
     const top = rows[0].n || 1;
     let prev = null;
     const draw = (r) => {
@@ -9275,6 +9299,8 @@
     const head = '<div class="b-fn-head"><span class="b-fn-name">Got this far</span>' +
       '<span></span><span class="b-fn-n">people</span>' +
       '<span class="b-fn-conv">of the one above</span></div>';
+    /* Handing over is the last thing we do, so it belongs above the line
+       with everything else that is ours. */
     const ours = rows.filter((r) => r.k !== 'won');
     const theirs = rows.filter((r) => r.k === 'won');
     const d = myDeal();
@@ -9340,7 +9366,15 @@
       }
       return '<span class="s-pan-p">' +
         '<span class="s-pan-who">' +
+          /* ══ WHICH BOOK IT CAME OUT OF ══════════════════════════════
+             Over three engagements the overview held two rows called
+             "average quality" — one at 81%, one at 79%, adjacent, with
+             nothing saying that one is the support desk and the other the
+             quality tool. A reader meets that as a contradiction or a bug,
+             and either way stops trusting the column. Same for the two
+             called "time to first resolution". */
           '<b>' + esc(PROM_SAY[r.k] || r.say) +
+            (r.eng ? '<span class="s-pan-unit"> &middot; ' + esc(r.eng.name) + '</span>' : '') +
             '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
               (kept ? 'kept' : 'behind') + '</span></b>' +
           '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
@@ -9632,6 +9666,74 @@
      that our pipeline is modelled. These are the three a client would ask. */
   function buyerAsks(now, pipe, loss) {
     const out = [];
+    /* ══ AND ON THE OVERVIEW THEY WERE ABOUT ONE BOOK ═════════════════
+       Both of these read `byLine` and `pipe`, which are the outbound
+       aggregate — so an overview of three engagements offered "why is QA
+       and test automation not landing", a question about a product line on
+       a page where the reader is looking at three engagements and one of
+       them is called the Quality tool. It read as though it was about that
+       one, and it was not. */
+    if (bookKind() === 'all') {
+      const d = myDeal();
+      const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+        .filter((x) => x.got != null && !promKept(x.r, x.got));
+      const byEng = Object.create(null);
+      scored.forEach((x) => { const k = x.r.eng ? x.r.eng.name : 'it';
+        byEng[k] = (byEng[k] || 0) + 1; });
+      const worst = Object.keys(byEng).sort((a, b) => byEng[b] - byEng[a])[0];
+      if (worst) {
+        out.push({ label: 'Why is ' + worst + ' behind',
+          ask: worst + ' is behind on ' + plural(byEng[worst], 'promise') + '. Take them one ' +
+            'at a time and say what would have to change to catch each one.' });
+      }
+      out.push({ label: 'Which of the three is worth more',
+        ask: 'I pay for three engagements. Compare what each has produced against what it ' +
+          'costs, and say plainly which one I should put more into and which one I should not.' });
+      if (scored.length) {
+        out.push({ label: 'What can still be caught',
+          ask: plural(scored.length, 'promise') + ' are behind with the year nearly gone. ' +
+            'Which of them can still be met, and what would it take?' });
+      }
+      return out.slice(0, 3);
+    }
+    /* ══ AND A FLOOR HAS NO OPEN DEALS TO ASK ABOUT ═══════════════════
+       The three below read `byLine` and `pipe`, which are the outbound
+       aggregate — so the quality tool's page and the support desk's both
+       offered "which of the open ones will land", a question about a
+       pipeline neither of them has. Same fault as the overview's, one
+       branch further down, and it survived because the fix above returned
+       early instead of covering every book. */
+    if (!onPipeline()) {
+      const f = floorOf(myClient(), (myEng() || {}).k);
+      if (f) {
+        const ranked = floorRanked(f);
+        const worst = ranked[0];
+        if (worst) {
+          out.push({ label: 'Who needs an afternoon',
+            ask: worst.a.name + ' is averaging ' + commas(worst.avg) + '% across ' +
+              plural(worst.n, 'scored conversation') + '. Show me which goals they are losing ' +
+              'and what the coaching conversation should be.' });
+        }
+        const per = QA_GOALS.map((g) => {
+          const n = f.evals.filter((e) => e.goals.filter((x) => x.k === g.k && x.pass).length).length;
+          return { g: g, pc: f.evals.length ? Math.round((n / f.evals.length) * 100) : 0 };
+        }).sort((x, y) => x.pc - y.pc)[0];
+        if (per) {
+          out.push({ label: 'Which goal is costing us',
+            ask: per.g.title + ' passes on ' + commas(per.pc) + '% of conversations and is ' +
+              'worth ' + commas(per.g.weight) + ' points. What is going wrong on it?' });
+        }
+      }
+      const d0 = myDeal();
+      const bad = (d0.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+        .filter((x) => x.got != null && !promKept(x.r, x.got));
+      if (bad.length) {
+        out.push({ label: 'What can still be caught',
+          ask: plural(bad.length, 'promise') + ' on this one are behind with the year nearly ' +
+            'gone. Which can still be met, and what would it take?' });
+      }
+      return out.slice(0, 3);
+    }
     const lo = (now.byLine || []).filter((r) => r.meetings && !r.wins)[0];
     if (lo) {
       out.push({ label: 'Why is ' + sellSay(lo.k) + ' not landing',
@@ -9971,6 +10073,34 @@
               : 'Your book &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
+          /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
+             Thirteen days from the end of a year, the question a C-level
+             came to this page with is not how the quarter went — it is what
+             happens on the first of October and whether they still have a
+             say in it. Every other figure here is a reading; this is a fact
+             off the contract, which is why it is stated flat and not in
+             AiMY's voice.
+
+             It says the uncomfortable half too. A sixty-day notice on a
+             thirtieth-of-September end closed on the first of August, and a
+             report that shows a client five promises behind without telling
+             them the window to act on it has already gone is keeping the
+             most useful thing on the page to itself. */
+          (function () {
+            if (!isBuyer() || !myDeal() || !myDeal().notice) return '';
+            const pd = periodOf('deal');
+            const left = pd.end ? daysBetween(TODAY_ISO, pd.end) : null;
+            if (left == null) return '';
+            const shut = isoAdd(pd.end, -myDeal().notice);
+            const gone = TODAY_ISO > shut;
+            return '<p class="s-exec-note">Your year ends in ' +
+              esc(plural(Math.max(0, left), 'day')) + ', and notice is ' +
+              esc(plural(myDeal().notice, 'day')) + ' &mdash; ' +
+              (gone ? 'that window closed on ' + esc(sayDay(shut)) +
+                ', so it renews unless we agree otherwise.'
+                : 'you have until ' + esc(sayDay(shut)) + ' to say otherwise.') + '</p>' +
+            '';
+          }()) +
         '</div>' +
         periodChips() + engChips() +
       '</header>' +
@@ -10221,7 +10351,13 @@
       /* The bar above is one promise — the money one — drawn large because
          it is the one a fee is argued about. This is all of them, and the
          funnel underneath is the evidence for the half we answer for. */
-      (isBuyer() ? promiseLedger(now, pipe, p) : '') +
+      /* ══ THE THREE, THEN THE FOURTEEN ═══════════════════════════════
+         The overview put fourteen promise rows above the three-line summary
+         that frames them, so a reader met the detail before the thing that
+         says what the detail is of. On one book there is nothing to frame
+         and the ledger leads. */
+      (isBuyer() ? (bookKind() === 'all' ? engList(now, pipe) : '') +
+        promiseLedger(now, pipe, p) : '') +
 
       /* ══ THE WHOLE SECTION, OR THE OTHER ANSWER TO ITS QUESTION ═══════
          Salaries by role, AiMY's compute and the lead generators, with a
@@ -10229,7 +10365,7 @@
          figure in it is ours and the section exists to be argued with by
          whoever pays it. A client pays a fee, not a floor. */
       (!seesCost() ? (onPipeline() ? buyerWork(now)
-        : bookKind() === 'all' ? engList(now, pipe) : buyerFloor()) :
+        : bookKind() === 'all' ? '' : buyerFloor()) :
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">What you spent it on</h2>' +
