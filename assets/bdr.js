@@ -10098,7 +10098,13 @@
          has reached the director on the campaigns that sell his product. */
       const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
-          (isLine()
+          /* A client WAS handed them, so the first half is already true of
+             this desk — and owns no campaign, so the second half is not.
+             `bookWhose` is the phrase, said once and read here. */
+          (isBuyer()
+            ? ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> ' +
+              esc(bookWhose()) + '.'
+            : isLine()
             ? ' been handed over on <b>' + plural(camps.length, 'campaign') + '</b> selling ' +
               esc(sellSay(myLine())) + '.'
             : ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.')
@@ -19155,6 +19161,38 @@
             : '') + '.',
         cta: 'Show the book',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }) });
+    }
+    /* ══ THE ONE ROW A CLIENT'S BELL HAS AND NO OTHER DESK DOES ═════════
+       The promise furthest from its number. `bookAttain`'s margin is the
+       constraint on how it is read: the full aggregate runs a pass over
+       every person on every campaign, and this runs on every paint of every
+       surface. So this row answers only the promises the BOOK alone can
+       settle — what has been signed, and what is still live — and leaves the
+       ones that need the whole scope to the ledger, which is one press away
+       and pays for that pass once.
+
+       Which is also the right row to put in a bell. A meeting count slipping
+       is a thing to read; the money slipping is a thing to ring about. */
+    if (isBuyer() && myDeal()) {
+      const dp = periodOf('deal');
+      const att = bookAttain();
+      const cheap = { arr: att.booked, 'pipe.open': pipelineOf(dealBook()).open };
+      const behind = myDeal().promises
+        .filter((r) => cheap[r.read] != null && cheap[r.read] < r.to)
+        .map((r) => ({ r: r, got: cheap[r.read] }))
+        .sort((x, y) => (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)));
+      if (behind.length) {
+        const one = behind[0];
+        const said = PROM_SAY[one.r.k] || one.r.say;
+        const leftD = dp.end ? Math.max(0, daysBetween(TODAY_ISO, dp.end)) : null;
+        tasks.push({ id: 'promise-behind', sev: 'p2', type: 'Promises',
+          when: plural(behind.length, 'promise') + ' behind',
+          body: said.charAt(0).toUpperCase() + said.slice(1) + ' is at ' +
+            promFig(one.r, one.got) + ' of ' + promFig(one.r, one.r.to) +
+            (leftD == null ? '' : ', with ' + plural(leftD, 'day') + ' of the year left') + '.',
+          cta: 'Show the year',
+          ask: 'go:' + JSON.stringify({ on: 'money' }) });
+      }
     }
     const quiet = live.filter((c) => {
       if (stageOf(c) !== 'commercial') return false;
