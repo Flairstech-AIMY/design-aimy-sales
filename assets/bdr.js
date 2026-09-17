@@ -8559,6 +8559,168 @@
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
   }
 
+  /* ══ WHAT A PROMISE IS SCORED OFF ══════════════════════════════════════
+     `read` on a promise names a derivation; this is the one place that turns
+     the name into a number. One switch rather than three, so the ledger, the
+     paragraph above it and the bell cannot come to different answers about
+     whether the same promise was kept. Null means this build cannot evidence
+     it yet, and a promise that cannot be scored is not drawn — a row reading
+     "— of 30" is worse than no row. */
+  function promiseGot(r, now, pipe) {
+    const fn = Object.create(null);
+    (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
+    if (r.read === 'funnel.met') return fn.met || 0;
+    if (r.read === 'funnel.reachable') return fn.reachable || 0;
+    if (r.read === 'arr') return now.arr || 0;
+    if (r.read === 'pipe.open') return pipe ? pipe.open : 0;
+    if (r.read === 'lines.live') return (now.byLine || []).filter((x) => x.meetings > 0).length;
+    if (r.read === 'camps.regions') {
+      const seen = Object.create(null);
+      myCamps().forEach((k) => { if (k.region) seen[k.region] = 1; });
+      return Object.keys(seen).length;
+    }
+    return null;
+  }
+  const promFig = (r, n) => (r.unit === 'money' ? fmtMoney(n) : commas(n));
+  /* ══ A PROMISE NEEDS A NAME AS WELL AS A SENTENCE ══════════════════════
+     `say` is how a promise reads in a ledger, where it has a row to itself
+     and a figure beside it: "Two hundred thousand signed off the meetings we
+     booked." Dropped into a paragraph it becomes "furthest behind is two
+     hundred thousand signed off the meetings we booked, at €139k of €200k",
+     which says the number three times and parses as a garden path.
+
+     A map rather than a field on each row, because the short form is the
+     same wherever that KIND of promise appears and a per-client spelling of
+     it is a per-client way to drift. */
+  const PROM_SAY = { met: 'qualified meetings', found: 'people we could reach',
+    lines: 'both services in the market', reach: 'regions opened',
+    arr: 'signed revenue', live: 'deals live at the year end' };
+
+  /* ══ THE FUNNEL, AND IT IS WHERE THE LINE ALREADY FALLS ════════════════
+     `now.funnel` has been computed since the aggregate was written and has
+     rendered nowhere in this file. Counts only: `cost` on each row is our
+     spend over the stage, which is the one figure this desk must not carry,
+     and dropping it costs nothing because the counts were always the story.
+     Six numbers say what a year bought without asking anybody to divide.
+
+     AND THE HANDOVER SITS BETWEEN THE LAST TWO. Found, reachable, called,
+     answered, met — ours to deliver, and the deal says so in the sentence
+     between the blocks. Signed is theirs. The split is not a decoration laid
+     over the page; it is where this funnel already breaks.
+
+     Both blocks scale off the same top, so the bars stay comparable across
+     the break rather than restarting under the second heading.
+
+     The conversion column stays. It is a count over a count with its
+     denominator named in the header — not the ratio of money to money this
+     page has thrown out twice. */
+  const BUYER_FN = { sourced: 'Found', reachable: 'Reachable', contacted: 'Called',
+    replied: 'Answered', met: 'Met', won: 'Signed' };
+  function buyerFunnel(now) {
+    const rows = (now.funnel || []).filter((r) => r.n != null);
+    if (!rows.length) return '';
+    const top = rows[0].n || 1;
+    let prev = null;
+    const draw = (r) => {
+      const pct = Math.max(1, Math.round((r.n / top) * 100));
+      const conv = prev == null ? null : (prev ? Math.round((r.n / prev) * 100) : 0);
+      prev = r.n;
+      return '<div class="b-fn-row">' +
+        '<span class="b-fn-name">' + esc(BUYER_FN[r.k] || r.label) + '</span>' +
+        '<span class="b-fn-bar"><span class="b-fn-fill ' +
+          (r.k === 'won' ? 'tone-ok' : 'tone-neutral') +
+          '" style="width:' + pct + '%"></span></span>' +
+        '<span class="b-fn-n">' + commas(r.n) + '</span>' +
+        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
+      '</div>';
+    };
+    const head = '<div class="b-fn-head"><span class="b-fn-name">Got this far</span>' +
+      '<span></span><span class="b-fn-n">people</span>' +
+      '<span class="b-fn-conv">of the one above</span></div>';
+    const ours = rows.filter((r) => r.k !== 'won');
+    const theirs = rows.filter((r) => r.k === 'won');
+    const d = myDeal();
+    return '<div class="b-funnel">' + head + ours.map(draw).join('') + '</div>' +
+      (d && d.line ? '<p class="s-exec-note">' + esc(d.line) + '</p>' : '') +
+      (theirs.length ? '<div class="b-funnel">' + theirs.map(draw).join('') + '</div>' : '');
+  }
+
+  /* The slot "What you spent it on" holds on the desks that pay for the
+     work. It is the COST answer to where the money went; this is the same
+     question asked in the only unit a client is owed — what the year
+     produced — in the same section shell, so nothing new is drawn. */
+  function buyerWork(now) {
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">What we did with your year</h2>' +
+      '</div>' +
+      buyerFunnel(now) +
+    '</section>';
+  }
+
+  /* `execBrief`'s four clauses are money against target, late deals, the
+     best and worst campaign by what they cost, and the share of payroll
+     nobody logged. Two of the four are our cost and a third ranks their
+     campaigns by it. This says the three things their deal is about. */
+  function buyerBrief(now, a, pipe, p) {
+    const d = myDeal();
+    const scored = (d ? d.promises : [])
+      .map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      .filter((x) => x.got != null);
+    const kept = scored.filter((x) => x.got >= x.r.to);
+    const short = scored.filter((x) => x.got < x.r.to);
+    const left = p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end)) : null;
+    const fn = Object.create(null);
+    (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
+    const bits = [];
+    if (scored.length) {
+      bits.push('<b>' + commas(kept.length) + ' of ' + esc(plural(scored.length, 'promise')) +
+        '</b> kept' +
+        (left == null ? '' : ', with <b>' + esc(plural(left, 'day')) + '</b> of the year to run') +
+        '.');
+    }
+    /* ══ AND THE LINE GOES IN THE PARAGRAPH, NOT IN A FOOTNOTE ═══════════
+       What we answer for and what happens afterwards are one sentence with
+       a dash in it, because that is how the reader meets them: the meetings
+       arrived, and this is what became of them. Said as two sentences in
+       two places it becomes a claim and a disclaimer. */
+    bits.push('<b>' + commas(fn.met || 0) + '</b> ' +
+      ((fn.met === 1) ? 'meeting reached your team' : 'meetings reached your team') +
+      ' &mdash; <b>' + commas(pipe ? pipe.open : 0) + '</b> still live and <b>' +
+      commas(fn.won || 0) + '</b> signed.');
+    if (short.length) {
+      const worst = short.slice().sort((x, y) =>
+        (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)))[0];
+      bits.push('Furthest behind is <b>' + esc(PROM_SAY[worst.r.k] || worst.r.say) +
+        '</b>, at ' + esc(promFig(worst.r, worst.got)) + ' of ' +
+        esc(promFig(worst.r, worst.r.to)) + '.');
+    }
+    return bits.join(' ');
+  }
+
+  /* Every one of `execAsks` quotes a cost, a supplier, a payback or the fact
+     that our pipeline is modelled. These are the three a client would ask. */
+  function buyerAsks(now, pipe, loss) {
+    const out = [];
+    const lo = (now.byLine || []).filter((r) => r.meetings && !r.wins)[0];
+    if (lo) {
+      out.push({ label: 'Why is ' + sellSay(lo.k) + ' not landing',
+        ask: sellSay(lo.k) + ' has taken ' + plural(lo.meetings, 'meeting') +
+          ' and signed nothing. Is it reaching the wrong people, or losing the ones it reaches?' });
+    }
+    if (pipe && pipe.open) {
+      out.push({ label: 'Which of the open ones will land',
+        ask: 'I have ' + plural(pipe.open, 'deal') + ' still live. Which are most likely to ' +
+          'close before the year ends, and what is holding each of them up?' });
+    }
+    if (loss && loss.n) {
+      out.push({ label: 'What happened to the ones we lost',
+        ask: 'We lost ' + plural(loss.n, 'deal') + ' this year. Group them by why, and say ' +
+          'which of those reasons we could do something about.' });
+    }
+    return out.slice(0, 3);
+  }
+
   function moneyPage() {
     /* ══ A SURFACE WITH NO DOOR ON THIS DESK STILL HAS A URL ═══════════════
        Financials is reached from the rail, and the rail draws its doors only
@@ -8602,7 +8764,11 @@
     const heads = isLine() ? 0 : workingHeads();
     const now = bookMoney(scope, p, heads);
     const pipe = pipelineOf(deals);
-    const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
+    /* `deal` is not one of the chips, so this fell through to the first of
+       them and stamped "this quarter" on a page measuring a year. A client's
+       window is not a chip anybody picked; it is the term they signed. */
+    const when = isBuyer() ? 'this year'
+      : (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
 
     const a = attainment(now, pipe, p);
     const camps = campaignCosts(p);
@@ -8637,7 +8803,9 @@
       if (loss.age != null) {
         lossFacts.push('ran <b>' + esc(loss.age.toFixed(1)) + ' months</b> on average');
       }
-      if (loss.spend) lossFacts.push('cost <b>' + esc(fmtMoney(loss.spend)) + '</b> in all');
+      if (loss.spend && seesCost()) {
+        lossFacts.push('cost <b>' + esc(fmtMoney(loss.spend)) + '</b> in all');
+      }
       if (lossFacts.length) lossBits.push('They ' + joinAnd(lossFacts) + '.');
       if (loss.back) {
         lossBits.push('<b>' + loss.back + '</b> ' + verbFor(loss.back, 'is') +
@@ -8846,10 +9014,18 @@
              what it counts is a page whose every figure is wrong by an
              unknown amount. So it stays, under the heading, as a sentence
              rather than as capitals. */
-          '<h1 class="s-exec-h">Financials</h1>' +
-          '<p class="s-exec-scope">Your book &middot; ' +
-            esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
-            esc(plural(deals.length, 'deal')) + '</p>' +
+          '<h1 class="s-exec-h">' + (isBuyer() ? 'Your year with AiMY' : 'Financials') + '</h1>' +
+          /* The scope line is the page saying what it counted, and on this
+             desk the window is not a chip anybody chose — it is the term
+             they signed, so it is named here instead. */
+          '<p class="s-exec-scope">' +
+            (isBuyer() && myDeal()
+              ? esc(CLIENT[myClient()].name) + ' &middot; ' +
+                esc(plural(myCamps().length, 'campaign')) + ' &middot; to ' +
+                esc(sayDay(periodOf('deal').end))
+              : 'Your book &middot; ' +
+                esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
+                esc(plural(deals.length, 'deal'))) + '</p>' +
         '</div>' +
         periodChips() +
       '</header>' +
@@ -8857,11 +9033,13 @@
       '<section class="slv" aria-label="What AiMY makes of it">' +
         '<div class="slv-head">' +
           '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<h2 class="slv-title">How the quarter is going</h2>' +
+          '<h2 class="slv-title">' +
+            (isBuyer() ? 'How the year is going' : 'How the quarter is going') + '</h2>' +
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
-          '<p class="slv-line">' + execBrief(now, a, camps, un, deals) + '</p>' +
+          '<p class="slv-line">' + (isBuyer() ? buyerBrief(now, a, pipe, p)
+            : execBrief(now, a, camps, un, deals)) + '</p>' +
         '</div>' +
       '</section>' +
 
@@ -9061,15 +9239,29 @@
            written and has never rendered. €42k a deal against an average deal
            of €55k is the finding, and it carries the count of deals signed
            this quarter — which appears nowhere else on this page. */
-        attFig('Spent', fmtMoney(now.spend.total),
+        /* ══ AND ON A CLIENT'S DESK THIS TILE IS THE ONLY MONEY OF OURS ══
+           `spend.total` is what the work cost US, and `cac` divides it by
+           their deals. What they are owed here is the one number they
+           actually parted with: the fee, for the year, undivided. Three
+           tiles left of it are pure attainment and carry no cost at all. */
+        (isBuyer()
+          ? attFig('Your fee', myDeal() ? fmtMoney(myDeal().fee) : '—',
+            myDeal() ? 'for the year to ' + sayDay(periodOf('deal').end) : '')
+          : attFig('Spent', fmtMoney(now.spend.total),
           !now.spend.total ? 'nothing spent in this window'
             : now.cac == null ? 'nothing signed against it yet'
               : now.wins.length === 1
                 ? fmtMoney(now.cac) + ' for the one deal signed'
                 : fmtMoney(now.cac) + ' for each of the ' +
-                  plural(now.wins.length, 'deal') + ' signed') +
+                  plural(now.wins.length, 'deal') + ' signed')) +
       '</div>' +
 
+      /* ══ THE WHOLE SECTION, OR THE OTHER ANSWER TO ITS QUESTION ═══════
+         Salaries by role, AiMY's compute and the lead generators, with a
+         line underneath about how much of the payroll nobody logged. Every
+         figure in it is ours and the section exists to be argued with by
+         whoever pays it. A client pays a fee, not a floor. */
+      (!seesCost() ? buyerWork(now) :
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">What you spent it on</h2>' +
@@ -9136,7 +9328,7 @@
             '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody logged, ' +
             'so you cannot tell what it bought.</span>' +
         '</div>') +
-      '</section>' +
+      '</section>') +
 
       /* ══ ONE SECTION, TWO CUTS ════════════════════════════════
          THE HEADING FOLLOWS THE TAB, and so does the ask beside it. They are
@@ -9151,15 +9343,23 @@
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">' +
-            (cutBy() === 'svc' ? 'What sells and what does not' : 'Which campaigns paid off') +
+            /* "Paid off" is a verdict on cost against return, and the
+               cost column is not on this desk — so on a client's the
+               heading asks the question the panels below actually answer. */
+            (cutBy() === 'svc' ? 'What sells and what does not'
+              : isBuyer() ? 'Which campaigns worked' : 'Which campaigns paid off') +
           '</h2>' +
           (cutBy() === 'svc'
             ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
               'the ones they reach.')
-            : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
-              'against what they have returned, and tell me which one I should stop and what I ' +
-              'would lose by stopping it.')) +
+            : isBuyer()
+              ? secAsk('Which campaign is working', 'Rank my campaigns by what they have ' +
+                'produced — people reached, meetings taken, deals signed — and tell me which ' +
+                'one is worth more of the year and which is not landing.')
+              : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
+                'against what they have returned, and tell me which one I should stop and what I ' +
+                'would lose by stopping it.')) +
         '</div>' +
         /* ══ THE SWITCHER GETS ITS OWN ROW ══════════════════════════
            It sat between the heading and the ask on one baseline row, and
@@ -9248,7 +9448,7 @@
                     esc(c.arr ? fmtMoney(c.arr) : 'Nothing') + '</span>' +
                   '<span class="s-pan-unit">gained</span>' +
                 '</span>' +
-                (c.total ? '<span class="s-pan-fig">' +
+                (c.total && seesCost() ? '<span class="s-pan-fig">' +
                   '<span class="s-pan-spent">' + esc(fmtMoney(c.total)) + '</span>' +
                   '<span class="s-pan-unit">cost</span>' +
                 '</span>' : '') +
@@ -9275,7 +9475,13 @@
               (c.open ? '<span><b>' + c.open + '</b> potential, ' +
                 esc(fmtMoney(c.pipeline)) + ' if they land</span>' : '') +
             '</div>' +
-            (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
+            /* Names, hours and an hourly rate per person, then AiMY's
+               compute and the lead generators. The single worst thing this
+               page could put in front of somebody being invoiced, and the
+               four facts above it already say what the campaign produced —
+               so nothing stands in for it. */
+            (!seesCost() ? '' :
+             c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
                  Five names is a readable list and twenty is a wall. This
                  panel has to survive a campaign with a whole desk on it, so
@@ -9423,7 +9629,7 @@
                       esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
                     '<span class="s-pan-unit">gained</span>' +
                   '</span>' +
-                  (soldCost ? '<span class="s-pan-fig">' +
+                  (soldCost && seesCost() ? '<span class="s-pan-fig">' +
                     '<span class="s-pan-spent">' + esc(fmtMoney(soldCost)) + '</span>' +
                     '<span class="s-pan-unit">cost</span>' +
                   '</span>' : '') +
@@ -9582,7 +9788,12 @@
            column heading this wanted to be, in the same treatment, once. */
         '<div class="s-odds-top">' +
           '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
-          (loss.rows.length ? '<span class="s-pan-unit">spent</span>' : '') +
+          /* The block stays whole — where deals die is the one thing on
+             this page a client can act on, and a report that only ever
+             shows what worked is not believed. What changes is the column:
+             ours is what the losses cost us, theirs is how many. */
+          (loss.rows.length
+            ? '<span class="s-pan-unit">' + (seesCost() ? 'spent' : 'deals') + '</span>' : '') +
         '</div>' +
         /* ══ THE COUNT BELONGS TO THE REASON, NOT TO A COLUMN ═════════════
            A bold "2 deals" in a right-aligned figure slot made a count look
@@ -9604,10 +9815,14 @@
                  second rank — the name's colour and weight, one step down in
                  size — which puts the count above the gloss and below the
                  reason without inventing a treatment for it. */
-              '<span class="s-pan-meta"><b>' + esc(plural(r.n, 'deal')) + '</b> &middot; ' +
+              '<span class="s-pan-meta">' +
+                (seesCost() ? '<b>' + esc(plural(r.n, 'deal')) + '</b> &middot; ' : '') +
                 esc(r.why ? r.why.say : 'the record does not say') + '</span>' +
             '</span>' +
-            '<span class="s-pan-cost">' + esc(fmtMoney(r.spend)) + '</span>' +
+            /* Said once. The count moves into the figure slot when the money
+               leaves it, so it is not read twice on one row. */
+            '<span class="s-pan-cost">' +
+              esc(seesCost() ? fmtMoney(r.spend) : commas(r.n)) + '</span>' +
           '</span>').join('') +
         '</div>' +
         '<p class="s-odds-note">' + lossNote + '</p>' +
@@ -9615,7 +9830,7 @@
           : '<p class="s-odds-note">Nothing has been lost.</p>') +
       '</div>' +
 
-      askRow(execAsks(now, pipe)) +
+      askRow(isBuyer() ? buyerAsks(now, pipe, loss) : execAsks(now, pipe)) +
       '</section>' +
     '</div>';
   }
