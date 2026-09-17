@@ -319,13 +319,35 @@ html {
    not a new idea here: .b-missed-n already puts --body-bg on a vivid
    ground for exactly this reason. Theme-aware in both directions — near-
    black on #ff5268 in dark, near-white on #b42318 in light. */
+/* ══ THE BADGE GROUND, SO THE NUMBER CAN BE BRIGHT ═════════════════════
+   Both count badges took --err for the ground and --body-bg for the ink, a
+   pair that flips with the theme: near-white on deep red in light, near-
+   black on hot pink in dark. It passes — 6.65:1 — and in dark mode it puts
+   a near-black number on a pink pill, which is not what a count should
+   look like.
+
+   White cannot simply be swapped in. On --err at #ff7282 it measures
+   2.64:1, and aimy-ds.css already records that exact number beside
+   .float-badge. The ground has to come down for the ink to come up, and it
+   cannot come down far, or the pill stops being visible against the page.
+   Two bounds, and there is a window between them:
+
+     white ink on the ground  >= 4.5      needs luminance <= 0.183
+     ground against the page  >= 3.0      needs luminance >= 0.122
+
+   #d92d20 sits inside it at 0.167 — white at 4.83:1, pill against the dark
+   page at 3.79:1. It is also exactly what --err already is in the light
+   theme, so one value serves both and nothing forks. */
+:root { --badge-ground: #d92d20; }
+
 .float-badge {
   font-weight: var(--fw-extrabold);
   font-size: var(--fs-2xs);
   /* 12px of type in a 16px circle needs its leading taken away: the
      inherited 18px line box overflowed the badge and clipped the digit. */
   line-height: var(--lh-none);
-  color: var(--body-bg);
+  background: var(--badge-ground);
+  color: #ffffff;
 }
 
 .aimy-toast-title, .aimy-toast-undo, .avatar, .btn, .cite, .entry-action,
@@ -4298,10 +4320,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
    that have to agree is how they stop agreeing. --sidebar-width is not this
    token: that is the design system's, overridden above and read by nothing. */
 :root { --rail-w: 320px; }
+/* ══ IT HAD TO STOP SCROLLING ══════════════════════════════
+   Measured on a 698px window: the rail wanted 703px inside 661px of room,
+   so three widgets and a footer put a scrollbar on a column that should
+   just sit there. 24px top and bottom is canvas padding on a 241px column;
+   16 is enough and gives back 16 of the 42. The rest comes from the
+   conclusion, below. */
 .app-rail {
   width: var(--rail-w); flex-shrink: 0;
   display: flex; flex-direction: column;
-  padding: 24px 16px;
+  padding: 16px;
   overflow-y: auto;
   /* ══ THE GUTTER IS ALWAYS THERE, SO NOTHING MOVES WHEN THE SCROLLBAR IS ══
 
@@ -4347,8 +4375,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .rail-state.p3 { color: var(--ok); }
 .rail-card { padding: 16px; }
 .rail-card:hover { transform: none; box-shadow: none; border-color: var(--card-border); }
+/* THE MEASURE IS THE REASON, NOT THE SCROLLBAR. 16px is the body floor and
+   this file does not leave it lightly — but the floor comes with a named
+   exception for a narrow measure, and this column is 241px. At --fs-base
+   that is about 28 characters a line, well under half of comfortable, and
+   the sentence broke to three lines. At --fs-xs it is about 32 and breaks
+   to two, which reads better AND returns the 27px that stopped the rail
+   scrolling. A side rail is denser than the canvas beside it; that is what
+   a side rail is for. */
 .rail-conclusion {
-  font-size: var(--fs-base); font-weight: var(--fw-medium);
+  font-size: var(--fs-xs); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d100); margin: 0 0 12px;
 }
 .rail-conclusion b { font-weight: var(--fw-bold); color: var(--d50); }
@@ -6901,8 +6937,14 @@ body.is-calling .overlay-chats { display: none; }
 .s-start:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .s-start-label { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
 /* The reason is what stops this being a menu, so it is not decoration and it
-   does not truncate — it wraps. */
-.s-start-why { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
+   does not truncate — it wraps.
+
+   IT WAS ALSO BIGGER THAN THE THING IT EXPLAINS. --fs-base is 16 and the
+   label above it is --fs-xs at 14, so the card read upside down: the answer
+   louder than the question. Levelling it at 14 leaves weight and ink to
+   carry the rank, which is the two axes the type system asks for — 600
+   against 400, --d50 against --ink-muted. */
+.s-start-why { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
 
 .s-brief { display: flex; flex-direction: column; gap: 16px; }
 /* The work-state chip leads, and it leads on ITS OWN LINE. A dot encoded

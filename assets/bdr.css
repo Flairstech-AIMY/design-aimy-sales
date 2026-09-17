@@ -5798,7 +5798,10 @@
 .b-missed-n {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 17px; height: 17px; padding: 0 5px;
-  border-radius: var(--r-pill); background: var(--err); color: var(--body-bg);
+  /* --badge-ground, not --err: --err is #ff7282 on this theme and white on
+     it is 2.64:1. The ground has to come down for the ink to come up, and
+     the reasoning and the two bounds are at --badge-ground in sales.css. */
+  border-radius: var(--r-pill); background: var(--badge-ground); color: #ffffff;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; line-height: 1;
 }
