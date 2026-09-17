@@ -2794,7 +2794,9 @@
       if (c.checkpoint === 'handed-over') {
         const m = mgrOf(c);
         (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
-        const ln = lineOf(dealCamp(c));
+        /* `firstCamp`, not `dealCamp`: this index is global and must
+           read the same for every desk. */
+        const ln = lineOf(firstCamp(c));
         if (ln) (DB.byLine[ln] || (DB.byLine[ln] = [])).push(c.id);
         /* Deduped as it goes: a person on two of one client's campaigns is
            one lead on their book, and pushing twice would have every figure
@@ -15177,7 +15179,29 @@
   /* The campaign the deal belongs to, read the same way the index and the
      seed's own hand-over note read it, rather than through `campFor`, which
      answers for whoever is looking. */
-  const dealCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
+  /* ══ WHICH CAMPAIGN A LEAD IS READ THROUGH ═════════════════════════════
+     `firstCamp` is the raw answer and the one an INDEX must use: `byLine` is
+     global, every desk reads it, and a key that changed with whoever was
+     looking would have the stakeholder's book move when somebody switched
+     desks in the same session.
+
+     `dealCamp` is the reading, and for a buyer it is not the first campaign.
+     A person is on every campaign that reached them; thirty-three in this
+     corpus are on two different clients' at once, and three of Kestrel's ten
+     handed-over deals carry somebody else's campaign first. Left on
+     `camps[0]` those three price off norvant's product, file under a line
+     Kestrel does not buy, and put norvant's crew on the lead's team — three
+     leaks from one wrong word. The order in `camps` is the order the seed
+     dealt them in and was never a claim about whose lead it is. */
+  const firstCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
+  const dealCamp = (c) => {
+    if (!c || !c.camps.length) return null;
+    if (isBuyer()) {
+      const own = c.camps.filter((id) => onClient(DB.byCamp[id]))[0];
+      if (own) return DB.byCamp[own];
+    }
+    return DB.byCamp[c.camps[0]];
+  };
 
   /* ══ A DEAL IS NOT ALWAYS FOR WHAT THE CAMPAIGN OPENED WITH ════════════
      The product read the campaign's first `sells` and called that the deal's
@@ -24224,6 +24248,12 @@
     },
     reset: reset,
     go: go,
+    /* The money aggregate for whichever desk is loaded — the same call the
+       report makes, with the same heads rule — so a figure on the page can
+       be checked against the derivation that produced it rather than read
+       back off the screen. */
+    book: (k) => bookMoney(bookScope(), periodOf(k || 'q'),
+      (isLine() || isBuyer()) ? 0 : workingHeads()),
     queue: queue,
     /* The mounted windowed lists. Exposed because the scroll handler is
        rAF-throttled and a hidden tab never runs a frame — so a check that
