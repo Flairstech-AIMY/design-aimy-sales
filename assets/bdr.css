@@ -3999,10 +3999,16 @@
   .b-skel { transition: none; }
 }
 
-/* OPTICAL. The clock centred on the sentence when the sentence was the first
-   line; the chip is the first line now, and the mark sat three pixels below
-   its middle. Measured, not guessed. */
-.b-nm-mark { margin-top: -2px; }
+/* OPTICAL, AND THE OPTICS CHANGED UNDER IT. This pulled the mark up 2px
+   because the chip was the first line and the mark sat three pixels below
+   its middle. The mark lives INSIDE the chip now, so the tile only ever
+   renders when there is no chip at all — and then the sentence is the first
+   line again, which is the case this correction was written to undo.
+
+   Measured with it still on: the tile centred 3.28px ABOVE the first line.
+   Without it the base margin of 1px lands within 0.3px of that line’s middle,
+   which is where an icon labelling a paragraph belongs — on the first line,
+   not floating between two of them. */
 
 /* The two lines in the call panel set in chrome-grey — "Not recording" and
    the THEM/YOU label over each line — are read, not decoration, and read
