@@ -734,12 +734,22 @@ button {
 
 }
 :root[data-theme="light"] {
-  /* The three status inks have no light entry any more. They alias --ok /
-     --warn / --err, and those are re-derived against white upstream —
-     including the exact check this comment was written for: a tag sits on a
-     tint of its own hue, which composites to a darker ground than the card,
-     so the ink was re-measured there and not just on the card. An override
-     here would only pin them back to the old family. */
+  /* ══ AND THE THREE INKS COME BACK, BECAUSE THE HUES WENT BOLD ═════
+     They aliased --ok / --warn / --err, and the note that stood here said an
+     override would only pin them to the old family — true while those three
+     were re-derived against white upstream, and false the moment light went
+     back to the bold set. The alias quietly took `--ok-text` from 7.04:1 to
+     3.99 on a white card, which is the one number this token exists to hold.
+
+     So the split is real again, and it is the split the pair was named for:
+     the HUE is what a tag, a dot, a border and a tinted ground wear, and it
+     is bold; the INK is what a sentence wears, and it is deep enough to be
+     read. These are the three values the hues themselves carried until
+     today — picked against white and re-measured inside a nested tint, since
+     a tag sits on a wash of its own hue and composites darker than the card. */
+  --ok-text:     #066640;
+  --warn-text:   #6b4500;
+  --err-text:    #a81029;
   --accent-text: #6d3bd4;   /* 6.51 / 6.01 */
 }
 
