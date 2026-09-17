@@ -157,10 +157,25 @@ html {
      while its SMALLEST text carries its TIGHTEST leading (`.finding-sub`,
      10px, at 1.4). That is backwards in both directions at once: small text
      needs proportionally more leading, not less, because the eye has less
-     glyph to track along. */
+     glyph to track along.
+
+     THE SECOND CORRECTION IS THE GROUND. Butterick's range is print, which
+     is dark type on white. This product is the inverse, and light type on a
+     dark ground blooms — the glyphs spread slightly into the space around
+     them, so lines that measure the same sit visually closer. The standing
+     advice for that is to pay it back on three axes: a little more leading,
+     a little more tracking, and a step more weight where the face needs it.
+
+     Only leading is available here. Tracking on lowercase body is wrong at
+     reading sizes whatever the ground, and the weight axis is already at
+     its floor — body is 400 and 400 is the minimum below 18px. So body
+     takes 1.5, the bottom of the 1.5–1.6 band rather than 1.45, which was
+     the TOP of a range computed for the opposite polarity. The meta step
+     keeps its lead over body, because the first correction above still
+     holds: smaller text needs proportionally more. */
   --lh-tight:   1.25;  /* headings and the anchor numbers */
-  --lh-base:    1.45;  /* body */
-  --lh-relaxed: 1.5;   /* the meta and label sizes */
+  --lh-base:    1.5;   /* body — the 1.5–1.6 band, dark ground paid for */
+  --lh-relaxed: 1.6;   /* the meta and label sizes, which need more still */
 
   /* Tracking. -0.02em at 13px is -0.26px — imperceptible, and negative
      tracking on small lowercase is wrong even when it can be seen. It is
@@ -214,9 +229,17 @@ html {
   --ty-masthead: 46px;  /* NEW — the name of the campaign. THE CEILING.     */
   --ty-lead:     34px;  /* NEW — the ONE figure a page is about             */
   --ty-display:  24px;  /* NEW — a figure a section is about                */
-  --ty-title:    20px;  /* = --fs-2xl — a figure inside a row, a thing named */
+  --ty-title:    20px;  /* = --fs-xl — a figure inside a row, a thing named  */
   --ty-deck:     18px;  /* NEW — the sentence under a kicker. The headline. */
-  --ty-heading:  16px;  /* = --fs-lg  — a block heading inside a surface    */
+  /* WAS 16px, WHICH IS THE BODY STEP. Its own comment says `= --fs-lg` and
+     --fs-lg is 18px; the scale above says "18 heading" in as many words. The
+     comment and the doctrine agreed with each other and the value agreed
+     with neither, so ten block headings were set at exactly the size of the
+     prose underneath them, carrying the whole distinction on weight. A
+     heading may share a size with its body only if something else keeps
+     them apart, and here nothing else did: same family, same ink, same
+     step. It takes the step the scale always said it had. */
+  --ty-heading:  18px;  /* = --fs-lg  — a block heading inside a surface    */
   --ty-body:     16px;  /* = --fs-base — prose, anything you read           */
   --ty-meta:     14px;  /* = --fs-xs  — a label, the line under a name      */
   --ty-micro:    12px;  /* = --fs-2xs — minimal components. Caps and tracked, never a sentence */
@@ -275,7 +298,12 @@ html {
 body {
   font-size: var(--fs-base);
   line-height: var(--lh-base);
-  font-feature-settings: "kern" 1, "liga" 1;
+  /* The properties, not the raw tags they map to: these keep working when a
+     non-variable fallback renders, and font-feature-settings is a single
+     property that a later declaration replaces wholesale rather than adds
+     to. Reserve the raw form for axes and features with no property. */
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
   text-rendering: optimizeLegibility;
 }
 
