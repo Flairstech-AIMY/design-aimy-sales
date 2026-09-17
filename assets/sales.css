@@ -348,6 +348,18 @@ html {
    there, like every other divergence from the library. */
 .overlay-badge { font-size: var(--fs-2xs); color: var(--ink-muted); }
 
+/* TWELVE IS THE TAG SIZE, NOT JUST THE METADATA SIZE. The scale calls 12 the
+   minimal step and describes it as a tag, a work state, a timestamp. The tags
+   themselves were split: .tag took 12 and .filter-chip and .chip took 14, so a
+   row of filter pills sat a step above the state pill inside the card it
+   filters. They are the same kind of object and they take the same step.
+
+   .overlay-sugg-chip is deliberately NOT here. It carries a whole question
+   somebody is meant to read and press — a control with sentence-length text,
+   not a tag — so it keeps the meta step. The counts inside these chips set no
+   size of their own and come down with them. */
+.filter-chip, .chip { font-size: var(--fs-2xs); }
+
 .float-badge {
   font-weight: var(--fw-bold);
   font-size: var(--fs-2xs);
