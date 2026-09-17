@@ -579,27 +579,20 @@
       deal: { kind: 'software', fee: 96000, since: '2025-11-01', term: 12,
         seats: 800,
         line: 'We score every conversation and say why. What you do about a bad one is yours.',
-        team: {
-          deployedAt: 2,
-          /* Twelve weeks, the last of them this one. `w[0]` is the floor as
-             we found it and agrees with `was` on the promise it evidences —
-             if the two ever disagree the promise is the contract and this is
-             the reading that has drifted. */
-          metrics: [
-            { k: 'cover',   label: 'Conversations reviewed', unit: 'pc',
-              w: [2, 2, 2, 31, 58, 76, 89, 96, 99, 100, 100, 100] },
-            { k: 'latency', label: 'Days to first look',     unit: 'days',
-              w: [11, 11, 11, 8, 6, 4, 3, 2, 2, 2, 2, 2] },
-            { k: 'quality', label: 'Average quality score',  unit: 'pc',
-              w: [64, 63, 64, 66, 69, 71, 73, 75, 77, 78, 79, 80] },
-            /* Minutes, not an index. "69" against a baseline of 100 is a
-               number nobody has ever written a commitment in, and the
-               promise says thirty per cent faster — which is what forty-
-               eight minutes to thirty-three actually is. */
-            { k: 'resolve', label: 'Time to first resolution', unit: 'mins',
-              w: [48, 48, 48, 47, 45, 43, 41, 38, 36, 34, 33, 33] },
-          ],
-        },
+        /* ══ HOW BIG THE FLOOR IS, NOT WHAT IT DID ═══════════════════════
+           The weekly numbers were written out here for one commit and it was
+           the wrong place for them: a figure a reader doubts has to be
+           checkable against the records it came from, and a hand-written
+           series has none. So this says the SHAPE of the floor — how many
+           weeks, how many people, the week the tool went live — and
+           `floorOf` produces the conversations, the reviews and the scored
+           goals that the four metrics are then read off.
+
+           `was` on each promise stays where it is. That is the contract's
+           word for where the floor stood before us, set at signing; this is
+           a corpus built to be consistent with it, and if the two ever drift
+           the contract is right and the corpus has a bug. */
+        team: { deployedAt: 2, weeks: 12, agents: 24 },
         promises: [
           { k: 'cover', read: 'team.cover', unit: 'pc', was: 2, to: 100, ours: true,
             say: 'Every conversation scored, not two in every hundred' },
@@ -3297,7 +3290,10 @@
      campaigns that spent it or the services that earned it. In the URL for
      the reason every other narrowing on this build is: a cut somebody is
      reading is a cut somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by'];
+  /* `ag` and `ev` are the floor's two records — a person on it and one
+     scored conversation. Scalars like every other record key here, so a
+     drill is a link somebody can send. */
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'ag', 'ev'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -3354,7 +3350,18 @@
        So the report IS the desk. It is not a tab among tabs because there
        is nothing to switch between, and `on` resolving to anything else is
        the same silent lie `as` refuses at the top of this function. */
-    if (isBuyer() && !onPipeline()) S.on = 'money';
+    /* The floor's three surfaces are the only other place this desk goes,
+       and they belong to it alone — a pipeline client has no floor, and
+       nobody else has this client's. */
+    if (!isBuyer() || onPipeline()) {
+      S.ag = ''; S.ev = '';
+      /* And the surface itself, or `paint` reaches `floorPage` on a desk
+         with no floor and draws an empty page — which is the dead branch
+         this file refuses two guards up, arriving by a key instead of a
+         desk. */
+      if (S.on === 'floor') S.on = '';
+    }
+    if (isBuyer() && !onPipeline() && !S.ag && !S.ev && S.on !== 'floor') S.on = 'money';
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -3673,7 +3680,10 @@
     byId('chipBar').innerHTML = '';
     paintWho();
     paintMicIcons();
-    byId('wbStage').innerHTML = S.con ? contactPage()
+    byId('wbStage').innerHTML = S.ev ? evalPage()
+      : S.ag ? agentPage()
+      : S.on === 'floor' ? floorPage()
+      : S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
       /* A LIST URL IS A LIST, WHICHEVER DOOR IT CAME THROUGH. Save and the old
@@ -8693,6 +8703,348 @@
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
   }
 
+  /* ══ WHAT IS SCORED ON EVERY CONVERSATION ══════════════════════════════
+     Seven goals, weighted to a hundred, lifted from AiMY QA's own audit
+     record — code, title, the question an evaluator answers, and what it is
+     worth. They are judgements and they sit with the other lists of
+     judgements in this file rather than being derived from anything.
+
+     `bias` is what makes a floor a floor rather than noise: follow-up
+     confirmation and survey promotion are the two that fail, which is the
+     same pair AiMY QA's goal heatmap marks as the ones needing coaching.
+     Without it every goal fails at the same rate and there is nothing on the
+     page worth a manager's afternoon. */
+  const QA_GOALS = [
+    { k: 'follow',  code: 'CR-041', weight: 18, bias: -0.20, short: 'Follow-up',
+      title: 'Follow-up confirmation',
+      q: 'Did the agent set clear next steps and a time to come back?' },
+    { k: 'survey',  code: 'CR-043', weight: 16, bias: -0.24, short: 'Survey',
+      title: 'Survey promotion',
+      q: 'Was the post-interaction survey offered before the end?' },
+    { k: 'empathy', code: 'CR-038', weight: 16, bias: -0.04, short: 'Empathy',
+      title: 'Empathy and acknowledgment',
+      q: 'Did the agent acknowledge how the customer felt about it?' },
+    { k: 'ident',   code: 'CR-044', weight: 14, bias: 0.16, short: 'Identity',
+      title: 'Identity verification',
+      q: 'Was the customer verified before any account detail was shared?' },
+    { k: 'tags',    code: 'CR-042', weight: 14, bias: 0.13, short: 'Category',
+      title: 'Category and tags',
+      q: 'Was the interaction logged under the right category?' },
+    { k: 'own',     code: 'CR-046', weight: 12, bias: 0.02, short: 'Ownership',
+      title: 'Resolution ownership',
+      q: 'Did the agent take the next operational step themselves?' },
+    { k: 'clear',   code: 'CR-033', weight: 10, bias: 0.09, short: 'Clarity',
+      title: 'Clear and accurate language',
+      q: 'Was the explanation short, accurate and possible to act on?' },
+  ];
+  const QA_GOAL = Object.create(null);
+  QA_GOALS.forEach((g) => (QA_GOAL[g.k] = g));
+  /* ══ AND WHY IT WENT THE WAY IT DID ════════════════════════════════════
+     A verdict with no reason is a score somebody is asked to take on faith,
+     and the whole argument for scoring every conversation rather than a
+     sample is that each one can be gone back to. One sentence per goal per
+     outcome: the same duty `from` carries on every AiMY sentence in this
+     build, and the reason AiMY QA's own audit record carries `reason` beside
+     every verdict. */
+  const QA_WHY = {
+    follow: { ok: 'Next steps and a time to come back were both named before the end.',
+      no: 'It ended without a named next step or a time, after the customer asked what happens now.' },
+    survey: { ok: 'The survey was offered once, at the end, without pressing it.',
+      no: 'No survey was offered before the conversation closed.' },
+    empathy: { ok: 'The agent said back what the customer was annoyed about before going to fix it.',
+      no: 'The agent went straight to the fix without acknowledging what it had cost the customer.' },
+    ident: { ok: 'Identity was confirmed before any account detail was read out.',
+      no: 'Account detail was given before the customer had been confirmed.' },
+    tags: { ok: 'Logged under the category the conversation was actually about.',
+      no: 'Logged under a category that does not match what was discussed.' },
+    own: { ok: 'The agent took the next step themselves rather than handing it back.',
+      no: 'The customer was left holding the next step.' },
+    clear: { ok: 'The explanation was short and possible to act on.',
+      no: 'The explanation ran long and left the customer restating the question.' },
+  };
+
+  const FLOOR_SUBJ = ['Refund still not received', 'Locked out after a domain change',
+    'Charged twice on renewal', 'Delivery window missed', 'Account merge went wrong',
+    'Password reset loop', 'Invoice does not match the order', 'Cancelled and still billed',
+    'Broken since the update', 'Escalated off a survey', 'Wrong item shipped',
+    'Cannot add a second user'];
+  const FLOOR_CHAN = ['call', 'email', 'chat'];
+
+  /* ══ A FLOOR, ON A STREAM OF ITS OWN ═══════════════════════════════════
+     Everything else in this corpus comes off one RNG walked once in order,
+     and the campaign loop's margin is the standing warning about it: a draw
+     added in the middle re-deals everything after it. This is a second
+     corpus for one desk, so it takes its own stream keyed off the client and
+     cannot move a campaign, a lead, or a figure on anybody else's desk.
+
+     Built on demand and cached, like the customer book, because four desks
+     out of five never ask for it — and a client who bought reach has no
+     floor to ask about.
+
+     THE RAMP IS THE WHOLE POINT. Nothing moves until `deployedAt`, because
+     for those weeks the tool was not there; after it, each measure walks
+     towards the number the contract promised, fastest at the start. That is
+     the shape the promise is making a claim about, and generating it any
+     other way would be drawing the conclusion first. */
+  let FLOOR_CACHE = Object.create(null);
+  function floorOf(key) {
+    if (FLOOR_CACHE[key]) return FLOOR_CACHE[key];
+    const d = dealOf(key);
+    const t = d && d.team;
+    if (!t) return null;
+    const r = rng(Math.abs(hash('floor:' + key)) || 1);
+    const weeks = t.weeks || 12;
+    const dep = t.deployedAt || 0;
+    const to = Object.create(null);
+    (d.promises || []).forEach((p) => {
+      if (p.read.indexOf('team.') === 0) to[p.read.slice(5)] = p;
+    });
+    const at = (k, frac) => {
+      const p = to[k];
+      if (!p) return 0;
+      return p.was + (p.to - p.was) * frac;
+    };
+    /* Fast then settling: most of a deployment's effect lands in the first
+       weeks after it, and a straight line would say the opposite. */
+    const ease = (x) => 1 - Math.pow(1 - x, 2);
+    const span = Math.max(1, weeks - 1 - dep);
+
+    const agents = [];
+    for (let i = 0; i < (t.agents || 24); i++) {
+      agents.push({ id: 'g' + i, name: pick(r, FIRST) + ' ' + pick(r, LAST),
+        /* How much better or worse than the floor this person is, held
+           steady across the year — a floor where everybody is average has
+           no one to coach and nothing to read. */
+        edge: (r() - 0.5) * 0.34, months: 3 + Math.floor(r() * 60) });
+    }
+    agents.forEach((a) => (a.initials = a.name.split(' ').map((x) => x[0]).join('')));
+
+    const evals = [];
+    const byWeek = [];
+    for (let w = 0; w < weeks; w++) {
+      const frac = w < dep ? 0 : ease(Math.min(1, (w - dep) / span));
+      const cover = at('cover', frac) / 100;
+      const lag = at('latency', frac);
+      const qual = at('quality', frac) / 100;
+      const mins = at('resolve', frac);
+      let held = 0, seen = 0;
+      agents.forEach((a) => {
+        const n = 4 + Math.floor(r() * 6);
+        held += n;
+        for (let c = 0; c < n; c++) {
+          if (!chance(r, cover)) continue;
+          seen += 1;
+          const goals = QA_GOALS.map((g) => {
+            const p = Math.max(0.04, Math.min(0.99, qual + g.bias + a.edge));
+            return { k: g.k, pass: chance(r, p) };
+          });
+          const score = goals.reduce((n2, g) => n2 + (g.pass ? QA_GOAL[g.k].weight : 0), 0);
+          evals.push({
+            id: 'e' + evals.length, w: w, agent: a.id, score: score, goals: goals,
+            chan: pick(r, FLOOR_CHAN), subj: pick(r, FLOOR_SUBJ),
+            /* Rounded where it is read, not here: a floor that took 6.4 days
+               to look at something took six or seven, never both. */
+            lag: Math.max(1, Math.round(lag + (r() - 0.5) * 2)),
+            mins: Math.max(4, Math.round(mins + (r() - 0.5) * 16)),
+          });
+        }
+      });
+      byWeek.push({ w: w, held: held, seen: seen });
+    }
+    FLOOR_CACHE[key] = { agents: agents, evals: evals, byWeek: byWeek,
+      weeks: weeks, deployedAt: dep };
+    return FLOOR_CACHE[key];
+  }
+
+  /* The four figures the report reads, each one a pass over the records
+     above rather than a number written beside them. Same derivation every
+     week, so the series and the headline cannot disagree. */
+  const FLOOR_METRICS = [
+    { k: 'cover', label: 'Conversations reviewed', unit: 'pc' },
+    { k: 'latency', label: 'Days to first look', unit: 'days' },
+    { k: 'quality', label: 'Average quality score', unit: 'pc' },
+    { k: 'resolve', label: 'Time to first resolution', unit: 'mins' },
+  ];
+  function floorSeries(key) {
+    const f = floorOf(key);
+    if (!f) return [];
+    const mean = (xs) => (xs.length ? xs.reduce((n, x) => n + x, 0) / xs.length : 0);
+    return FLOOR_METRICS.map((m) => ({ k: m.k, label: m.label, unit: m.unit,
+      w: f.byWeek.map((wk) => {
+        const es = f.evals.filter((e) => e.w === wk.w);
+        if (m.k === 'cover') return Math.round((wk.seen / (wk.held || 1)) * 100);
+        if (!es.length) return null;
+        if (m.k === 'latency') return Math.round(mean(es.map((e) => e.lag)));
+        if (m.k === 'quality') return Math.round(mean(es.map((e) => e.score)));
+        return Math.round(mean(es.map((e) => e.mins)));
+      }) }));
+  }
+  /* The last week that produced anything. A week nobody reviewed has no
+     quality to report and says so with a null rather than a zero, which
+     would read as a floor that scored nothing rather than one nobody
+     looked at. */
+  const floorNow = (rows) => {
+    for (let i = rows.length - 1; i >= 0; i--) if (rows[i] != null) return rows[i];
+    return null;
+  };
+
+  /* ══ THE FLOOR, RANKED BY WHO NEEDS AN AFTERNOON ══════════════════════
+     Worst first, which is the one ordering that makes this a surface rather
+     than a roster. A list of twenty-four people alphabetically is a fact; the
+     three at the top of this one are a Monday. */
+  const floorBand = (n) => (n >= 80 ? 'ok' : n >= 65 ? 'warn' : 'err');
+  const floorSay = (n) => (n >= 80 ? 'On track' : n >= 65 ? 'Watch' : 'At risk');
+  function floorRanked(f) {
+    return f.agents.map((a) => {
+      const es = f.evals.filter((e) => e.agent === a.id);
+      return { a: a, n: es.length,
+        avg: es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : null };
+    }).filter((x) => x.avg != null).sort((x, y) => x.avg - y.avg);
+  }
+  function floorPage() {
+    const f = floorOf(myClient());
+    if (!f) return '<div class="s-home"></div>';
+    const rows = floorRanked(f);
+    const rule = (title, list) => (list.length
+      ? '<div class="s-pan-restitle">' + title + '</div>' +
+        '<div class="s-odds-rows">' + list.map((x) =>
+          '<button class="s-pan-p s-pan-go" type="button" data-ag="' + esc(x.a.id) + '">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(x.a.name) +
+                '<span class="s-pan-state tone-' + floorBand(x.avg) + '">' +
+                  esc(floorSay(x.avg)) + '</span></b>' +
+              '<span class="s-pan-meta">' + esc(plural(x.n, 'conversation')) + ' scored &middot; ' +
+                esc(plural(Math.round(x.a.months / 12 * 10) / 10 >= 1
+                  ? Math.round(x.a.months / 12) : 1, 'year')) + ' on the floor</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(commas(x.avg) + '%') + '</span>' +
+          '</button>').join('') + '</div>'
+      : '');
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the year') + '</div>' +
+      '<section class="s-exec-sec s-block-wide">' +
+        '<div class="s-sec-head">' +
+          '<h1 class="s-exec-h">Your floor</h1>' +
+        '</div>' +
+        '<p class="s-exec-scope">' + esc(plural(rows.length, 'person')) + ' &middot; ' +
+          esc(commas(f.evals.length)) + ' conversations scored &middot; worst first</p>' +
+        rule('Wants an afternoon', rows.filter((x) => x.avg < 65)) +
+        rule('Worth watching', rows.filter((x) => x.avg >= 65 && x.avg < 80)) +
+        rule('On track', rows.filter((x) => x.avg >= 80)) +
+      '</section>' +
+    '</div>';
+  }
+
+  /* One person, and the goal that is costing them. The breakdown is the
+     reason this page exists: an average tells a manager somebody is behind
+     and nothing about what to say to them. */
+  function agentPage() {
+    const f = floorOf(myClient());
+    const a = f ? f.agents.filter((x) => x.id === S.ag)[0] : null;
+    if (!a) return '<div class="s-home"></div>';
+    const es = f.evals.filter((e) => e.agent === a.id).sort((x, y) => y.w - x.w);
+    const avg = es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : 0;
+    const per = QA_GOALS.map((g) => {
+      const n = es.filter((e) => e.goals.filter((x) => x.k === g.k && x.pass).length).length;
+      return { g: g, pc: es.length ? Math.round((n / es.length) * 100) : 0 };
+    }).sort((x, y) => x.pc - y.pc);
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the floor') + '</div>' +
+      '<section class="s-exec-sec s-block-wide">' +
+        '<div class="s-sec-head">' +
+          '<h1 class="s-exec-h">' + esc(a.name) + '</h1>' +
+        '</div>' +
+        '<p class="s-exec-scope">' + esc(commas(avg) + '% average') + ' &middot; ' +
+          esc(plural(es.length, 'conversation')) + ' scored &middot; ' +
+          esc(floorSay(avg)) + '</p>' +
+        '<div class="b-funnel">' +
+          '<div class="b-fn-head"><span class="b-fn-name">Goal</span><span></span>' +
+            '<span class="b-fn-n">passed</span><span class="b-fn-conv">worth</span></div>' +
+          per.map((x) => '<div class="b-fn-row">' +
+            /* ══ THE SHORT FORM, BECAUSE THE COLUMN IS `max-content` ═══
+               `.b-funnel`'s first column sizes to its widest label and the
+               other three take what is left, so one long title does not
+               wrap — it pushes the weights off the right edge, and at 375px
+               "Empathy and acknowledgment" is enough on its own. The full
+               title and the question it answers are both one level down, on
+               the conversation where the verdict was actually reached. */
+            '<span class="b-fn-name">' + esc(x.g.short || x.g.title) + '</span>' +
+            /* `FN_TONE` rather than the class name, because a funnel bar in
+               this build does not go red — it maps `err` onto amber, and a
+               fill asking for `tone-err` gets no rule at all and renders as
+               the neutral grey, which is how a thirty per cent came to look
+               the same as a seventy-five. */
+            '<span class="b-fn-bar"><span class="b-fn-fill ' +
+              (x.pc >= 80 ? FN_TONE.ok : x.pc >= 65 ? FN_TONE.neutral : FN_TONE.err) +
+              '" style="width:' + Math.max(2, x.pc) + '%"></span></span>' +
+            '<span class="b-fn-n">' + esc(commas(x.pc) + '%') + '</span>' +
+            '<span class="b-fn-conv">' + esc(commas(x.g.weight)) + '</span>' +
+          '</div>').join('') +
+        '</div>' +
+        '<div class="s-pan-restitle">The conversations</div>' +
+        '<div class="s-odds-rows">' + es.slice(0, 12).map((e) =>
+          '<button class="s-pan-p s-pan-go" type="button" data-ev="' + esc(e.id) + '">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(e.subj) +
+                '<span class="s-pan-state tone-' + floorBand(e.score) + '">' +
+                  esc(CHAN_SAY[e.chan] || e.chan) + '</span></b>' +
+              '<span class="s-pan-meta">Week ' + esc(commas(e.w + 1)) + ' &middot; ' +
+                esc(plural(e.lag, 'day')) + ' to a first look &middot; ' +
+                esc(commas(e.mins)) + ' min to resolve</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(commas(e.score) + '%') + '</span>' +
+          '</button>').join('') + '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  const CHAN_SAY = { call: 'Call', email: 'Email', chat: 'Chat' };
+
+  /* One conversation, every goal on it, and why each went the way it did.
+     This is the bottom of the drill and the thing the coverage promise is
+     a promise ABOUT — two in a hundred of these used to be read. */
+  function evalPage() {
+    const f = floorOf(myClient());
+    const e = f ? f.evals.filter((x) => x.id === S.ev)[0] : null;
+    if (!e) return '<div class="s-home"></div>';
+    const a = f.agents.filter((x) => x.id === e.agent)[0] || { name: 'Unknown' };
+    const rows = e.goals.map((g) => ({ g: QA_GOAL[g.k], pass: g.pass }))
+      .sort((x, y) => (x.pass === y.pass ? y.g.weight - x.g.weight : (x.pass ? 1 : -1)));
+    const lost = rows.filter((x) => !x.pass).reduce((n, x) => n + x.g.weight, 0);
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the person') + '</div>' +
+      '<section class="s-exec-sec s-block-wide">' +
+        '<div class="s-sec-head">' +
+          '<h1 class="s-exec-h">' + esc(e.subj) + '</h1>' +
+        '</div>' +
+        '<p class="s-exec-scope">' + esc(CHAN_SAY[e.chan] || e.chan) + ' &middot; ' +
+          esc(a.name) + ' &middot; week ' + esc(commas(e.w + 1)) + ' &middot; ' +
+          esc(plural(e.mins, 'minute')) + ' to resolve</p>' +
+        '<div class="s-afs">' +
+          attFig('Scored', commas(e.score) + '%', floorSay(e.score).toLowerCase(),
+            e.score >= 80 ? 'ok' : null) +
+          attFig('Points lost', commas(lost), lost ? 'across ' +
+            plural(rows.filter((x) => !x.pass).length, 'goal') : 'nothing missed', null) +
+          attFig('Looked at', plural(e.lag, 'day') + ' later',
+            e.lag <= 2 ? 'inside the two promised' : 'outside the two promised',
+            e.lag <= 2 ? 'ok' : null) +
+        '</div>' +
+        '<div class="s-pan-restitle">What was scored</div>' +
+        '<div class="s-odds-rows">' + rows.map((x) =>
+          '<span class="s-pan-p">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(x.g.title) +
+                '<span class="s-pan-state tone-' + (x.pass ? 'ok' : 'err') + '">' +
+                  (x.pass ? 'passed' : 'failed') + '</span></b>' +
+              '<span class="s-pan-meta">' + esc(x.g.q) + ' &mdash; ' +
+                esc(QA_WHY[x.g.k][x.pass ? 'ok' : 'no']) + '</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(commas(x.g.weight)) + '</span>' +
+          '</span>').join('') + '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
   /* ══ WHAT A PROMISE IS SCORED OFF ══════════════════════════════════════
      `read` on a promise names a derivation; this is the one place that turns
      the name into a number. One switch rather than three, so the ledger, the
@@ -8711,10 +9063,13 @@
     /* A promise on a floor reads the last week of its own series. `w[0]`
        is where we found them and agrees with `was` on the contract; the tail
        is where they are now. */
+    /* A promise on a floor reads the last week its own series produced —
+       a pass over the scored conversations, not a number written down
+       beside the promise it is meant to be evidence for. */
     if (r.read.indexOf('team.') === 0) {
-      const t = myDeal() && myDeal().team;
-      const m = t ? (t.metrics || []).filter((x) => x.k === r.read.slice(5))[0] : null;
-      return m && m.w.length ? m.w[m.w.length - 1] : null;
+      if (!isBuyer()) return null;
+      const m = floorSeries(myClient()).filter((x) => x.k === r.read.slice(5))[0];
+      return m ? floorNow(m.w) : null;
     }
     if (r.read === 'camps.regions') {
       const seen = Object.create(null);
@@ -8921,13 +9276,19 @@
   function buyerFloor() {
     const d = myDeal();
     const t = d && d.team;
-    if (!t || !t.metrics || !t.metrics.length) return '';
-    const rows = t.metrics.map((m) => {
-      const was = m.w[0];
-      const now = m.w[m.w.length - 1];
-      const prom = (d.promises || []).filter((r) => r.read === 'team.' + m.k)[0];
+    if (!t) return '';
+    const rows = floorSeries(myClient()).map((m) => {
+      const prom0 = (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0];
+      /* `was` is the contract's, not the corpus's. Week one is what the
+         generator happened to produce for a floor nobody was reviewing, and
+         on two per cent coverage that is four conversations — a sample too
+         thin to put next to a promise. */
+      const was = prom0 && prom0.was != null ? prom0.was : m.w[0];
+      const now = floorNow(m.w);
+      const prom = prom0;
       const unit = prom || { unit: m.unit };
       const to = prom ? prom.to : now;
+      if (now == null) return '';
       const span = Math.abs(to - was) || 1;
       const pct = Math.max(2, Math.min(100, Math.round((Math.abs(now - was) / span) * 100)));
       const done = prom ? promKept(prom, now) : true;
@@ -8952,6 +9313,20 @@
       '<p class="s-exec-note">Nothing moved for the first ' +
         esc(plural(t.deployedAt, 'week')) + ' &mdash; that is how long it took to go live. ' +
         esc(d.line) + '</p>' +
+      /* ══ AND THE FIGURES OPEN ═══════════════════════════════════════
+         Four averages over nine hundred and sixty-five conversations. The
+         argument for scoring all of them instead of two in a hundred is
+         that any one can be gone back to, and a report that states the
+         average without a way down to the conversation is making exactly
+         the claim it cannot support. */
+      (function () {
+        const f = floorOf(myClient());
+        if (!f) return '';
+        return '<div class="s-lead-acts"><button class="s-insight-lnk primary" ' +
+          'type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
+          'Show the ' + esc(plural(f.agents.length, 'person')) + ' behind it</button></div>';
+      }()) +
     '</section>';
   }
 
@@ -19442,9 +19817,14 @@
       /* A floor's promises cost nothing at all to read — the series is
          seeded, so the last week of it is an array lookup rather than a
          pass over anybody. */
-      ((myDeal().team || {}).metrics || []).forEach((m) => {
-        cheap['team.' + m.k] = m.w[m.w.length - 1];
-      });
+      /* The floor is generated once and cached, so after the first paint
+         this is an array lookup like the two above it. */
+      if (myDeal().team) {
+        floorSeries(myClient()).forEach((m) => {
+          const v = floorNow(m.w);
+          if (v != null) cheap['team.' + m.k] = v;
+        });
+      }
       const behind = myDeal().promises
         .filter((r) => cheap[r.read] != null && !promKept(r, cheap[r.read]))
         .map((r) => ({ r: r, got: cheap[r.read] }))
@@ -24442,6 +24822,10 @@
        `#asPanel`, the Looking as menu under the user chip in the topnav.
        Dropping the branch with the buttons broke the real one, and the
        drawn-not-wired check caught it in the same second. */
+    const ag = t.closest('[data-ag]');
+    if (ag) { go(Object.assign(cleared(), { ag: ag.getAttribute('data-ag') })); return; }
+    const ev = t.closest('[data-ev]');
+    if (ev) { go(Object.assign(cleared(), { ag: S.ag, ev: ev.getAttribute('data-ev') })); return; }
     const as = t.closest('[data-as]');
     if (as) {
       shutMenus(null);
@@ -25179,6 +25563,11 @@
        back off the screen. */
     book: (k) => bookMoney(bookScope(), periodOf(k || 'q'),
       (isLine() || isBuyer()) ? 0 : workingHeads()),
+    /* The floor behind a software client's report, and the series read off
+       it, so a figure on the page can be checked against the conversations
+       it was averaged from. */
+    floor: (k) => floorOf(k || myClient()),
+    floorSeries: (k) => floorSeries(k || myClient()),
     queue: queue,
     /* The mounted windowed lists. Exposed because the scroll handler is
        rAF-throttled and a hidden tab never runs a frame — so a check that

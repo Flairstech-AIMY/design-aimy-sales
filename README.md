@@ -204,6 +204,7 @@ in full:
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
 | Marit Okonjo, client | `?as=kestrel` | the same, bounded by who the campaign was run for — and read from the other side of the invoice |
+| Sigrid Aalto, client | `?as=nordwind` | one surface, because they bought the tool rather than the outbound: their year, their floor, and every conversation it was averaged from |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -221,9 +222,27 @@ not narrowed but cut — their whole narrative is which supplier we asked and
 what each one charges us in hit rate — and so are the notes, which are
 authored-by-me and would ship empty.
 
-Four desks means every question about a figure has four answers. Check all
-of them, and on the client's check what is NOT there: a sweep over 234 of its
-surfaces is the only reason to believe it.
+**And two of the four are clients, on different books.** `bookKind` is the
+split: a client who bought reach has a pipeline and every surface the manager
+works; one who bought the tool has a floor — their own people, their own
+conversations, and no campaign of ours anywhere. So the attainment bar, three
+of the four tiles, both cuts and the losses draw only where there is a
+pipeline, and what stands in their place is the promise ledger, which every
+client has, and the twelve weeks that are the whole argument.
+
+A promise on a floor is a promise to MOVE a number rather than reach one, so
+it carries `was` — the baseline, set at signing — and reads down as often as
+up. `promKept` is the one place that knows which.
+
+`CLIENTS` HAS A LENGTH THAT IS LOAD BEARING. The seed deals a client onto
+four campaigns in ten by picking out of it, so appending a row re-deals every
+campaign and moves every figure on every client's desk. `CAMP_CLIENTS` is the
+guard; the check is `BDR.db.camp.map(c => [c.id, c.client])` in the console,
+and it is the one thing to run before and after touching that list.
+
+Five desks means every question about a figure has five answers. Check all of
+them, and on the clients' check what is NOT there: sweeps over 234 and 69 of
+their surfaces are the only reason to believe them.
 
 ## The customer book
 
