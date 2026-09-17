@@ -682,10 +682,32 @@
    starts doing work: 26px between sections, 12-14px inside a section, and
    6px from a heading to the thing it introduces. A heading belongs to what
    follows it, so it sits close to that and far from what it ends. */
+/* RANK A. The chip is declared once beside .b-back-k; this adds the two
+   things that lift a section head above the rows it contains — a wash
+   behind it, and capitals. It keeps the tracking capitals need.
+
+   TWO TRAPS SPRUNG HERE, BOTH MEASURED IN PLACE, BOTH RECORDED SO THE NEXT
+   PERSON DOES NOT PAY THEM AGAIN.
+
+   The wash was var(--wash-7) and it rendered transparent. --wash-3/6/7 are
+   declared on .ntf-anchor, not on :root, so outside the notification anchor
+   they do not resolve and background silently falls back. Nothing warns.
+   --card-bg-raised is no good either: it is #1c2630, which is exactly the
+   message bubble this panel sits in, so the chip would be invisible. What a
+   chip needs is not a colour but a LIFT off whatever is behind it, so it
+   mixes 8% of the primary ink into transparent — white-ish on the dark
+   theme, near-black on the light one, correct in both without a fork.
+   color-mix is already the idiom here; .b-prep-due.is-late uses it.
+
+   And it stretched the full 492px instead of hugging its words. .b-prep is
+   a flex column, which blockifies inline-block on its children and then
+   stretches them. align-self is what stops that; the other two chips are
+   not direct flex children and were already hugging. */
 .b-brief-cap {
   margin: 26px 0 6px;
-  font-size: var(--t-micro); font-weight: var(--fw-medium);
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--ink-primary) 8%, transparent);
+  letter-spacing: 0.08em; text-transform: uppercase;
 }
 /* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
    `--d500` is #637280 and `--d600` is #4a5b6e. Against this ground they are
@@ -2350,7 +2372,36 @@
 .b-back-row {
   display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
 }
-.b-back-k {
+/* ══ THE LABELS ARE ONE FAMILY IN THREE RANKS ══════════════════
+   Four labels arrived as four unrelated treatments, and the first attempt
+   at fixing that made them one — which was worse, because they are not
+   peers and flattening them said they were. Worse in a specific direction:
+   an outlined chip is visually STRONGER than plain text, so making the row
+   labels chips while the section head stayed a plain eyebrow left the rows
+   outranking the section that contains them.
+
+   What they actually are, by how much each one introduces:
+
+     A  .b-brief-cap     heads a group: a paragraph AND three rows
+     B  .b-back-k        labels one row
+        .b-prep-line b   labels one value
+     C  .b-prep-refp b   the shelf — reference, read last if at all
+
+   Ranked on FORM, because size, weight and ink are all spent down here:
+   12px is the size floor, 400 is the weight floor below 18px, and --d200 is
+   the ink floor. Form still has room, and it has three clear steps:
+
+     filled chip   >   outlined chip   >   plain text
+
+   So A takes a wash behind the same border, B keeps the outline, and C
+   drops the chrome entirely. That last one is not a demotion invented here:
+   .b-prep-ref a few rules down already says the shelf earns its step down
+   "without a rule above it or a box around it", and a chip is a box around
+   it. The rule and the comment agree again. */
+.b-back-k,
+.b-brief-cap,
+.b-prep-line b {
+  display: inline-block;
   padding: 2px 9px; border-radius: var(--r-pill);
   border: 1px solid var(--card-border);
   font-size: var(--t-micro); font-weight: var(--fw-bold);
@@ -3454,10 +3505,12 @@
   margin: 0; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
 }
-.b-prep-line b {
-  display: block; margin-bottom: 1px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); color: var(--ink-muted);
-}
+/* RANK B, and it has to sit ABOVE its value rather than beside it. The
+   shared chip sets inline-block, which put this one on the same line as the
+   sentence it labels. `display: table` is the one value that does both
+   things at once: it shrink-wraps to the words like inline-block, and it
+   forms a block box, so the value starts on the next line. */
+.b-prep-line b { display: table; margin: 0 0 6px; }
 
 /* 4. What arrives mid-call: which one they actually raise, then the script. */
 .b-prep-most {
@@ -3477,9 +3530,11 @@
   margin: 0; font-size: var(--t-small); color: var(--ink-muted);
   line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
 }
+/* RANK C. No chip: the shelf is reference, and .b-prep-ref below argues it
+   should read as such without a box around it. Bold and quiet is enough to
+   name a value on a line nobody reads twice. */
 .b-prep-refp b {
-  color: var(--d200); font-weight: var(--fw-bold);
-  margin-right: 4px;
+  font-weight: var(--fw-bold); color: var(--ink-muted); margin: 0 6px 0 0;
 }
 .b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
 
