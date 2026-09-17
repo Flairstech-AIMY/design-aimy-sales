@@ -330,10 +330,10 @@
       /* --cyan is very light in dark mode; on white it has to become a deep
          teal before it can carry text. --teal and --teal-dim alias --cyan,
          so re-pointing this one token moves all three. */
-      --cyan:        #096673;
-      --cyan-rgb:    9,102,115;
-      --cyan-bg:     rgba(9,102,115,0.10);
-      --cyan-border: rgba(9,102,115,0.28);
+      --cyan:        #0d8f95;
+      --cyan-rgb:    13,143,149;
+      --cyan-bg:     rgba(13,143,149,0.14);
+      --cyan-border: rgba(13,143,149,0.32);
 
       /* Semantic hues RE-DERIVED, not darkened by a step. The dark hues sit
          at 1.6–2.6:1 on white and cannot carry text at all, so each was
@@ -341,25 +341,56 @@
          nested tint — a tag on a tinted card composites onto a darker ground
          than the card alone. Grounds and borders drop roughly a fifth of
          their alpha, because dark-on-light reads heavier than the reverse. */
-      --ok:          #066640;
-      --ok-rgb:      6,102,64;
-      --ok-bg:       rgba(6,102,64,0.10);
-      --ok-border:   rgba(6,102,64,0.26);
-      --ok-glow:     rgba(6,102,64,0.16);
-      --warn:        #6b4500;
-      --warn-rgb:    107,69,0;
-      --warn-bg:     rgba(107,69,0,0.10);
-      --warn-border: rgba(107,69,0,0.26);
-      --err:         #a81029;
-      --err-rgb:     168,16,41;
-      --err-bg:      rgba(168,16,41,0.09);
-      --err-border:  rgba(168,16,41,0.26);
-      --err-glow:    rgba(168,16,41,0.16);
-      --err-strong:  #8a0b20;
-      --info:        #1a54bd;
-      --info-rgb:    26,84,189;
-      --info-bg:     rgba(26,84,189,0.09);
-      --info-border: rgba(26,84,189,0.26);
+      /* ══ THE BOLD FAMILY, BACK ═══════════════════════════
+         These are the hues light carried until 8 Sep, restored on request.
+         The set they replace was re-derived against a contrast target and
+         came out a stop deeper and a lot quieter — a bottle green, a brown
+         where amber had been. Correct by the numbers, and it took the
+         colour out of the one theme that had room for it.
+
+         THE TINT IS LIGHTER THAN THE INK, and that is deliberate rather than
+         sloppy: `--ok-bg` is a lighter green than `--ok`, which is how the
+         old family worked — the ground stays a wash while the word on it
+         stays legible. `--ok-rgb` is the INK, since what reads it is a tint
+         computed at some other alpha and it should track the word.
+
+         WHAT THIS COSTS, measured on the card and on the body rather than
+         asserted — the first draft of this comment guessed and got two of
+         the three wrong:
+
+             --ok    #0e9257   3.99 : 1 on white,  3.68 on the body
+             --warn  #b26205   4.52 : 1            4.18
+             --err   #d92d20   4.83 : 1            4.46
+             --info  #067dc2   4.45 : 1            4.11
+             --cyan  #0d8f95   3.90 : 1            3.61
+
+         So the family clears the 3:1 a border, a dot, an icon or a tag's
+         edge answers to, everywhere, and NONE of them clears the 4.5:1 that
+         body copy needs on the body ground. That is the trade, and it is on
+         the record so nobody re-derives it by accident: these are grounds
+         and marks, not sentences. Where a sentence needs the hue, the ink is
+         `--ok-text` / `--warn-text` / `--err-text`, which light gives its
+         own deep values precisely so this set can stay bold. */
+      --ok:          #0e9257;
+      --ok-rgb:      14,146,87;
+      --ok-bg:       rgba(23,178,106,0.14);
+      --ok-border:   rgba(14,146,87,0.30);
+      --ok-glow:     rgba(14,146,87,0.18);
+      --warn:        #b26205;
+      --warn-rgb:    178,98,5;
+      --warn-bg:     rgba(247,144,9,0.14);
+      --warn-border: rgba(178,98,5,0.30);
+      --err:         #d92d20;
+      --err-rgb:     217,45,32;
+      --err-bg:      rgba(240,68,56,0.14);
+      --err-border:  rgba(217,45,32,0.30);
+      --err-glow:    rgba(217,45,32,0.18);
+      /* Still a step deeper than `--err`: it stops something in flight. */
+      --err-strong:  #b42318;
+      --info:        #067dc2;
+      --info-rgb:    6,125,194;
+      --info-bg:     rgba(14,165,233,0.14);
+      --info-border: rgba(6,125,194,0.30);
       /* A solid chip is deep on white, so its ink flips to white. A heat
          cell is a saturated tint in both themes and keeps its near-black. */
       --text-on-status: #ffffff;
@@ -476,9 +507,22 @@
 
     /* ── AiMY Canvas — follows the theme. In light mode the chat bar, filter
        tray, and overlay become light surfaces; text tokens already flip. ── */
+    /* ══ OFF-WHITE, NOT WHITE ═════════════════════════════
+       Pure white is the brightest thing the light theme can produce, and the
+       composer was wearing it on every surface — over a page at #f4f6f9 and
+       over a canvas that is pale glass. It read as a slab punched out of both
+       rather than as a control resting on them.
+
+       #fafcfe is the value that works in both places, and finding it took
+       measuring rather than taste. Translucency does nothing here: 72% white
+       over near-white glass composites back to near-white. Going properly
+       below the page — #f1f5fa, which looks right on the canvas — puts the
+       bar DARKER than the body it floats over, so it sinks instead of rising.
+       This sits above #f4f6f9 and below #ffffff, which is the only band where
+       a raised control can be both. */
     :root[data-theme="light"] .aimy-float-bar,
     :root[data-theme="light"] .overlay-input-bar {
-      background: #ffffff;
+      background: #fafcfe;
       border-color: rgba(16,24,40,0.14);
       box-shadow: 0 8px 32px rgba(16,24,40,0.14), 0 0 0 1px rgba(16,24,40,0.03);
     }
@@ -492,12 +536,46 @@
       background: rgba(16,24,40,0.05);
       border-color: rgba(16,24,40,0.12);
     }
-    :root[data-theme="light"] .aimy-overlay { background: rgba(238,242,246,0.6); }
+    /* ══ LIGHT GLASS BRIGHTENS; IT DOES NOT DIM ═════════════════
+       The base rule's `brightness(0.85)` is what gives the dark canvas its
+       depth: the page behind sinks a stop and the panel floats. Light
+       inherited it unchanged, and there the same filter is a grey cast — the
+       backdrop goes muddy while a 60% veil sits on top of it, so the surface
+       reads as frosted plastic rather than as glass. Nothing was wrong with
+       the blur; the two adjustments either side of it pointed the wrong way
+       for the theme.
+
+       So light brightens instead, and the veil comes down to let the page
+       through, which is the whole of what makes it read as glass. */
+    :root[data-theme="light"] .aimy-overlay {
+      background: rgba(255,255,255,0.45);
+      backdrop-filter: blur(28px) saturate(1.5) brightness(1.06);
+      -webkit-backdrop-filter: blur(28px) saturate(1.5) brightness(1.06);
+    }
     :root[data-theme="light"] .overlay-close,
     :root[data-theme="light"] .overlay-badge { background: rgba(16,24,40,0.05); border-color: rgba(16,24,40,0.12); }
     :root[data-theme="light"] .overlay-close:hover { background: rgba(16,24,40,0.1); border-color: rgba(16,24,40,0.2); }
-    :root[data-theme="light"] .overlay-sugg-chip { background: #ffffff; border-color: rgba(16,24,40,0.14); }
-    :root[data-theme="light"] .chat-msg.aimy .msg-bubble { background: #ffffff; border-color: rgba(16,24,40,0.10); }
+    /* ══ A SUGGESTION IS AN OFFER, NOT A CARD ═══════════════════
+       Solid white, which on a dark canvas is the obvious read and on a light
+       one turns every chip into an opaque tile sitting ON the surface. They
+       are the lightest thing the page offers — four questions you may or may
+       not want — and they were the most solid object on it.
+
+       60% and a blur, so the ground they float on comes through them: the
+       gate's bloom under one, the canvas glass under another. The border does
+       the containing now, which is what a border is for. */
+    :root[data-theme="light"] .overlay-sugg-chip {
+      background: rgba(255,255,255,0.60);
+      border-color: rgba(16,24,40,0.14);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    /* A message is not a raised control, so it does not need to sit above the
+       ground the way the bar does — it can go properly below white and settle
+       into the canvas instead of floating on it. The reader's own bubble is
+       the accent and stays the loud one, which is right: one of the two is a
+       thing you said. */
+    :root[data-theme="light"] .chat-msg.aimy .msg-bubble { background: #edf2f8; border-color: rgba(16,24,40,0.10); }
     :root[data-theme="light"] .aimy-badge { color: #1f5fd0; border-color: rgba(0,102,255,0.3); }
     /* Logo tiles — the dark navy/purple surfaces sit too close to the logo's own
        blues in light mode; flip them to bright lavender so the mark reads clearly */
