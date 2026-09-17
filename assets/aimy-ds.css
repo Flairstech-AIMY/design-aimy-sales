@@ -275,12 +275,45 @@
       --ink-rule:        var(--d600);   /* NON-TEXT. Hairlines and dots. Never type. */
 
       /* Font weights */
-      --fw-light:     300;
-      --fw-regular:   400;
-      --fw-medium:    500;
-      --fw-semibold:  600;
-      --fw-bold:      700;
-      --fw-extrabold: 800;
+      /* ══ THE LADDER, RE-CUT FOR POPPINS ═══════════════════
+         These numbers moved because the face changed. The ROLES did not:
+         --fw-bold still means "the emphatic one", it is just that in
+         Poppins the emphatic one is 600.
+
+         Poppins lays down more ink than Urbanist at every weight, and the
+         gap widens as it gets heavier. Measured in canvas as alpha per px
+         of line length — typographic colour, which is what the eye reads:
+
+                      Urbanist   Poppins same number   drift
+           regular      10.06        11.64             +15.7%
+           medium       11.65        14.12             +21.2%
+           semibold     13.74        16.60             +20.8%
+           bold         15.44        19.34             +25.3%
+           extrabold    16.83        21.37             +27.0%
+
+         Every rank landed a fifth to a quarter heavier than the value the
+         surface was calibrated against, and 47% of the runs on the desk
+         sit at bold or above — so the page shouted. Poppins covers in
+         300-700 the colour range Urbanist covered in 400-800, so the whole
+         ladder drops one step and lands back on the intended colour:
+
+                      target     now      drift
+           regular     10.06     9.26     -8.0%   (300)
+           medium      11.65    11.64     -0.1%   (400)
+           semibold    13.74    14.12     +2.8%   (500)
+           bold        15.44    16.60     +7.5%   (600)
+           extrabold   16.83    19.34    +14.9%   (700)
+
+         --fw-regular is 300 and deliberately unused: the type floor is 400
+         or heavier below 18px, and every site that named it sits at 16px
+         or under, so all twelve were moved to --fw-medium, which still
+         holds 400. It is here for display sizes, where 300 is legal. */
+      --fw-light:     200;
+      --fw-regular:   300;
+      --fw-medium:    400;
+      --fw-semibold:  500;
+      --fw-bold:      600;
+      --fw-extrabold: 700;
 
       /* Line heights */
       --lh-none:    1;

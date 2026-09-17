@@ -1147,7 +1147,7 @@
 .s-home .s-lead-n { font-size: var(--t-figure); line-height: 1; }
 /* The weight moved to §87, where the argument for it is. */
 .s-home .s-lead-deck, .b-lead-slim .s-lead-deck {
-  font-size: var(--t-deck); font-weight: var(--fw-regular); line-height: 1.3;
+  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: 1.3;
   margin-bottom: 16px;
 }
 .s-home .s-lead-say { font-size: var(--t-lead); }
@@ -1393,16 +1393,16 @@
 .ntf-panel::-webkit-scrollbar-thumb:hover { background: var(--card-border); }
 
 .ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
-.ntf-head b { font-size: var(--t-ui); font-weight: 800; color: var(--d50); letter-spacing: 0.01em; }
+.ntf-head b { font-size: var(--t-ui); font-weight: var(--fw-extrabold); color: var(--d50); letter-spacing: 0.01em; }
 .ntf-count {
-  font-size: var(--t-micro); font-weight: 700; padding: 1px 7px; border-radius: 9999px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); padding: 1px 7px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.16); color: var(--qa-accent);
   font-variant-numeric: tabular-nums;
 }
 .ntf-count[hidden] { display: none; }
 .ntf-clear {
   margin-left: auto; background: none; border: 0; cursor: pointer;
-  font-family: inherit; font-size: var(--t-small); font-weight: 600; color: var(--ink-muted);
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--ink-muted);
   padding: 2px 4px; border-radius: 6px;
   transition: color var(--transition-fast);
 }
@@ -1424,13 +1424,13 @@
 .ntf-sev.p2, .ntf-sev.p3 { background: var(--d500); }
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
-.ntf-row-type { font-size: var(--t-ui); font-weight: 800; color: var(--d50); }
+.ntf-row-type { font-size: var(--t-ui); font-weight: var(--fw-extrabold); color: var(--d50); }
 .ntf-row-when { margin-left: auto; font-size: var(--t-small); color: var(--ink-muted); flex-shrink: 0; }
 /* The sentence the row is for. It was the smallest and faintest thing in the
    panel, under a label that was neither. */
 .ntf-row-body { margin: 0 0 7px; font-size: var(--t-ui); line-height: 1.5; color: var(--d200); }
 .ntf-row-cta {
-  font-family: inherit; font-size: var(--t-small); font-weight: 700; cursor: pointer;
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-bold); cursor: pointer;
   padding: 4px 10px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent-text);
   border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
@@ -1441,7 +1441,7 @@
 
 .ntf-foot { padding: 8px 4px 4px; border-top: 1px solid var(--wash-6); margin-top: 6px; }
 .ntf-foot-btn {
-  width: 100%; font-family: inherit; font-size: var(--t-ui); font-weight: 700; cursor: pointer;
+  width: 100%; font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-bold); cursor: pointer;
   padding: 8px; border-radius: 9px; background: var(--wash-3);
   border: 1px solid var(--wash-6); color: var(--ink-muted);
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -4796,7 +4796,7 @@
    that looks exactly like one that worked. */
 .b-cut-new {
   margin-left: 6px; padding: 1px 6px; border-radius: 9999px;
-  font-size: var(--t-micro); font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
   /* ══ FILLED, IN BOTH STATES ═════════════════════════════════════════
      The first cut of this gave the badge a tinted ground and took the
      ground away on the active chip, reasoning that an accent pill inside
@@ -4878,7 +4878,7 @@
    400 rather than 500: measured at 18px, a 500-to-700 step reads as a
    slightly firmer word, and the point of these marks is that somebody
    glancing at the block sees the numbers without reading the sentence. */
-.s-lead-deck { font-weight: var(--fw-regular); }
+.s-lead-deck { font-weight: var(--fw-medium); }
 /* Reaching the child directly, so §26b and the shell's own rule on the
    paragraph cannot inherit over it. No colour: the ink is already at the
    top of the ramp, and a mark that changes two things at once is a second
@@ -4945,7 +4945,7 @@
 .b-lead-then {
   display: flex; align-items: flex-start; gap: 9px;
   max-width: 74ch; margin: 0;
-  font-size: var(--t-ui); font-weight: var(--fw-regular);
+  font-size: var(--t-ui); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d200); text-wrap: pretty;
 }
 /* 74ch rather than the deck's 58: a measure is a count of characters and
