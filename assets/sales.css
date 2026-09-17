@@ -245,14 +245,20 @@ html {
   --ink-rule:      var(--d600);  /* NON-TEXT — hairlines and dots. Never type. */
 }
 
-/* ── One family, not two ──
+/* ── Two faces, separated by weight ──
 
-   `--font-display: Poppins` and `--font-sans: Urbanist` are both geometric
-   sans with near-identical skeletons, so a 13px Poppins heading beside 13px
-   Urbanist body was indistinguishable — the pairing separated nothing, which
-   is the second reason headings did not anchor the groups beneath them. At
-   these sizes weight separates far better than skeleton does, so the display
-   role is Urbanist 800 and Poppins leaves the font request entirely.
+   Poppins once held both roles here and was argued out of the display slot,
+   because a 13px Poppins heading beside 13px Urbanist body was
+   indistinguishable — the pairing separated nothing, which is the second
+   reason headings did not anchor the groups beneath them. That still holds:
+   the display role is Urbanist 800 and it is WEIGHT, not skeleton, that
+   separates a heading from the body under it.
+
+   Poppins came back as the body face and left again one commit later, this
+   time on the figures. The reasoning and the measurements are at the
+   `--font-sans` token in aimy-ds.css; the short version is that the body
+   face has to set tabular figures, because 86 rules in this file and
+   bdr.css ask it to, and Figtree does.
 
    Butterick: "max 2 fonts, each gets a consistent role" — and a role a face
    cannot actually perform is not a role. */
@@ -1301,6 +1307,9 @@ body {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   padding: 2px 8px; border-radius: var(--r-pill);
   background: var(--accent-dim); color: var(--accent);
+  /* Inherits the display face from .ntf-head, which has no tabular figures,
+     so the badge changed width every time the count did. A figure is data. */
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
 .ntf-count[hidden] { display: none; }

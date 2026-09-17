@@ -202,14 +202,23 @@
 
       /* ── Typography ── */
       /* Pairing: Urbanist (primary — UI & body) + Poppins (display — headings) */
-      /* ══ THE PAIR SWAPPED ═════════════════════════════════
-         Poppins carries the body and Urbanist the headings. Measured before
-         the swap so the cost is on the record rather than discovered later:
-         the same body sentence sets 13% wider in Poppins than in Urbanist
-         (439px against 389px at 14px/400), so every measure wraps sooner and
-         every dense row grows. Watch the queue cards and the call log, which
-         are the tightest things in this build. */
-      --font-sans:    "Poppins", system-ui, sans-serif;   /* primary / body */
+      /* ══ THE BODY FACE HAS TO CARRY FIGURES ════════════════
+         Poppins held this slot for one commit and lost it on two measurements.
+
+         It sets 14.6% wider than Urbanist did (828px against 723px for the
+         same sentence at 14px/400), which every dense row pays for; and
+         neither Poppins nor Urbanist ships tabular figures, so the 89
+         `font-variant-numeric: tabular-nums` declarations across sales.css,
+         bdr.css and this file were all inert. Measured with a control that
+         does support the feature, so this is the font and not the harness:
+         digit-width spread at 100px/600, tabular-nums requested --
+
+           Poppins   63.00     Urbanist  66.11     DM Sans  74.41   (inert)
+           Figtree    0.00     Inter      0.00     Jakarta   0.00   (works)
+
+         Figtree is +2.6% on Urbanist rather than +14.6%, keeps the geometric
+         skeleton this system is built on, and actually performs the role. */
+      --font-sans:    "Figtree", system-ui, sans-serif;   /* primary / body  */
       --font-display: "Urbanist", system-ui, sans-serif;  /* pairing / headings */
       --font-mono:    "JetBrains Mono", monospace;
 

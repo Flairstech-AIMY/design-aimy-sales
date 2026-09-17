@@ -199,6 +199,9 @@
 .b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-extrabold); }
 .b-switch-n {
   margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  /* Same as .ntf-count: .b-switch-btn sets the display face and figures do
+     not survive it. The count moves back to the body face to keep width. */
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums; color: var(--ink-muted);
 }
 .b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); }
