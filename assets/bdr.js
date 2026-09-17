@@ -9359,7 +9359,7 @@
            it was promised, where it is. The figure slot holds the last of
            them, so the other two go here — and the baseline is the one the
            value-realisation literature says almost no vendor shows. */
-        trend = ' &middot; was ' + esc(promFig(r, r.was)) + ', ' +
+        trend = ' &middot; ' + esc(promFig(r, r.was)) + ' at signing, ' +
           esc(promFig(r, r.to)) + ' promised';
       } else if (due != null && !kept) {
         trend = ' &middot; ' + esc(promFig(r, due)) + ' by now';
@@ -9534,9 +9534,23 @@
           (t.whose === 'ours' ? 'What the desk did' : 'What your floor did') + '</h2>' +
       '</div>' +
       '<div class="b-funnel">' +
-        '<div class="b-fn-head"><span class="b-fn-name">Over twelve weeks</span>' +
-          '<span></span><span class="b-fn-n">now</span>' +
-          '<span class="b-fn-conv">before us</span></div>' +
+        /* ══ WHICH TWELVE WEEKS, AND WHEN "BEFORE US" WAS ══════════════
+           This said "Over twelve weeks · now · before us" on a contract
+           fifty weeks old, under a note explaining that nothing moved for
+           the first two weeks because that is how long it took to go live.
+           Read together those say the tool went live ten weeks ago, on a
+           relationship approaching its first renewal. They are the FIRST
+           twelve weeks — the rollout, which is the only stretch where a
+           before-and-after has anything to show — and the baseline beside
+           them is the contract's, not week one's.
+
+           Naming both removes the reading where "before us" means "twelve
+           weeks ago". The figures are unchanged; every one of them was
+           already the thing these words now say it is. */
+        '<div class="b-fn-head"><span class="b-fn-name">The first ' +
+            esc(plural(t.weeks || 12, 'week')) + '</span>' +
+          '<span></span><span class="b-fn-n">by then</span>' +
+          '<span class="b-fn-conv">at signing</span></div>' +
         rows +
       '</div>' +
       '<p class="s-exec-note">Nothing moved for the first ' +
@@ -9587,7 +9601,7 @@
       const got = promiseGot(r, { funnel: [], byLine: [] }, null);
       if (got == null) return '';
       return attFig(PROM_SAY[r.k] || r.k, promFig(r, got),
-        'was ' + promFig(r, r.was) + ' before us',
+        'was ' + promFig(r, r.was) + ' at signing',
         promKept(r, got) ? 'ok' : null);
     }).join('');
   }
@@ -9649,7 +9663,7 @@
         const nm = PROM_SAY[lead.r.k] || lead.r.k;
         bits.push(nm.charAt(0).toUpperCase() + nm.slice(1) + ' is at <b>' +
           esc(promFig(lead.r, lead.got)) + '</b>, from <b>' +
-          esc(promFig(lead.r, lead.r.was)) + '</b> the week we went live.');
+          esc(promFig(lead.r, lead.r.was)) + '</b> at signing.');
       }
     }
     if (short.length) {
