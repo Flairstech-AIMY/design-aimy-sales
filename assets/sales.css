@@ -289,6 +289,51 @@ html {
    gets nothing — and a role a face cannot perform is still not a role. */
 :root { --font-display: "Poppins", system-ui, sans-serif; }
 
+/* ══ THE LIBRARY'S WEIGHTS NEVER RODE THE LADDER DOWN ══════════════
+
+   aimy-ds.css sets font-weight as a bare number 193 times. When the ladder
+   was re-cut for Poppins every one of those sat outside it, so the design
+   system went on rendering at weights chosen for Urbanist — which in
+   Poppins are a fifth to a quarter heavier. Nour found it on a pair of
+   consent buttons: both at 700, both shouting, nothing ranking them.
+
+   34 of the 193 actually render in this product. The other 159 are library
+   components Sales never mounts, and changing those would be unverifiable
+   edits to code nobody sees. The live ones move one step down, exactly as
+   the tokens did, so they land on the colour they always meant:
+
+     800 -> --fw-extrabold (700)      600 -> --fw-semibold (500)
+     700 -> --fw-bold      (600)      500 -> --fw-medium   (400)
+
+   Overridden here rather than edited there, which is the rule this file
+   sets out a few sections up: the extracted stylesheet stays a faithful
+   copy of the library and every divergence stays visible. Load order makes
+   it work — aimy-ds.css, then this. */
+.float-badge { font-weight: var(--fw-extrabold); }
+
+.aimy-toast-title, .aimy-toast-undo, .avatar, .btn, .cite, .entry-action,
+.evidence-pill .val, .msg-avatar, .overlay-badge, .tag, .tc-gov strong,
+.tc-title, .tc-type, .type-label, .work-state {
+  font-weight: var(--fw-bold);
+}
+
+.ai-thinking-label, .bcard-conclusion, .chip, .filter-chip, .link,
+.overlay-sugg-chip, .reasoning summary, .step-label, .stepper input,
+.tab, .tree summary {
+  font-weight: var(--fw-semibold);
+}
+
+.aimy-float-input, .evidence-pill, .msg-bubble, .overlay-input {
+  font-weight: var(--fw-medium);
+}
+
+/* AND THE PAIR THAT STARTED IT. Primary and secondary were both 700, so the
+   only thing ranking them was the blue, and at Poppins 700 they arrived as
+   two shouts side by side. The ghost drops a step under the brand, which
+   puts weight alongside the ground and the ink already separating them —
+   three axes for two buttons, where there was effectively one. */
+.btn-ghost { font-weight: var(--fw-semibold); }
+
 /* ── Body text first ──
    The four properties that calibrate everything else, in one place, on the
    element that should always have carried them.
