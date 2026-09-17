@@ -515,7 +515,7 @@
   const CLIENTS = [
     { k: 'norvant', name: 'Redlake Data', sells: ['data'],
       what: 'training-data operations. We find the teams still labelling by hand',
-      deal: { fee: 120000, since: '2025-07-01', term: 12,
+      deal: { kind: 'outbound', fee: 120000, since: '2025-07-01', term: 12,
         line: 'We find them and qualify them. The conversation about the work is yours.',
         promises: [
           { k: 'met', read: 'funnel.met', unit: 'count', to: 40, was: null, ours: true,
@@ -527,7 +527,7 @@
         ] } },
     { k: 'harlow', name: 'Harlow Delivery', sells: ['back'],
       what: 'back-office delivery. Their offer, our callers, their diary',
-      deal: { fee: 95000, since: '2026-01-01', term: 12,
+      deal: { kind: 'outbound', fee: 95000, since: '2026-01-01', term: 12,
         line: 'Our callers, their offer. The diary is theirs and so is the room.',
         promises: [
           { k: 'met', read: 'funnel.met', unit: 'count', to: 25, was: null, ours: true,
@@ -537,7 +537,7 @@
         ] } },
     { k: 'peregrin', name: 'Kestrel Labs', sells: ['test', 'eng'],
       what: 'engineering and test capacity. We source and qualify; they take it from the meeting',
-      deal: { fee: 180000, since: '2025-10-01', term: 12,
+      deal: { kind: 'outbound', fee: 180000, since: '2025-10-01', term: 12,
         line: 'We find them, qualify them and put them in a room with you. ' +
           'What happens in the room is yours.',
         promises: [
@@ -554,9 +554,65 @@
           { k: 'live', read: 'pipe.open', unit: 'count', to: 6, was: null, ours: false,
             say: 'Six deals still live when the year closes' },
         ] } },
+    /* ══ AND ONE WHO BOUGHT THE TOOL RATHER THAN THE OUTBOUND ══════════
+       The four around this one pay us to open a market they cannot reach,
+       and their year is measured in people found and meetings taken.
+       Nordwind bought AiMY QA and runs it themselves: eight hundred seats,
+       their reviewers, our scoring. Their year is measured in what their own
+       floor does differently, which is why `kind` exists — the promises, the
+       evidence under them and half the report read off a different book.
+
+       `was` ON EVERY PROMISE, WHICH THE OTHER FOUR HAVE NONE OF. A client
+       who buys reach is promised a number to arrive at; a client who buys a
+       tool is promised a number to MOVE, and a move needs the place it
+       started from. Set at signing, like the target and for the same reason:
+       what their floor looked like before us is a fact of the contract, not
+       something the work can be asked to produce.
+
+       `weeks` is the evidence, and `deployedAt` is the week the tool went
+       live — lifted from AiMY QA's own goal heatmap, where the same field is
+       called `coached` and marks the week an intervention landed. It is the
+       only before-and-after model anywhere in the tree, and this is the same
+       shape with the intervention renamed. */
+    { k: 'nordwind', name: 'Nordwind', sells: ['qa'],
+      what: 'quality scored on every conversation, not on a sample. Their reviewers, our tool',
+      deal: { kind: 'software', fee: 96000, since: '2025-11-01', term: 12,
+        seats: 800,
+        line: 'We score every conversation and say why. What you do about a bad one is yours.',
+        team: {
+          deployedAt: 2,
+          /* Twelve weeks, the last of them this one. `w[0]` is the floor as
+             we found it and agrees with `was` on the promise it evidences —
+             if the two ever disagree the promise is the contract and this is
+             the reading that has drifted. */
+          metrics: [
+            { k: 'cover',   label: 'Conversations reviewed', unit: 'pc',
+              w: [2, 2, 2, 31, 58, 76, 89, 96, 99, 100, 100, 100] },
+            { k: 'latency', label: 'Days to first look',     unit: 'days',
+              w: [11, 11, 11, 8, 6, 4, 3, 2, 2, 2, 2, 2] },
+            { k: 'quality', label: 'Average quality score',  unit: 'pc',
+              w: [64, 63, 64, 66, 69, 71, 73, 75, 77, 78, 79, 80] },
+            /* Minutes, not an index. "69" against a baseline of 100 is a
+               number nobody has ever written a commitment in, and the
+               promise says thirty per cent faster — which is what forty-
+               eight minutes to thirty-three actually is. */
+            { k: 'resolve', label: 'Time to first resolution', unit: 'mins',
+              w: [48, 48, 48, 47, 45, 43, 41, 38, 36, 34, 33, 33] },
+          ],
+        },
+        promises: [
+          { k: 'cover', read: 'team.cover', unit: 'pc', was: 2, to: 100, ours: true,
+            say: 'Every conversation scored, not two in every hundred' },
+          { k: 'latency', read: 'team.latency', unit: 'days', was: 11, to: 2, ours: true,
+            say: 'Scored within two days of the conversation, not eleven' },
+          { k: 'quality', read: 'team.quality', unit: 'pc', was: 64, to: 85, ours: false,
+            say: 'Eighty-five per cent average quality across the floor' },
+          { k: 'resolve', read: 'team.resolve', unit: 'mins', was: 48, to: 34, ours: false,
+            say: 'First resolution thirty per cent faster than the day we started' },
+        ] } },
     { k: 'ostend', name: 'Lambourne Care', sells: ['support'],
       what: 'outsourced customer support. We open the market and hand every meeting over',
-      deal: { fee: 140000, since: '2026-02-01', term: 12,
+      deal: { kind: 'outbound', fee: 140000, since: '2026-02-01', term: 12,
         line: 'We open the market and hand every meeting over.',
         promises: [
           { k: 'met', read: 'funnel.met', unit: 'count', to: 35, was: null, ours: true,
@@ -567,6 +623,16 @@
   ];
   const CLIENT = Object.create(null);
   CLIENTS.forEach((c) => (CLIENT[c.k] = c));
+  /* ══ AND ONLY SOME OF THEM CAN BE ON A CAMPAIGN ════════════════════════
+     The seed deals a client onto four campaigns in ten by picking out of
+     this list, so the list's LENGTH is load bearing: appending a fifth row
+     re-deals every campaign and moves every figure on every client's desk.
+     Nordwind bought a tool and has no campaigns by definition, so the draw
+     reads the ones we actually run campaigns for and appending another of
+     those is still the one change that has to be checked in the console.
+     Same guard on the draft editor, which offered the whole list as owners
+     for a campaign being built. */
+  const CAMP_CLIENTS = CLIENTS.filter((c) => !c.deal || c.deal.kind === 'outbound');
 
   /* ══ WHO WE ASK FOR, AND WHY THEY WOULD TAKE THE CALL ═══════════════════
      The one thing every caller has to know before dialling and the one thing
@@ -767,6 +833,11 @@
        names `client`: the seed cursor does not move and no count in the
        corpus changes. */
     { id: 'kestrel', name: 'Marit Okonjo', initials: 'MO', fn: 'client', client: 'peregrin' },
+    /* The second client desk, and the one that proves the reading is not the
+       outbound book wearing a different name: Nordwind holds no campaign,
+       no lead and no deal, and the question their desk asks is the same
+       one. */
+    { id: 'nordwind', name: 'Sigrid Aalto', initials: 'SA', fn: 'client', client: 'nordwind' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -816,7 +887,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina', 'sherif', 'kestrel'];
+  const DESKS = ['engy', 'lina', 'sherif', 'kestrel', 'nordwind'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -1394,7 +1465,7 @@
       /* Two in five are run for a client, and those sell the client's offer
          rather than ours — a campaign cannot be for Redlake and pitch AiMY
          Voice, which is what a free draw from the whole catalogue produced. */
-      const forClient = chance(r, 0.4) ? pick(r, CLIENTS) : null;
+      const forClient = chance(r, 0.4) ? pick(r, CAMP_CLIENTS) : null;
       const sells = [forClient ? SELL[pick(r, forClient.sells)] : pick(r, SELLS)];
       if (forClient) {
         const other = forClient.sells.filter((x) => x !== sells[0].k);
@@ -3091,6 +3162,22 @@
      mistake this desk cannot make. `camps[0]` is an artefact of the order
      the seed dealt them in and says nothing about who paid; both clients
      did, and both see the person. */
+  /* ══ ONE READING, TWO BOOKS ════════════════════════════════════════════
+     The question a client's desk asks does not change with what they bought
+     — what did I buy, what did it produce, was it worth it — but the book it
+     reads to answer changes completely. A client who bought reach has a
+     pipeline: campaigns, leads, deals, and every surface the manager works.
+     One who bought the tool has a floor: their own people, their own
+     conversations, and not one campaign of ours.
+
+     So the promises, the evidence under them and half the report read off a
+     different book, and everything built on a pipeline — the attainment bar,
+     three of the four tiles, both cuts, the losses — is drawn only where
+     there IS one. Every desk that is not a client is `outbound`, because the
+     pipeline is the thing they work. */
+  const myDeal = () => (isBuyer() ? dealOf(myClient()) : null);
+  const bookKind = () => (isBuyer() && myDeal() ? (myDeal().kind || 'outbound') : 'outbound');
+  const onPipeline = () => bookKind() === 'outbound';
   const myClient = () => me().client || null;
   const clientOf = (k) => (k && k.client) || null;
   const onClient = (k) => !!myClient() && clientOf(k) === myClient();
@@ -3257,6 +3344,17 @@
     if (isBuyer() && (S.on === 'lists' || S.on === 'notes')) S.on = '';
     if (isBuyer() && S.q === 'won') S.q = 'all';
     if (isBuyer()) { S.build = ''; S.list = ''; }
+    /* ══ AND A FLOOR HAS ONE SURFACE, NOT FIVE EMPTY ONES ═══════════════
+       Today, Accounts, the Diary and Campaigns are all readings of a
+       pipeline. Nordwind has none, and the desk drew them anyway: four tabs
+       reading zero, a strip offering to warm-call somebody who does not
+       exist, and a briefing saying nothing has been handed over yet — which
+       is true and is not a thing that was ever going to happen.
+
+       So the report IS the desk. It is not a tab among tabs because there
+       is nothing to switch between, and `on` resolving to anything else is
+       the same silent lie `as` refuses at the top of this function. */
+    if (isBuyer() && !onPipeline()) S.on = 'money';
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -4812,6 +4910,34 @@
     }
     const q = queue();
     const camps = myCampaigns();
+    /* ══ WHAT A FLOOR'S RAIL HAS TO SAY ═══════════════════════════════
+       The branch below counts deals wanting something today, which is the
+       right first sentence for every desk that works a pipeline and an
+       empty one for a desk that does not have one. The promises are what
+       this reader came for, so the rail says how they stand. */
+    if (isBuyer() && !onPipeline()) {
+      const dl = myDeal();
+      const scored = (dl ? dl.promises : [])
+        .map((r) => ({ r: r, got: promiseGot(r, { funnel: [], byLine: [] }, null) }))
+        .filter((x) => x.got != null);
+      const kept = scored.filter((x) => promKept(x.r, x.got));
+      const short = scored.filter((x) => !promKept(x.r, x.got));
+      const pd = periodOf('deal');
+      const leftD = pd.end ? Math.max(0, daysBetween(TODAY_ISO, pd.end)) : 0;
+      return {
+        card: {
+          state: short.length ? 'staged' : 'detected',
+          text: short.length
+            ? '<b>' + plural(short.length, 'promise') + '</b> ' +
+              (short.length === 1 ? 'is' : 'are') + ' behind, out of the <b>' +
+              commas(scored.length) + '</b> on your year.'
+            : 'All <b>' + commas(scored.length) + '</b> promises on your year are being kept.',
+          evidence: [{ val: commas(kept.length), cap: 'kept' },
+            { val: commas(leftD), cap: 'days of the year left' }],
+          act: null, q: null,
+        },
+      };
+    }
     if (onBook()) {
       const live = q.filter(dealLive);
       const now = live.filter((c) => dealRank(c) <= 2);
@@ -5305,7 +5431,9 @@
         '</div>' +
       '</div>' +
       /* Only this desk has a day and a book to stand here. */
-      (onBook() ? railDoors() : '') +
+      /* Both doors open a pipeline surface — the diary and the report.
+         A floor is already standing on the report and has no diary. */
+      (onBook() && onPipeline() ? railDoors() : '') +
       /* ══ THE QUIETER OF THE TWO WAYS INTO THE CONSOLE ══════════════════
          Knowledge's own note on the same control: the corner button is the
          one that gets found, this is the one that gets used, because it sits
@@ -8247,7 +8375,6 @@
      arithmetic this page threw a year's ACV over a quarter's spend out for.
      `periodsFor` removes the chips that would ask for it. */
   const dealOf = (k) => (CLIENT[k] && CLIENT[k].deal) || null;
-  const myDeal = () => (isBuyer() ? dealOf(myClient()) : null);
   const promiseOf = (k) => {
     const d = myDeal();
     if (!d) return null;
@@ -8256,6 +8383,13 @@
   const targetFor = (p) => {
     const arr = promiseOf('arr');
     if (arr) return arr.to;
+    /* ══ AND A FLOOR HAS NO MONEY TARGET AT ALL ══════════════════════════
+       Falling through here put the sales desk's €300k on Nordwind's rail
+       door, which is the same leak the client desk was built to close
+       arriving through a different opening. A client who bought a tool
+       promised us nothing in euros and we promised them nothing in euros;
+       zero is the honest answer and `bookSay` draws the promises instead. */
+    if (isBuyer()) return 0;
     return (isLine() && TARGET_LINE[myLine()] != null
       ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
   };
@@ -8574,6 +8708,14 @@
     if (r.read === 'arr') return now.arr || 0;
     if (r.read === 'pipe.open') return pipe ? pipe.open : 0;
     if (r.read === 'lines.live') return (now.byLine || []).filter((x) => x.meetings > 0).length;
+    /* A promise on a floor reads the last week of its own series. `w[0]`
+       is where we found them and agrees with `was` on the contract; the tail
+       is where they are now. */
+    if (r.read.indexOf('team.') === 0) {
+      const t = myDeal() && myDeal().team;
+      const m = t ? (t.metrics || []).filter((x) => x.k === r.read.slice(5))[0] : null;
+      return m && m.w.length ? m.w[m.w.length - 1] : null;
+    }
     if (r.read === 'camps.regions') {
       const seen = Object.create(null);
       myCamps().forEach((k) => { if (k.region) seen[k.region] = 1; });
@@ -8581,7 +8723,19 @@
     }
     return null;
   }
-  const promFig = (r, n) => (r.unit === 'money' ? fmtMoney(n) : commas(n));
+  const promFig = (r, n) => (r.unit === 'money' ? fmtMoney(n)
+    : r.unit === 'pc' ? commas(n) + '%'
+    : r.unit === 'days' ? plural(n, 'day')
+    : r.unit === 'mins' ? commas(n) + ' min'
+    : commas(n));
+  /* ══ AND NOT EVERY PROMISE IS A PROMISE TO GO UP ═══════════════════════
+     A client who bought reach is promised numbers to arrive at, and more is
+     always better. A client who bought a tool is promised numbers to MOVE,
+     and half of them move down: eleven days to two, forty-eight minutes to
+     thirty-four. Read off `was` rather than off a field, because a promise
+     that says where it started has already said which way it is going. */
+  const promDown = (r) => r.was != null && r.to < r.was;
+  const promKept = (r, n) => (promDown(r) ? n <= r.to : n >= r.to);
   /* ══ A PROMISE NEEDS A NAME AS WELL AS A SENTENCE ══════════════════════
      `say` is how a promise reads in a ledger, where it has a row to itself
      and a figure beside it: "Two hundred thousand signed off the meetings we
@@ -8594,7 +8748,9 @@
      it is a per-client way to drift. */
   const PROM_SAY = { met: 'qualified meetings', found: 'people we could reach',
     lines: 'both services in the market', reach: 'regions opened',
-    arr: 'signed revenue', live: 'deals live at the year end' };
+    arr: 'signed revenue', live: 'deals live at the year end',
+    cover: 'coverage', latency: 'time to a first look',
+    quality: 'average quality', resolve: 'time to first resolution' };
 
   /* ══ THE FUNNEL, AND IT IS WHERE THE LINE ALREADY FALLS ════════════════
      `now.funnel` has been computed since the aggregate was written and has
@@ -8683,14 +8839,21 @@
     if (!rows.length) return '';
     const draw = (x) => {
       const r = x.r;
-      const kept = x.got >= r.to;
+      const kept = promKept(r, x.got);
       /* Rounded to the unit the promise is counted in — "should be at 28.8
          meetings by now" is a number no commitment was ever written in. */
       const due = p.elapsed == null ? null
         : (r.unit === 'money' ? Math.round(r.to * p.elapsed / 500) * 500
           : Math.round(r.to * p.elapsed));
       let trend = '';
-      if (due != null && !kept) {
+      if (r.was != null) {
+        /* A promise to MOVE a number carries three: where it started, where
+           it was promised, where it is. The figure slot holds the last of
+           them, so the other two go here — and the baseline is the one the
+           value-realisation literature says almost no vendor shows. */
+        trend = ' &middot; was ' + esc(promFig(r, r.was)) + ', ' +
+          esc(promFig(r, r.to)) + ' promised';
+      } else if (due != null && !kept) {
         trend = ' &middot; ' + esc(promFig(r, due)) + ' by now';
       }
       return '<span class="s-pan-p">' +
@@ -8701,7 +8864,8 @@
           '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
         '</span>' +
         '<span class="s-pan-cost">' +
-          esc(promFig(r, x.got) + ' of ' + promFig(r, r.to)) + '</span>' +
+          esc(r.was != null ? promFig(r, x.got)
+            : promFig(r, x.got) + ' of ' + promFig(r, r.to)) + '</span>' +
       '</span>';
     };
     const ours = rows.filter((x) => x.r.ours);
@@ -8710,7 +8874,7 @@
       ? '<div class="s-pan-restitle">' + title + '</div>' +
         '<div class="s-odds-rows">' + list.map(draw).join('') + '</div>'
       : '');
-    const kept = rows.filter((x) => x.got >= x.r.to).length;
+    const kept = rows.filter((x) => promKept(x.r, x.got)).length;
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
         '<h2 class="s-exec-eyebrow">What the year promised</h2>' +
@@ -8737,6 +8901,74 @@
     '</section>';
   }
 
+  /* ══ THE TWELVE WEEKS, WHICH ARE THE WHOLE ARGUMENT ═══════════════════
+     A funnel is the evidence when what was bought is reach. When what was
+     bought is a tool, the evidence is the client's own floor before and
+     after it arrived — so the row is the same row, and what the bar measures
+     is how far along the promised move has got rather than how many people
+     survived a stage.
+
+     The bar runs `was` to the promised number whichever way the metric goes.
+     Eleven days down to two and two per cent up to a hundred are the same
+     shape of progress and have to read as one, or the reader is asked to
+     work out per row which direction is good.
+
+     `deployedAt` is lifted from AiMY QA's goal heatmap, where the same field
+     is called `coached` and outlines the week an intervention landed. It is
+     the only before-and-after model anywhere in the tree. Here it is said in
+     words rather than drawn, because four rows do not make a heatmap and the
+     sentence carries the thing a chart would only imply. */
+  function buyerFloor() {
+    const d = myDeal();
+    const t = d && d.team;
+    if (!t || !t.metrics || !t.metrics.length) return '';
+    const rows = t.metrics.map((m) => {
+      const was = m.w[0];
+      const now = m.w[m.w.length - 1];
+      const prom = (d.promises || []).filter((r) => r.read === 'team.' + m.k)[0];
+      const unit = prom || { unit: m.unit };
+      const to = prom ? prom.to : now;
+      const span = Math.abs(to - was) || 1;
+      const pct = Math.max(2, Math.min(100, Math.round((Math.abs(now - was) / span) * 100)));
+      const done = prom ? promKept(prom, now) : true;
+      return '<div class="b-fn-row">' +
+        '<span class="b-fn-name">' + esc(m.label) + '</span>' +
+        '<span class="b-fn-bar"><span class="b-fn-fill ' +
+          (done ? 'tone-ok' : 'tone-neutral') + '" style="width:' + pct + '%"></span></span>' +
+        '<span class="b-fn-n">' + esc(promFig(unit, now)) + '</span>' +
+        '<span class="b-fn-conv">' + esc(promFig(unit, was)) + '</span>' +
+      '</div>';
+    }).join('');
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">What your floor did</h2>' +
+      '</div>' +
+      '<div class="b-funnel">' +
+        '<div class="b-fn-head"><span class="b-fn-name">Over twelve weeks</span>' +
+          '<span></span><span class="b-fn-n">now</span>' +
+          '<span class="b-fn-conv">before us</span></div>' +
+        rows +
+      '</div>' +
+      '<p class="s-exec-note">Nothing moved for the first ' +
+        esc(plural(t.deployedAt, 'week')) + ' &mdash; that is how long it took to go live. ' +
+        esc(d.line) + '</p>' +
+    '</section>';
+  }
+
+  /* Three of the four tiles above the fee are attainment, and attainment
+     needs a target in money. A floor has none, so the three become the three
+     promises themselves: where each stands, and where it stood before us. */
+  function floorFigs() {
+    const d = myDeal();
+    return (d.promises || []).slice(0, 3).map((r) => {
+      const got = promiseGot(r, { funnel: [], byLine: [] }, null);
+      if (got == null) return '';
+      return attFig(PROM_SAY[r.k] || r.k, promFig(r, got),
+        'was ' + promFig(r, r.was) + ' before us',
+        promKept(r, got) ? 'ok' : null);
+    }).join('');
+  }
+
   /* `execBrief`'s four clauses are money against target, late deals, the
      best and worst campaign by what they cost, and the share of payroll
      nobody logged. Two of the four are our cost and a third ranks their
@@ -8746,8 +8978,8 @@
     const scored = (d ? d.promises : [])
       .map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
       .filter((x) => x.got != null);
-    const kept = scored.filter((x) => x.got >= x.r.to);
-    const short = scored.filter((x) => x.got < x.r.to);
+    const kept = scored.filter((x) => promKept(x.r, x.got));
+    const short = scored.filter((x) => !promKept(x.r, x.got));
     const left = p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end)) : null;
     const fn = Object.create(null);
     (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
@@ -8763,10 +8995,22 @@
        a dash in it, because that is how the reader meets them: the meetings
        arrived, and this is what became of them. Said as two sentences in
        two places it becomes a claim and a disclaimer. */
-    bits.push('<b>' + commas(fn.met || 0) + '</b> ' +
-      ((fn.met === 1) ? 'meeting reached your team' : 'meetings reached your team') +
-      ' &mdash; <b>' + commas(pipe ? pipe.open : 0) + '</b> still live and <b>' +
-      commas(fn.won || 0) + '</b> signed.');
+    if (onPipeline()) {
+      bits.push('<b>' + commas(fn.met || 0) + '</b> ' +
+        ((fn.met === 1) ? 'meeting reached your team' : 'meetings reached your team') +
+        ' &mdash; <b>' + commas(pipe ? pipe.open : 0) + '</b> still live and <b>' +
+        commas(fn.won || 0) + '</b> signed.');
+    } else {
+      /* The same sentence one book over: what we answer for, and where it
+         stood before we did. */
+      const lead = scored.filter((x) => x.r.ours && x.r.was != null)[0];
+      if (lead) {
+        const nm = PROM_SAY[lead.r.k] || lead.r.k;
+        bits.push(nm.charAt(0).toUpperCase() + nm.slice(1) + ' is at <b>' +
+          esc(promFig(lead.r, lead.got)) + '</b>, from <b>' +
+          esc(promFig(lead.r, lead.r.was)) + '</b> the week we went live.');
+      }
+    }
     if (short.length) {
       const worst = short.slice().sort((x, y) =>
         (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)))[0];
@@ -9105,7 +9349,10 @@
           '<p class="s-exec-scope">' +
             (isBuyer() && myDeal()
               ? esc(CLIENT[myClient()].name) + ' &middot; ' +
-                esc(plural(myCamps().length, 'campaign')) + ' &middot; to ' +
+                /* What the fee is counted in: campaigns where we run them,
+                   seats where they run the tool. */
+                esc(onPipeline() ? plural(myCamps().length, 'campaign')
+                  : plural(myDeal().seats || 0, 'seat')) + ' &middot; to ' +
                 esc(sayDay(periodOf('deal').end))
               : 'Your book &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
@@ -9127,6 +9374,12 @@
         '</div>' +
       '</section>' +
 
+      /* ══ A BAR WITH NO TARGET IS A BAR WITH NOTHING TO SAY ═══════════
+         Booked against target, the shortfall, the forecast and the pace are
+         four readings of one number, and a client who bought a tool owes us
+         no number. Drawn where there is a pipeline; where there is not, the
+         ledger below is the headline and does not need a bar to repeat. */
+      (!onPipeline() ? '' :
       '<div class="s-att">' +
         '<div class="s-att-head">' +
           '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
@@ -9199,7 +9452,7 @@
           (done || pacePc == null ? ''
             : '<span class="s-att-key is-pace">Where you should be today</span>') +
         '</div>' +
-      '</div>' +
+      '</div>') +
 
       '<div class="s-afs">' +
         /* ══ THE FIRST TILE HAS TO POINT BACK AT THE HEADLINE ═══════════
@@ -9207,6 +9460,7 @@
            two numbers, named the same way twice. It said "Still to sell" for
            a while, which is an action with no object on the one tile whose
            whole job is to say what is left of the figure directly above. */
+        (!onPipeline() ? floorFigs() :
         attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
           a.gap ? (done ? 'the window is closed'
             : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
@@ -9294,7 +9548,7 @@
              Behind takes the negative pole and ahead the positive, so the
              figure, the word and the colour say one thing. It is the only
              coloured figure in the row now, which is what makes it read. */
-          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err') +
+          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err')) +
         /* "PAID OFF" NEVER SAID WHAT WAS BEING PAID OFF. It is the cost of
            winning one customer, and how long that customer takes to earn it
            back — a different sentence from the one the two words were
@@ -9350,7 +9604,7 @@
          line underneath about how much of the payroll nobody logged. Every
          figure in it is ours and the section exists to be argued with by
          whoever pays it. A client pays a fee, not a floor. */
-      (!seesCost() ? buyerWork(now) :
+      (!seesCost() ? (onPipeline() ? buyerWork(now) : buyerFloor()) :
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">What you spent it on</h2>' +
@@ -9429,6 +9683,14 @@
 
          A heading asks the question the section answers; the note says what
          is counted, which is why the note went and the heading stayed. */
+      /* ══ AND BOTH CUTS AND THE LOSSES ARE PIPELINE, ALL THE WAY DOWN ══
+         Which campaigns worked, what sells and what does not, and where
+         deals collapse are three readings of a book made of campaigns and
+         deals. A floor has neither. The ledger and the twelve weeks above
+         are its whole report, which is shorter — and a page that padded
+         itself out with three empty sections would be saying the reading is
+         thinner than it is. */
+      (!onPipeline() ? '' :
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">' +
@@ -9917,7 +10179,7 @@
         '<p class="s-odds-note">' + lossNote + '</p>' +
         (lossActs ? '<div class="s-lead-acts">' + lossActs + '</div>' : '')
           : '<p class="s-odds-note">Nothing has been lost.</p>') +
-      '</div>' +
+      '</div>') +
 
       askRow(isBuyer() ? buyerAsks(now, pipe, loss) : execAsks(now, pipe)) +
       '</section>' +
@@ -12687,7 +12949,7 @@
           draftField('Client', draftMenu('dClient', esc(cl ? cl.name : 'FlairsTech'),
             'Whose offer this is',
             draftItem('client', '', 'FlairsTech', !k.client, 'our own book') +
-            CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
+            CAMP_CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
               .map((x) => SELL[x] && SELL[x].name).filter(Boolean).join(', '))).join(''))) +
           /* Sector and region are two decisions, not one field with two
              menus in it: you can know the market and not the country, and a
@@ -19177,8 +19439,14 @@
       const dp = periodOf('deal');
       const att = bookAttain();
       const cheap = { arr: att.booked, 'pipe.open': pipelineOf(dealBook()).open };
+      /* A floor's promises cost nothing at all to read — the series is
+         seeded, so the last week of it is an array lookup rather than a
+         pass over anybody. */
+      ((myDeal().team || {}).metrics || []).forEach((m) => {
+        cheap['team.' + m.k] = m.w[m.w.length - 1];
+      });
       const behind = myDeal().promises
-        .filter((r) => cheap[r.read] != null && cheap[r.read] < r.to)
+        .filter((r) => cheap[r.read] != null && !promKept(r, cheap[r.read]))
         .map((r) => ({ r: r, got: cheap[r.read] }))
         .sort((x, y) => (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)));
       if (behind.length) {
