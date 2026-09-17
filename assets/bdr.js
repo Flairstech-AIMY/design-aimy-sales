@@ -680,6 +680,21 @@
        function none of them names is a row none of them draw. The seed cursor
        does not move and no count in the corpus changes. */
     { id: 'sherif', name: 'Sherif Amin',   initials: 'SA', fn: 'stakeholder', sell: 'qa' },
+    /* ══ AND ONE WHO DOES NOT WORK FOR US ═══════════════════════════════
+       The three above read this book from our side and differ only in what
+       bounds them. This one reads it from the other side of the invoice: a
+       client pays for a market it cannot reach, and the question its desk
+       asks is not what did we produce, it is what did I buy.
+
+       `client` is the key the campaigns already carry — `camp.client`,
+       seeded since the book had partners — so the desk is bounded by a field
+       that exists rather than one invented for a persona, for the same
+       reason `sell` above is not a second spelling of something.
+
+       APPENDED FOR THE REASON THE TWO ABOVE ARE. No reader of this array
+       names `client`: the seed cursor does not move and no count in the
+       corpus changes. */
+    { id: 'kestrel', name: 'Marit Okonjo', initials: 'MO', fn: 'client', client: 'peregrin' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -729,7 +744,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina', 'sherif'];
+  const DESKS = ['engy', 'lina', 'sherif', 'kestrel'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -751,6 +766,25 @@
   /* Which of the two book desks this is. A manager's book is who was handed
      the lead; a stakeholder's is what the campaign was selling. */
   const isLine = () => me().fn === 'stakeholder';
+  /* ══ AND THE THIRD READING ═════════════════════════════════════════════
+     Named for the READING, the way `onBook` is, because that is what it is:
+     this book read from the buying side. What it is BOUNDED by is a client,
+     and `myClient` two hundred lines down is where that word lives.
+
+     NOT `isClient`, and the near miss is the point. `CLIENTS` already means
+     the white-label partner, `isCust` already means an account that buys
+     from us, and `custState` returns the literal label 'Client' for a third
+     thing again. A fourth meaning of one word in one file is the same silent
+     lie `parse()` refuses when it says `as` names a desk and not a person. */
+  const isBuyer = () => me().fn === 'client';
+  /* ══ THE TWO REFUSALS, NAMED SEPARATELY ════════════════════════════════
+     A client is invoiced, not shown a ledger, and is never told how we rank
+     one of their own prospects. Two predicates rather than one, and neither
+     is spelled `!isBuyer()` at the call site: they are two different
+     refusals, the next reader needs to know which rule a guard is keeping,
+     and a figure that forgets one is then a grep rather than a reading. */
+  const seesCost = () => !isBuyer();
+  const seesGrade = () => !isBuyer();
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -2592,6 +2626,12 @@
        because a lead nobody has handed over yet is not on anybody's book by
        either reading. Rebuilt by `reindex`. */
     byLine: Object.create(null),
+    /* And the same index read a third way: who the campaign was run FOR.
+       Built beside the two above under the same guard, and off every
+       campaign a lead is on rather than the first — see `myClient` for why
+       this one cannot take `camps[0]` when the other two can. Rebuilt by
+       `reindex`. */
+    byClient: Object.create(null),
     /* digits -> contact id. The only index that goes from a NUMBER to a
        person, and the only one an inbound call can use. Rebuilt by
        `reindex`. */
@@ -2715,6 +2755,7 @@
     DB.consOf = Object.create(null);
     DB.byMgr = Object.create(null);
     DB.byLine = Object.create(null);
+    DB.byClient = Object.create(null);
     DB.byPhone = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
@@ -2755,6 +2796,16 @@
         (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
         const ln = lineOf(dealCamp(c));
         if (ln) (DB.byLine[ln] || (DB.byLine[ln] = [])).push(c.id);
+        /* Deduped as it goes: a person on two of one client's campaigns is
+           one lead on their book, and pushing twice would have every figure
+           that reads the book count them twice. */
+        const seen = Object.create(null);
+        c.camps.forEach((id) => {
+          const cl = clientOf(DB.byCamp[id]);
+          if (!cl || seen[cl]) return;
+          seen[cl] = 1;
+          (DB.byClient[cl] || (DB.byClient[cl] = [])).push(c.id);
+        });
       }
     });
     DB.touch.forEach((t) => {
@@ -2951,18 +3002,38 @@
   const myLine = () => me().sell || null;
   const lineOf = (k) => (k && k.sells && k.sells.length ? k.sells[0] : null);
   const onLine = (k) => !!myLine() && lineOf(k) === myLine();
+  /* ══ AND WHAT A CLIENT'S DESK IS BOUNDED BY ════════════════════════════
+     Who the campaign was run FOR. A stored field rather than a derivation,
+     which is the one difference between this bound and the two above it.
+
+     EVERY CAMPAIGN THE PERSON IS ON, NOT THE FIRST, and that is a departure
+     worth its own paragraph. `lineOf` and `mgrOf` are single-valued by
+     construction — a campaign sells one thing first, a lead is handed to one
+     manager — so `dealCamp`, which reads `camps[0]`, serves them honestly.
+     A person is on every campaign that reached them, and in this corpus
+     thirty-two are on two different clients' campaigns at once. Reading only
+     the first hides three of Kestrel's ten handed-over leads from Kestrel
+     and shows them to somebody who did not pay for them, which is the one
+     mistake this desk cannot make. `camps[0]` is an artefact of the order
+     the seed dealt them in and says nothing about who paid; both clients
+     did, and both see the person. */
+  const myClient = () => me().client || null;
+  const clientOf = (k) => (k && k.client) || null;
+  const onClient = (k) => !!myClient() && clientOf(k) === myClient();
   /* Whose these are, in the desk's own terms. A manager runs them; a
      stakeholder is answering for what they sell, and "you are running" on
      his desk is a claim about somebody else's work. Written once, because
      three surfaces say it and three spellings would drift. */
-  const bookWhose = () => (isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
+  const bookWhose = () => (isBuyer() ? 'we are running for you'
+    : isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
   /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
      what it sells. The same word for all three, because it is the same
      question — is this mine to work — and every surface that asks it (the
      switcher's count, the campaign list, the guard on a campaign page, the
      tag a queue card carries) gets the right answer without knowing who is
      asking. */
-  const mine = (c) => (isLine() ? onLine(c)
+  const mine = (c) => (isBuyer() ? onClient(c)
+    : isLine() ? onLine(c)
     : onBook() ? c.owner === me().id
     : c.crew.indexOf(me().id) >= 0);
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
@@ -3097,7 +3168,8 @@
        the thing this whole scheme exists to avoid. */
     if (S.as && DESKS.indexOf(S.as) < 0) {
       const fn = (REP[S.as] || {}).fn;
-      S.as = fn === 'sales-manager' ? 'lina' : fn === 'stakeholder' ? 'sherif' : '';
+      S.as = fn === 'sales-manager' ? 'lina' : fn === 'stakeholder' ? 'sherif'
+        : fn === 'client' ? 'kestrel' : '';
     }
     if (S.on === 'deals' && !onBook()) S.on = 'calls';
   }
@@ -7534,7 +7606,9 @@
   /* The ids this desk's book is made of. Two surfaces read it — the money
      and the board — and a second spelling of the same ternary is how they
      would come to disagree about what the book is. */
-  const bookIds = () => (isLine() ? DB.byLine[myLine()] : DB.byMgr[me().id]) || [];
+  const bookIds = () => (isBuyer() ? DB.byClient[myClient()]
+    : isLine() ? DB.byLine[myLine()]
+    : DB.byMgr[me().id]) || [];
   const dealBook = () => bookIds().map((id) => DB.byCon[id]).filter(Boolean);
   /* Before the hand-over a lead is the caller's and has no stage, so asking
      `stageOf` about one answers Not met for six hundred people who are
@@ -12318,12 +12392,14 @@
      campaign — owns it, calling — which is a sentence about the campaign
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
-  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR', stakeholder: 'Stakeholder' };
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR',
+    stakeholder: 'Stakeholder', client: 'Client' };
   /* "Stakeholder" names a job and not a book, and on the one desk where the
      book IS the job that is half a label. The product goes with it wherever a
      person is introduced — the bar, and the row you press to get there. */
   const jobSay = (p) => (p && JOB[p.fn] ? JOB[p.fn] : '') +
-    (p && p.sell && SELL[p.sell] ? ' · ' + SELL[p.sell].name : '');
+    (p && p.sell && SELL[p.sell] ? ' · ' + SELL[p.sell].name : '') +
+    (p && p.client && CLIENT[p.client] ? ' · ' + CLIENT[p.client].name : '');
   /* ══ ONE ROW, THREE BLOCKS ═════════════════════════════════════════════
      A campaign's team, a lead's team and a list's were three copies of the
      same nine lines of markup, and they had already started to drift: the
