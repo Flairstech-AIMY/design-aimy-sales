@@ -346,9 +346,31 @@
   padding: 6px 14px 0; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
   line-height: var(--lh-snug); color: var(--ink-secondary);
 }
+/* ══ THE FACTS ROW IS A MINIMAL COMPONENT, NOT A SENTENCE ══════════
+   "Wenside Works · Manufacturing · Antwerp · 40 staff" is four chips of one
+   or two words. The scale calls 12 the minimal size — "a tag, a work state,
+   a timestamp — recognised, not read" — and this is exactly that; it sat at
+   14 only because --fs-xs was the reflex token for anything small.
+
+   The cost of that reflex, counted on the desk: 188 of 260 text runs came
+   out at 14px, against 29 at body and 15 at heading. But only ELEVEN of
+   those 188 were prose. The rest were labels, so the answer was never to
+   push them up to body — it was to let the minimal ones sit at minimal, and
+   give the 14px step back to its actual job: the supporting line under a
+   name, which here is .tc-summary carrying the role.
+
+   That also buys the card a second axis where it had one. Role against
+   facts was 14/500 against 14/400 — one weight step, same ink, which the
+   type doctrine does not count as a rank. It is now 14/500 against 12/400:
+   size and weight, two axes, visible at a glance.
+
+   Poppins is what makes 12 safe here. Its x-height runs 7.8% above
+   Urbanist's, so this line has the x-height Urbanist would have needed
+   12.9px to reach — the step down costs less legibility than it would
+   have under the old face. */
 .b-qcard-where {
   margin: 0; padding: 2px 14px 0;
-  font-size: var(--fs-xs); font-weight: var(--fw-medium);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   line-height: var(--lh-snug); color: var(--ink-muted);
 }
 /* EMPHASIS INSIDE A LINE NEEDS THE LINE NOT TO BE BOLD ALREADY. This ran at
@@ -908,7 +930,11 @@
 .s-callsum-cap { font-size: var(--fs-xs); }
 .s-callp b { font-size: var(--fs-xs); color: var(--ink-muted); }
 .b-aimy-from { font-size: var(--fs-2xs); }
-.tc-type { font-size: var(--t-small); color: var(--ink-muted); }
+/* Shares .tc-head with the state tag, which is 12px. At 14 it outranked the
+   tag beside it while saying less, and collided with .tc-summary below at
+   the same size. At 12 the strip reads as one row and the role line under
+   the name gets the 14px step to itself. */
+.tc-type { font-size: var(--t-micro); color: var(--ink-muted); }
 
 /* [5] COUNTS DO NOT JITTER. Proportional digits change width as the value
    changes, so the switcher shifted sideways every time a search narrowed it.
@@ -2242,16 +2268,41 @@
    send are the quiet ends. */
 .b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
 .b-back:last-child { margin-bottom: 0; }
+/* ══ A GRID CANNOT SEE THE BOX IT IS IN ════════════════════════
+   This row was two columns, `minmax(96px, max-content) 1fr`, and it stacked
+   at a VIEWPORT breakpoint of 720px. The panel it actually lives in is the
+   answer body in the AiMY canvas, which is about 330px wide on a 1250px
+   screen — so the breakpoint never fired and the wide layout ran inside a
+   narrow box. Measured there, reproducing the real panel at 329px:
+
+     grid resolved to   95.99px + 227.86px
+     the tag needs      68px  — so 28px of that column was empty
+     .b-back-v got      26 characters per line
+     everything else
+     in the same panel  35 to 44
+
+   62ch never bound: it resolves to 622px against a 221px column. A line of
+   26 characters is less than half the comfortable measure and it is why
+   this block reads as a wall rather than as three answers.
+
+   Flex-wrap fixes it without a media query or a container query, because
+   the row then decides from ITS OWN width rather than the window's: the
+   answer keeps its place beside the label only while it can hold a real
+   measure, and drops to its own full-width line when it cannot. 24rem is
+   that threshold — about 45 characters at the body step, the bottom of the
+   comfortable range. Wide surfaces are unchanged; the narrow panel stacks
+   and the answer goes from 26 characters to the panel's full 39. */
 .b-back-row {
-  display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 4px 16px; align-items: baseline;
+  display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline;
 }
-.b-back-k { justify-self: start; }
+.b-back-k { flex: none; }
 .b-back-v {
-  margin: 0; max-width: 62ch; text-wrap: pretty;
+  margin: 0; flex: 1 1 24rem; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
 @media (max-width: 719.98px) { /* 720 layout px */
-  .b-back-row { grid-template-columns: 1fr; }
+  /* .b-back-row used to stack here. It stacks on its own width now, at any
+     viewport, so the override is gone rather than left to look load-bearing. */
   /* ══ THE LABEL IS NOT A SHARE OF THE ROW, IT IS THE ROW'S SUBJECT ══════
      This was `minmax(80px, 1fr) 2fr`, which gave the BAR twice what it gave
      the step it belongs to: measured at a 620px layout, the label got 114 and
@@ -4327,7 +4378,7 @@
 .b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 /* On a card the mark is smaller again: the line it sits on is 11px, and a
    13px mark beside it reads as the loudest thing in the corner. */
-.tc-type.b-fact > svg { --mark: 11px; }
+.tc-type.b-fact > svg { --mark: 10px; }
 .b-node-name.b-fact > svg { --mark: 12px; }
 
 /* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
@@ -4336,7 +4387,7 @@
    which is the opposite of what a mark is for. The facts line becomes a
    wrapping row so a long company name takes its mark with it. */
 .b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
-.b-qcard-where .b-fact > svg { --mark: 12px; }
+.b-qcard-where .b-fact > svg { --mark: 10px; }
 .b-qcard-num.b-fact > svg { --mark: 12px; }
 
 /* The campaign's team block carries its own caption and the top margin that
