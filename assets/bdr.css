@@ -204,12 +204,34 @@
   transition: color var(--t-fast), font-weight var(--t-fast);
 }
 .b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
-.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-extrabold); }
+/* ══ ONE STEP IS ENOUGH, AND THE COUNT COMES WITH IT ═════════════
+   The note above says a rank differs from its neighbour in at least two of
+   {size, weight, ink}, and reads the on-state as differing in two. It
+   differs in three: the ink moves --ink-muted to --d50, the weight moves,
+   and .b-switch-bar slides under it. Two of those were already enough, so
+   the weight did not need to jump 500 to 700 — two whole steps, landing on
+   --fw-extrabold, which is the top of the ladder.
+
+   That register should be rare or it stops meaning anything, and a tab is
+   not the loudest thing on a page that also has a page title. One step to
+   --fw-bold keeps the rank and gives the top back to what it is for.
+
+   THE COUNT. There was a rule here whose whole job was to hold the count at
+   --ink-muted while its tab lit up, so the one number on the active tab was
+   the one part of it that did not respond. The intent was right — the count
+   must not compete with the name — but muted is not the only way to be
+   subordinate: it is already four points smaller and a weight lighter.
+
+   So it takes the accent instead, which is the same language the filter
+   chips underneath already use for "this is the one selected". --accent-text
+   rather than --accent, because the raw hue is 3.26:1 against this ground
+   and the text-safe one is documented at 5.04. */
+.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-bold); }
 .b-switch-n {
-  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums; color: var(--ink-muted);
 }
-.b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); }
+.b-switch-btn.is-on .b-switch-n { color: var(--accent-text); }
 
 /* ══ 11. THE QUEUE, AS CARDS IN THREE COLUMNS ══════════════════════════════
    A row had space for a name, a line and a button — enough to be ranked by
@@ -1294,8 +1316,19 @@
 .b-acts { margin: 0 0 12px; }
 .b-cuts + .b-grid { margin-top: 4px; }
 
-/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not. */
-.b-switch-n, .b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
+/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not — this lifted
+   the count UP onto the --d200 floor rather than flattening it, which is why
+   it lives here and not beside the component.
+
+   It used to name `.b-switch-btn.is-on .b-switch-n` in the same group, at
+   the same specificity as the on-state rule beside the component and later
+   in the file — so it won every time and the active tab’s count could never
+   respond to being active. A floor belongs on the base selector. The
+   on-state sets its own ink and is allowed to.
+
+   It also carried the weight, which is why the count computed 500 while the
+   rule beside the component declared 600. Same value now, stated once. */
+.b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 .s-starts-cap { color: var(--ink-muted); }
 
 /* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
