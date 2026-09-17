@@ -190,25 +190,40 @@ move through the list and open a row.
 
 ## What is cut, and what came back
 
-Cut and still cut: exec, client and stakeholder surfaces; sequences. Those
-are at `/old/` and none of it was deleted.
+Cut and still cut: sequences. Those are at `/old/` and none of it was
+deleted.
 
-**The manager's desk is not cut, and this section used to say it was.**
-`?as=` is still described below as a prototype control, and it is the switch
-between two desks that both render in full:
+**The manager's, the stakeholder's and the client's desks are not cut, and
+this section used to say all three were.** `?as=` is still described below as
+a prototype control, and it is the switch between four desks that all render
+in full:
 
 | desk | `?as=` | what it opens |
 |---|---|---|
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
+| Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
+| Marit Okonjo, client | `?as=kestrel` | the same, bounded by who the campaign was run for — and read from the other side of the invoice |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
-meetings calendar are all live behind `isMgr()`. A caller reaching one of
-them gets an honest answer rather than the manager's figures: Financials
-says a caller has no book and points back, and `?on=deals` resolves to the
-caller's own reading of the same tab.
+meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
+and a client answer yes to the first and no to the second. A caller reaching
+one of them gets an honest answer rather than the manager's figures:
+Financials says a caller has no book and points back, and `?on=deals`
+resolves to the caller's own reading of the same tab.
 
-Two desks means every question about a figure has two answers. Check both.
+**The client's desk subtracts rather than adds**, and two predicates carry
+it. `seesCost()` refuses what the work cost us and who else pays us;
+`seesGrade()` refuses how we rank an account and what else we would sell into
+it. They are separate because they are two different rules, so a figure that
+forgets one is a grep rather than a reading. The lists and the builder are
+not narrowed but cut — their whole narrative is which supplier we asked and
+what each one charges us in hit rate — and so are the notes, which are
+authored-by-me and would ship empty.
+
+Four desks means every question about a figure has four answers. Check all
+of them, and on the client's check what is NOT there: a sweep over 234 of its
+surfaces is the only reason to believe it.
 
 ## The customer book
 
