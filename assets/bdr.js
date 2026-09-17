@@ -3249,6 +3249,14 @@
     /* Same refusal as `as` two branches up: a key that silently means a
        window this desk cannot read is worse than one that resolves. */
     if (isBuyer()) S.period = 'deal';
+    /* Two surfaces a buyer has no reading of, refused the way `as` is
+       refused above rather than left to resolve into something else. The
+       lists are our suppliers'; the notes are `t.by === me().id`, so a
+       client who has authored nothing would be shown a page that is
+       permanently empty and looks broken rather than closed. */
+    if (isBuyer() && (S.on === 'lists' || S.on === 'notes')) S.on = '';
+    if (isBuyer() && S.q === 'won') S.q = 'all';
+    if (isBuyer()) { S.build = ''; S.list = ''; }
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -3620,7 +3628,13 @@
      screen. */
   function qcard(c, i) {
     const a = accOf(c);
-    const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
+    /* ══ AND THE FALLBACK NAMES SOMEBODY ELSE'S CAMPAIGN ═══════════════
+       Prefer one of mine, then take the first — which is right inside the
+       building, where any campaign is a campaign we are running. On a
+       client's desk the first is ours or another client's, printed as a tag
+       on a card at a company they are selling to. Theirs or no tag. */
+    const own = c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0];
+    const camp = DB.byCamp[own || (isBuyer() ? '' : c.camps[0])];
     /* At the caller's desk the tag is the step; at the manager's it is the
        stage, because the step stopped moving at the hand-over. */
     const r = onBook() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
@@ -3764,7 +3778,7 @@
               '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>'
             /* NO CALL ON SOMEBODY YOU CANNOT call. A do-not-call, a hand-over, a
                person with no number — the card offered Call on all of them. */
-            : !c.phone && !c.dnc && !isExit(c.checkpoint)
+            : seesCost() && !c.phone && !c.dnc && !isExit(c.checkpoint)
               ? '<button class="s-inline-btn" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
               : '<button class="s-inline-btn" type="button" data-con="' + esc(c.id) + '">Open</button>') +
       '</div>' +
@@ -3907,7 +3921,9 @@
     if (o) {
       const n = o.news;
       const said = ' ' + esc(n.say) + ' — ' + esc(n.means) + '.';
-      const from = n.src + ', against what they hold';
+      /* What they hold is what they buy from US, so the provenance says
+         out loud that we checked our own order book against their news. */
+      const from = n.src + (seesGrade() ? ', against what they hold' : '');
       if (o.kind === 'open') {
         return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
           [line('They already run <b>' + esc(joinAnd(hold)) + '</b>, and <b>' +
@@ -5211,7 +5227,13 @@
            migration for a word. */
         : one('calls', 'Accounts', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
-      one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
+      /* A list is what a supplier returned, and its rows carry which one
+         and what it filled. `DB.list` is the whole build's, unscoped, and
+         the find box matches lists on `via` — the supplier's name. Nothing
+         survives rewording it, so the tab is not drawn. */
+      (seesCost()
+        ? one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' }))
+        : '') +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
     '</h2>';
   }
@@ -7260,6 +7282,19 @@
        card is what the company pays us in total rather than what it pays
        for this line. That is a fact about the company, said on a shelf of
        companies that all run his product. */
+    /* ══ AND A BUYER HAS NO BOOK HERE AT ALL ══════════════════════
+       For the two desks above, these are OUR customers and the only
+       question is which of them. On a client's desk the word changes
+       meaning underneath the function: the companies they care about are
+       the ones THEY are selling to, whose relationship is with them and
+       not with us, and `isCust` answers a question about our contracts.
+
+       So this is not a scope that needs narrowing, it is a reading this
+       desk does not have. Empty at the root rather than filtered at seven
+       call sites — which is also what takes another company's renewal date
+       and another company's contract value out of a client's bell, since
+       `openings` and the renewals row are both built from this list. */
+    if (isBuyer()) { CUST_CACHE = []; return CUST_CACHE; }
     const inBook = isLine()
       ? (a) => subsAt(a).some((s) => s.sell === myLine())
       : isCust;
@@ -7441,6 +7476,21 @@
   function openingAt(a) {
     const n = newsAt(a);
     if (!n) return null;
+    /* ══ THE NEWS IS THEIRS, THE CONCLUSION DRAWN FROM IT IS OURS ══════
+       What happened at the company is intelligence about a prospect a
+       client is chasing, and handing it to them is one of the better
+       things this product does. Which of OUR eight services it makes a
+       case for is a different sentence: `offer` is our next sale into an
+       account they found, `hold` names everything they already buy from
+       us, and the verb underneath says "Offer Managed customer support" —
+       a product the client does not sell, in a conversation they are not
+       in.
+
+       So a buyer gets the signal with no conclusion attached. `none` is
+       already the shape for "something happened and it argues for
+       nothing", so every reader of this handles it without being told
+       about a fourth desk. */
+    if (isBuyer()) return { news: n, kind: 'none', offer: null };
     const have = Object.create(null);
     subsAt(a).forEach((s) => (have[s.sell] = 1));
     const fit = (IND_FIT[a.industry] || { fits: [] }).fits;
@@ -9903,7 +9953,26 @@
         : 'the way anybody new reaches your queue' };
 
     let opens;
-    if (onBook()) {
+    if (isBuyer()) {
+      /* ══ THREE VERBS, AND THE LINE IS THE SAME ONE ═══════════════════
+         Against the manager's four, this desk loses the two that operate
+         the machine — building a campaign and finding leads — and keeps the
+         two that are the client's own half of the funnel. That is the
+         handover line again, drawn through a row of buttons.
+
+         The third is the page they came for. Financials had one door, in
+         the rail, which is the right weight for a desk that visits it and
+         the wrong weight for the one desk whose whole reason it is. */
+      const top = all[0];
+      opens = [
+        { k: 'callnext', label: 'Warm-call the next one',
+          why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
+        { k: 'lead', label: 'Add a lead',
+          why: 'somebody you met, straight onto your board' },
+        { k: 'money', label: 'See the year',
+          why: 'what was promised, and what has happened against it' },
+      ];
+    } else if (onBook()) {
       /* Four verbs, and every one of them is something this desk actually
          does: the phone for a warm call, the brief before a meeting, the
          board for where the money is, and the builder — a manager sources
@@ -10078,7 +10147,10 @@
 
        On a campaign there is no book and the loop keeps its seventh chip,
        labelled Won, meaning the deals that campaign closed. */
-    const book = onBook() && !S.camp;
+    /* A buyer's board is deals: open, won, lost. The seventh chip turns a
+       row of filters into our customer book, which is the one reading this
+       desk does not have — see `customers`. */
+    const book = onBook() && !isBuyer() && !S.camp;
     const bookChip = () =>
       '<button class="filter-chip b-cut-book' + (on === 'won' ? ' active' : '') + '" ' +
       'type="button" data-q="won">' + chIcon('company') + 'Clients' +
@@ -10899,6 +10971,7 @@
      gets one, deterministically off the record's id so a re-run says the
      same thing. One write, one toast, one undo. */
   function fillList(id) {
+    if (isBuyer()) { toast('We fill the numbers in.'); return; }
     const l = DB.byList[id];
     if (!l) return;
     const f = finderOf();
@@ -12450,9 +12523,13 @@
           /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
              the only door to the finder was on a surface two clicks away
              that does not know which campaign you were working. */
+          /* The closed line stays for everybody — it is a fact about their
+             campaign. The finder does not: it is us spending a supplier. */
           (campOpen(k)
-            ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
-              '">Find more for this campaign</button>'
+            ? (seesCost()
+              ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
+                '">Find more for this campaign</button>'
+              : '')
             : '<span class="s-block-sub">It closed ' + esc(sayWhen(k.to)) + '. Nothing on it is dialled now.</span>') +
         '</div>' +
       '</section>' +
@@ -13064,7 +13141,7 @@
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
           'Show the ' + commas(fresh) + ' never called</button>' : '') +
-        (all.length || !campOpen(k) ? '' :
+        (all.length || !campOpen(k) || !seesCost() ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
           '">Nobody left to call — find more</button>') +
       '</div>' +
@@ -13199,7 +13276,7 @@
          finder is what puts it right. */
       const wrong = stepCounts(st.members)['wrong-number'] || 0;
       rs.push({ text: exits,
-        door: wrong ? { attr: 'data-bopen="' + esc(k.id) + '"',
+        door: (wrong && seesCost()) ? { attr: 'data-bopen="' + esc(k.id) + '"',
           say: 'Find more for this campaign' } : null });
     }
     /* ══ THE MANAGER'S COLUMN IS NOT A READING FOR THIS DESK ══════════════
@@ -13558,7 +13635,8 @@
         n: noNum, of: members.length, unit: 'person', name: 'No number on the record',
         sub: 'They are on the campaign and there is nothing to dial.',
         beats: 'AiMY finds numbers overnight; the finder brings people who already have one.',
-        door: { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' },
+        door: seesCost()
+          ? { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' } : null,
       });
     }
     const gate = here.filter((t) => t.outcome === 'gatekeeper').length;
@@ -13928,6 +14006,17 @@
      When something has, `openingAt` speaks instead, because an argument
      built on a thing that happened beats one built on a calendar. */
   function expansionsOf(accId) {
+    /* ══ AND THE SECOND THING IS ALWAYS OURS TO SELL ═══════════════════
+       Every row here is a service of ours we would put in front of a
+       company next, off what they already buy from us. On a client's desk
+       that company is one THEY found and are selling to, so the row reads
+       as us working their account behind them — and the verb under it says
+       "Offer Managed customer support", which is a product they do not sell
+       and a conversation they are not in.
+
+       Empty at the root, like `customers`, rather than hidden at the three
+       places it surfaces. */
+    if (isBuyer()) return [];
     const pool = accId ? [DB.byAcc[accId]].filter(isCust) : customers();
     const out = [];
     pool.forEach((a) => {
@@ -13978,7 +14067,9 @@
        amber chip — so the masthead was the fourth telling, and the longest:
        "Worth a check-in every three weeks, and nothing has been said here
        yet" sitting above a sentence that says the same two things. */
-    const ci = onBook() && !isCust(a) ? checkinSay(a, hist) : null;
+    /* How often we think an account is owed a word, off its tier. Our
+       cadence for working our own book, on their prospect. */
+    const ci = onBook() && !isCust(a) && seesGrade() ? checkinSay(a, hist) : null;
 
     /* The furthest anyone here has got, as the chip beside the name. Below
        `answered` nobody has been reached, and that is the chip's whole
@@ -14034,7 +14125,10 @@
              own line rather than down among the facts — and at the end of
              it, so that opening one account after another puts it in the
              same place every time. */
-          (onBook() ? tierMark(a, 1) : '') +
+          /* Gold, Silver, Bench is us deciding how much of our week an
+             account is worth. Over a company a client found and is selling
+             to, it is our grade on their prospect. */
+          (onBook() && seesGrade() ? tierMark(a, 1) : '') +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -14057,10 +14151,16 @@
                ranked them backwards. Both are drawn, because the pair IS
                the account management question: this is what they buy, and
                this is how much of us they could. */
-            (onBook() && isCust(a)
+            /* ══ NEITHER OF THESE IS A FACT ABOUT THEIR PROSPECT ══════
+               Both are facts about US, standing on the record of a company
+               a client is selling to. What it pays us a year is our ledger,
+               and what of ours could fit is our next sale into an account
+               they found. A client reading either one learns nothing about
+               their own deal and something about our book. */
+            (onBook() && isCust(a) && seesCost()
               ? fact('money', '<b>' + esc(euro(custWorth(a))) + '</b> a year today')
               : '') +
-            (onBook()
+            (onBook() && seesGrade()
               ? fact('target', '<b>' + esc(euro(ceilingOf(a))) +
                 '</b> of our work could fit')
               : '') +
@@ -14082,7 +14182,13 @@
                on and which nothing else on it states. A contract without
                its start date is a subscription of unknown standing, and
                how long they have stayed is most of what it means. */
-            (isCust(a)
+            /* ══ AND THIS IS OUR CONTRACT, NOT THEIR PROSPECT ══════════
+               Every service this company buys from US, and how long they
+               have bought it. On a client's desk that is our order book
+               printed on the record of a company they are chasing — it
+               names products they do not sell and a relationship they are
+               not part of. */
+            (isCust(a) && seesCost()
               ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) +
                 ' · a client for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
               : '') +
@@ -14094,7 +14200,8 @@
                countdown rides with it only inside the quarter, because
                "renews Mar 2027" needs no urgency attached in September. */
             (function () {
-              const rn = isCust(a) ? renewAt(a) : null;
+              /* Our renewal date on our contract. Same refusal. */
+              const rn = (isCust(a) && seesCost()) ? renewAt(a) : null;
               if (!rn) return '';
               return fact('calendar', 'Renews <b>' + esc(monthYear(rn.at)) + '</b>' +
                 (rn.days <= RENEW_SOON
@@ -14138,7 +14245,12 @@
         '</div>' +
       '</section>' +
 
-      storyBlock(onBook() && isCust(a) ? custStory(a) : accStory(a, people, hist)) +
+      /* `custStory` is the story of OUR relationship with this company —
+         what they pay, what we have billed, their tier, when we are next
+         due to call them. `accStory` is the story of the work, which is the
+         one a client's desk is entitled to. */
+      storyBlock(onBook() && isCust(a) && seesCost()
+        ? custStory(a) : accStory(a, people, hist)) +
       accLead(a, people, hist, call, free) +
       /* `fitBlock` stood here. It answered the same question the reading
          above answers, from the other end, under its own heading with its
@@ -14445,7 +14557,17 @@
        they have run it, or the clock the tier bought them — and the ladder
        below is about getting through to a stranger on the phone, which is
        not what anybody opens a customer's page to find out. */
-    if (onBook() && isCust(a)) return custSay(a);
+    /* ══ AND WHETHER THEY BUY FROM US IS NOT THE CLIENT'S QUESTION ═══
+       `custSay` reads a company as a customer of OURS: what they run from
+       the range, what usually follows it, when we are next due to call
+       them. Every branch of it is our account management, and on a client's
+       desk it lands on a company THEY are selling to — which is how a
+       prospect with no contract at all came to be described to Kestrel as
+       running AiMY Knowledge and due a check-in in eighteen days.
+
+       Same refusal as `custStory` two hundred lines down, so the record and
+       the reading over it agree about which story this page is telling. */
+    if (onBook() && isCust(a) && seesCost()) return custSay(a);
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
     if (sig) return signalReading(a, sig, hist);
@@ -14633,7 +14755,12 @@
       '</section></div>';
     }
     const a = accOf(c);
-    const camps = campsOf(c);
+    /* ══ THE CAMPAIGNS ON A RECORD ARE THE ONES THIS DESK PAID FOR ═════
+       `campsOf` is every campaign the person is on, ours included. On a
+       client's record that made the count wrong in a way that gave
+       something away: "and 2 more" over one of theirs and one of ours is
+       telling them we are also working their prospect, and how often. */
+    const camps = isBuyer() ? campsOf(c).filter(mine) : campsOf(c);
     const mineCamp = camps.filter(mine)[0] || camps[0];
     /* Past the hand-over the step has stopped moving — every deal reads
        "Handed over" for ever — so at the manager's desk the status is the
@@ -14710,8 +14837,21 @@
                 Only where there is a deal. A lead nobody has handed over is
                 not being sold anything yet, and the campaign beside it
                 already says what it would be. */
+            /* ══ AND THE DRIFT CANNOT LEAVE WHAT THE CLIENT SELLS ═══════
+               `sellOf` models a conversation turning onto something else,
+               and on our own book it can turn onto any of the eight because
+               we sell all eight. A client sells two. Drifted onto AiMY
+               Knowledge, this line told Kestrel what WE are pitching into an
+               account they found — not their deal turning, ours.
+
+               The VALUE underneath is deliberately left alone. What a deal
+               is worth cannot depend on who is looking, and clamping the
+               price here would hand the same deal two numbers on two desks.
+               Only the name is read off their own campaign. */
             (onBook() && c.checkpoint === 'handed-over'
-              ? fact('sell', esc((SELL[sellOf(c)] || {}).name || 'nothing named yet'))
+              ? fact('sell', esc((SELL[isBuyer()
+                  ? (lineOf(dealCamp(c)) || sellOf(c)) : sellOf(c)] || {}).name
+                || 'nothing named yet'))
               : '') +
             fact('role', esc(c.title)) +
             (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
@@ -14845,7 +14985,8 @@
             : c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO ? ' to confirm' : ''),
         attr: 'data-call="' + esc(c.id) + '"' } : null;
     /* no number, or a number that is not theirs: the verb is the supplier */
-    const find = (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
+    const find = (seesCost() && !c.dnc &&
+      (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
       ? { html: 'Find a number', attr: 'data-enrichcon="' + esc(c.id) + '"' } : null;
     /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
        nobody in particular; the campaign's owner is who gets them. */
@@ -15082,12 +15223,18 @@
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const last = hist.filter((t) => !wasMissed(t))[0];
     let door = '';
-    if (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
+    /* Both of these name the supplier in the verb — "Ask Apollo for a
+       number" — which is our sourcing on a client's screen twice over: the
+       cost and the vendor. Gated rather than reworded, because a client
+       cannot do this at all; the else-if falls through to a door they
+       can. */
+    if (seesCost() && !c.dnc &&
+        (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
         'Ask ' + esc(finderOf().name) + ' for a number</button>';
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
       door = coMenu(a, others, 'Try one of the ' + others.length + ' others at ' + a.name);
-    } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
+    } else if (seesCost() && c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
       /* NO COLLEAGUE TO TRY, so the door is the supplier. The reading says
          this number may not be theirs, and "Call Ava" under it called it
          again. */
@@ -15759,7 +15906,20 @@
   function accMap(a, people) {
     if (!people.length) return '';
     const by = Object.create(null);
-    people.forEach((c) => campsOf(c).forEach((k) => (by[k.id] = by[k.id] || []).push(c)));
+    /* ══ AND "SOMEBODY ELSE IN THE BUILDING" HAS AN OUTSIDE ════════════
+       The paragraph above keeps every campaign on this map on purpose, and
+       the argument is a good one: a colleague already calling this company
+       is the one thing this drawing can say that nothing else on the page
+       can. It holds for everybody inside the building.
+
+       A client is not. On their desk the other campaigns at their prospect
+       are ours and other clients' — so the limb that exists to say "we are
+       already here" becomes a list of who else we are selling for, drawn on
+       a company they found. Their own, or nothing. */
+    people.forEach((c) => campsOf(c).forEach((k) => {
+      if (isBuyer() && !mine(k)) return;
+      (by[k.id] = by[k.id] || []).push(c);
+    }));
     const ids = Object.keys(by).sort((x, y) =>
       ((mine(DB.byCamp[y]) ? 1 : 0) - (mine(DB.byCamp[x]) ? 1 : 0)) || (by[y].length - by[x].length));
     const mineN = ids.filter((id) => mine(DB.byCamp[id])).length;
@@ -18408,6 +18568,7 @@
      so the answer is the same every time it is asked. A new number starts
      its own count of attempts; the history keeps the old calls. */
   function enrichCon(id) {
+    if (isBuyer()) { toast('We fill the numbers in.'); return; }
     const c = DB.byCon[id];
     if (!c) return;
     const f = finderOf();
@@ -19357,7 +19518,14 @@
        It was greeting every desk, and the default desk is a BDR's, so the
        first thing the product said to the person it is named for was an
        offer to do somebody else's job. */
-    if (!onBook()) return;
+    /* ══ AND IT IS NOT THE BUYER'S EITHER, FOR THE SAME REASON ═══════
+       The paragraph above says a BDR does not decide which companies to go
+       after. Neither does the person paying us to. What this offers is a
+       stranger found in our own network and a connection of ours spent to
+       reach them, which is sourcing — the half of the work this desk buys
+       rather than does. It also names the service it read, which is a
+       supplier on a client's screen. */
+    if (!onBook() || isBuyer()) return;
     if (REACH_SAID) return;
     const hit = reachTop();
     if (!hit) return;
@@ -21438,8 +21606,14 @@
          money into a heading of its own and broke the sentence across three
          lines. The meter is this line's emphasis; the figure sits in the
          prose beside it, which is what `.b-prep-owed` already does. */
-      know.push(['How far to go', tierMark(a, 1) + ' — ' + esc(euro(ceilingOf(a))) +
-        ' of our work could fit here. ' + esc(tierOf(a).play)]);
+      /* Our tier, our ceiling and our play for the account, as the FIRST
+         thing a brief says is already known. On a client's brief for their
+         own prospect it is three of our judgements and none of their
+         facts. */
+      if (seesGrade()) {
+        know.push(['How far to go', tierMark(a, 1) + ' — ' + esc(euro(ceilingOf(a))) +
+          ' of our work could fit here. ' + esc(tierOf(a).play)]);
+      }
     }
     know.push(['Who', esc(ASK_OF[(camp && camp.sells[0]) || 'qa']) + ' is who this campaign asks for, ' +
       'and ' + esc(c.name.split(' ')[0]) + ' is ' + esc(c.title.toLowerCase()) + '.']);
@@ -22289,6 +22463,13 @@
   }
 
   function cbuildStart() {
+    /* ══ GUARDED HERE, NOT ONLY WHERE THE BUTTON IS DRAWN ══════════════
+       Building a campaign, finding leads, buying a number and filling a
+       list are the four things on this product that operate the machine
+       rather than work the funnel, and every one of them spends our
+       suppliers' money. Each is refused at its own door as well as hidden,
+       so a control this sweep missed cannot act. */
+    if (isBuyer()) { toast('We build the campaigns. Say what you want and we will run it.'); return; }
     if (!onBook()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
     DRAFT = null;
@@ -22740,6 +22921,10 @@
      on a clean surface: the draft goes, and a half-built list is left
      rather than reopened underneath. */
   function lbuildStart(campId) {
+    /* The builder names a supplier on every screen of it — which one we
+       asked, what each fills, which to ask next — so there is no version of
+       it a client can be shown. */
+    if (isBuyer()) { toast('Finding people is ours. Add anybody you have met yourself.'); return; }
     DRAFT = null;
     if (S.build || S.list) goFree(Object.assign(cleared(), { on: 'lists' }), true);
     LBUILD = { kind: null, terms: [], step: 'kind', name: null,
@@ -23102,6 +23287,7 @@
       }
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
+      if (k === 'money') { go(Object.assign(cleared(), { on: 'money' })); return; }
       if (k === 'lead') { fillBar('Add a lead: '); return; }
       if (k === 'newcamp') { cbuildStart(); return; }
       if (k === 'callnext') {
