@@ -3527,7 +3527,10 @@
 }
 
 /* 5. The shelf. A step down in size and ink says reference without a rule
-   above it or a box around it. */
+   above it. It does now carry a box around its LABELS — see rank C above —
+   because a rank that opts out of the family stops reading as the bottom of
+   it and starts reading as unstyled. The block itself still takes no rule,
+   no border and no heading, which is the part this note was really about. */
 .b-prep-ref { display: flex; flex-direction: column; gap: 8px; margin-top: 26px; }
 /* .b-prep is a flex column, so adjacent margins do NOT collapse. .b-back
    already carries 26px below it and this adds 26 above, which measured 50px
@@ -3538,11 +3541,35 @@
   margin: 0; font-size: var(--t-small); color: var(--ink-muted);
   line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
 }
-/* RANK C. No chip: the shelf is reference, and .b-prep-ref below argues it
-   should read as such without a box around it. Bold and quiet is enough to
-   name a value on a line nobody reads twice. */
+/* RANK C, AND IT IS IN THE FAMILY AFTER ALL ════════════════════
+   This was left as plain bold on the argument below that the shelf earns
+   its step down without a box around it. Two things were wrong with that.
+
+   It made the QUIETEST rank the largest label on the panel: 14px, inherited
+   from .b-prep-refp, against 12px for the two ranks above it. A ladder that
+   runs 12 / 12 / 14 downward is not a ladder.
+
+   And "no treatment" is not the bottom of a scale, it is the absence of
+   one. A rank reads as ranked when it is the same KIND of thing as its
+   neighbours, held quieter — not when it opts out. So the shelf takes the
+   softest member of the chip family instead of leaving it:
+
+     A  filled + bordered + CAPS   the loudest edge there is here
+     B  bordered, no fill          a crisp edge, no weight behind it
+     C  filled, no border          weight without an edge: the quietest
+                                   thing that is still an object
+
+   A border is a hard boundary and reads stronger than a diffuse wash, which
+   is what puts C under B while keeping both in the same family. The fill is
+   5% against A's 8%, and the padding is 1px against 2px, so it sits inside
+   the line rather than interrupting it. */
 .b-prep-refp b {
-  font-weight: var(--fw-bold); color: var(--ink-muted); margin: 0 6px 0 0;
+  display: inline-block;
+  padding: 1px 8px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink-primary) 5%, transparent);
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  line-height: var(--lh-snug); color: var(--ink-muted);
+  margin: 0 6px 0 0;
 }
 .b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
 
