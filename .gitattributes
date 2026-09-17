@@ -1,0 +1,22 @@
+# ══ ONE CONVENTION IN THE REPO, WHATEVER THE MACHINE ════════════════════════
+#
+# Without this file, every clone's own `core.autocrlf` decides what lands in a
+# commit. That is survivable while one person works here and stops being so the
+# moment two do: a colleague with `autocrlf=false` commits CRLF into an index
+# that holds LF, and the next diff of that file is the whole file.
+#
+# `text=auto` means git decides what is text and stores text as LF. The index
+# already holds LF for every tracked file, so this states what is true rather
+# than changing it — adding it causes no renormalisation and no churn.
+#
+# It deliberately does NOT set `eol`, so the working tree still follows each
+# machine's `core.autocrlf`: CRLF here on Windows, LF on a Mac. What gets
+# COMMITTED is the same either way, which is the part that has to be settled.
+* text=auto
+
+# ── Except where the bytes are executable ──
+# A shebang with a carriage return in it is not a shebang: `/usr/bin/env
+# python3\r` is a program nobody has. These stay LF in the working tree too, so
+# the file works on the machine that runs it rather than only on the one that
+# committed it.
+*.py text eol=lf
