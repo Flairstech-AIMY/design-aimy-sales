@@ -201,25 +201,32 @@
       --sp-15: 60px;
 
       /* ── Typography ── */
-      /* Pairing: Urbanist (primary — UI & body) + Poppins (display — headings) */
-      /* ══ THE BODY FACE HAS TO CARRY FIGURES ════════════════
-         Poppins held this slot for one commit and lost it on two measurements.
+      /* ══ ONE FACE, EVERYWHERE ══════════════════════════
+         Poppins sets every word in this product, body and titles alike. That
+         is a decision rather than a default, so both tokens name it and there
+         is no pairing left — nothing remains for a second face to do.
 
-         It sets 14.6% wider than Urbanist did (828px against 723px for the
-         same sentence at 14px/400), which every dense row pays for; and
-         neither Poppins nor Urbanist ships tabular figures, so the 89
-         `font-variant-numeric: tabular-nums` declarations across sales.css,
-         bdr.css and this file were all inert. Measured with a control that
-         does support the feature, so this is the font and not the harness:
-         digit-width spread at 100px/600, tabular-nums requested --
+         ── What this costs, so nobody has to rediscover it ──
+
+         Poppins has no tabular figures. Every `font-variant-numeric:
+         tabular-nums` declaration in this build is therefore inert, and each
+         count, duration and money column sets on proportional digits: a
+         figure changes width when its value changes. Measured against
+         controls that DO support the feature, so this is the font and not
+         the test — digit-width spread at 100px, tabular-nums requested:
 
            Poppins   63.00     Urbanist  66.11     DM Sans  74.41   (inert)
            Figtree    0.00     Inter      0.00     Jakarta   0.00   (works)
 
-         Figtree is +2.6% on Urbanist rather than +14.6%, keeps the geometric
-         skeleton this system is built on, and actually performs the role. */
-      --font-sans:    "Figtree", system-ui, sans-serif;   /* primary / body  */
-      --font-display: "Urbanist", system-ui, sans-serif;  /* pairing / headings */
+         Figtree held this slot for exactly one commit and set those figures
+         correctly. It was replaced deliberately. If aligned figures are ever
+         wanted back without giving up this face, the cheap fix is a third
+         token for numerals only, applied to elements that are PURELY a
+         number and never to a sentence with one in it — a stray digit from
+         another face inside running text shows. */
+      --font-sans:    "Poppins", system-ui, sans-serif;   /* body AND titles */
+      --font-display: "Poppins", system-ui, sans-serif;   /* the same face; the
+                                    token stays so its callers keep working */
       --font-mono:    "JetBrains Mono", monospace;
 
       /* Font style */

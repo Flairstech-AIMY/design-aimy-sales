@@ -199,9 +199,6 @@
 .b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-extrabold); }
 .b-switch-n {
   margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
-  /* Same as .ntf-count: .b-switch-btn sets the display face and figures do
-     not survive it. The count moves back to the body face to keep width. */
-  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums; color: var(--ink-muted);
 }
 .b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); }
@@ -1332,7 +1329,10 @@
   border-radius: 14px;
   padding: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.2);
-  font-family: "Urbanist", sans-serif;
+  /* Was hardcoded "Urbanist" and so survived two font changes without
+     moving; when the document stopped requesting that family the panel
+     quietly fell to a system fallback. Name the token, not the face. */
+  font-family: var(--font-sans);
   text-align: left;
 }
 .ntf-panel[hidden] { display: none; }
@@ -3725,7 +3725,12 @@
 /* CENTRED ON THE LETTERS, WHICH HERE IS THE SAME AS CENTRED ON THE BOX.
    Measured rather than nudged: in Urbanist at this size and weight the cap
    band centre and the em box centre both sit 4.5px above the baseline, so
-   they coincide and a hand correction would only move it off. What the box
+   they coincide and a hand correction would only move it off.
+
+   That measurement was taken in Urbanist, which this build no longer sets.
+   It has NOT been re-taken in Poppins, so treat the coincidence as unproven
+   rather than as a reason not to correct by hand. The rest of this note is
+   face-independent and still holds. What the box
    does need is its leading taken away — the line box is fifteen pixels of
    font metrics around thirteen of type, and centring the mark against that
    is centring it against air. */

@@ -245,24 +245,26 @@ html {
   --ink-rule:      var(--d600);  /* NON-TEXT — hairlines and dots. Never type. */
 }
 
-/* ── Two faces, separated by weight ──
+/* ── One face, and weight does the separating ──
 
-   Poppins once held both roles here and was argued out of the display slot,
+   Poppins sets everything here now, titles included, so this token exists
+   only to keep the ~20 rules that name it working. It resolves to the same
+   face as `--font-sans`, and there is no pairing left.
+
+   The note that stood at this line argued Poppins OUT of the display slot,
    because a 13px Poppins heading beside 13px Urbanist body was
    indistinguishable — the pairing separated nothing, which is the second
-   reason headings did not anchor the groups beneath them. That still holds:
-   the display role is Urbanist 800 and it is WEIGHT, not skeleton, that
-   separates a heading from the body under it.
+   reason headings did not anchor the groups beneath them. Its conclusion
+   outlives its own premise: it is WEIGHT and size, not skeleton, that
+   separate a heading from the body under it. With one face that is now the
+   only mechanism there is, so it has to be spent deliberately — a title
+   that is merely a little larger will not anchor anything.
 
-   Poppins came back as the body face and left again one commit later, this
-   time on the figures. The reasoning and the measurements are at the
-   `--font-sans` token in aimy-ds.css; the short version is that the body
-   face has to set tabular figures, because 86 rules in this file and
-   bdr.css ask it to, and Figtree does.
-
-   Butterick: "max 2 fonts, each gets a consistent role" — and a role a face
-   cannot actually perform is not a role. */
-:root { --font-display: "Urbanist", system-ui, sans-serif; }
+   Butterick: "max 2 fonts, each gets a consistent role." One is fine. The
+   cost is recorded at `--font-sans` in aimy-ds.css: Poppins cannot set a
+   tabular figure, so every rule in this file and bdr.css that asks for one
+   gets nothing — and a role a face cannot perform is still not a role. */
+:root { --font-display: "Poppins", system-ui, sans-serif; }
 
 /* ── Body text first ──
    The four properties that calibrate everything else, in one place, on the
@@ -1307,9 +1309,6 @@ body {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   padding: 2px 8px; border-radius: var(--r-pill);
   background: var(--accent-dim); color: var(--accent);
-  /* Inherits the display face from .ntf-head, which has no tabular figures,
-     so the badge changed width every time the count did. A figure is data. */
-  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
 .ntf-count[hidden] { display: none; }
@@ -8476,20 +8475,30 @@ body.is-figures .filter-tray { display: none; }
 /* ══ ONE FAMILY, AND THE MONO WAS NEVER LOADED ═════════════════════════
 
    Every caption and figure on this surface asked for `--font-mono`, and
-   this product loads exactly one family — Urbanist. So the request fell
+   this product loads exactly one family — Poppins. So the request fell
    through JetBrains Mono to whatever the machine calls `monospace`:
    Consolas on Windows, Menlo on a Mac. A different typeface per operating
    system, at 32px, on the one number the page is about.
 
    It should not have been mono in any case. The only thing it was buying
-   was digits that do not reflow when a period switches, and
-   `font-variant-numeric: tabular-nums` does that on ANY face — it is a
-   property, not a reason for a third family. index.html records why Poppins
-   was dropped: two geometric sans separated nothing. A monospace would have
-   separated too much, in the wrong direction, adding a terminal register to
-   a page about money.
+   was digits that do not reflow when a period switches. A monospace would
+   have separated too much, in the wrong direction, adding a terminal
+   register to a page about money.
 
-   So hierarchy comes from weight and size within Urbanist, which loads
+   CORRECTION, and it matters well beyond this surface. The sentence that
+   stood here said `font-variant-numeric: tabular-nums` buys that "on ANY
+   face — it is a property, not a reason for a third family". The first
+   half is false and the second is the right conclusion for a wrong reason.
+   A property can only switch on a feature the font actually ships, and
+   Poppins does not ship one: digit-width spread 63.00 at 100px with the
+   property set, against 0.00 for a face that does support it. Measured, in
+   the browser, against a control that can fail. So the ~86 declarations of
+   it in this file and bdr.css buy nothing at all today, and figures here do
+   reflow when their value changes. That is a known, accepted cost of the
+   one-face decision — see `--font-sans` in aimy-ds.css for the remedy if it
+   is ever judged too expensive.
+
+   So hierarchy comes from weight and size within Poppins, which loads
    400 through 800. Captions sit at 600 because the floor is 400 or heavier
    below 18px and uppercase at the minimal step needs the extra body.
 
