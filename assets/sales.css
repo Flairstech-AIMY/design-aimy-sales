@@ -3372,9 +3372,15 @@ body.is-calling { --fb-reserve: var(--call-width); }
    column wider than its track and shove the thread off screen. */
 .s-rec-main { min-width: 0; }
 
+/* A CONTROL IS CHROME, NOT CONTENT. This was --fs-sm at 16, which is the
+   body step: the way back off a record was set at the same size as the
+   record. bdr.css already lifted its INK off --d400 on the argument that it
+   is a navigation control and not a footnote; the size never followed. 14 is
+   the meta step and the right one for a control that names a destination
+   rather than saying anything. The 14px mark beside it now matches it. */
 .s-back {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
   color: var(--ink-muted); cursor: pointer; padding: 4px 0; margin-bottom: 12px;
   transition: color var(--t-fast);
 }
