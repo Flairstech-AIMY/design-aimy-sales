@@ -340,6 +340,14 @@ html {
    theme, so one value serves both and nothing forks. */
 :root { --badge-ground: #d92d20; }
 
+/* A PILL BELOW THE SIZE FLOOR. .overlay-badge is 11px in aimy-ds.css, and
+   11 is not on this scale — the rule is even, and never below twelve. It is
+   uppercase and tracked as well, which is the treatment that needs the most
+   size rather than the least. Its ink was --d400, two steps under the --d200
+   type floor this product set for itself. Both corrected here rather than
+   there, like every other divergence from the library. */
+.overlay-badge { font-size: var(--fs-2xs); color: var(--ink-muted); }
+
 .float-badge {
   font-weight: var(--fw-bold);
   font-size: var(--fs-2xs);
@@ -3014,7 +3022,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   padding: 20px; max-width: none;
 }
 .s-findings-say {
-  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  font-size: var(--ty-body); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--ink-primary);
   margin: 8px 0 16px; text-wrap: pretty;
 }
@@ -3656,7 +3664,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-lead-say {
   flex: 1 1 260px; min-width: 0;
-  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  font-size: var(--ty-body); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--ink-secondary);
   text-wrap: pretty;
 }
@@ -3671,7 +3679,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    step — because a number nobody has been told the meaning of is a number
    nobody acts on. */
 .s-lead-deck {
-  font-size: var(--ty-deck); font-weight: var(--fw-bold);
+  font-size: var(--ty-body); font-weight: var(--fw-bold);
   line-height: var(--lh-tight); color: var(--ink-primary);
   max-width: 52ch; text-wrap: balance;
   margin-bottom: 20px;
@@ -4529,7 +4537,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    rather than wrapping the row — at 62ch the goal alone was wider than the
    block's own measure and pushed its own label onto the line above. */
 .s-goal-text.is-lede {
-  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  font-size: var(--ty-body); font-weight: var(--fw-medium);
   color: var(--ink-primary); line-height: var(--lh-base);
   max-width: 50ch; text-wrap: pretty;
 }
@@ -5298,7 +5306,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    everything below it, so it reads as a statement rather than as the value
    of a field. Empty, it says where to type instead of leaving a blank. */
 .s-said {
-  font-size: var(--ty-deck); color: var(--ink-primary);
+  font-size: var(--ty-body); color: var(--ink-primary);
   line-height: var(--lh-base); max-width: 72ch; margin: 0;
 }
 .s-said.is-empty { font-size: var(--ty-body); color: var(--ink-secondary); }
@@ -5891,7 +5899,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The line the kicker introduces, and the loudest text in the section. */
 .s-sect-deck {
   flex: 1 1 auto; min-width: 0;
-  font-size: var(--ty-deck); font-weight: var(--fw-bold);
+  font-size: var(--ty-body); font-weight: var(--fw-bold);
   line-height: var(--lh-tight); color: var(--ink-primary);
   max-width: 46ch; text-wrap: pretty; margin: 0;
 }
