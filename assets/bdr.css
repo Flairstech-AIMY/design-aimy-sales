@@ -308,7 +308,7 @@
   font-size: var(--fs-base); font-weight: var(--fw-semibold);
   line-height: var(--lh-snug); color: var(--ink-primary);
 }
-.b-qcard-why b { font-weight: var(--fw-extrabold); }
+.b-qcard-why b { font-weight: var(--fw-bold); }
 
 /* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
    The fix above moved the note's TEXT off the edge and left its rule behind.
@@ -369,7 +369,7 @@
   font-size: var(--t-small); font-weight: var(--fw-bold); color: var(--ink-muted);
 }
 .b-qcard .tc-title {
-  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  font-size: var(--fs-lg); font-weight: var(--fw-bold);
   line-height: var(--lh-tight); color: var(--d50);
 }
 .b-qcard .b-qcard-role {
@@ -1504,7 +1504,7 @@
 .ntf-panel::-webkit-scrollbar-thumb:hover { background: var(--card-border); }
 
 .ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
-.ntf-head b { font-size: var(--t-ui); font-weight: var(--fw-extrabold); color: var(--d50); letter-spacing: 0.01em; }
+.ntf-head b { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); letter-spacing: 0.01em; }
 .ntf-count {
   font-size: var(--t-micro); font-weight: var(--fw-bold); padding: 1px 7px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.16); color: var(--qa-accent);
@@ -1535,7 +1535,7 @@
 .ntf-sev.p2, .ntf-sev.p3 { background: var(--d500); }
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
-.ntf-row-type { font-size: var(--t-ui); font-weight: var(--fw-extrabold); color: var(--d50); }
+.ntf-row-type { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
 .ntf-row-when { margin-left: auto; font-size: var(--t-small); color: var(--ink-muted); flex-shrink: 0; }
 /* The sentence the row is for. It was the smallest and faintest thing in the
    panel, under a label that was neither. */
@@ -2006,7 +2006,7 @@
 .b-nmo-sum::-webkit-details-marker { display: none; }
 .b-nmo-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-nmo-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 /* Its own month's, right where the eye already stops. */
 .b-nmo-n { margin-left: auto; font-size: var(--fs-2xs); color: var(--ink-quiet); }
@@ -2255,7 +2255,7 @@
   margin: 0 0 16px; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-tight); color: var(--d100);
 }
-.b-story-now b { font-weight: var(--fw-extrabold); color: var(--d50); }
+.b-story-now b { font-weight: var(--fw-bold); color: var(--d50); }
 .b-story-now b.tone-ok { color: var(--ok-text); }
 .b-story-now b.tone-warn { color: var(--warn-text); }
 .b-story-now b.tone-err { color: var(--err-text); }
@@ -2707,7 +2707,7 @@
   margin: 0; font-size: var(--t-lead); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d50); max-width: 62ch; text-wrap: pretty;
 }
-.b-state-say b { font-weight: var(--fw-extrabold); }
+.b-state-say b { font-weight: var(--fw-bold); }
 .b-state-moves { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .b-state.is-ask { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
@@ -4414,7 +4414,7 @@
 .b-owed-main { flex: 1; min-width: 0; }
 .b-owed-head { display: flex; align-items: baseline; gap: 8px; }
 .b-owed-type {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 .b-owed-when { font-size: var(--fs-2xs); color: var(--ink-quiet); }
 .b-owed-body {
@@ -5860,7 +5860,7 @@
 
 .b-log-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .b-log-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 /* The number, the direction and the hour, at the floor for type and no lower.
    Tabular figures because a column of phone numbers and clock times that do

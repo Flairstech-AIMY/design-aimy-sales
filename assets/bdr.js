@@ -5682,7 +5682,14 @@
      block with a different name. */
   function notesOf() {
     const meId = me().id;
-    return DB.touch.filter((t) => t.by === meId && t.note)
+    /* AND NOT THE MISSED CALLS. The seeded inbound no-answers carry a note
+       — "They called. Nobody picked up." — because the record timeline and
+       this feed share one row builder and that builder reads t.note for its
+       second line. On a timeline that sentence is the event described. On a
+       page called Notes it is not a note: nobody wrote it, nobody spoke, and
+       872 of them buried the notes somebody did write. The call log is where
+       they belong and where they already are. */
+    return DB.touch.filter((t) => t.by === meId && t.note && !wasMissed(t))
       .sort((a, b) => (a.at < b.at ? 1 : -1));
   }
 
