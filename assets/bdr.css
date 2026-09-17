@@ -660,8 +660,30 @@
 /* What comes back at you and the answer agreed to it. It was a section on
    the campaign page and it is a part of the brief now — the caption is the
    brief's, the pair underneath is the one this build already drew. */
+/* ══ PROXIMITY IS THE AXIS NOBODY SPENT ═══════════════════════
+   Hierarchy is size, weight, tone AND space. The first three were tuned
+   over several passes and the fourth was never touched, which is why the
+   call-prep panel still read as one undifferentiated column of text.
+
+   Measured, top-level gaps down that panel against the gaps INSIDE its
+   groups:
+
+     between sections   14  12  15  15   9  10  36
+     inside a group     10 (answer rows)   6 (shelf lines)
+
+   A section boundary and a row boundary were the same distance apart, so
+   nothing grouped and everything read as one list. This heading was the
+   clearest case: 15px above it and 9px below, very nearly equidistant
+   between the block it ENDS and the block it INTRODUCES. And the largest
+   gap on the panel, 36px, sat in front of the shelf — the least important
+   thing there.
+
+   Three tiers now, at roughly 3:1, which is the point where proximity
+   starts doing work: 26px between sections, 12-14px inside a section, and
+   6px from a heading to the thing it introduces. A heading belongs to what
+   follows it, so it sits close to that and far from what it ends. */
 .b-brief-cap {
-  margin: 18px 0 10px;
+  margin: 26px 0 6px;
   font-size: var(--t-micro); font-weight: var(--fw-medium);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
@@ -2266,7 +2288,7 @@
    the stripe is the oldest tell in the book. What comes back is a pair — their words tagged in the warning
    tone, your answer in full ink under it. What we sell and what you can
    send are the quiet ends. */
-.b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.b-back { display: flex; flex-direction: column; gap: 14px; margin-bottom: 26px; }
 .b-back:last-child { margin-bottom: 0; }
 /* ══ THE LABEL SITS ABOVE ITS ANSWER, AND STOPS SHOUTING ═══════════
    Two faults, one row.
@@ -3361,13 +3383,23 @@
    none. */
 .b-prep { display: flex; flex-direction: column; }
 .b-prep-id {
-  margin: -2px 0 16px; font-size: var(--t-ui); color: var(--d200);
+  margin: -2px 0 10px; font-size: var(--t-ui); color: var(--d200);
   line-height: var(--lh-base); text-wrap: pretty;
 }
 
 /* 1. Where they stand and what is owed — the fact that decides what this
    call is for, on one line, at the top, where it is looked for. */
-.b-prep-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+.b-prep-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 26px; }
+/* TWO PILLS, ONE COLOUR, SIDE BY SIDE. .tag-warn and .b-prep-due.is-late
+   render identically — both rgb(247,201,92) on a 13% wash inside a 32%
+   border, same radius, 12px/700 against 14px/600. So the state chip and
+   the overdue warning were the same object twice, and the one that is
+   actually urgent had nothing to stand out from. Amber belongs to late.
+   Scoped here rather than on .tag-warn itself, because on a queue card
+   the state chip is the only amber thing and it works there. */
+.b-prep-state .tag-warn {
+  color: var(--ink-muted); background: transparent; border-color: var(--card-border);
+}
 .b-prep-owed { font-size: var(--t-ui); color: var(--d100); }
 .b-prep-due {
   padding: 2px 9px; border-radius: var(--r-pill); white-space: nowrap;
@@ -3378,7 +3410,7 @@
 
 /* 2. The one line here anybody says out loud, so it is set as speech. */
 .b-open {
-  margin: 0 0 18px; padding: 14px 16px;
+  margin: 0 0 26px; padding: 14px 16px;
   background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
   border-radius: 14px;
 }
@@ -3395,7 +3427,7 @@
 
 /* 3. What shapes those words. Body ink, because it is read; the label is the
    only bold thing on the line, as it is everywhere else in this build. */
-.b-prep-know { display: flex; flex-direction: column; gap: 9px; }
+.b-prep-know { display: flex; flex-direction: column; gap: 8px; }
 .b-prep-line {
   margin: 0; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
@@ -3413,7 +3445,12 @@
 
 /* 5. The shelf. A step down in size and ink says reference without a rule
    above it or a box around it. */
-.b-prep-ref { display: flex; flex-direction: column; gap: 7px; margin-top: 20px; }
+.b-prep-ref { display: flex; flex-direction: column; gap: 8px; margin-top: 26px; }
+/* .b-prep is a flex column, so adjacent margins do NOT collapse. .b-back
+   already carries 26px below it and this adds 26 above, which measured 50px
+   in place — making the shelf, the least important block on the panel, the
+   most separated thing on it. The pair is spaced once. */
+.b-back + .b-prep-ref { margin-top: 0; }
 .b-prep-refp {
   margin: 0; font-size: var(--t-small); color: var(--ink-muted);
   line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
