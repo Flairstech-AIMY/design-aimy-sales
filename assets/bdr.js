@@ -211,16 +211,20 @@
        word says which one it is. The only one that keeps a colour is the
        last, because reaching the end of the caller's job is the one thing
        on this list that has actually been decided. */
-    { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
-    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
+    { k: 'not-called',  label: 'Not called',   tone: 'neutral', echo: true, say: 'nobody has called them yet' },
+    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', echo: true, say: 'called, nobody picked up' },
     /* The one step that is not only a position: somebody named a time and
        is expecting a call. It is also the cut this desk works
        first, so it earns the one hue on the ladder. */
-    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
-    { k: 'answered',    label: 'Answered',     tone: 'neutral', say: 'you got them on the phone' },
-    { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', say: 'time in a diary' },
-    { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', say: 'they came to the meeting' },
-    { k: 'interested',  label: 'Interested',   tone: 'neutral', say: 'they want to go further' },
+    { k: 'callback',    label: 'Callback',     tone: 'warn',    echo: true, say: 'they asked to be called back' },
+    { k: 'answered',    label: 'Answered',     tone: 'neutral', echo: true, say: 'you got them on the phone' },
+    { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', echo: true, say: 'time in a diary' },
+    { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', echo: true, say: 'they came to the meeting' },
+    { k: 'interested',  label: 'Interested',   tone: 'neutral', echo: true, say: 'they want to go further' },
+    /* No `echo` here, and that is the test the flag encodes: this gloss
+       names the DIRECTOR, which 'Handed over' does not. A sentence that
+       adds a noun earns its line; one that re-words the chip beside it
+       does not. */
     { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'with the director' },
   ];
   /* The ways out. Not steps: a lead does not climb to "declined", it leaves. */
@@ -23411,17 +23415,45 @@
        narrating what the reader is doing. The rung's own label stays,
        because which step this is remains the question. */
     const owedNamed = inbound && c.next && why && why.indexOf(c.next.what) >= 0;
+    /* ══ ONE FACT, SAID ONCE ══════════════════════════════════
+       This row rendered a callback three times over. The rung is
+       { label: "Callback", say: "they asked to be called back" } and its
+       step is { what: "Call them back" }, so the chip, the sentence and the
+       pill were one fact in three grammars — a noun, a report, an order.
+       The only new words in the row were the two dates.
+
+       The guard below already knew this and said so, but it was reachable
+       only on an inbound call, where `why` happens to name the step. The
+       same collision on an outbound one went straight through.
+
+       Two cuts, each keeping whatever the chip does not already carry:
+
+         the gloss  goes when the rung is flagged `echo` — when its sentence
+                    names nothing its label does not. Its ", since 2 Aug"
+                    survives on its own, because a date is not a re-wording.
+
+         the verb   goes from the pill when the step is the rung said as an
+                    instruction. Compared on content words, so "Call them
+                    back" collapses to "callback" and matches the label,
+                    while the same step under "Answered" does not and keeps
+                    its verb — there it is the new information.
+
+       [Callback]  they asked to be called back, since 2 Aug
+       [Call them back · was due 8 Sep]          becomes
+       [Callback]  since 2 Aug  [was due 8 Sep] */
+    const bareWords = (x) => String(x).toLowerCase()
+      .replace(/\b(a|an|the|them|they|their|to|be|it|its|was|is|and|of|for|on|in)\b/g, '')
+      .replace(/[^a-z]/g, '');
+    const stepEcho = !!(c.next && bareWords(c.next.what) === bareWords(rg.label));
+    const since = c.checkpointAt ? 'since ' + sayWhen(c.checkpointAt) : '';
+    const owed = rg.echo ? since : rg.say + (since ? ', ' + since : '');
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
         esc(rg.label) + '</span>' +
-      (inbound ? '' : '<span class="b-prep-owed">' + esc(rg.say) +
-        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>') +
-      /* The chip and the reading are the same fact when the reading is the
-         overdue step — "Call them back · was due 6 Sep" over "Probably
-         chasing Call them back, it was due 6 Sep". The sentence keeps it,
-         because it is the one that says what it MEANS. */
+      (inbound || !owed ? '' : '<span class="b-prep-owed">' + esc(owed) + '</span>') +
       (c.next && !owedNamed
-        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
+        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' +
+          (stepEcho ? '' : esc(c.next.what) + ' · ') +
           esc((late ? 'was due ' : 'due ') + sayWhen(c.next.due)) + '</span>'
         : '') +
     '</div>';
