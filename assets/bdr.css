@@ -6074,3 +6074,25 @@
    three of these are set earlier: .b-qcard-num above in this file, .tag and
    .s-insight-lnk in sales.css. Equal specificity, so the last one wins. */
 .tag, .s-insight-lnk, .b-qcard-num, .tc-type { font-weight: var(--fw-semibold); }
+
+/* ══ THE NOTES ROW ═════════════════════════════════════
+   Two ranks, and the note is the loud one: body step against minimal, 400
+   against 500, --d100 against --ink-muted. The gap inside a row is 2px and
+   .b-feed puts 10 between rows, so a note and its provenance read as one
+   thing and the next note reads as another. */
+.b-note-say {
+  margin: 0 0 2px; max-width: 70ch; text-wrap: pretty;
+  font-size: var(--t-body); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d100);
+}
+.b-note-who {
+  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--ink-muted);
+}
+.b-note-name {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-weight: var(--fw-semibold); color: var(--ink-secondary);
+  transition: color var(--t-fast);
+}
+.b-note-name:hover { color: var(--d50); }
+.b-note-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }

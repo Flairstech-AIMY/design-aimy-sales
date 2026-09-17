@@ -5723,13 +5723,43 @@
   /* The day headings inside a month, the same ones `feedBlock` draws. Not
      `feedBlock` itself: that pages what it is given, and the months are the
      paging now. */
+  /* ══ A NOTE LEADS WITH THE NOTE ═══════════════════════════
+     This page drew campTouchRow, which is the record timeline’s row, and so
+     it read as a touchpoint log: the name first, then the OUTCOME, then who
+     logged it and when, and the note last and quietest. On a timeline that
+     order is right — you are reading what happened. On a page called Notes
+     it puts the content at the bottom in the smallest type on the row.
+
+     Inverted here. The note is the body step and comes first; the person,
+     the outcome and the time are one meta line under it at the minimal
+     step. Same facts, ranked the way the page is named.
+
+     AND THE OUTCOME DROPS OUT WHEN THE NOTE ALREADY IS IT. NOTE['no-answer']
+     opens with the string "No answer.", so the row read "No answer" in the
+     meta and "No answer." above it — the same words twice, which is the
+     fault the prep panel had. Compared on letters alone, so "No answer."
+     against the label "No answer" collapses and drops, while "Straight to
+     answerphone." keeps it because it says something else. */
+  function noteRow(t) {
+    const c = DB.byCon[t.con];
+    const kind = kindLabel(t);
+    const letters = (x) => String(x || '').toLowerCase().replace(/[^a-z]/g, '');
+    const echoes = kind && letters(t.note).indexOf(letters(kind)) >= 0;
+    return '<p class="b-note-say">' + esc(t.note) + '</p>' +
+      '<p class="b-note-who">' +
+        '<button class="b-note-name" type="button" data-con="' + esc(t.con) + '">' +
+          esc(c ? c.name : 'Somebody') + '</button>' +
+        (echoes ? '' : '<span> · ' + esc(kind) + '</span>') +
+        '<span> · ' + esc(timeOf(t.at)) + '</span>' +
+      '</p>';
+  }
   function notesRows(rows) {
     let day = '';
     return '<div class="b-feed">' + rows.map((t) => {
       const d = t.at.slice(0, 10);
       const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(t.at)) + '</h3>' : '';
       day = d;
-      return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
+      return head + '<div class="b-feed-row">' + noteRow(t) + '</div>';
     }).join('') + '</div>';
   }
 
