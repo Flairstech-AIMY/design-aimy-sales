@@ -483,15 +483,87 @@
      speaking for AiMY, which changes the first sentence out of their mouth
      and everything they can promise. The page never said which was which.
      A client brings its own offer; the AiMY-branded products are our book. */
+  /* ══ WHAT THE FEE BOUGHT, SAID BEFORE THE YEAR STARTED ══════════════════
+     A client does not read a cost breakdown; they read whether the thing
+     they were promised happened. So a deal is one number and a list of
+     commitments, and nothing on their page divides one by the other.
+
+     SET, NOT DERIVED, in `TARGET_LINE`'s words and for its reason: a target
+     is a commitment and a commitment is not a consequence of the work. The
+     day the fee moves, it moves alone.
+
+     `read` names the derivation each promise is scored off, so a reader who
+     doubts a figure knows which surface to go and check it against — the
+     same duty every AiMY sentence in this build carries as `from`.
+
+     `was` IS THE BASELINE, WHERE THERE IS ONE. A promise to MOVE a number
+     has to say where it stood before us, and where it stood before us is a
+     fact of the contract rather than something the work can be asked to
+     produce. Null means the promise is to reach a number, not to move one.
+
+     `ours` IS THE HANDOVER LINE, MACHINE-READABLE. We answer for finding
+     them, qualifying them and putting them in a room. What happens in the
+     room is theirs. The ledger draws a rule between the two and claims
+     nothing below it.
+
+     ONLY `peregrin` IS ENTERABLE TODAY. The other three carry a deal anyway,
+     because a half-populated constant rots and `CLIENT[k].deal` being
+     sometimes undefined is a crash waiting for whoever adds the second desk.
+     `harlow` and `ostend` hold no campaigns in this corpus, so their
+     promises have nothing to score against until the readings that could
+     score them exist. */
   const CLIENTS = [
     { k: 'norvant', name: 'Redlake Data', sells: ['data'],
-      what: 'training-data operations. We find the teams still labelling by hand' },
+      what: 'training-data operations. We find the teams still labelling by hand',
+      deal: { fee: 120000, since: '2025-07-01', term: 12,
+        line: 'We find them and qualify them. The conversation about the work is yours.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 40, was: null, ours: true,
+            say: 'Forty qualified meetings with teams still labelling by hand' },
+          { k: 'found', read: 'funnel.reachable', unit: 'count', to: 150, was: null, ours: true,
+            say: 'A hundred and fifty people we could actually reach' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 150000, was: null, ours: false,
+            say: 'A hundred and fifty thousand signed off the meetings we booked' },
+        ] } },
     { k: 'harlow', name: 'Harlow Delivery', sells: ['back'],
-      what: 'back-office delivery. Their offer, our callers, their diary' },
+      what: 'back-office delivery. Their offer, our callers, their diary',
+      deal: { fee: 95000, since: '2026-01-01', term: 12,
+        line: 'Our callers, their offer. The diary is theirs and so is the room.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 25, was: null, ours: true,
+            say: 'Twenty-five qualified meetings in the diary' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 90000, was: null, ours: false,
+            say: 'Ninety thousand signed off them' },
+        ] } },
     { k: 'peregrin', name: 'Kestrel Labs', sells: ['test', 'eng'],
-      what: 'engineering and test capacity. We source and qualify; they take it from the meeting' },
+      what: 'engineering and test capacity. We source and qualify; they take it from the meeting',
+      deal: { fee: 180000, since: '2025-10-01', term: 12,
+        line: 'We find them, qualify them and put them in a room with you. ' +
+          'What happens in the room is yours.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 30, was: null, ours: true,
+            say: 'Thirty qualified meetings across test and engineering' },
+          { k: 'found', read: 'funnel.reachable', unit: 'count', to: 100, was: null, ours: true,
+            say: 'A hundred people we could actually reach' },
+          { k: 'lines', read: 'lines.live', unit: 'count', to: 2, was: null, ours: true,
+            say: 'Both services in the market, neither left cold' },
+          { k: 'reach', read: 'camps.regions', unit: 'count', to: 3, was: null, ours: true,
+            say: 'Three regions opened, not one' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 200000, was: null, ours: false,
+            say: 'Two hundred thousand signed off the meetings we booked' },
+          { k: 'live', read: 'pipe.open', unit: 'count', to: 6, was: null, ours: false,
+            say: 'Six deals still live when the year closes' },
+        ] } },
     { k: 'ostend', name: 'Lambourne Care', sells: ['support'],
-      what: 'outsourced customer support. We open the market and hand every meeting over' },
+      what: 'outsourced customer support. We open the market and hand every meeting over',
+      deal: { fee: 140000, since: '2026-02-01', term: 12,
+        line: 'We open the market and hand every meeting over.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 35, was: null, ours: true,
+            say: 'Thirty-five qualified meetings handed over' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 160000, was: null, ours: false,
+            say: 'A hundred and sixty thousand signed off them' },
+        ] } },
   ];
   const CLIENT = Object.create(null);
   CLIENTS.forEach((c) => (CLIENT[c.k] = c));
@@ -3174,6 +3246,9 @@
         : fn === 'client' ? 'kestrel' : '';
     }
     if (S.on === 'deals' && !onBook()) S.on = 'calls';
+    /* Same refusal as `as` two branches up: a key that silently means a
+       window this desk cannot read is worse than one that resolves. */
+    if (isBuyer()) S.period = 'deal';
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -6706,6 +6781,20 @@
     { k: 'y',   label: 'This year' },
     { k: 'r12', label: 'Rolling 12 months' },
   ];
+  /* ══ A CLIENT HAS ONE WINDOW, SO IT IS NOT A CHOICE ════════════════════
+     Every chip here asks a question a client's deal cannot answer. It was
+     signed for a term, the promises were made for that term, and a quarter
+     of it is not a commitment anybody made — see `targetFor`. Nor is the
+     calendar year: Kestrel's term runs October to September, and scoring an
+     October promise over January to December measures a commitment against a
+     clock nobody agreed to. That one reads MILD rather than wrong, which is
+     worse. At thirteen days left the calendar said three thousand behind and
+     the term says fifty-three.
+
+     So the control is not narrowed, it is gone, and what replaces it is the
+     term said in words beside the heading. A switcher offering one option is
+     a control that cannot be worked. */
+  const periodsFor = () => (isBuyer() ? [] : PERIODS);
   const inPeriod = (at, p) => !!at && at >= p.from && at <= p.to;
 
   /* ══ A PART-FINISHED PERIOD COMPARES AGAINST A PART OF THE LAST ONE ════
@@ -6718,7 +6807,23 @@
     const q = Math.floor(TODAY.getMonth() / 3);
     const qStart = (yy, qq) => isoDay(new Date(yy, qq * 3, 1));
     const dayBefore = (d) => isoAdd(d, -1);
-    const row = PERIODS.some((p) => p.k === k) ? k : 'q';
+    /* `deal` is not a chip, so it is not in `PERIODS` and has to be named
+       here or the guard would quietly resolve a client's whole window to a
+       quarter. */
+    const row = (k === 'deal' || PERIODS.some((p) => p.k === k)) ? k : 'q';
+    if (row === 'deal') {
+      const d = myDeal();
+      const from = d ? d.since : isoDay(new Date(y, 0, 1));
+      const end = d ? isoAdd(monthStep(from, d.term), -1) : TODAY_ISO;
+      const to = TODAY_ISO < end ? TODAY_ISO : end;
+      const span = daysBetween(from, end) + 1;
+      /* The term before this one, whole, so a trend compares a year of the
+         contract to a year of the contract. */
+      return { k: row, from: from, to: to, whole: TODAY_ISO >= end,
+        days: daysBetween(from, to), span: span, end: end,
+        elapsed: Math.min(1, (daysBetween(from, to) + 1) / span),
+        prior: { from: d ? monthStep(from, -d.term) : from, to: dayBefore(from) } };
+    }
 
     if (row === 'lq') {
       const pq = q === 0 ? { y: y - 1, q: 3 } : { y: y, q: q - 1 };
@@ -6729,7 +6834,12 @@
     }
     if (row === 'y') {
       const from = isoDay(new Date(y, 0, 1));
+      /* `span` is the whole window, and every other branch that can be part
+         finished carries one. This did not, so the one reader of it —
+         the day count under Still needed — fell to a hard-coded 92 and
+         counted a year's remaining days as a quarter's. */
       return { k: row, from: from, to: TODAY_ISO, whole: false,
+        span: daysBetween(from, isoDay(new Date(y, 11, 31))) + 1,
         elapsed: (daysBetween(from, TODAY_ISO) + 1) / 365,
         prior: { from: isoDay(new Date(y - 1, 0, 1)),
           to: isoDay(new Date(y - 1, TODAY.getMonth(), TODAY.getDate())) } };
@@ -8080,8 +8190,25 @@
     test: 115e3, eng: 195e3, data: 90e3, back: 105e3,
   };
   const PERIOD_QUARTERS = { q: 1, lq: 1, y: 4, r12: 4 };
-  const targetFor = (p) => (isLine() && TARGET_LINE[myLine()] != null
-    ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
+  /* A client's target is the number on their own deal, and it is ANNUAL, so
+     nothing multiplies it. `PERIOD_QUARTERS` exists to scale a quarterly
+     commitment up to a year; there is no quarterly commitment here to scale,
+     and dividing a year's promise by four to fit a quarter chip is the same
+     arithmetic this page threw a year's ACV over a quarter's spend out for.
+     `periodsFor` removes the chips that would ask for it. */
+  const dealOf = (k) => (CLIENT[k] && CLIENT[k].deal) || null;
+  const myDeal = () => (isBuyer() ? dealOf(myClient()) : null);
+  const promiseOf = (k) => {
+    const d = myDeal();
+    if (!d) return null;
+    return d.promises.filter((r) => r.k === k)[0] || null;
+  };
+  const targetFor = (p) => {
+    const arr = promiseOf('arr');
+    if (arr) return arr.to;
+    return (isLine() && TARGET_LINE[myLine()] != null
+      ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
+  };
 
   /* Attainment is measured against the WHOLE period's target even when the
      period is part-finished — you are judged on the quarter, not on the
@@ -8177,8 +8304,10 @@
   }
 
   function periodChips() {
+    const rows = periodsFor();
+    if (!rows.length) return '';
     return '<div class="s-tabcuts" role="group" aria-label="Period">' +
-      PERIODS.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
+      rows.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
         '" type="button" data-period="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
     '</div>';
   }
