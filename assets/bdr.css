@@ -2327,12 +2327,34 @@
    every width without a media query or a container query: the answer always
    has the full column, 62ch caps it on a wide surface, and nothing depends
    on the window's width to describe a box the window knows nothing about. */
+/* ══ THE ROW LABEL BECOMES A CHIP, BECAUSE FORM IS WHAT IS LEFT ═════
+   Three ranks in this panel were wearing one treatment: .b-brief-cap heads
+   a section, .b-back-k names a row inside that section, and .b-prep-line b
+   and .b-prep-refp b label a value. All three sat at 12px bold, separated
+   only by case and tracking, which is not enough to carry three levels.
+
+   Size and weight are both spent at this end of the scale — 12px is the
+   floor and 400 is the weight floor below 18px — so the axis left is FORM.
+   A chip has an outline and a shape that a run of text does not, and that
+   reads as a different KIND of thing rather than a louder one. Three
+   devices for three ranks now:
+
+     section   IF THEY PUSH BACK   uppercase, tracked, weight 400
+     row       [ Services ]        a chip, outlined, 12px
+     field     Last time           plain bold, sentence case
+
+   It borrows the neutral treatment from .b-prep-state .tag-warn a few
+   sections down, so the panel has one idea of what a quiet chip looks like
+   rather than two. Amber stays reserved for late. The gap under it goes to
+   6px: a chip carries its own padding, so 2px read as collision. */
 .b-back-row {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
 }
 .b-back-k {
+  padding: 2px 9px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border);
   font-size: var(--t-micro); font-weight: var(--fw-bold);
-  line-height: var(--lh-snug); color: var(--d200);
+  line-height: var(--lh-snug); color: var(--ink-muted);
 }
 .b-back-v {
   margin: 0; max-width: 62ch; text-wrap: pretty;
