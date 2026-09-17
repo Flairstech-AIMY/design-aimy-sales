@@ -3463,10 +3463,22 @@
     });
     return parts.length ? '?' + parts.join('&') : location.pathname;
   }
-  /* Every key back to its default. Home is this and nothing laid over it. */
+  /* Every key back to its default. Home is this and nothing laid over it.
+     ══ EXCEPT THE TWO THAT SAY WHERE YOU ARE STANDING ═══════════════════
+     `as` survives because it names a desk and clearing it would walk
+     somebody back to somebody else's. `eng` is the same fact one level in:
+     it names which of the three books a client is reading, and every
+     surface inside that desk is a surface of that book.
+
+     Cleared along with the rest, it broke the drill silently — pressing a
+     person on the support desk's floor dropped the engagement, `myEng` went
+     back to null over three of them, and `floorOf` was asked for a floor
+     with no engagement and answered with an empty page. The chips still set
+     it explicitly, including back to '' for Everything, so nothing is
+     trapped in a book. */
   function cleared() {
     const over = Object.create(null);
-    SCALAR.forEach((k) => { if (k !== 'as') over[k] = ''; });
+    SCALAR.forEach((k) => { if (k !== 'as' && k !== 'eng') over[k] = ''; });
     return over;
   }
   /* ══ THE GATE ON LEAVING AN UNSAVED RESULT ═════════════════════════════
@@ -9035,13 +9047,32 @@
         return Math.round(mean(es.map((e) => e[m.from])));
       }) }));
   }
-  /* The last week that produced anything. A week nobody reviewed has no
-     quality to report and says so with a null rather than a zero, which
-     would read as a floor that scored nothing rather than one nobody
-     looked at. */
+  /* ══ "NOW" IS FOUR WEEKS, NOT WHICHEVER ONE HAPPENED TO BE LAST ═══════
+     This returned the last week that produced anything, and on a noisy
+     measure that is a verdict decided by the calendar. The support desk's
+     volume ran 1,554 · 1,660 · 1,470 · 1,598 · 1,518 · 1,557 against a
+     promise of sixteen hundred — so a year-long commitment read KEPT in one
+     of those weeks and BEHIND in the other five, and a client who looked
+     last week and looked again today would watch the verdict change with
+     nothing on the page to explain it. That costs more than being behind
+     does.
+
+     Four weeks, meaned: long enough that one quiet week cannot flip a
+     verdict, short enough to still be now. A week nobody reviewed still
+     contributes nothing rather than a zero, which would read as a floor
+     that scored badly rather than one nobody looked at.
+
+     Said on the page, because a figure whose method is not stated is a
+     figure somebody has to take on trust, and this desk exists to not ask
+     that. */
+  const FLOOR_NOW_WEEKS = 4;
   const floorNow = (rows) => {
-    for (let i = rows.length - 1; i >= 0; i--) if (rows[i] != null) return rows[i];
-    return null;
+    const got = [];
+    for (let i = rows.length - 1; i >= 0 && got.length < FLOOR_NOW_WEEKS; i--) {
+      if (rows[i] != null) got.push(rows[i]);
+    }
+    if (!got.length) return null;
+    return Math.round(got.reduce((n, x) => n + x, 0) / got.length);
   };
 
   /* ══ WHAT DID NOT WORK, WHEN NO DEAL HAS DIED YET ═════════════════════
@@ -9133,9 +9164,14 @@
           '<h1 class="s-exec-h">' +
             ((myDeal().team || {}).whose === 'ours' ? 'The desk we run' : 'Your floor') + '</h1>' +
         '</div>' +
+        /* "69,399 of 69,399 conversations scored" is a ratio nobody asked
+           for. Where every one is scored it says so; where a share is, the
+           share is the fact. */
         '<p class="s-exec-scope">' + esc(plural(rows.length, 'person')) + ' &middot; ' +
-          esc(commas(f.seen)) + ' of ' + esc(commas(f.held)) +
-          ' conversations scored &middot; worst first</p>' +
+          (f.seen >= f.held
+            ? 'all ' + esc(commas(f.held)) + ' conversations scored'
+            : esc(commas(f.seen)) + ' of ' + esc(commas(f.held)) + ' conversations scored') +
+          ' &middot; worst first</p>' +
         /* Said where the records are, not in a footnote somewhere else. */
         (f.seen > f.evals.length
           ? '<p class="s-exec-note">The averages are over all ' + esc(commas(f.seen)) +
@@ -9203,7 +9239,7 @@
                 '<span class="s-pan-state tone-' + floorBand(e.score) + '">' +
                   esc(CHAN_SAY[e.chan] || e.chan) + '</span></b>' +
               '<span class="s-pan-meta">Week ' + esc(commas(e.w + 1)) + ' &middot; ' +
-                esc(plural(e.lag, 'day')) + ' to a first look &middot; ' +
+                esc(lagOf(e).fig + ' ' + lagOf(e).say) + ' &middot; ' +
                 esc(commas(e.mins)) + ' min to resolve</span>' +
             '</span>' +
             '<span class="s-pan-cost">' + esc(commas(e.score) + '%') + '</span>' +
@@ -9213,6 +9249,30 @@
   }
 
   const CHAN_SAY = { call: 'Call', email: 'Email', chat: 'Chat' };
+
+  /* ══ HOW LONG BEFORE SOMEBODY LOOKED, IN THIS BOOK'S UNIT ══════════════
+     `lag` is the same field on every scored conversation and it is not the
+     same measurement: on a floor running our tool it is days before a
+     reviewer got to it, on a desk we staff it is minutes before a customer
+     got a reply. The record page had the quality tool's unit and the
+     quality tool's target written into it, so a support desk conversation
+     answered in twenty-eight minutes was reported as "28 days later,
+     outside the two promised" — wrong unit, wrong promise, and it read as
+     a catastrophe on a conversation that beat its commitment.
+
+     Read off the metric whose `from` is `lag`, which is the same link the
+     generator and the series already use, so there is one answer to what
+     that field means rather than three. */
+  function lagOf(e) {
+    const d = myDeal();
+    const m = ((d && d.team && d.team.metrics) || []).filter((x) => x.from === 'lag')[0];
+    const p = m ? (d.promises || []).filter((r) => r.read === 'team.' + m.k)[0] : null;
+    return { p: p,
+      fig: p ? promFig(p, e.lag) : plural(e.lag, 'day'),
+      kept: p ? promKept(p, e.lag) : e.lag <= 2,
+      target: p ? promFig(p, p.to) : null,
+      say: p ? (PROM_SAY[p.k] || '').replace(/^time /, '') : 'to a first look' };
+  }
 
   /* One conversation, every goal on it, and why each went the way it did.
      This is the bottom of the drill and the thing the coverage promise is
@@ -9239,9 +9299,13 @@
             e.score >= 80 ? 'ok' : null) +
           attFig('Points lost', commas(lost), lost ? 'across ' +
             plural(rows.filter((x) => !x.pass).length, 'goal') : 'nothing missed', null) +
-          attFig('Looked at', plural(e.lag, 'day') + ' later',
-            e.lag <= 2 ? 'inside the two promised' : 'outside the two promised',
-            e.lag <= 2 ? 'ok' : null) +
+          (function () {
+            const l = lagOf(e);
+            return attFig('Looked at', l.fig + ' later',
+              l.target ? (l.kept ? 'inside the ' + l.target + ' promised'
+                : 'outside the ' + l.target + ' promised') : '',
+              l.kept ? 'ok' : null);
+          }()) +
         '</div>' +
         '<div class="s-pan-restitle">What was scored</div>' +
         '<div class="s-odds-rows">' + rows.map((x) =>
@@ -9472,12 +9536,25 @@
             : promFig(r, x.got) + ' of ' + promFig(r, r.to)) + '</span>' +
       '</span>';
     };
-    const ours = rows.filter((x) => x.r.ours);
-    const theirs = rows.filter((x) => !x.r.ours);
+    const ourRows = rows.filter((x) => x.r.ours);
+    const theirRows = rows.filter((x) => !x.r.ours);
     const group = (title, list) => (list.length
       ? '<div class="s-pan-restitle">' + title + '</div>' +
         '<div class="s-odds-rows">' + list.map(draw).join('') + '</div>'
       : '');
+    /* ══ AND THE SECOND HEADING WAS WRITTEN FOR ONE BOOK ═══════════════
+       "Yours once we hand over" is exactly right above an outbound
+       promise and means nothing above the other two: nothing is handed
+       over on a floor running their own reviewers, and on a desk we staff
+       the boundary is their systems rather than a handover at all. It sat
+       over all three because each book used to have a page of its own,
+       where the heading only ever met the promises it was written for.
+
+       The line is the same line in every book — this far is ours, past it
+       is theirs — so it is named for where it actually falls in each. */
+    const theirs = { outbound: 'Yours once we hand over',
+      software: 'Yours once we have scored it',
+      service: 'Yours where it needs your systems' }[bookKind()] || 'Yours to carry';
     const kept = rows.filter((x) => promKept(x.r, x.got)).length;
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
@@ -9487,8 +9564,8 @@
           ' are behind with ' + (p.end ? plural(Math.max(0, daysBetween(TODAY_ISO, p.end)), 'day')
             : 'weeks') + ' to run. Say which of them can still be caught and what it would take.') +
       '</div>' +
-      group('Ours to keep', ours) +
-      group('Yours once we hand over', theirs) +
+      group('Ours to keep', ourRows) +
+      group(theirs, theirRows) +
     '</section>';
   }
 
@@ -9672,7 +9749,9 @@
       '<p class="s-exec-note">Nothing moved for the first ' +
         esc(plural(t.deployedAt, 'week')) + ' &mdash; ' +
         esc(t.whose === 'ours' ? 'that is how long the handover took' : 'that is how long it took to go live') +
-        '. ' + esc(d.line) + '</p>' +
+        '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
+        esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
+        'swings far enough on its own to turn a promise from kept to behind.</p>' +
       /* ══ AND THE FIGURES OPEN ═══════════════════════════════════════
          Four averages over nine hundred and sixty-five conversations. The
          argument for scoring all of them instead of two in a hundred is
