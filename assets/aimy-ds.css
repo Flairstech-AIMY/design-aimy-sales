@@ -2967,7 +2967,21 @@
       animation: wave 1s ease-in-out infinite; transform-origin: center; }
     .voice-wave span:nth-child(2) { animation-delay: 0.12s; } .voice-wave span:nth-child(3) { animation-delay: 0.24s; }
     .voice-wave span:nth-child(4) { animation-delay: 0.36s; } .voice-wave span:nth-child(5) { animation-delay: 0.48s; }
-    .voice-timer { font-family: var(--font-mono); font-size: 14px; color: var(--err); }
+    /* Poppins, like everything else on screen. It has no tabular figures,
+       so a timer set in it changes width as it counts — measured at this
+       size: "1:11" is 15.91px against 28.50px for "9:59", a 12.59px range,
+       and "0:10" to "0:11" alone jumps 4.17px in a single tick. Monospace
+       held a flat 29.83px for every string and that is precisely what is
+       being given up here.
+
+       So the BOX is pinned instead: min-width at the widest string plus a
+       little, which stops the composer around it reflowing once a second.
+       The digits still shift inside that box. That part is inherent to a
+       proportional face and only per-digit spans, or a face with real
+       tabular figures, would cure it. tabular-nums is declared anyway — it
+       costs nothing and starts working the day the face ships the feature. */
+    .voice-timer { font-family: var(--font-sans); font-size: 14px; color: var(--err);
+      font-variant-numeric: tabular-nums; min-width: 2.25em; text-align: center; }
 
     /* ── Inline AI menu (text-selection toolbar) ── */
     .ai-menu { display: inline-flex; align-items: center; gap: 2px; padding: 3px;
