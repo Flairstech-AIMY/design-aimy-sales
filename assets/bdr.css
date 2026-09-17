@@ -685,9 +685,15 @@
    weight and case — 24px figures over 18px names over 14px meta over 12px
    caps — which is where a rank belongs. Dimness was doing the job a second
    time, badly, and it is the axis that costs the reader their eyes. */
+/* `.s-pan-restitle` was missed when this list was written, and it is the
+   only sublabel on the page still at `--d400` — the same 12px, 600, uppercase
+   and 1.2px tracking as `.s-exec-eyebrow`, `.s-odds-cap` and `.s-pan-unit`
+   three lines up, two steps dimmer for no reason anybody recorded. It labels
+   the two halves of a client's promise ledger, either side of the handover,
+   which makes it the most load-bearing sublabel here and was the quietest. */
 .s-pan-facts span, .s-pan-meta, .s-pan-unit, .s-pan-state,
 .s-exec-eyebrow, .s-exec-note, .s-af-cap, .s-af-sub,
-.s-cost-note, .s-odds-cap, .s-odds-n, .s-odds-note,
+.s-cost-note, .s-odds-cap, .s-odds-n, .s-odds-note, .s-pan-restitle,
 .s-att-of, .s-att-key, .s-asks-cap { color: var(--d200); }
 /* "Nothing" is a state a campaign is IN, not a value that failed to arrive.
    Dimming it said the second. The word carries the meaning, which is also

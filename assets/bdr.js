@@ -8645,6 +8645,85 @@
       (theirs.length ? '<div class="b-funnel">' + theirs.map(draw).join('') + '</div>' : '');
   }
 
+  /* ══ WHAT A PROMISE IS COMPARED AGAINST, AND WHY IT IS NOT LAST YEAR ═══
+     This drew a trend off `p.prior` first, and every row of it read "24 more
+     than the year before". Kestrel signed in October: the twelve months
+     before this term are twelve months in which we did nothing for them at
+     all, so each promise was manufacturing a growth claim out of the
+     relationship not existing. Off a denominator of zero, every figure is
+     its own increase.
+
+     A term has no term before it until the second one, and this build has no
+     client in a second. So the comparison is the one the window really
+     carries — where the promise should have got to by now. `elapsed` is the
+     fraction of the term gone, the target is a commitment for the whole of
+     it, and the difference is the only honest thing to put beside a figure
+     that is not finished. It is the same reading `attainment` gives the bar
+     above, applied to the five promises the bar does not draw. */
+
+  /* ══ THE LEDGER, AND THE RULE THROUGH THE MIDDLE OF IT ═════════════════
+     One row per commitment: what it was, what it reads now, and whether it
+     was kept. The rule is `ours`, which the deal carries on every promise,
+     so the page does not decide where the line falls — the contract does,
+     and the same flag draws the same break in the funnel above.
+
+     NO RATIO ANYWHERE IN IT. Reached and promised sit side by side and the
+     reader draws their own conclusion, which is what this page decided when
+     it threw out the coverage multiple, the return multiple and "€1.30 back
+     for every €1" — three times, over three rewrites, for one reason.
+
+     The trend is a direction and a count, never a percentage change: "4 more
+     than the year before" is a fact, "+20%" is the arithmetic this desk does
+     not do. */
+  function promiseLedger(now, pipe, p) {
+    const d = myDeal();
+    if (!d || !d.promises) return '';
+    const rows = d.promises.map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      .filter((x) => x.got != null);
+    if (!rows.length) return '';
+    const draw = (x) => {
+      const r = x.r;
+      const kept = x.got >= r.to;
+      /* Rounded to the unit the promise is counted in — "should be at 28.8
+         meetings by now" is a number no commitment was ever written in. */
+      const due = p.elapsed == null ? null
+        : (r.unit === 'money' ? Math.round(r.to * p.elapsed / 500) * 500
+          : Math.round(r.to * p.elapsed));
+      let trend = '';
+      if (due != null && !kept) {
+        trend = ' &middot; ' + esc(promFig(r, due)) + ' by now';
+      }
+      return '<span class="s-pan-p">' +
+        '<span class="s-pan-who">' +
+          '<b>' + esc(PROM_SAY[r.k] || r.say) +
+            '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
+              (kept ? 'kept' : 'behind') + '</span></b>' +
+          '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
+        '</span>' +
+        '<span class="s-pan-cost">' +
+          esc(promFig(r, x.got) + ' of ' + promFig(r, r.to)) + '</span>' +
+      '</span>';
+    };
+    const ours = rows.filter((x) => x.r.ours);
+    const theirs = rows.filter((x) => !x.r.ours);
+    const group = (title, list) => (list.length
+      ? '<div class="s-pan-restitle">' + title + '</div>' +
+        '<div class="s-odds-rows">' + list.map(draw).join('') + '</div>'
+      : '');
+    const kept = rows.filter((x) => x.got >= x.r.to).length;
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">What the year promised</h2>' +
+        secAsk('Which of these will we miss',
+          commas(rows.length - kept) + ' of my ' + plural(rows.length, 'promise') +
+          ' are behind with ' + (p.end ? plural(Math.max(0, daysBetween(TODAY_ISO, p.end)), 'day')
+            : 'weeks') + ' to run. Say which of them can still be caught and what it would take.') +
+      '</div>' +
+      group('Ours to keep', ours) +
+      group('Yours once we hand over', theirs) +
+    '</section>';
+  }
+
   /* The slot "What you spent it on" holds on the desks that pay for the
      work. It is the COST answer to where the money went; this is the same
      question asked in the only unit a client is owed — what the year
@@ -8763,6 +8842,11 @@
        about a product. */
     const heads = isLine() ? 0 : workingHeads();
     const now = bookMoney(scope, p, heads);
+    /* `bookMoney`'s margin says it is "called twice by the page — now and
+       the window before it". It still is not, and the ledger says why: the
+       window before a first term is a window in which nothing happened, and
+       a second pass over it would buy a comparison against zero. It stays
+       one call until there is a client in a second term to compare. */
     const pipe = pipelineOf(deals);
     /* `deal` is not one of the chips, so this fell through to the first of
        them and stamped "this quarter" on a page measuring a year. A client's
@@ -9255,6 +9339,11 @@
                 : fmtMoney(now.cac) + ' for each of the ' +
                   plural(now.wins.length, 'deal') + ' signed')) +
       '</div>' +
+
+      /* The bar above is one promise — the money one — drawn large because
+         it is the one a fee is argued about. This is all of them, and the
+         funnel underneath is the evidence for the half we answer for. */
+      (isBuyer() ? promiseLedger(now, pipe, p) : '') +
 
       /* ══ THE WHOLE SECTION, OR THE OTHER ANSWER TO ITS QUESTION ═══════
          Salaries by role, AiMY's compute and the lead generators, with a
