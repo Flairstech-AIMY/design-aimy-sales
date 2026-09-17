@@ -3531,7 +3531,10 @@
    because a rank that opts out of the family stops reading as the bottom of
    it and starts reading as unstyled. The block itself still takes no rule,
    no border and no heading, which is the part this note was really about. */
-.b-prep-ref { display: flex; flex-direction: column; gap: 8px; margin-top: 26px; }
+/* Each entry is a label over a value now rather than one line, so the gap
+   BETWEEN entries has to beat the 4px gap inside one or the six lines read
+   as one list. 12 against 4 is the same 3:1 the rest of the panel uses. */
+.b-prep-ref { display: flex; flex-direction: column; gap: 12px; margin-top: 26px; }
 /* .b-prep is a flex column, so adjacent margins do NOT collapse. .b-back
    already carries 26px below it and this adds 26 above, which measured 50px
    in place — making the shelf, the least important block on the panel, the
@@ -3564,12 +3567,17 @@
    5% against A's 8%, and the padding is 1px against 2px, so it sits inside
    the line rather than interrupting it. */
 .b-prep-refp b {
-  display: inline-block;
+  /* Above its value, not beside it — the same as every other label on this
+     panel. `display: table` is what does both jobs at once: it shrink-wraps
+     to the words the way inline-block does, and it forms a block box, so
+     the value starts on the next line. inline-block alone would keep the
+     chip in the flow and the sentence would run on beside it. */
+  display: table;
   padding: 1px 8px; border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--ink-primary) 5%, transparent);
   font-size: var(--t-micro); font-weight: var(--fw-bold);
   line-height: var(--lh-snug); color: var(--ink-muted);
-  margin: 0 6px 0 0;
+  margin: 0 0 4px;
 }
 .b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
 
