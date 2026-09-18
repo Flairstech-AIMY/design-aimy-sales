@@ -16944,24 +16944,47 @@
     });
     return out;
   }
-  const accCrew = (a) => ((a.crew && a.crew.length) ? a.crew : accWorked(a));
+  /* `Array.isArray`, not a length test. A manager who takes the last person
+     off has said something, and reading that as "nothing set" handed the
+     derived list straight back \u2014 everybody returning the moment the last one
+     was removed. A stored empty list is an answer; no property at all is the
+     absence. */
+  const accCrew = (a) => (Array.isArray(a.crew) ? a.crew : accWorked(a));
 
-  /* One menu for both directions rather than a menu to add and a cross to
-     take off: `crewOff` writes a campaign's crew and says so in its own
-     comment, and a second cross for a second kind of team is a second thing
-     to keep in step. Everybody is listed, the ones on are ticked, and a tick
-     is a tick \u2014 it stays open, and the faces behind it catch up when it
-     shuts, like every other ticking menu in this build. */
+  /* ══ THE CAMPAIGN'S TEAM CONTROL, ON A COMPANY ══════════════════════════
+     `crewPick` and `crewOff` down to the verb: a menu that lists only the
+     people who are NOT on, with the search box `pickopen` focuses so three
+     letters of a name is the fastest way in, and a cross on each face for
+     taking somebody off. Two controls and never both in one place \u2014 over
+     four the cross is in the roster and the line is clean, under five it is
+     on the line and there is no roster, which is `teamFaces`' own rule and
+     it comes along for free.
+
+     It cannot literally reuse them. `crewOff` writes `data-cset`, which the
+     router reads against `S.camp`, and its own comment says so: it is not a
+     cross, it is a cross ON A CAMPAIGN. `teamFaces` already takes `off` for
+     exactly this reason \u2014 one attribute lifted out so a second surface with
+     a team can pass its own. */
+  const accItem = (r) =>
+    '<button class="b-menu-item" type="button" role="menuitem" data-acrew="' +
+    esc(r.id) + '">' + faceOf(r.id, 26) + '<span class="b-menu-line">' +
+    '<span class="b-menu-name">' + esc(r.name) + '</span>' +
+    '<span class="b-menu-sub">' + esc(JOB[r.fn] || '') + '</span></span></button>';
+
+  const accOff = (a, id) =>
+    '<button class="b-crew-x" type="button" data-acrew="' + esc(id) + '" ' +
+    'aria-label="' + esc('Take ' + actor(id).name + ' off ' + a.name) + '">' +
+    chIcon('x') + '</button>';
+
   function accCrewPick(a) {
     const on = accCrew(a);
-    const pool = REPS.filter((r) => r.fn === 'bdr' || r.fn === 'sales-manager');
-    return draftMenu('aCrew', 'Change the team', 'Who works this company',
-      pool.map((r) =>
-        '<button class="b-menu-item' + (on.indexOf(r.id) >= 0 ? ' is-on' : '') +
-        '" type="button" role="menuitem" data-acrew="' + esc(r.id) + '">' +
-        faceOf(r.id, 26) + '<span class="b-menu-line">' +
-        '<span class="b-menu-name">' + esc(r.name) + '</span>' +
-        '<span class="b-menu-sub">' + esc(JOB[r.fn] || '') + '</span></span></button>').join(''),
+    const off = REPS.filter((r) =>
+      (r.fn === 'bdr' || r.fn === 'sales-manager') && on.indexOf(r.id) < 0);
+    if (!off.length) return '';
+    return draftMenu('aCrew', 'Add to the team', '',
+      '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+        'placeholder="Find someone" aria-label="Find someone" spellcheck="false" />' +
+      off.map(accItem).join(''),
       's-inline-btn');
   }
 
@@ -16989,10 +17012,10 @@
               (own ? accCrewPick(a) : '') +
             '</div>' +
             (ids.length
-              /* `off` is passed so `crewOff` is never reached with a campaign
-                 it has not got: the cross belongs to a campaign's crew, and
-                 this team is changed in the menu above. */
-              ? teamFaces(ids, (id, off) => mateRow(id, null, off), { off: () => '' })
+              /* The cross is this surface's, for the reason `teamFaces` takes
+                 an `off` at all. A reader who is not the manager gets none. */
+              ? teamFaces(ids, (id, off) => mateRow(id, null, off),
+                { off: own ? ((id) => accOff(a, id)) : (() => '') })
               : '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>') +
           '</div>'
         : '');
@@ -27112,8 +27135,24 @@
       const next = on.indexOf(who) >= 0 ? on.filter((x) => x !== who) : on.concat([who]);
       patchAcc(a, { crew: next });
       const panel = acrew.closest('.b-menu');
-      acrew.classList.toggle('is-on', next.indexOf(who) >= 0);
-      if (panel) PICK_DIRTY = true; else paint();
+      /* The cross on the line, where there are four or fewer and no roster:
+         nothing is open over the page, so it draws now. */
+      if (!panel) { paint(); return; }
+      PICK_DIRTY = true;
+      /* A cross is not a tick, the same as on a campaign: what it removes is
+         a row of the list the menu is showing, so the row goes, the menu
+         closes and the faces redraw behind it. */
+      if (acrew.classList.contains('b-crew-x')) {
+        const row = acrew.closest('.b-menu-item');
+        if (row) row.remove();
+        menuShut(panel);
+        return;
+      }
+      /* An add: the person is on now, so the row leaves the list of people
+         who are not \u2014 the same thing `crewPick` does on the next paint, done
+         at once because this menu is not repainted until it shuts. */
+      const added = acrew.closest('.b-menu-item');
+      if (added) added.remove();
       return;
     }
 
