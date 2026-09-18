@@ -6156,3 +6156,24 @@
 }
 .b-note-name:hover { color: var(--d50); }
 .b-note-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* ══ THE DRAFT LIST'S NAME IS THE MASTHEAD, TYPEABLE ═══════════════════
+   `.s-rec-title` is a flex row: the name, then the state chip beside it.
+   `.s-build-name` is `width: 100%` — written for `.s-sheet-head`, where the
+   heading is a block and full width is what it wants — and inside a flex row
+   that made the heading grow to eat the whole line, which pushed the chip to
+   the far right edge and broke the one thing this page was made to match.
+
+   So here the field is sized by its own content: `size` sets the width
+   before CSS arrives and is the floor, `field-sizing: content` grows it as
+   you type, and `max-width` stops a long name from running past the column.
+   The heading shrinks to fit and the chip sits where it sits on a saved list
+   — next to the name, not across the page from it.
+
+   `field-sizing` is Chromium-only today. Everywhere else the `size`
+   attribute alone answers, which is the same layout one repaint behind: the
+   field is redrawn at the right width the next time the page paints. */
+.s-rec-title > .s-rec-name.is-field { min-width: 0; margin-top: 0; }
+.s-rec-title .s-build-name {
+  width: auto; max-width: 100%;
+  field-sizing: content;
+}

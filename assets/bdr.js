@@ -14057,48 +14057,127 @@
     '</section>';
   }
 
+  /* ══ WHAT CAME BACK IS THE LIST PAGE, BEFORE IT IS SAVED ═══════════════
+     This was a surface of its own, and it shared a name with the surface it
+     hands you to. A sheet head with the name inside it; a grey sentence of
+     counts under that; AiMY's readings; four controls in a foot; the rows
+     beneath a heading with a note parked where a section's actions go. Press
+     Save and every one of those facts is still on screen — how many people,
+     what they were found by, which campaign they are on, who is calling them
+     — in a different place, at a different size, in a different order.
+
+     So the last screen of the builder taught a shape nobody would ever see
+     again, and the first screen of the thing you had just made was one you
+     had to learn from scratch. It is the same list page now: the masthead
+     with the name and the state beside it, the criteria and the counts in
+     the facts row, the actions where a record's actions live, AiMY in the
+     slot the saved list gives its reading, and the people under the same
+     section head with the same count line.
+
+     TWO THINGS STAY DIFFERENT, AND BOTH ARE REAL. The name is a field
+     rather than a heading, because it has not been decided yet — the same
+     move `campDraftPage` makes, and its note says why: a draft is the same
+     page, answerable. And the people are rows rather than cards, because
+     they are not records yet; they are candidates you are comparing before
+     any of them exists, and comparing wants columns. `rosterBlock`'s own
+     note already draws that line.
+
+     The criteria come with it. A saved list carries `l.crit` in its facts
+     row and this page carried the sentence nowhere at all — pressing
+     Generate took the chips off the screen and what you had asked for was
+     only in the URL. It is the same sentence from the same function that
+     writes `crit` on save, so the draft and the list say it identically. */
   function buildDone() {
     const rows = DRAFT.rows || [];
     const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
     const f = finderOf();
     const kept = rows.filter((x) => DRAFT.drop.indexOf(x.id) < 0).length;
     const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
+    /* What Save would write, which is what the masthead counts — the
+       unticked are off it, and the ones you brought from your own book are
+       on it. The arithmetic between that and what the suppliers returned is
+       the facts row's job, directly under it. */
+    const keeping = kept + mine2.length;
+    const person = buildKind() === 'con';
+    const some = (n) => (person ? plural(n, 'person') : plural(n, 'company', 'companies'));
+    const nameV = buildName();
+    const pg = paged(rows);
     return '<div class="s-home">' +
-      leaveGate(kept + mine2.length) +
-      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
-        '<div class="s-sheet-kind">Found · not saved yet</div>' +
-        '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
-          'value="' + esc(buildName()) + '" data-auto="' + esc(buildAutoName()) + '" ' +
-          'data-bname aria-label="Name this list" /></h1>' +
-      '</div></div>' +
+      leaveGate(keeping) +
+      /* The way out is a door like any other, and it trips the gate above
+         on the way: `go` refuses to leave an unsaved result and paints the
+         decision instead. The builder used to have no door at all here,
+         which left the rail and the browser's Back as the only ways off a
+         page that is otherwise a record. */
+      backBtn('data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
 
-      '<p class="s-build-total s-block-wide"><b>' + commas(rows.length + mine2.length) + '</b> came back' +
-        (kept < rows.length ? ', <b>' + commas(rows.length - kept) + '</b> unticked' : '') +
-        (mine2.length ? ', <b>' + commas(mine2.length) + '</b> of them already yours' : '') +
-        '. ' + esc(f.name) + ' found a number for <b>' + commas(withNum) + '</b>.</p>' +
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">List · ' + esc(some(keeping)) + ' · found just now</span>' +
+        '<div class="s-rec-title">' +
+          /* `size` is the field's width before CSS gets to it, and
+             `field-sizing: content` grows it as you type — the heading has
+             to shrink to fit so the chip sits BESIDE the name, the way it
+             does on a saved list, rather than being pushed to the far end
+             of a very wide row. */
+          '<h1 class="s-rec-name is-field"><input class="s-build-name" type="text" ' +
+            'spellcheck="false" size="' + Math.max(8, Math.min(36, nameV.length + 1)) + '" ' +
+            'value="' + esc(nameV) + '" data-auto="' + esc(buildAutoName()) + '" ' +
+            'data-bname aria-label="Name this list" /></h1>' +
+          /* The saved list's chip answers whether it is on a campaign. This
+             one answers the question that comes first: none of it exists
+             yet. Warn, because leaving now throws it away. */
+          '<span class="s-meta-st tone-warn">Not saved yet</span>' +
+        '</div>' +
+        '<div class="s-rec-facts">' +
+          '<div><span>' + esc(describeSentence(terms(), buildKind())) + '</span></div>' +
+          '<div>' +
+            '<span><b>' + commas(rows.length + mine2.length) + '</b> came back</span>' +
+            (kept < rows.length
+              ? '<span><b>' + commas(rows.length - kept) + '</b> unticked</span>'
+              : '') +
+            (mine2.length
+              ? '<span><b>' + commas(mine2.length) + '</b> already yours</span>'
+              : '') +
+            '<span>' + esc(f.name) + ' found a number for <b>' + commas(withNum) +
+              '</b></span>' +
+          '</div>' +
+        '</div>' +
+        /* ══ THE FOOT WAS AN ACTION ROW IN THE WRONG ROOM ════════════════
+           These four sat in `.s-build-foot` below AiMY's readings, which is
+           where a form puts its Submit — and this is not a form you finish,
+           it is a record you are deciding about. Every other record in the
+           build puts what you can do with it at the top beside what it is,
+           and the list page it becomes is one of them. Same four controls,
+           same order, same weights: the campaign is the primary because
+           putting them in front of somebody is the point of having found
+           them, and Save without one is named for what it leaves you. */
+        '<div class="s-rec-actions">' +
+          campPickMenu() +
+          '<button class="s-inline-btn" type="button" data-save>Save as draft</button>' +
+          assignPickMenu() +
+          '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
+        '</div>' +
+      '</section>' +
 
+      /* The slot the saved list gives `listLead`. Both are AiMY reading the
+         set you are looking at and offering the one press that changes it;
+         drawing them in the same place is what makes the second one legible
+         the first time you meet it. */
       fillBlock(rows) +
 
-      /* The finder chips moved to the run's finished footer, where "Run
-         again with ZoomInfo" is what switching supplier actually means. */
-
-      /* THE FOOT IS KEEP IT OR DO NOT. "Run again with ZoomInfo" and "Change
-         the criteria" were two ways to abandon this set for a different one,
-         sat between Save and Discard — three of the five controls under a
-         list were about not having it. Discard puts you back where the
-         criteria are. */
-      '<div class="s-build-foot s-block-wide">' +
-        campPickMenu() +
-        '<button class="s-inline-btn" type="button" data-save>Save as draft</button>' +
-        assignPickMenu() +
-        '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
-      '</div>' +
-
-      '<section class="s-block s-block-wide" aria-label="What came back">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2>' +
-          '<span class="s-block-say">untick anybody you do not want</span></div>' +
+      '<section class="s-block s-block-wide" aria-label="Who came back">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Who came back</h2></div>' +
+        /* "untick anybody you do not want" was at the far end of the head
+           row, where a section's ACTIONS live — the same defect the roster
+           block has a paragraph about, and it was worse here because this
+           one really does read as a control. Under the heading with the
+           count, which is where the list page puts the sentence that says
+           how to read the rows below. */
+        '<p class="b-tocall">' + esc(some(rows.length)) + ' · untick ' +
+          (person ? 'anybody' : 'anything') + ' you do not want</p>' +
         '<div class="b-vlist" id="netList"></div>' +
-        pager(paged(rows), 'row') +
+        pager(pg, 'row') +
       '</section>' +
     '</div>';
   }
