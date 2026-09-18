@@ -7087,16 +7087,13 @@
     const when = t
       ? (daysBetween(TODAY_ISO, t.at.slice(0, 10)) === 0 ? timeOf(t.at) : sayAgo(t.at))
       : '';
-    /* ══ AND THE THIRD LINE IS THE TAIL OF THE LIST ═══════════════
-       This said how many meetings were sitting unwritten, which is a book
-       desk's fact and not this one's. What the card still owed the reader
-       is that the name above is the NEWEST of a list, not the only one on
-       it — and which end of that list is going cold. One call, and there is
-       no tail: the figure says one and the name is it. */
-    const older = calls.length - 1;
-    const say = older
-      ? plural(older, 'more') + ' behind them, the oldest ' + sayAgo(calls[older].at)
-      : '';
+    /* ══ AND THERE IS NO THIRD LINE ═════════════════════════
+       Two lines stood here in turn and neither was this card's to say. The
+       first counted unwritten meetings, which is a book desk's fact; the
+       second named the tail of the list — "13 more behind them, the oldest
+       last week" — which is the page's own job the moment you open it, and
+       ran to two lines of prose under a figure that had already answered
+       the question the card is for. The count is the reading. */
     return '<div class="rail-doors">' +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
@@ -7115,7 +7112,6 @@
               : '')
           : '<span class="b-door-fig is-quiet">Clear</span>' +
             '<span class="b-door-who">Every call that came in got taken</span>') +
-        (say ? '<span class="b-door-say">' + esc(say) + '</span>' : '') +
         doorGo('Open the call log') +
       '</button>' +
     '</div>';
