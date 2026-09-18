@@ -12460,13 +12460,26 @@
      callable, which campaigns held them and how many more matched — every
      fact about the list except the one about the people working it.
 
-     DERIVED, NEVER STORED. A list has no assignee field and should not:
-     ownership is a fact about each lead, set from whoever the builder
-     assigned when the list was saved and moved by every hand-over after
-     that. Deriving it means the block cannot disagree with the records
-     under it, and it is also why there is no cross on a row — you change
-     who is calling somebody on their own record, not on a list they happen
-     to be in.
+     DERIVED, NEVER STORED, AND IT STAYS THAT WAY NOW THAT IT WRITES. A
+     list has no assignee field and should not: ownership is a fact about
+     each lead, set from whoever the builder assigned when the list was
+     saved and moved by every hand-over after that. Deriving it means the
+     block cannot disagree with the records under it.
+
+     That was first read as "so there is no cross on a row — you change who
+     is calling somebody on their own record, not on a list they happen to
+     be in", and the second half of that sentence does not follow from the
+     first. Derived-not-stored is a rule about WHERE THE TRUTH LIVES, and
+     it survives a cross perfectly well as long as the cross writes to the
+     records rather than to a field on the list. What the old rule actually
+     cost was the manager's whole job: a list of forty-six split six ways
+     is the unit work is moved in, and moving it meant opening forty-six
+     records one at a time.
+
+     So the team block writes, on the manager's desk, exactly the way the
+     campaign's does — same caption row, same verb beside it, same cross on
+     a row and in the roster the stack opens. `listTeamSet` is the write,
+     and it patches `owner` on the leads. Nothing is stored on the list.
 
      AND IT IS THE TEAM BLOCK, not a cousin of it. It was written with its
      own caption — "Who is calling it" — over a second line reading "8 of
@@ -12477,17 +12490,171 @@
 
      The share is not lost, it is where a share belongs: the order. Whoever
      holds most of the list leads it. */
-  function listTeam(people) {
+  function listTeam(l, people) {
     const by = Object.create(null);
     people.forEach((c) => { if (c.owner) by[c.owner] = (by[c.owner] || 0) + 1; });
     const ids = Object.keys(by).sort((x, y) => by[y] - by[x]);
-    if (!ids.length) return '';
+    /* ══ WHOSE DESK MAY CHANGE IT ══════════════════════════════════
+       The campaign asks `isMgr() && k.owner === me().id`, because a
+       campaign BELONGS to a manager and the crew is the one they own. A
+       list belongs to whoever built it — `l.by`, and the seed's are all
+       built by a caller — so the same test would answer no on every list
+       in the product, which is a control nobody can ever reach.
+
+       The right test is the one the block is about. This team is not a
+       set somebody owns, it is WHO IS HOLDING THESE LEADS, and moving a
+       caller's work to another caller is the definition of the manager's
+       desk. `isMgr`, strictly, and not `onBook`: a stakeholder reads this
+       page and does not staff it. A caller reads the same block and gets
+       the same stack as a disclosure, which is the rule the campaign
+       already keeps about whose crew is whose. */
+    const mgr = isMgr();
+    /* Drawn with nobody on it only for the desk that can do something
+       about it — a caption over an empty row is an empty state where
+       there is a verb, and nothing at all where there is not. */
+    if (!ids.length && !mgr) return '';
+    /* NEVER THE LAST ONE. The campaign refuses to take its owner off, and
+       the reason is the same here wearing different clothes: with one
+       name left the cross would hand every lead on the list to nobody,
+       and this block — the only way back — stops being drawn at all. */
+    const off = mgr && ids.length > 1 ? ((id) => listOff(l, id)) : (() => '');
     return '<div class="b-team">' +
       '<div class="b-team-head">' +
         '<span class="b-cmeta-cap b-team-cap">The team</span>' +
+        (mgr ? listCrewPick(l, ids) : '') +
       '</div>' +
-      teamFaces(ids, (id) => mateRow(id)) +
+      teamFaces(ids, (id, x) => mateRow(id, null, x), { off: off }) +
     '</div>';
+  }
+  /* The floor minus the team, which is one to five rows here — the same
+     shape and the same argument as `crewPick`: it only ever adds, it is
+     short enough that the search in it is a convenience rather than a
+     necessity, and taking somebody off lives on their own row rather than
+     in a second list of the same set. */
+  function listCrewPick(l, ids) {
+    const rest = BDRS.filter((r) => ids.indexOf(r.id) < 0);
+    if (!rest.length) return '';
+    return draftMenu('listTeamPick', 'Add to the team', '',
+      '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+        'placeholder="Find someone" aria-label="Find someone" spellcheck="false" />' +
+      rest.map((r) => '<button class="b-menu-item" type="button" role="menuitem" ' +
+        'data-lteam="' + esc(l.id + '|' + r.id) + '">' + faceOf(r.id, 26) +
+        '<span class="b-menu-line"><span class="b-menu-name">' +
+          esc(r.id === me().id ? 'You' : r.name) + '</span>' +
+        '<span class="b-menu-sub">' + esc(JOB[r.fn] || 'On the team') +
+        '</span></span></button>').join(''),
+      's-inline-btn');
+  }
+  /* One attribute for both directions, the way `data-cset="crew|…"` is one
+     for the campaign: the write already knows whether this person is
+     holding any of the list, so a second verb would be the router asking a
+     question the model answers. */
+  const listOff = (l, id) =>
+    '<button class="b-crew-x" type="button" data-lteam="' + esc(l.id + '|' + id) + '" ' +
+      'aria-label="' + esc('Take ' + actor(id).name + ' off ' + l.name) + '">' +
+      chIcon('x') + '</button>';
+
+  /* ══ ADDING SOMEBODY TO A LIST IS DEALING THE LIST AGAIN ═══════════════
+     The campaign's crew is a field, so its write is a push and a filter.
+     This team is the SHAPE OF SIXTY OWNER FIELDS, and the only way to put
+     a seventh caller on it is to give them some of what the other six are
+     holding. So the write is a redeal, and four rules decide it.
+
+     EVEN, BECAUSE THAT IS WHAT THE BUILDER PROMISED. `saveList` deals a
+     new list out round-robin — "three callers get a third each rather than
+     one of them getting five hundred" — and a seventh caller arriving
+     later should land on the same split, not on whatever is left over.
+
+     AS LITTLE MOVEMENT AS POSSIBLE. Targets are handed out in order of
+     what each person ALREADY holds, so the remainder falls to whoever is
+     biggest and nobody is moved to satisfy a rounding. Every assignment
+     made by hand on a record survives unless the arithmetic needs it —
+     which is the derived-not-stored rule keeping its side of the bargain.
+
+     AND WHAT MOVES IS WHAT COSTS LEAST TO MOVE. Where somebody is over
+     target, the leads taken off them are the ones furthest from a
+     relationship: never-called first, then fewest attempts. A lead
+     somebody has already spoken to twice carries a conversation the next
+     caller cannot read, and handing that one over to save an identical
+     lead nobody has dialled is the whole cost of the move for none of the
+     benefit. Anybody nobody is calling goes before any of them.
+
+     THE NEWCOMER IS DEALT FIRST. Ordering targets purely by current
+     holding gives the remainder to the biggest, and on a short list that
+     is every lead — add a seventh caller to a list of six and they get
+     nothing, which is a control that visibly does nothing. Adding, they
+     take the head of the order and so are guaranteed a share. */
+  function listTeamSet(listId, repId) {
+    const l = DB.byList[listId];
+    if (!l) return;
+    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
+    if (!people.length) return;
+    const by = Object.create(null);
+    people.forEach((c) => { if (c.owner) by[c.owner] = (by[c.owner] || 0) + 1; });
+    const was = Object.keys(by).sort((x, y) => by[y] - by[x]);
+    const on = was.indexOf(repId) >= 0;
+    const team = on ? was.filter((x) => x !== repId) : was.concat([repId]);
+    if (!team.length) return;
+    const order = on ? team : [repId].concat(was);
+    const each = Math.floor(people.length / team.length);
+    const extra = people.length % team.length;
+    const want = Object.create(null);
+    order.forEach((id, i) => (want[id] = each + (i < extra ? 1 : 0)));
+    /* Most invested first, so the tail of each holder's pile — which is
+       what goes into the pool — is the cheapest of theirs to hand over. */
+    const cost = (c) => (rank(c.checkpoint) * 1000) + (c.attempts || 0);
+    const held = Object.create(null);
+    team.forEach((id) => (held[id] = []));
+    const pool = [];
+    people.slice().sort((a, b) => cost(b) - cost(a)).forEach((c) => {
+      if (c.owner && held[c.owner]) held[c.owner].push(c);
+      else pool.push(c);
+    });
+    team.forEach((id) => {
+      if (held[id].length > want[id]) pool.push.apply(pool, held[id].splice(want[id]));
+    });
+    const moved = [];
+    let got = 0;
+    team.forEach((id) => {
+      while (held[id].length < want[id] && pool.length) {
+        const c = pool.shift();
+        held[id].push(c);
+        if (c.owner === id) continue;
+        moved.push({ id: c.id, owner: c.owner });
+        patchCon(c, { owner: id });
+        if (id === repId) got++;
+      }
+    });
+    /* ══ AND THE MENU DOES NOT REOPEN ═════════════════════════════
+       The campaign's crew write reopens its picker, because adding three
+       people to a crew is three presses of one menu and nothing happens
+       in between. Here each press moves a dozen records and hands back
+       one Undo, and the next press throws that Undo away — so reopening
+       the menu would be the product inviting the one sequence its own
+       safety net cannot catch. One press, one write, one way back. */
+    shutMenus(null);
+    paint();
+    /* ══ AND IT SAYS WHAT THE PRESS DID, NOT WHAT IT WAS CALLED ═════════
+       The first wording read "Omar Fathy takes 32 people", off `moved`,
+       and Omar took ten of them: `moved` is the SIZE OF THE REDEAL and
+       the newcomer's share is one part of it. On the list this was
+       measured against — forty-six people, nineteen of them nobody's and
+       twenty-two on one caller — that is a receipt overstating one
+       manager's decision by a factor of three.
+
+       Two figures, because two things happened: what this person now
+       holds, and how much else moved to make the split even. The second
+       is the one that earns the Undo sitting beside it. */
+    const who = actor(repId).name;
+    if (!moved.length) { toast(who + ' already holds an even share of ' + l.name + '.'); return; }
+    const also = moved.length - got;
+    toast((on ? who + ' is off ' + l.name + ' · ' +
+            plural(moved.length, 'person') + ' changed hands'
+          : who + ' takes ' + plural(got, 'person') + ' on ' + l.name +
+            (also ? ' · ' + commas(also) + ' more moved to even the split' : '')), () => {
+      moved.forEach((m) => patchCon(DB.byCon[m.id], { owner: m.owner }));
+      paint();
+    });
   }
   function listPage(l) {
     const camp = campsOn(l);
@@ -12525,15 +12692,25 @@
        `camp` is a set, and an empty array is truthy — which is why this
        asks `camp.length` and not `camp`. Getting that wrong once drew
        "Open undefined" where the way onto a campaign should have been. */
+    /* ══ TWO BULK VERBS, AND THEY CALL DIFFERENT SETS ═══════════════════
+       This one is the LIST's: every person on it you can call, in the
+       order the roster puts them, which is the run you start when you have
+       decided to work the whole thing. The roster's own head carries the
+       other, and that one is the PAGE's — the eleven under it, following
+       the pager.
+
+       They were the same control for a while and the masthead's was worse
+       at being it: `call.slice(0, PAGE)` is the first fifteen callable
+       whichever page you are looking at, which is the page's job done from
+       the wrong place. Split by what they call, the pair reads: work the
+       list, or work what is in front of you. */
     const phone = first
       ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
           '">Call the next one on this list</button>' +
-        /* The same verb as the queue's, so the same control: one label
-           drawn two ways on two surfaces is two controls to learn. */
         (call.length > 1
           ? '<button class="b-ghost" type="button" data-callall="' +
-            esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-            'Call them</button>'
+            esc(call.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+            'Call all ' + commas(call.length) + '</button>'
           : '')
       : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>';
     /* THE PRIMARY IS WHATEVER THE ROW IS FOR. With somebody to call, the
@@ -12603,18 +12780,54 @@
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' + actions + '</div>' +
-        listTeam(people) +
+        listTeam(l, people) +
       '</section>' +
 
       listLead(l, people, call, camp.length > 0) +
 
-      '<section class="s-block s-block-wide" aria-label="Who is on it">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
-          '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · never called first, then by called</span></div>' +
-        rosterBlock(paged(people).rows) +
-        pager(paged(people), 'person') +
-      '</section>' +
+      /* ══ THE COUNT SAT WHERE THE VERB BELONGS ═════════════════════════
+         "46 people · never called first, then by called" was at the far end
+         of the heading's row, and the queue block has a note against its
+         own version of this saying exactly what is wrong with it: that end
+         of the row is where a section's ACTIONS live, so a figure parked
+         there reads as a control you cannot press. The queue already moved
+         its count under the heading into `.b-tocall`; this is the same
+         move on the same component, so the two blocks stop being two
+         shapes for one thing.
+
+         And the slot it leaves is filled by what the slot is for. The
+         people are right underneath and the pager is right below them, so
+         the verb here calls WHAT IS ON SCREEN — this page of the roster,
+         not the first page of the list — which is the whole reason it is
+         better placed here than in the masthead's action row. Follow the
+         pager to page three and it calls page three.
+
+         ONE BULK VERB ON THE PAGE. It used to sit in the action row as
+         well, and two pills reading "Call them" two hundred pixels apart,
+         calling sets that are the same until you turn a page, is the
+         defect this build keeps naming: one label drawn twice is two
+         controls to learn. The masthead keeps the individual verb, which
+         is the list-wide one — "Call the next one on this list". */
+      (function () {
+        const pg = paged(people);
+        const now = pg.rows.filter(callable);
+        return '<section class="s-block s-block-wide" aria-label="Who is on it">' +
+          '<div class="s-camp-list-head">' +
+            '<h2 class="s-block-h">Who is on it</h2>' +
+            /* One left to call is the card's own button, six rows down and
+               already naming them. */
+            (now.length > 1
+              ? '<button class="b-ghost" type="button" data-callall="' +
+                esc(now.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+                'Call them</button>'
+              : '') +
+          '</div>' +
+          '<p class="b-tocall">' + esc(plural(people.length, 'person')) +
+            ' · never called first, then by called</p>' +
+          rosterBlock(pg.rows) +
+          pager(pg, 'person') +
+        '</section>';
+      })() +
 
       /* A LIST IS WHO IS ON IT. Where they stand and what has been said
          are the campaign's questions, answered on the campaign's page — a
@@ -14408,8 +14621,15 @@
        Exactly one place at any size, which is the whole rule: over four it
        is in the roster and the line is clean, under five it is on the line
        and there is no roster. The two never draw together. */
+    /* ══ AND WHAT THE CROSS WRITES IS THE CALLER'S TO SAY ══════════════
+       `crewOff` writes `data-cset`, which the router reads against
+       `S.camp` — so it is not a cross, it is a cross ON A CAMPAIGN, and
+       a second surface with a team to change cannot borrow it. `off` is
+       that one attribute lifted out; the default is the campaign's,
+       because that is what every existing caller means. */
     const k = (o || {}).k;
-    return shown.map((id) => row(id, over ? '' : crewOff(k, id))).join('') +
+    const off = (o || {}).off || ((id) => crewOff(k, id));
+    return shown.map((id) => row(id, over ? '' : off(id))).join('') +
       (rest.length ? teamStack(rest, ids, o) : '');
   }
   /* The faces of whoever is not on the line, and the menu that names them. */
@@ -14470,7 +14690,8 @@
           return go
             ? '<button class="b-menu-item" type="button" role="menuitem" ' + go + '>' +
               inner + '</button>'
-            : '<span class="b-menu-item b-menu-row">' + inner + crewOff(opt.k, x) + '</span>';
+            : '<span class="b-menu-item b-menu-row">' + inner +
+              (opt.off ? opt.off(x) : crewOff(opt.k, x)) + '</span>';
         }).join('') +
       '</div>' +
     '</span>';
@@ -22942,6 +23163,37 @@
   /* What AiMY can answer, and it is deliberately short: every question a BDR
      asks has a surface that already answers it, so the canvas states the
      figure and hands over the door rather than becoming a second product. */
+  /* ══ AND A BDR IS NOT THE ONLY PERSON HOLDING THE BAR ═══════════════
+     Four desks read this composer and every reading in here was written
+     against the CALLER's model: `queue` narrowed by `BUCKETS`, callbacks,
+     the after-meeting cut, the four-touch rule. `queue` and `cutOf` already
+     fork on `onBook()`, so the book desks got the right SET and then had it
+     described in the caller's words — which is how five of these answers
+     came out wrong in the worst available way. Not blank. Confidently
+     false, in AiMY's voice, on the record:
+
+       what is due          "0 people asked to be called back across your 6
+                            campaigns" — a manager has no callback cut, so
+                            the figure is nought on every desk and every day
+       how many are left    "43 people can be called — ." The stages ARE
+                            counted, in `counts`, off `cutOf`; the sentence
+                            then walked `BUCKETS`, matched none of them, and
+                            joined an empty list onto a dangling dash
+       meetings passed      "No meeting has passed without an outcome" while
+                            `unrecorded()` held seven and the same widget's
+                            own "what to do first" named one of them two
+                            questions earlier
+       who went quiet       "Nobody" on every book desk, for ever, because
+                            the four-touch rule is a fact about cold calls
+       what happened today  a manager's day is 120 `phase` touchpoints and
+                            `callsIn` filters every one of them out
+
+     So each of these forks, and the fork is not a second product: every
+     book branch below is drawn from a derivation this desk already has and
+     already shows somewhere else — `unrecorded`, `dealLive`, `stageOf`,
+     `MGR_BUCKETS`, and `lastActivity` against `checkinDays`, which is the
+     rule every deal card already states in its own words. One derivation,
+     two readers, so the bar and the board cannot disagree. */
   function answer(text) {
     const q = text.toLowerCase();
     const all = queue(S.camp || null, 'all');
@@ -23030,6 +23282,31 @@
         '</div>';
     }
     if (/\b(quiet|fourth|four touch|touchpoints?)\b/.test(q)) {
+      /* The four-touch rule is a fact about cold calling and there is no
+         cold calling on this desk, so this answered "nobody" on every book
+         desk on every day. The book has its own silence and every deal
+         card already states it: nothing said for longer than the account's
+         tier is worth a call, `lastActivity` against `checkinDays`. Same
+         derivation, so a card and the bar cannot disagree about who has
+         gone quiet. */
+      if (onBook()) {
+        const cold = all.filter(dealLive).map((c) => {
+          const at = lastActivity(c);
+          return { c: c, days: at ? daysBetween(at, TODAY_ISO) : null };
+        }).filter((x) => x.days != null && x.days > checkinDays(x.c))
+          .sort((x, y) => y.days - x.days);
+        if (!cold.length) {
+          return 'Nothing on your board has gone quiet — every live deal has been ' +
+            'touched inside what its account is worth.';
+        }
+        return '<b>' + plural(cold.length, 'deal') + '</b> ' +
+          (cold.length === 1 ? 'has' : 'have') + ' gone quiet for longer than the ' +
+          'account is worth, the oldest <b>' + esc(plural(cold[0].days, 'day')) + '</b> ago.' +
+          '<div class="b-cuts">' + cold.slice(0, 6).map((x) =>
+            door(x.c.name + ' \u00b7 ' + plural(x.days, 'day') + ' quiet',
+              Object.assign(cleared(), { con: x.c.id }))).join('') +
+          '</div>';
+      }
       const quiet = queue(null, 'all').filter(quietUnderFour);
       if (!quiet.length) return 'Nobody you called or reached has gone quiet under four touches.';
       return '<b>' + plural(quiet.length, 'person') + '</b> went quiet before the fourth touch. They are first in their cuts now.' +
@@ -23040,6 +23317,28 @@
         '</div>';
     }
     if (/\bmeeting/.test(q)) {
+      /* THE BOOK KEEPS THIS SOMEWHERE ELSE. A caller answers for a meeting
+         by moving a checkpoint and a manager by writing a `phase`
+         touchpoint, so `afterMeeting` finds nothing on this desk and
+         `unrecorded` is where the same gap lives — which is exactly what
+         `missedMeets` says two hundred lines up, and what the bell has
+         been reading all along. This answered "everything booked is still
+         ahead" over seven meetings the same widget had just named. */
+      if (onBook()) {
+        const gone = unrecorded();
+        if (!gone.length) {
+          return 'No meeting has passed without an outcome. Everything booked is still ahead.';
+        }
+        return '<b>' + plural(gone.length, 'meeting') + '</b> ' +
+          (gone.length === 1 ? 'has' : 'have') +
+          ' been and gone with nothing on the record about how ' +
+          (gone.length === 1 ? 'it' : 'they') + ' went.' +
+          '<div class="b-cuts">' + gone.slice(0, 6).map((m) =>
+            '<button class="s-insight-lnk" type="button" data-fill="' +
+            esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '">' +
+            esc(m.con.name + ' \u00b7 ' + sayWhen(m.iso)) + '</button>').join('') +
+          '</div>';
+      }
       const met = queue(S.camp || null, 'after');
       if (!met.length) return 'No meeting has passed without an outcome. Everything booked is still ahead.';
       return '<b>' + plural(met.length, 'meeting') + '</b> ' + (met.length === 1 ? 'has' : 'have') +
@@ -23050,6 +23349,22 @@
         '</div>';
     }
     if (/\blists?\b/.test(q)) {
+      /* ══ AND A LIST IS NOT THE CLIENT'S TO SEE ══════════════════════
+         `DB.list` is unscoped — every list in the product — and this
+         handed a buyer two of ours by name with their headcounts, plus a
+         door into each. `parse()` has refused this desk the lists surface
+         and any single list since it was written, so the doors did not
+         even work: pressing one landed back where it started because the
+         URL was stripped on the way. The sentence was the leak and the
+         chips were the dead end.
+
+         Which is the rule rather than an exception. Prospecting is what
+         they are buying, not something they audit — the same reason
+         `fillList` answers this desk with "We fill the numbers in." */
+      if (isBuyer()) {
+        return 'Finding the people is our side of it. What is on your desk is what we ' +
+          'are doing with them once we have.';
+      }
       const loose = DB.list.filter((l) => listLoose(l));
       if (!loose.length) return 'Every list is on a campaign, so everybody on them is in your queue.';
       return '<b>' + plural(loose.length, 'list') + '</b> ' + (loose.length === 1 ? 'is' : 'are') +
@@ -23060,6 +23375,47 @@
         '</div>';
     }
     if (/callback|call back|called back|owe|due/.test(q)) {
+      /* WHAT IS OWED IS NOT A CALLBACK ON THIS DESK. The caller's answer
+         is the callback cut; the book's is the step each deal set for
+         itself and the meeting that has been and gone without a word,
+         which are the two rows the bell already leads with. */
+      if (onBook()) {
+        const live = all.filter(dealLive);
+        const late = live.filter((c) => c.next && c.next.due < TODAY_ISO);
+        const now = live.filter((c) => c.next && c.next.due === TODAY_ISO);
+        /* `unrecorded` walks the diary rather than a campaign, so it is
+           said only where the question was not narrowed to one. */
+        const gone = S.camp ? [] : unrecorded();
+        if (!late.length && !now.length && !gone.length) {
+          return 'Nothing is owed on your desk' + (S.camp ? ' on this campaign' : '') +
+            '. Every deal is inside its date' + (S.camp ? '' : ' and every meeting is written up') + '.';
+        }
+        const bits = [];
+        if (late.length) bits.push('<b>' + plural(late.length, 'deal') + '</b> past ' +
+          (late.length === 1 ? 'its' : 'their') + ' date');
+        if (now.length) bits.push('<b>' + commas(now.length) + '</b> due today');
+        if (gone.length) bits.push('<b>' + plural(gone.length, 'meeting') +
+          '</b> nobody has written up');
+        /* ══ ONE PERSON, ONE CHIP ═══════════════════════════════════
+           The two halves of this answer overlap by construction: the step
+           a deal is late on is very often the meeting nobody wrote up, so
+           Edward Palmer arrived twice in a row of nine, once as a date and
+           once as a room. Two chips opening one record is the reader
+           choosing between identical doors. The deal says it first,
+           because it carries what is owed; the meetings fill the rest. */
+        const seen = Object.create(null);
+        const chip = (id, say) => (seen[id] ? ''
+          : ((seen[id] = 1), door(say, Object.assign(cleared(), { con: id }))));
+        return listSay(bits) + '.' +
+          '<div class="b-cuts">' +
+            late.concat(now).slice(0, 5).map((c) =>
+              chip(c.id, c.name + ' \u00b7 ' + c.next.what.toLowerCase() + ' ' +
+                sayWhen(c.next.due))).join('') +
+            gone.slice(0, 4).map((m) =>
+              chip(m.con.id, m.con.name + ' \u00b7 ' + m.title.toLowerCase() + ' ' +
+                sayWhen(m.iso))).join('') +
+          '</div>';
+      }
       const late = queue(S.camp || null, 'callback').filter((c) => c.next && c.next.due < TODAY_ISO).length;
       return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be called back' +
         (S.camp ? ' on this campaign' : ' across your ' +
@@ -23067,15 +23423,27 @@
         doors(door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' })));
     }
     if (/how many|left|remaining|to call/.test(q)) {
-      /* the after-meeting cut is not called, so it is not in the sum; it is said */
-      return '<b>' + commas(all.length) + '</b> people can be called' +
+      /* `counts` is keyed off `cutOf`, which is already the stage on this
+         desk — so the figures were right and only the list they were read
+         against was the caller's. The noun goes with it: these are deals
+         on a board, and nobody on the book desk is calling all forty-three
+         of them. */
+      const cuts = onBook() ? MGR_BUCKETS : BUCKETS;
+      /* The caller's after-meeting cut and the book's unwritten meeting
+         are one event in two ladders, and `missedMeets` says so in a
+         comment. Counted here the way each desk stores it. */
+      const gone = onBook() ? (S.camp ? 0 : unrecorded().length) : (counts.after || 0);
+      return '<b>' + commas(all.length) + '</b> ' +
+        (onBook() ? (all.length === 1 ? 'deal on your board' : 'deals on your board')
+          : 'people can be called') +
         (S.camp ? ' on this campaign' : '') + ' — ' +
-        BUCKETS.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
+        cuts.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
           commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
-        (counts.after ? ' And <b>' + plural(counts.after, 'meeting') + '</b> ' +
-          (counts.after === 1 ? 'has' : 'have') + ' passed without a word.' : '') +
-        doors(door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' })) +
-          (counts.after ? door('Say what happened',
+        (gone ? ' And <b>' + plural(gone, 'meeting') + '</b> ' +
+          (gone === 1 ? 'has' : 'have') + ' passed without a word.' : '') +
+        doors(door(onBook() ? 'Show the board' : 'Work the queue',
+            Object.assign(cleared(), { on: onBook() ? 'deals' : 'calls', camp: S.camp || '' })) +
+          (gone && !onBook() ? door('Say what happened',
             Object.assign(cleared(), { camp: S.camp || '', q: 'after' })) : ''));
     }
     if (/happened|yesterday|today.*call|did i/.test(q)) {
@@ -23084,14 +23452,21 @@
       const from = yday ? dayAdd(-1) : TODAY_ISO;
       const to = yday ? TODAY_ISO : dayAdd(1);
       const label = yday ? 'yesterday' : 'today';
-      const mineT = callsIn(DB.touch.filter((t) => t.by === me().id &&
-        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to));
+      /* `callsIn` keeps the rows with a call OUTCOME on them, which is the
+         whole of a caller's day and none of a manager's: this desk writes
+         `phase` — a hundred and twenty of them on one seat — and every one
+         was filtered out before the count, so a manager who had spent the
+         day in meetings was told nothing was on the record. Each desk
+         counts what it writes. */
+      const said = DB.touch.filter((t) => t.by === me().id &&
+        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to);
+      const mineT = onBook() ? said : callsIn(said);
       if (!mineT.length) return 'Nothing on the record from you ' + label + '.';
       const by = Object.create(null);
-      mineT.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
-      return '<b>' + plural(mineT.length, 'call') + '</b> ' + label + ' — ' +
-        Object.keys(by).map((k) => by[k] + ' ' +
-          ((OUTCOME[k] || { label: k }).label.toLowerCase())).join(', ') + '.';
+      mineT.forEach((t) => (by[kindLabel(t)] = (by[kindLabel(t)] || 0) + 1));
+      return '<b>' + plural(mineT.length, onBook() ? 'touchpoint' : 'call') + '</b> ' +
+        label + ' — ' +
+        Object.keys(by).map((k) => by[k] + ' ' + k.toLowerCase()).join(', ') + '.';
     }
     if (/answer|best time|when do/.test(q)) {
       /* The hour with the best connect rate, computed over the calls that
@@ -23197,11 +23572,20 @@
        behind `onBook()` in `runInput`, so telling a caller their sentence
        moves a deal would be this page describing a route it will not take.
        The desk that has them is told about them. */
+    /* ══ AND IT PROMISED A BUYER TWO THINGS THE URL REFUSES THEM ═════════
+       The lists reading and the builder are both stripped for this desk in
+       `parse()`, so naming them here was the capability list describing a
+       route the product will not take — the empty room the comment above
+       says this answer exists to avoid. It is gated the same way the
+       meeting sentences are. */
+    const ours = !isBuyer();
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
       'people answer, which meetings passed, what changed at the companies you call, who went ' +
-      'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
-      'what to do first. Name a person or a campaign to go there, and describe who to look for ' +
-      'to get a list back. A sentence about a call logs it' +
+      'quiet, who got a decision, ' + (ours ? 'which lists are off a campaign, ' : '') +
+      'how a campaign stands, and ' +
+      'what to do first. Name a person or a campaign to go there' +
+      (ours ? ', and describe who to look for to get a list back' : '') +
+      '. A sentence about a call logs it' +
       (onBook() ? ', a sentence about a meeting moves the deal, and a sentence with a day in it ' +
         'books the meeting' : '') + '.';
   }
@@ -24996,6 +25380,18 @@
     if (t.closest('[data-stay]')) { LEAVE = null; paint(); return; }
     const fl = t.closest('[data-filllist]');
     if (fl) { fillList(fl.getAttribute('data-filllist')); return; }
+
+    /* Both directions on one attribute, and the list comes with it: the
+       team block is drawn on a list page and in a menu that outlives the
+       repaint, so reading the id off the element is the only way this
+       cannot end up writing to whichever list the URL happens to hold. */
+    const lte = t.closest('[data-lteam]');
+    if (lte) {
+      const v = lte.getAttribute('data-lteam');
+      const at = v.indexOf('|');
+      listTeamSet(v.slice(0, at), v.slice(at + 1));
+      return;
+    }
     const lst = t.closest('[data-list]');
     if (lst) { go(Object.assign(cleared(), { on: 'lists', list: lst.getAttribute('data-list') })); return; }
     const acc = t.closest('[data-acc]');
