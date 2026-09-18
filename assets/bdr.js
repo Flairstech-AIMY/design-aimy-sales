@@ -3393,11 +3393,22 @@
      switcher's count, the campaign list, the guard on a campaign page, the
      tag a queue card carries) gets the right answer without knowing who is
      asking. */
-  const mine = (c) => (isBuyer() ? onClient(c)
+  /* And a fifth reading, which is not a desk: you asked for this one. A
+     stakeholder's request is for a product that may not be his line and a
+     client's is on a book they cannot otherwise see, so without this clause
+     the thing you just asked for would vanish the moment you sent it. */
+  const mine = (c) => (c.by && c.by === me().id) || (isBuyer() ? onClient(c)
     : isLine() ? onLine(c)
     : onBook() ? c.owner === me().id
     : c.crew.indexOf(me().id) >= 0);
-  const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
+  /* A request that has not been sent yet is nobody's but its writer's. It
+     is half a sentence: without this it would sit on the manager's list from
+     the first keystroke, called "Unnamed campaign", and open as a running
+     campaign with no market on it. Sent, it is on both their lists, which is
+     the point of sending it. */
+  const campShown = (c) => !c.by || c.state !== 'draft' || c.by === me().id;
+  const myCampaigns = () =>
+    DB.camp.filter((c) => mine(c) && c.state !== 'done' && campShown(c));
   /* ══ PAST ITS END DATE IS CLOSED ═══════════════════════════════════════
      Whatever its state says — the seed's dates drift as real days pass. A
      closed campaign stays yours to read, and stops feeding your queue: the
@@ -3407,7 +3418,40 @@
      running, and nothing on it should be dialled — so every surface that
      asks "is this live" gets no for a draft, and the one surface that lists
      what you own says so on the card. */
-  const isDraft = (k) => !!k && k.state === 'draft';
+  /* \u2550\u2550 A REQUEST IS A DRAFT SOMEBODY ELSE WROTE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     Two desks read this book without running it: a stakeholder answering
+     for what we sell, and the client paying for the reach. Neither runs a
+     floor, so neither can start a campaign \u2014 but both know exactly what
+     they want sold and to whom, and until now the only way to say it was
+     to go and find a manager.
+
+     What they make is THE SAME RECORD, with the same fields and the same
+     holes in it. It is not a second kind of object and it does not get a
+     second builder: it is a campaign nobody has started, which is what a
+     draft already is. So `isDraft` covers both and every surface that asks
+     "is this live" goes on answering no without being told a new word \u2014
+     the card, `campOpen`, the edit gate, all of it.
+
+     `isAsked` is the narrow question, and it is asked in four places only:
+     what the tag says, who may fill it in, what the primary is called, and
+     which of them reach the manager's briefing. */
+  const isDraft = (k) => !!k && (k.state === 'draft' || k.state === 'asked');
+  const isAsked = (k) => !!k && k.state === 'asked';
+  /* The desks that ask rather than run. Not `!isMgr()`: a BDR is neither,
+     and a BDR has no door to a campaign at all. */
+  const asksOnly = () => isLine() || isBuyer();
+  /* \u2550\u2550 WHO FILLS IT IN, WHICH IS NOT WHOSE IT IS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A blank one is filled in by whoever started it, and that is true of a
+     request before it is sent: the stakeholder typing it is answering his
+     own questions. The moment he presses Request it, it is the manager's
+     page and his to read.
+
+     So `by` is written when the record is MADE and not when it is sent \u2014
+     it says who wrote it, which never changes \u2014 and `state` says how far
+     it has got. A plain draft carries no `by` and falls through to `mine`,
+     which is what this build did before there was anything else. */
+  const campFills = (k) => (isAsked(k) ? isMgr() && k.owner === me().id
+    : k.by ? k.by === me().id : mine(k));
   const campOpen = (k) => k.state !== 'done' && !isDraft(k) && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
@@ -4700,7 +4744,8 @@
            what the amber was for when the tag was a clock. */
         '<span class="tag tag-' + (isDraft(k) ? 'neutral'
           : left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
-          (isDraft(k) ? 'Draft'
+          (isAsked(k) ? 'Requested'
+            : isDraft(k) ? 'Draft'
             : left <= 0 ? 'Closed'
             : left < 21 ? 'Closing soon' : 'Running') + '</span>' +
         (isDraft(k) ? ''
@@ -4755,7 +4800,10 @@
          sentence wraps under itself rather than under the mark. */
       '<p class="tc-summary b-qcard-what b-fact">' + chIcon('target') +
         '<span>' + campGoalSay(k) + '</span></p>' +
-      (isDraft(k)
+      (isAsked(k)
+        ? '<div class="b-qcard-why">' + esc(actor(k.by).name) + ' asked for it' +
+          (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') + '</div>'
+        : isDraft(k)
         ? '<div class="b-qcard-why">' + (members.length
           ? '<b>' + commas(members.length) + '</b> on it, and nobody calling them yet'
           : 'Nobody on it yet') + '</div>'
@@ -4775,7 +4823,8 @@
           '<span>' + esc(actor(k.owner).name) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' +
-          (isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
+          (isAsked(k) ? (campFills(k) ? 'Open it' : 'See it')
+            : isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
   }
@@ -6362,10 +6411,92 @@
     '</section>';
   }
 
+  /* \u2550\u2550 WHAT SOMEBODY ELSE WANTS SOLD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A request has one property that decides where it goes: it is not work
+     the manager generated, so nothing on his own desk will ever remind him
+     of it. Everything in "What wants you" he can find another way \u2014 the
+     callbacks are in the queue, the meetings are in the diary, the closing
+     campaign is on its own card. A request exists in one place only, and if
+     that place is a list he has to think to open, it waits.
+
+     So it is on the briefing, which is the page this desk opens the day on.
+
+     NOT A ROW INSIDE "WHAT WANTS YOU". Every row in that block is something
+     that has gone quiet or gone past a date \u2014 it is the page's account of
+     what slipped. A request has not slipped; it arrived. Folding it in
+     would make the one thing on this desk that came from OUTSIDE it read as
+     the eighth kind of thing that went wrong.
+
+     It is `.b-owed`'s own row, though, because the shape is the same
+     question in the same words: what is this, when, and the verb. A second
+     row component for a list of eight would be a second thing to learn for
+     no second meaning.
+
+     \u2550\u2550 AND THE OWNER TEST IS THE LINE THE CEO WILL MOVE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `campOwner` puts every request on `MANAGERS[0]` because nobody is being
+     asked yet which manager should take it. When the CEO's desk arrives it
+     answers that, this filter goes on reading `owner`, and the only thing
+     that changes is who wrote the field. */
+  const campAsks = () => DB.camp.filter((k) => isAsked(k) && k.owner === me().id)
+    /* Longest waiting first, which is the order every other list of things
+       owed on this page uses: what was missed first. */
+    .sort((a, b) => ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
+
+  function reqBlock() {
+    /* A stakeholder and a client read this same home page. They see their
+       own requests on their own campaigns list, where a card says Requested;
+       what they must not see is the pile on somebody's desk. */
+    if (!isMgr()) return '';
+    const asks = campAsks();
+    /* Nothing arrived means no section. A heading over "no requests" every
+       morning teaches the eye to skip the place a request will appear. */
+    if (!asks.length) return '';
+    /* What it is, in the two facts a manager decides on: the offering, and
+       the market it is aimed at. */
+    const what = (k) => {
+      const x = SELL[(k.sells || [])[0]];
+      const mk = [INDUSTRY[k.industry] && INDUSTRY[k.industry].label,
+        REGION[k.region] && REGION[k.region].label].filter(Boolean).join(' in ');
+      return [x ? x.name : null, mk || null].filter(Boolean).join(' \u00b7 ');
+    };
+    return '<section class="s-block s-block-wide" aria-label="Requests">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Requests</h2>' +
+        '<span class="s-block-say">' + esc(plural(asks.length, 'campaign')) +
+          ' asked for \u00b7 longest waiting first</span>' +
+      '</div>' +
+      '<div class="b-owed">' + asks.map((k, i) =>
+        '<button class="b-owed-row" type="button" data-camp="' + esc(k.id) + '" ' +
+        'style="--i:' + Math.min(i, 8) + '">' +
+          /* The quiet dot, which is what this build's two poles mean: p1 is
+             something that went wrong and everything else is something that
+             has not happened yet. A request is the second. */
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(campName(k)) + '</span>' +
+              '<span class="b-owed-when">' + esc(actor(k.by).name) +
+                (k.askedAt ? ' \u00b7 ' + esc(sayWhen(k.askedAt)) : '') + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(what(k)) +
+              '. ' + campGoalSay(k) + '</span>' +
+          '</span>' +
+          /* It opens as the page a draft opens as, with the two fields this
+             desk is the only one who can answer still empty. */
+          '<span class="b-owed-go">Open it</span>' +
+        '</button>').join('') + '</div>' +
+    '</section>';
+  }
+
   function mgrHome() {
     return '<div class="s-home">' +
       topBrief('today') +
       dayBlock() +
+      /* Above what slipped and under what is happening today. A meeting at
+         eleven outranks anything; a request outranks a callback that has
+         been late for three days, because nobody else can move it and it is
+         one press. */
+      reqBlock() +
       owedBlock() +
     '</div>';
   }
@@ -9130,6 +9261,7 @@
      vocabulary every other campaign surface here already speaks — a second
      word for the same fact is a second thing to learn. */
   function campStateSay(k) {
+    if (isAsked(k)) return 'Requested';
     if (isDraft(k)) return 'Draft';
     const left = daysBetween(TODAY_ISO, k.to);
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
@@ -11912,6 +12044,18 @@
     const findLeads = { k: 'find', label: 'Find leads',
       why: DB.list.length ? 'describe who to look for; what comes back is a list'
         : 'the way anybody new reaches your queue' };
+    /* \u2550\u2550 ONE DOOR, AND THE VERB SAYS WHAT IS BEHIND IT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+       Not a second door on a third surface: the same key, the same canvas,
+       the same fields, and the one word that differs is the one thing that
+       actually differs \u2014 a manager ends with a campaign running and these
+       two end with a manager holding it. A desk that cannot do a thing and
+       is shown the door to it anyway learns the door is a lie; a desk shown
+       a DIFFERENT door learns a second product. */
+    const campDoor = asksOnly()
+      ? { k: 'newcamp', label: 'Request a campaign',
+          why: 'what you want sold, to whom, and how many' }
+      : { k: 'newcamp', label: 'Build a campaign',
+          why: 'what you sell, to whom, and how many you want' };
 
     let opens;
     if (isBuyer()) {
@@ -11928,6 +12072,12 @@
       opens = [
         { k: 'callnext', label: 'Warm-call the next one',
           why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
+        /* Three verbs became four, and the fourth is not one of the two
+           this desk lost. Building a campaign and finding leads spend our
+           suppliers' money and operate our floor; saying what you want sold
+           does neither. It sits second because it is the only thing on this
+           row that starts something rather than continuing it. */
+        campDoor,
         { k: 'lead', label: 'Add a lead',
           why: 'somebody you met, straight onto your board' },
         { k: 'money', label: 'See the year',
@@ -11953,8 +12103,7 @@
            page at all: a manager who wanted a new one had to go to Campaigns
            to start it, which is the surface for the ones that already exist.
            So the slot goes to the thing that could not be done from here. */
-        { k: 'newcamp', label: 'Build a campaign',
-          why: 'what you sell, to whom, and how many you want' },
+        campDoor,
         /* The board is already the tab beside this one and the door under
            the cards; a third way in is not a way in. This slot goes to the
            thing the desk could not do at all. */
@@ -15110,12 +15259,26 @@
        both over one string is how an ampersand becomes &amp;amp; in a field
        somebody is about to edit. */
     const aimNow = k.aim || (editing ? goalSay(campGoal(k)) : '');
+    /* \u2550\u2550 THE THIRD REASON TO BE ON THIS PAGE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+       A draft is this page, a running campaign being corrected is this page,
+       and a request being written is this page too \u2014 the same fields, asked
+       by somebody who cannot start it. Two things come off it and one word
+       changes: no team, no lists, and the primary says Request it.
+
+       It is the whole difference, and that is the argument for it being one
+       page rather than a builder of its own. A stakeholder describing a
+       campaign is answering exactly the questions a manager answers; what
+       he cannot do is answer the two about OUR floor. */
+    const asking = !editing && asksOnly();
     const miss = [];
     if (!k.name) miss.push('a name');
     if (!aimNow) miss.push('a goal');
     if (!k.sells.length) miss.push('something to sell');
     if (!k.industry || !k.region) miss.push('a market');
-    if (!k.crew.length) miss.push('somebody to work it');
+    /* Not asked for from a desk that cannot answer it. A greyed button over
+       a sentence naming a field the page does not draw is the worst
+       combination this build has: it says no and will not say where. */
+    if (!k.crew.length && !asking) miss.push('somebody to work it');
     return '<div class="s-home">' +
       /* Back to where you came from. Editing was entered from the record, so
          that is what is behind it; a draft has no record to go back to. */
@@ -15131,7 +15294,8 @@
            you can do with it is at the top beside what it is. */
         '<div class="b-draft-top">' +
           '<span class="s-rec-kind b-kinds">' + fact('campaign', 'Campaign') +
-            '<span class="tag tag-neutral">' + (editing ? 'Editing' : 'Draft') +
+            '<span class="tag tag-neutral">' +
+            (editing ? 'Editing' : isAsked(k) ? 'Request' : 'Draft') +
             '</span></span>' +
           /* ══ THE ORDER IS THE ORDER OF OPERATIONS ═══════════════════════
              The primary led the row and the fill followed it, which reads
@@ -15153,7 +15317,13 @@
                the draft stands. */
             (fillable ? '<button class="b-ghost b-draft-fill" type="button" data-cfill>' +
               AIMY_SPARK + 'Let AiMY fill the rest</button>' : '') +
-            (editing ? '' :
+            /* Off a request in both directions. The person asking gets one
+               press, because "instead of run or save as draft" is the whole
+               shape of the thing: an ask is sent or it is not written yet.
+               And on the manager's side it would say "Kept as a draft" about
+               somebody else's request, which is a sentence about a state the
+               record is not in. */
+            (editing || asking || isAsked(k) ? '' :
               '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>') +
             /* Greyed for the same reason and with the same sentence under it:
                a campaign is already running, and leaving it without a name or
@@ -15162,12 +15332,28 @@
             (editing
               ? '<button class="s-insight-lnk primary" type="button" data-cdone="' + esc(k.id) + '"' +
                 (miss.length ? ' disabled aria-disabled="true"' : '') + '>Done</button>'
+              : asking
+              /* Greyed by the same list, minus the one line about a team
+                 nobody at this desk picks. */
+              ? '<button class="s-insight-lnk primary" type="button" data-cask="' + esc(k.id) + '"' +
+                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Request it</button>'
               : '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
                 (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>') +
           '</span>' +
         '</div>' +
         '<input class="b-draft-name" type="text" data-cfield="name" value="' + esc(k.name) + '" ' +
           'placeholder="Name this campaign" spellcheck="false" aria-label="The name" />' +
+        /* \u2550\u2550 A PAGE THAT ARRIVED FROM SOMEWHERE SAYS WHERE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+           Every other draft on this page was started by the person reading
+           it. This one was not, and the two facts that changes are who to go
+           back to about it and what is left to decide. Under the name rather
+           than in the action row: it is a fact about the record, and the row
+           above holds the things you can do. */
+        (isAsked(k)
+          ? '<p class="s-block-sub"><b>' + esc(actor(k.by).name) + '</b> asked for this' +
+            (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') +
+            '. Put a team on it and it is a campaign.</p>'
+          : '') +
         '<div class="b-cmeta b-draft-meta">' +
           /* The one field above the fold AiMY can write, so it carries the
              same verb the persona and the pitch do. `draftPart` rather than
@@ -15178,7 +15364,13 @@
             sells.length ? sells.map((x) => esc(x.name)).join(', ') : '',
             'What is on this one', SELLS.map((x) =>
               draftItem('sell', x.k, x.name, k.sells.indexOf(x.k) >= 0, x.kind)).join(''))) +
-          draftField('Client', draftMenu('dClient', esc(cl ? cl.name : 'FlairsTech'),
+          /* Not a choice from the buying side. A client asking for a
+             campaign is asking for one on their own book \u2014 there is no other
+             book they can see \u2014 so the field states it rather than offering
+             them four companies, three of which are not them. */
+          draftField('Client', isBuyer()
+            ? '<p class="b-cmeta-p"><b>' + esc(cl ? cl.name : 'FlairsTech') + '</b></p>'
+            : draftMenu('dClient', esc(cl ? cl.name : 'FlairsTech'),
             'Whose offer this is',
             draftItem('client', '', 'FlairsTech', !k.client, 'our own book') +
             CAMP_CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
@@ -15204,10 +15396,18 @@
             k.size ? esc(sizeLabel(k.size) + ' staff') : '', 'How big they have to be',
             SIZE_BANDS.map((b) => draftItem('size', b.k, b.label + ' staff',
               k.size === b.k)).join(''))) +
-          draftField('The team', draftMenu('dCrew',
+          /* \u2550\u2550 THE TWO ABOUT OUR FLOOR, AND NOT ABOUT THE MARKET \u2550\u2550\u2550\u2550\u2550\u2550\u2550
+             Who calls them and which lists go on are the only two questions
+             on this page that are about us rather than about the campaign,
+             and they are the two a stakeholder and a client have no way to
+             answer: one does not know the floor and the other does not work
+             here. Not greyed \u2014 absent. A control shown to somebody who can
+             never press it is the page asking a question it will not accept
+             an answer to. */
+          (asking ? '' : draftField('The team', draftMenu('dCrew',
             crew.length ? crew.map((r) => esc(r.name)).join(', ') : '', 'Who works it',
             BDRS.map((r) => draftItem('crew', r.id, r.name,
-              k.crew.indexOf(r.id) >= 0, JOB[r.fn], faceOf(r.id, 26))).join(''))) +
+              k.crew.indexOf(r.id) >= 0, JOB[r.fn], faceOf(r.id, 26))).join('')))) +
           /* ══ THE LISTS YOU ALREADY HAVE ═══════════════════════════════
              A campaign with nobody on it is a campaign nobody can work, and
              the people are already in the book — found, run and saved as
@@ -15226,7 +15426,7 @@
              nothing is taken off anything by putting it on. Where else a
              list is working is said on its row, because that is a thing
              worth knowing before you tick it, not a reason you cannot. */
-          draftField('Add a list', (function () {
+          (asking ? '' : draftField('Add a list', (function () {
             const on = DB.list.filter((l) => listIsOn(l, k.id));
             const where = (l) => {
               const other = campsOn(l).filter((x) => x.id !== k.id);
@@ -15240,7 +15440,7 @@
                 where(l))).join('') ||
                 '<span class="b-menu-sub b-draft-empty">You have not built a list yet. ' +
                 'Find leads and what comes back is one.</span>');
-          })()) +
+          })())) +
           /* How long it runs, which is the only thing "the window" was ever
              saying. A number to pace against is what a campaign learns from
              running; guessing at it before the first call is made was asking
@@ -15278,6 +15478,50 @@
     '</div>';
   }
 
+  /* \u2550\u2550 WHAT YOU ASKED FOR, AND WHO HAS IT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A stakeholder who has just sent a request has one question about it, and
+     it is not which fields he filled in \u2014 he answered those a minute ago. It
+     is whether anything has happened to it.
+
+     So this is the record, read the way every other desk reads a record: the
+     facts as facts, the persona and the pitch as the words a floor will say,
+     and one sentence naming the desk it is sitting on. `campMeta` is the
+     same block a running campaign carries, which is the point \u2014 the day it
+     starts running, this page does not change shape, it gains a queue.
+
+     NOT `campDraftPage` WITH THE CONTROLS TURNED OFF. A form with every
+     field greyed is a page about what you may not do. This is a page about
+     what you asked for. */
+  function campAskPage(k) {
+    const weeks = Math.max(1, Math.round(daysBetween(k.from, k.to) / 7));
+    const sent = isAsked(k);
+    return '<div class="s-home">' +
+      backBtn('data-home', 'Back to the briefing') +
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind b-kinds">' + fact('campaign', 'Campaign') +
+          /* Guarded, unlike the running campaign's masthead, because this
+             one can be reached before a market has been named. */
+          (INDUSTRY[k.industry] ? fact('industry', esc(INDUSTRY[k.industry].label)) : '') +
+          (REGION[k.region] ? fact('where', esc(REGION[k.region].label)) : '') +
+          (k.size ? fact('staff', esc(sizeLabel(k.size)) + ' staff') : '') +
+          fact('calendar', esc(plural(weeks, 'week')) + ' once it starts') +
+        '</span>' +
+        '<div class="s-rec-title">' +
+          '<h1 class="s-rec-name">' + esc(campName(k)) + '</h1>' +
+          '<span class="s-meta-st tone-neutral">' + (sent ? 'Requested' : 'Draft') + '</span>' +
+          (sent && k.askedAt
+            ? '<span class="b-kind">sent ' + esc(sayWhen(k.askedAt)) + '</span>' : '') +
+        '</div>' +
+        '<p class="s-block-sub">' + (sent
+          ? '<b>' + esc(actor(k.owner).name) + '</b> has it. They put a team and the lists ' +
+            'on it and start it, and it turns into a campaign on this page when they do.'
+          : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
+            'asked for it yet.') + '</p>' +
+        campMeta(k) +
+      '</section>' +
+    '</div>';
+  }
+
   function campPage() {
     const k = DB.byCamp[S.camp];
     if (!k) {
@@ -15287,7 +15531,16 @@
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
-    if (isDraft(k) && mine(k)) return campDraftPage(k, false);
+    /* \u2550\u2550 WHOSE PAGE THIS IS, WHICH IS NOT WHOSE CAMPAIGN IT IS \u2550\u2550\u2550\u2550\u2550\u2550
+       `campFills` is the whole test: a draft belongs to whoever started it,
+       a request to the manager it was sent to. Everybody else who can see an
+       unstarted campaign reads it \u2014 the person who asked, and a manager who
+       opens one somebody is still writing. That second case is why this is
+       two lines and not one: without it, an unstarted campaign with no
+       market on it fell through to the running campaign page, which reads
+       `INDUSTRY[k.industry].label` on its first line. */
+    if (isDraft(k) && campFills(k)) return campDraftPage(k, false);
+    if (isDraft(k) && mine(k)) return campAskPage(k);
     /* Editing a running campaign is the same page with the answers in it.
        `campEditing` checks the id in the URL against this campaign, so a
        stale `ed` left on a link cannot open somebody else's record as a
@@ -15726,7 +15979,16 @@
         '<span class="b-cmeta-cap b-team-cap">The team</span>' +
         (mine ? crewPick(k) : '') +
       '</div>' +
-      teamFaces(ids, (id, off) => mateRow(id, null, off), { k: mine ? k : null }) +
+      /* ══ AN OWNER IS NOT A TEAM ════════════════════════════
+         `ids` opens with the owner because on a running campaign the manager
+         IS on it — he owns the book his floor is calling out of. On a request
+         nobody has agreed to work it yet, and drawing one face under The team
+         says a caller has been put on it. The sentence above this block has
+         just named that person as the one it is waiting on; saying it again
+         as a team is the page contradicting itself two lines apart. */
+      (isAsked(k) && !k.crew.length
+        ? '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>'
+        : teamFaces(ids, (id, off) => mateRow(id, null, off), { k: mine ? k : null })) +
     '</div>';
   }
 
@@ -25799,7 +26061,18 @@
        rather than work the funnel, and every one of them spends our
        suppliers' money. Each is refused at its own door as well as hidden,
        so a control this sweep missed cannot act. */
-    if (isBuyer()) { toast('We build the campaigns. Say what you want and we will run it.'); return; }
+    /* \u2550\u2550 AND THE REFUSAL MOVED TO WHAT IT WAS REALLY ABOUT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+       This read "We build the campaigns. Say what you want and we will run
+       it" \u2014 a sentence that names the thing the product would not let you
+       do, in a toast, with no way to do it. The answer was right and the
+       place was wrong: what a client may not do is RUN a campaign, and what
+       they were being stopped from doing was describing one.
+
+       So the door opens for both desks and the refusal is at the end of the
+       flow, where it belongs: they fill in the same fields and the last
+       press hands it to a manager instead of starting it. The floor is
+       still refused here, because a caller works the queue a campaign
+       produces and has no business making one. */
     if (!onBook()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
     DRAFT = null;
@@ -25816,12 +26089,13 @@
        rather be asked, or you already know exactly what this campaign is
        and want the fields. Asking which is one turn and it is the same
        turn the lead builder opens with. */
-    cbuildPush('A new campaign. Shall I ask you through it, or would you rather ' +
-      'fill it in yourself?',
+    cbuildPush((asksOnly() ? 'A campaign to ask for.' : 'A new campaign.') +
+      ' Shall I ask you through it, or would you rather fill it in yourself?',
       [{ k: 'way-ask', label: 'Ask me through it' },
         { k: 'way-hand', label: 'I will fill it in' }],
-      'Five questions and it is running \u2014 or an empty page with every field on it, ' +
-      'saved as you type.');
+      'Five questions and it is ' +
+      (asksOnly() ? 'on ' + esc(actor(campOwner()).name) + '\u2019s desk' : 'running') +
+      ' \u2014 or an empty page with every field on it, saved as you type.');
   }
 
   function cbuildAsk() {
@@ -25989,7 +26263,11 @@
          and a closing date while the words the floor would be using arrived
          with the campaign. Notes are not here: nothing wrote one. */
       draftField('Targeted persona', esc(sayPersona(cbuildParts()) || '\u2014')) +
-      draftField('The team', esc(listSay(crew))) +
+      /* The slot says who will decide rather than standing empty. A desk
+         that cannot choose the team is not shown a team it did not choose;
+         it is shown the name of the person who will. */
+      (asksOnly() ? draftField('Goes to', esc(actor(campOwner()).name))
+        : draftField('The team', esc(listSay(crew)))) +
       draftField('Counted in', esc(commas(CBUILD.n) + ' ' + CBUILD.noun + 's')) +
       draftField('Time frame', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
         sayDay(dayAdd(CBUILD.weeks * 7)))) +
@@ -26010,9 +26288,12 @@
      it before Make it is pressed. */
   function cbuildName() {
     CBUILD.step = 'name';
+    const ask = asksOnly();
     cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
-      'Nobody is on it yet — a list goes on from its own page.',
-      [{ k: 'make', label: 'Make it' },
+      (ask
+        ? esc(actor(campOwner()).name) + ' picks who works it and which lists go on it.'
+        : 'Nobody is on it yet — a list goes on from its own page.'),
+      [{ k: 'make', label: ask ? 'Request it' : 'Make it' },
         { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
       'Or type a different name and I will use that.',
       cbuildCard());
@@ -26079,11 +26360,23 @@
      invisible to all three managers, and to the builder too the moment he
      picked a product that was not his. It goes to the manager every
      ownerless campaign in this build already falls back to. */
-  const campOwner = () => (isLine() ? MANAGERS[0].id : me().id);
+  /* Read the other way round now, because there are two desks it is true
+     of rather than one: a client cannot own a campaign either, and left as
+     `me()` a request from Kestrel would have named its owner as the person
+     who is waiting on it.
+
+     \u2550\u2550 AND THIS IS THE LINE THE CEO WILL MOVE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `MANAGERS[0]` is where every ownerless campaign in this build already
+     falls, and it is a placeholder for a decision nobody is being asked to
+     make yet: which manager takes this one. When the CEO's desk arrives it
+     is the desk that answers that, and a request will arrive owned by
+     nobody until he does. One field, one function, one change. */
+  const campOwner = () => (isMgr() ? me().id : MANAGERS[0].id);
   function emptyCamp() {
     const id = 'k' + Date.now().toString(36);
     const k = {
-      id: id, name: '', client: null, aim: '',
+      /* Same as the conversational one writes, for the same reason. */
+      id: id, name: '', client: isBuyer() ? myClient() : null, aim: '',
       target: { n: 0, noun: 'meeting' },
       persona: { who: '', at: '', why: '' },
       /* `goal` is the ask one call comes away with, `pitch` the angle
@@ -26097,6 +26390,15 @@
       size: '',
       from: TODAY_ISO, to: dayAdd(42),
       owner: campOwner(), crew: [], state: 'draft',
+      /* \u2550\u2550 WRITTEN WHEN IT IS MADE, NOT WHEN IT IS SENT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+         `by` says who wrote this, which is true from the first keystroke;
+         `state` says how far it has got. Keeping them apart is what lets a
+         stakeholder fill in his own half-written request \u2014 `campFills` reads
+         `by` and hands him the fields \u2014 while the same record read after
+         Request it is his to see and the manager's to finish. Both null on
+         a manager's own draft, which is every draft this build has ever
+         made. */
+      by: asksOnly() ? me().id : null, askedAt: null,
       industry: '', region: '', lists: [],
     };
     DB.camp.push(k);
@@ -26325,8 +26627,45 @@
     patch.from = TODAY_ISO;
     campSet(k, patch);
     go(Object.assign(cleared(), { camp: k.id }));
-    toast(k.name + ' is running \u2014 nobody is on it yet', () => {
+    /* \u2550\u2550 IT SAYS WHAT IS ON IT, RATHER THAN ASSUMING NOTHING IS \u2550\u2550\u2550\u2550\u2550\u2550
+       "nobody is on it yet" was written for the one way this used to be
+       reached: a manager finishing a blank draft, where ticking a list is
+       something you do afterwards on the campaign's own page. A request
+       arrives with the lists field right there under the team, and the
+       likeliest press before Run it is a list \u2014 so the receipt could tell a
+       manager who had just put four hundred people on it that nobody was. */
+    const on = membersOf(k.id).length;
+    toast(k.name + ' is running \u2014 ' +
+      (on ? plural(on, 'person') + ' on it' : 'nobody is on it yet'), () => {
       campSet(k, { state: 'draft' });
+      go(Object.assign(cleared(), { camp: k.id }));
+    });
+  }
+
+  /* \u2550\u2550 THE SAME PRESS, ENDING ON SOMEBODY ELSE'S DESK \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `campRun` above fills whatever was left empty and starts it. This fills
+     the same empty half and hands it over, and it fills it for the same
+     reason: the objections, the one-pagers and the line to open on are the
+     book's rather than the person asking, and a manager opening a request
+     with those three blank would be writing them from a brief he did not
+     take.
+
+     A state change and nothing else. No copy of the record, no second table,
+     no queue of messages \u2014 the manager's briefing reads `state` the way
+     every other block on it reads the book, so a request cannot go missing
+     between two places that both think they hold it. */
+  function campAsk(k) {
+    if (!k) return;
+    const patch = campFill(k);
+    patch.state = 'asked';
+    patch.by = me().id;
+    patch.askedAt = TODAY_ISO;
+    campSet(k, patch);
+    go(Object.assign(cleared(), { camp: k.id }));
+    /* Undone the way running one is undone: back to a draft, still yours,
+       still every word of it where you left it. */
+    toast('Requested \u2014 ' + actor(k.owner).name + ' has it', () => {
+      campSet(k, { state: 'draft', askedAt: null });
       go(Object.assign(cleared(), { camp: k.id }));
     });
   }
@@ -26334,6 +26673,10 @@
   function cbuildMake() {
     const b = CBUILD;
     if (!b || !b.sell) return;
+    /* Read before anything is written, because it decides three fields and
+       the sentence at the end, and reading it four times invites the four
+       readings to disagree. */
+    const ask = asksOnly();
     const parts = cbuildParts();
     const x = SELL[b.sell];
     const ind = INDUSTRY[b.industry];
@@ -26348,7 +26691,10 @@
     }
     const askFor = ASK_OF[b.sell];
     const k = {
-      id: id, name: b.name || cbuildAutoName(), client: null,
+      /* A client asking for a campaign is asking for one on their own book
+         \u2014 there is no other book they can see, and `client` is the field
+         every figure on their desk is bounded by. Ours stays ours. */
+      id: id, name: b.name || cbuildAutoName(), client: isBuyer() ? myClient() : null,
       /* Asked for, not derived: the record prints what was said here. */
       aim: b.aim || '',
       /* And nobody is on it, which is what the toast says and what the
@@ -26381,9 +26727,16 @@
       ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
       from: TODAY_ISO, to: dayAdd(b.weeks * 7),
       owner: campOwner(),
-      /* Somebody has to work it, and there is one desk that calls. */
-      crew: BDRS.map((r) => r.id),
-      state: 'running',
+      /* Somebody has to work it, and there is one desk that calls \u2014 unless
+         nobody has agreed to work it yet, which is the whole of what a
+         request is. Empty, so the manager who opens it picks. */
+      crew: ask ? [] : BDRS.map((r) => r.id),
+      state: ask ? 'asked' : 'running',
+      /* Who wrote it and when they sent it. `by` is what puts it back on
+         their own campaigns list and what the manager's briefing reads to
+         say whose ask this is. */
+      by: ask ? me().id : null,
+      askedAt: ask ? TODAY_ISO : null,
       /* Both are asked for now, so neither falls back to the top of a list
          and asserts a market nobody named. */
       industry: b.industry,
@@ -26400,7 +26753,8 @@
     lbuildSpend();
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
-    toast(k.name + ' is running \u2014 nobody is on it yet', () => {
+    toast(ask ? 'Requested \u2014 ' + actor(k.owner).name + ' has it'
+      : k.name + ' is running \u2014 nobody is on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
       reindex();
@@ -27213,6 +27567,15 @@
     if (crun) {
       if (crun.disabled) return;
       campRun(DB.byCamp[crun.getAttribute('data-crun')]);
+      return;
+    }
+
+    /* The other ending. Same guard, because the same list of what is missing
+       greys both. */
+    const cask = t.closest('[data-cask]');
+    if (cask) {
+      if (cask.disabled) return;
+      campAsk(DB.byCamp[cask.getAttribute('data-cask')]);
       return;
     }
 
