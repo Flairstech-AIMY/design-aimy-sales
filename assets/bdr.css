@@ -4606,8 +4606,27 @@ textarea::placeholder,
    rows inside it is a table drawn by hand. The verb on the right is a
    link: no fill, no edge, coloured, which is what colour is for here. */
 .b-owed { display: flex; flex-direction: column; }
+/* ══ IT WRAPS ON THE WIDTH IT HAS, NOT ON THE WIDTH OF THE WINDOW ════
+   The breakpoint at the foot of this block says what these rows become on a
+   phone, and a breakpoint is the wrong instrument for the half of this that
+   is not about phones: a row is squeezed whenever its OWN width runs out,
+   which also happens in a narrow pane, inside the canvas, and at any window
+   size the query does not name. A query reads the window; a floor on the
+   text column reads the row.
+
+   So the wrap is unconditional and the floor is what fires it — when the
+   sentence cannot have its 200px the verb takes the next line, instead of
+   both of them getting half of what they need. On a wide row it never
+   triggers and nothing moves.
+
+   `--ui-scale` is the second reason to prefer it. `zoom` on <body> means a
+   media query reads the real viewport in real px while the rules inside it
+   apply to a layout of a different size, which is why every query in this
+   file is keyed in LAYOUT px and says so. A `min-width` is inside the zoom
+   with the row and measures the pixels the row is laid out in. */
 .b-owed-row {
-  display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px;
+  width: 100%; text-align: left;
   padding: 11px 12px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
@@ -4625,7 +4644,12 @@ textarea::placeholder,
   margin-top: 7px; flex: none; background: var(--d500);
 }
 .b-owed-sev.p1 { background: var(--err); }
-.b-owed-main { flex: 1; min-width: 0; }
+/* 200 is where wrapping the sentence starts costing more than moving the
+   verb: under it this column breaks into two-word lines. `min()` so the
+   floor can never be wider than the row and make the thing it is preventing.
+   It was `min-width: 0`, which is the right answer to "may this shrink" and
+   no answer at all to "how far". */
+.b-owed-main { flex: 1; min-width: min(200px, 100%); }
 /* Wrapping at every width, not only the narrow ones. The two halves are a
    name and the line that places them, and unwrapped they share one line by
    squeezing BOTH: at 360px "Mia Foster" came out as two words stacked in a
@@ -4673,13 +4697,22 @@ textarea::placeholder,
 
    The FILLS stay `--accent`. A non-text graphic answers to 3:1 and the tint
    under the bell's row verb is doing no reading. */
+/* Pushed right whichever line it lands on. Inert while the row is one line
+   — `.b-owed-main` is `flex: 1` and has already taken the slack — and on a
+   wrapped line it keeps the verb under the right-hand edge it sits at
+   everywhere else, rather than starting it under the severity dot. The phone
+   block overrides it, because a stacked row reads left. */
 .b-owed-go {
-  flex: none; align-self: center; white-space: nowrap;
+  flex: none; align-self: center; margin-left: auto; white-space: nowrap;
   font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent-text);
 }
 
+/* The same rule and the same reason as `.b-owed-row` above: this one runs
+   out sooner than any row in the build, because the date is a fixed 84 and
+   the verb about a hundred before the name has asked for anything. */
 .b-loop-row {
-  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+  width: 100%; text-align: left;
   padding: 9px 10px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
@@ -4690,14 +4723,15 @@ textarea::placeholder,
 .b-loop-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-loop-when { width: 84px; flex: none; font-size: var(--t-small); color: var(--d200); }
 .b-loop-who {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  flex: 1; min-width: min(180px, 100%); display: flex; flex-direction: column; gap: 2px;
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
 }
 .b-loop-what { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200); }
 /* The diary's verb: the same rule, the same defect, 3.77:1 before. Fixing two
    of the three would have read as deliberate to whoever found the third. */
 .b-loop-go {
-  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text);
+  flex: none; margin-left: auto;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text);
 }
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
@@ -4724,7 +4758,9 @@ textarea::placeholder,
   .b-loop-row { flex-direction: column; align-items: stretch; gap: 4px; }
   /* The date stops being a column and becomes the line above the name. */
   .b-loop-when { width: auto; }
-  .b-loop-go { align-self: flex-start; }
+  /* An auto margin outranks `align-self`, so the base rule's push to the
+     right has to be taken back by name rather than argued with. */
+  .b-loop-go { align-self: flex-start; margin-left: 0; }
 
   /* The dot stays on the line it marks — it is the row's severity and it
      belongs beside the first words, not on a line of its own. Only the verb
