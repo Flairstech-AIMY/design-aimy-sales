@@ -25948,9 +25948,16 @@
   }
 
   /* What the fill would touch, named in the words the captions use, so the
-     receipt reads as a sentence rather than a count of fields. */
-  const fillSay = (patch) => listSay(Object.keys(patch)
-    .map((f) => FILL_SAY[f]).filter(Boolean));
+     receipt reads as a sentence rather than a count of fields.
+
+     THREE OF THEM AND THEN A COUNT. On a campaign with nothing on it the
+     sweep writes nine, and `listSay` spelled all nine into a toast: measured
+     at 349x139, four lines of title in a box built for one. `namesSay` is
+     the helper this build already has for exactly that, and the detail it
+     drops is on the page underneath \u2014 every field it wrote is filled in and
+     visible the moment the toast is read. */
+  const fillSay = (patch) => namesSay(Object.keys(patch)
+    .map((f) => FILL_SAY[f]).filter(Boolean).map((name) => ({ name: name })), 3);
 
   /* ══ RUNNING IT FILLS THE HALF NOBODY SHOULD HAVE TO TYPE ══════════════
      What a manager knows is what it is for, who it is aimed at and who works
@@ -26826,7 +26833,7 @@
       campSet(k, patch);
       paint();
       toast('AiMY wrote ' + fillSay(patch), () => { campSet(k, was); paint(); },
-        'Every word of it is yours to change.');
+        'All of it is yours to change.');
       return;
     }
 

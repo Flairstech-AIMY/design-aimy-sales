@@ -1959,6 +1959,43 @@ textarea::placeholder,
 }
 @media (prefers-reduced-motion: reduce) { .s-toast { transition: none; } }
 
+/* ══ 31b. A RECEIPT IS NOT A HEADING ══════════════════════════════
+   Measured on "Pitch drafted — it is yours to edit": a 360x74 box in which
+   the sentence had 222px — the other 138 went on padding, a 30px icon tile,
+   a divider and Undo — and at 16px/600 that sentence wants about 280, so it
+   wrapped onto two lines. A big box and cramped text are the same fault
+   here, not two: the type was set at a rank that does not fit the room the
+   component gives it.
+
+   16px is `--t-body` and 600 is the weight this build puts on a card title.
+   A toast is neither. It is one line saying what just happened, and it
+   belongs on `--t-ui`, the step every control and every row on this product
+   is already set in. At 14 the same sentence fits on one line and the box
+   comes down from 74 to 48, because nothing else in it was ever taller than
+   the icon.
+
+   THE SUB KEEPS ITS SIZE. Title and sub then differ on weight and on ink
+   rather than on size, which is the rank rule this build keeps everywhere
+   and the right pair of axes here, because both lines are the same kind of
+   sentence about the same event. Two pixels between them rather than one:
+   `gap: 1px` is not a gap, it is a rounding error.
+
+   The icon comes 30 → 26 and the padding 12/16 → 11/14, which is where the
+   rest of the slack was. Nothing moves position and nothing changes what
+   anything says — §26b's rule, applied to the one component the whole
+   product uses to report that it did something. It is corrected here rather
+   than in the library, because the library's block says every value in it is
+   quoted from the published anatomy table and that is a document this build
+   does not own. */
+.aimy-toast { min-width: 264px; padding: 11px 14px; gap: 10px; }
+.aimy-toast-icon { width: 26px; height: 26px; border-radius: 8px; }
+.aimy-toast-body { gap: 2px; }
+.aimy-toast-title {
+  font-size: var(--t-ui); font-weight: var(--fw-bold); line-height: var(--lh-snug);
+}
+.aimy-toast-sub { font-size: var(--t-ui); font-weight: var(--fw-medium); line-height: var(--lh-snug); }
+.aimy-toast-divider { height: 24px; }
+
 /* ══ 32. THE RULE SLIDES, AND A CHANGED FIGURE TICKS ═══════════════════════
    The page is rebuilt from a string, so nothing on it knows where it was a
    frame ago. Two things want to. The rule under Calls · Campaigns · Lists is
