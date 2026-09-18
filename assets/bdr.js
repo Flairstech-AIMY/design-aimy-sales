@@ -26428,7 +26428,21 @@
     if (bkind) {
       if (!DRAFT) buildOpen();
       DRAFT.kind = bkind.getAttribute('data-bkind');
-      go({ on: 'lists', build: 'describe', bk: DRAFT.kind, bt: '' });
+      /* ══ THE CRITERIA SURVIVE THE KIND ═══════════════════════════════
+         This cleared `bt` on every press, and it was harmless for as long as
+         the only way to reach this step with criteria on was to have typed
+         them — typing them sets the kind, so the kind step was never reached
+         with anything to lose. A finder opened from a campaign arrives with
+         the campaign's market on it and the kind still unasked, so the first
+         press threw away the whole reason for opening it from there.
+
+         A job band does not survive a switch to companies. `buildMatched`
+         applies `title` whatever the kind is, so a band left on would narrow
+         a list of organisations by the job titles of the people inside them
+         and never say it had. */
+      const keep = String(S.bt || '').split(',').filter(Boolean)
+        .filter((p) => DRAFT.kind === 'con' || p.indexOf('title:') !== 0);
+      go({ on: 'lists', build: 'describe', bk: DRAFT.kind, bt: keep.join(',') });
       return;
     }
 
