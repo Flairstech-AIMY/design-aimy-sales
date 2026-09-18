@@ -15040,28 +15040,14 @@
     return out.length ? '<div class="b-cmeta b-said">' + out.join('') + '</div>' : '';
   }
 
-  /* On a running campaign it is a block of the record, in the slot the
-     obstacles block above it has always promised: "the block above says
-     where the campaign stands; the one below says the words". There was no
-     block below it. */
   /* ══ A RECORD IS READ, AND CHANGED IN ONE PLACE ═══════════════════════
-     These three were fields here for as long as the owner was looking at
-     them, which made a running campaign half a record and half a form: Draft
-     it sitting over the pitch a floor is working to, and a caret in it that
-     rewrites what everybody says next with no moment where anybody decided
-     to start editing. They are words now, and Edit in the masthead is the
-     one door to changing them \u2014 the same page a draft is filled in on, with
-     the answers already in it. */
-  function campSaidBlock(k) {
-    const body = campSaid(k, false, campMine(k));
-    if (!body) return '';
-    return '<section class="s-block s-block-wide" aria-label="Who we call, and what we say">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">Who we call, and what we say</h2>' +
-      '</div>' + body +
-    '</section>';
-  }
-
+     These three were fields on the record for as long as the owner was
+     looking at them, which made a running campaign half a record and half a
+     form: Draft it sitting over the pitch a floor is working to, and a caret
+     in it that rewrites what everybody says next with no moment where
+     anybody decided to start editing. They are words there now, and Edit is
+     the one door to changing them \u2014 the same page a draft is filled in on,
+     with the answers already in it. */
   /* ══ WHO MAY OPEN A RUNNING CAMPAIGN AND CHANGE IT ════════════════════
      The manager whose campaign it is, and nobody else \u2014 the same test the
      team block uses to decide whether the crew picker is drawn. A caller
@@ -15404,11 +15390,6 @@
          between them and the one a caller actually carries into the next
          call. */
       blockersBlock(k) +
-
-      /* The words. Everything above this is a count of what happened; this
-         is what to say on the next one, and on a campaign somebody owns it
-         is where they say it differently. */
-      campSaidBlock(k) +
 
       /* Context, not a worklist: the last few things that happened here and
          the count of what they are the last few of. A second pager on this
@@ -15756,6 +15737,21 @@
            that with a name. */
         esc(cl ? cl.name : 'FlairsTech') + '</b></p>') +
     '</div>' +
+    /* ══ AND THE OTHER HALF OF THE SAME DEFINITION ═══════════════════════
+       Who we call and what we say had a section of its own, and it sat
+       between what is stopping the campaign and what has happened on it \u2014
+       two blocks of history \u2014 which put the campaign's own definition after
+       the account of how it is going. A reader met the numbers before the
+       words the numbers came from.
+
+       They are metadata. The goal, the offering and the client are three
+       facts about what this campaign IS, and the persona, the pitch and the
+       notes are three more; the only difference is that these are sentences
+       and those are words, which is a layout problem and not a filing one.
+       So they go where the others are, under them, in the single column
+       `.b-said` already gives them, and the team closes the masthead the way
+       it always did. */
+    campSaid(k, false, campMine(k)) +
     teamRow(k);
   }
 
