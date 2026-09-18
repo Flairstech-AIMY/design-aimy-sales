@@ -1337,6 +1337,67 @@
 .s-home .s-lead-line { margin-bottom: 12px; }
 .b-lead-today { margin: -6px 0 14px; font-size: var(--t-ui); }
 
+/* ══ 26c. A PLACEHOLDER IS NOT A VALUE, AND NOW IT DIFFERS ON THREE ════════
+   §83 fixed this on one axis and wrote down the rule it was fixing: "the rule
+   this build adopted for every other pair of ranks is that they differ in at
+   least two of {size, weight, ink}, and the two things on this page that must
+   never be confused differed on one axis by its smallest increment." The ink
+   was corrected then. The size and the weight were not, so the pair still
+   differed on one axis — a better one.
+
+   Measured on the campaign draft, where a page of empty fields is the normal
+   state: the placeholder and the value it will be replaced by were both
+   16px/400. Elsewhere on the product they were 14px/400, and the composer and
+   the canvas bar 13.5px/400. Three sizes for one meaning, and in no case a
+   weight of its own.
+
+   One step and one weight, everywhere: 14px, which is `--t-ui`, the step this
+   build already sets every control in; and `--fw-regular`, which is the
+   lightest weight the family loads and is used by nothing else on the
+   product, so a placeholder cannot be mistaken for any other rank either. The
+   two shell inputs at 13.5 come UP to it, which is §26b's own rule about the
+   steps: the product's sizes are 12, 14, 16 and 13.5 is not one of them.
+
+   IT IS DELIBERATELY UNDER THE FLOOR, AND SO IS ITS INK. `aimy-ds.css:307`
+   says `--fw-regular` is "deliberately unused: the type floor is 400 or
+   heavier below 18px" — measured, because Poppins 300 sets 8% lighter than
+   the colour the ladder targets. The same stylesheet makes exactly one
+   exception on the ink ramp, thirty lines above it: `--ink-placeholder` is
+   "the ONE exception — must not read as a value". This is that same
+   exception, on the axis next to it, for that same reason. A placeholder is
+   the one piece of type on the product whose job is to NOT read as content,
+   and it is the only thing in this build set under 400.
+
+   The two classes from the shell are named rather than left to
+   `input::placeholder`, because `aimy-ds.css` sets `font-weight: 400` on
+   both at class specificity and would have won — this sheet loads last, so
+   naming them at the same specificity is what makes the rule true at runtime
+   rather than only in the file. `.b-draft-none` is the hand-drawn one: a
+   `<span>` reading "Choose" in the slot a value will occupy, and §83 already
+   argues it takes the placeholder rank for the same reason the inputs do. */
+input::placeholder,
+textarea::placeholder,
+.b-draft-none {
+  font-size: var(--t-ui);
+  font-weight: var(--fw-regular);
+}
+
+/* The two the shell sets at class specificity, named so this sheet wins, and
+   brought onto the placeholder ink while they are here. Measured in dark:
+   `--d500` on the bar’s ground is 3.18:1, which is under AA before this pass
+   and thinner after it, since a lighter weight is less ink over the same
+   area. §26b named this exact case — "`--d500` is not a role ... both were
+   carrying type: the resting switcher tab, the search placeholder and its
+   icon" — and could not reach it, because a bare element selector loses to a
+   class. On `--ink-placeholder` it is 5.6:1 there and 6.1 on the page ground,
+   which is the rank every other placeholder on the product now reads at. */
+.aimy-float-input::placeholder,
+.overlay-input::placeholder {
+  font-size: var(--t-ui);
+  font-weight: var(--fw-regular);
+  color: var(--ink-placeholder);
+}
+
 /* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
    A 2px rail down the left, a node per touchpoint on it in the tone of how
    the call went, a larger accent call where a step was climbed, and the step
@@ -4885,7 +4946,14 @@
   display: block; width: 100%; margin: 4px 0;
   font-family: var(--font-display); font-size: var(--t-title); font-weight: var(--fw-extrabold);
   letter-spacing: -0.02em; line-height: 1.1; color: var(--d50);
-  background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
+  /* ══ THE FIELD HAS TO LOOK LIKE A FIELD WITHOUT ITS PLACEHOLDER ══
+     Transparent at rest, and it got away with it while the placeholder
+     was 26px extrabold: "Name this campaign" WAS the affordance. §26c
+     took it to 14/300, which is right — a name that does not exist yet
+     should not be set at the size of one — and left a small grey line
+     floating over nothing. It takes the underline every other field on
+     the page wears at rest, and keeps the accent on focus. */
+  background: none; border: 0; border-bottom: 1px solid var(--card-border); padding: 2px 0;
   transition: border-color var(--t-base);
 }
 /* ══ AN ABSENCE MUST NOT READ AS A VALUE ═══════════════════════════════════
@@ -4905,7 +4973,7 @@
    point is not that a placeholder is hard to read, it is that it cannot be
    mistaken for an answer. */
 .b-draft-name::placeholder { color: var(--ink-placeholder); }
-.b-draft-name:hover { border-bottom-color: var(--card-border); }
+.b-draft-name:hover { border-bottom-color: var(--card-border-hover); }
 .b-draft-name:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-in {
   font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
