@@ -1382,6 +1382,22 @@ textarea::placeholder,
   font-weight: var(--fw-regular);
 }
 
+/* ══ AND ONE FIELD KEEPS ITS SIZE ═════════════════════════════════
+   A campaign's name is set at `--t-title` because it is the name of the
+   record you have open, and dropping its placeholder to 14px left the
+   masthead of an empty draft with nothing in it. True — the campaign has no
+   name yet — and not what the page is for: the reader has to see where the
+   name goes.
+
+   It keeps the size and takes the weight, which was the better half of the
+   rule here anyway. `aimy-ds.css:307` puts the 400 floor "below 18px" and
+   says `--fw-regular` "is here for display sizes, where 300 is legal"; 26px
+   is one of those. So this is the one placeholder on the product that is
+   light without being an exception to anything, and against the value that
+   will replace it — 26px, `--fw-extrabold`, `--d50` — it differs on weight
+   and on ink, which is the two axes the rank rule asks for. */
+.b-draft-name::placeholder { font-size: var(--t-title); font-weight: var(--fw-regular); }
+
 /* The two the shell sets at class specificity, named so this sheet wins, and
    brought onto the placeholder ink while they are here. Measured in dark:
    `--d500` on the bar’s ground is 3.18:1, which is under AA before this pass
@@ -4946,14 +4962,12 @@ textarea::placeholder,
   display: block; width: 100%; margin: 4px 0;
   font-family: var(--font-display); font-size: var(--t-title); font-weight: var(--fw-extrabold);
   letter-spacing: -0.02em; line-height: 1.1; color: var(--d50);
-  /* ══ THE FIELD HAS TO LOOK LIKE A FIELD WITHOUT ITS PLACEHOLDER ══
-     Transparent at rest, and it got away with it while the placeholder
-     was 26px extrabold: "Name this campaign" WAS the affordance. §26c
-     took it to 14/300, which is right — a name that does not exist yet
-     should not be set at the size of one — and left a small grey line
-     floating over nothing. It takes the underline every other field on
-     the page wears at rest, and keeps the accent on focus. */
-  background: none; border: 0; border-bottom: 1px solid var(--card-border); padding: 2px 0;
+  /* Transparent at rest, and it can stay that way because the placeholder
+     is still set at the size of a name: "Name this campaign" IS the
+     affordance, which is the whole reason §26c exempts this one field from
+     the 14px rank. An underline was added here while it was 14px and is
+     gone with the reason for it. */
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
   transition: border-color var(--t-base);
 }
 /* ══ AN ABSENCE MUST NOT READ AS A VALUE ═══════════════════════════════════
@@ -4973,7 +4987,7 @@ textarea::placeholder,
    point is not that a placeholder is hard to read, it is that it cannot be
    mistaken for an answer. */
 .b-draft-name::placeholder { color: var(--ink-placeholder); }
-.b-draft-name:hover { border-bottom-color: var(--card-border-hover); }
+.b-draft-name:hover { border-bottom-color: var(--card-border); }
 .b-draft-name:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-in {
   font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
