@@ -16988,12 +16988,25 @@
       's-inline-btn');
   }
 
-  /* A manager gets the fields, everybody else the words \u2014 and a manager gets
-     both captions when one is empty, because a caption with nothing under it
-     is what says the field is there. Nobody else is told about an absence
-     they cannot fill. */
+  /* ══ TWO DIFFERENT QUESTIONS, AND THEY HAD ONE ANSWER ══════════════════
+     Who works this company is the manager's to set. What we know about it is
+     the CALLER's to write \u2014 they are the one who learns on the phone that
+     they buy in Q1 and that procurement is the wrong door \u2014 and both sat
+     behind `isMgr`, so a caller who had been calling into a company for
+     weeks could read that line and not add to it.
+
+     `accCrew` already answers the first question, so being on it is the
+     whole of the second test. `isMgr` stays a floor rather than a gate: a
+     manager who stripped the team to nobody would otherwise have locked the
+     note against themselves. Exactly the rule a lead keeps. */
+  const accWrites = (a) => isMgr() || accCrew(a).indexOf(me().id) >= 0;
+
+  /* A caption with nothing under it is what says the field is there, so
+     whoever can fill one sees it empty. Nobody else is told about an absence
+     they cannot do anything about. */
   function accSaid(a) {
-    const own = isMgr();
+    const boss = isMgr();
+    const own = accWrites(a);
     const ids = accCrew(a);
     const out = [];
     if (a.notes || own) {
@@ -17005,17 +17018,17 @@
         : '<p class="b-cmeta-p">' + esc(a.notes) + '</p>'));
     }
     return (out.length ? '<div class="b-cmeta b-said">' + out.join('') + '</div>' : '') +
-      ((ids.length || own)
+      ((ids.length || boss)
         ? '<div class="b-team">' +
             '<div class="b-team-head">' +
               '<span class="b-cmeta-cap b-team-cap">The team</span>' +
-              (own ? accCrewPick(a) : '') +
+              (boss ? accCrewPick(a) : '') +
             '</div>' +
             (ids.length
               /* The cross is this surface's, for the reason `teamFaces` takes
                  an `off` at all. A reader who is not the manager gets none. */
               ? teamFaces(ids, (id, off) => mateRow(id, null, off),
-                { off: own ? ((id) => accOff(a, id)) : (() => '') })
+                { off: boss ? ((id) => accOff(a, id)) : (() => '') })
               : '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>') +
           '</div>'
         : '');
@@ -27892,7 +27905,7 @@
     const af = e.target.closest && e.target.closest('[data-afield]');
     if (af) {
       const a = DB.byAcc[S.acc];
-      if (a && isMgr()) {
+      if (a && accWrites(a)) {
         if (!FITS && af.tagName === 'TEXTAREA') {
           af.style.height = 'auto';
           af.style.height = af.scrollHeight + 'px';
