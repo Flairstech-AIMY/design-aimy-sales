@@ -26674,31 +26674,46 @@
       const bits = String(cset.getAttribute('data-cset')).split('|');
       const f = bits[0];
       const v = bits.slice(1).join('|');
-      let stay = null;
+      /* `null` says this field is a CHOICE and not a tick: one answer, so
+         the menu has done its job on the press and closes. A boolean says it
+         is a tick, and says what the item should now show. */
+      let tick = null;
       if (f === 'sell') {
         const at = k.sells.indexOf(v);
         campSet(k, { sells: at >= 0 ? k.sells.filter((x) => x !== v) : k.sells.concat([v]) });
-        stay = 'dSell';
+        tick = k.sells.indexOf(v) >= 0;
       } else if (f === 'crew') {
         const at = k.crew.indexOf(v);
         campSet(k, { crew: at >= 0 ? k.crew.filter((x) => x !== v) : k.crew.concat([v]) });
-        /* The same write is reached from two menus now — the builder's and
-           the one on a running campaign's team block — and only one of them
-           is on the page. Named in the order they were built; the first that
-           exists after the repaint is the one to reopen. */
-        stay = 'dCrew,teamPick';
+        tick = k.crew.indexOf(v) >= 0;
+      } else if (f === 'list') {
+        listOnCamp(v, k);
+        tick = listIsOn(DB.byList[v], k.id);
       } else if (f === 'client') campSet(k, { client: v || null });
       else if (f === 'ind') campSet(k, { industry: v });
       else if (f === 'reg') campSet(k, { region: v });
       else if (f === 'size') campSet(k, { size: v });
-      else if (f === 'list') { listOnCamp(v, k); stay = 'dList'; }
-      paint();
-      if (stay) {
-        const again = stay.split(',')
-          .map((s) => document.querySelector('[data-pickopen="' + s + '"]'))
-          .filter(Boolean)[0];
-        if (again) again.click();
+
+      /* ══ THE ONE WRITE THAT IS NOT IN A MENU ══════════════════════════
+         `crewOff` puts the same `data-cset` on the cross beside a face, and
+         that face has to go on the press that removes it. Nothing is open
+         over the page, so drawing it now disturbs nothing. */
+      const panel = cset.closest('.b-menu');
+      if (!panel) { paint(); return; }
+
+      PICK_DIRTY = true;
+      if (tick === null) {
+        /* The answer shows for as long as the close takes, rather than the
+           old one sitting ticked while the menu leaves. */
+        panel.querySelectorAll('.b-menu-item.is-on')
+          .forEach((x) => x.classList.remove('is-on'));
+        cset.classList.add('is-on');
+        pickRelabel(panel);
+        menuShut(panel);
+        return;
       }
+      cset.classList.toggle('is-on', tick);
+      pickRelabel(panel);
       return;
     }
 
@@ -27758,6 +27773,47 @@
      defined nowhere, and a data attribute would be one it finds drawn and
      unhandled; both would be scaffolding invented to avoid naming two things
      that are easy to name. If a third ever wants an exit, it goes in here. */
+  /* ══ CHOOSING DOES NOT REDRAW THE PAGE UNDER THE MENU ══════════════════
+     The chooser states its own rule where it opens: "opening, choosing and
+     filtering all happen in the DOM: a repaint between two presses would
+     close the panel under the hand using it." Every menu on the record broke
+     it. A press wrote to the campaign and then repainted the whole surface,
+     which destroys the open menu and builds a fresh hidden one — so the
+     single-answer menus vanished mid-close with their exit animation thrown
+     away, and the three you can tick more than one thing in papered over it
+     by finding the opener afterwards and clicking it again. Picking four
+     colleagues was four closes and four reopens, the list back at the top
+     each time and any search in it lost.
+
+     The write still happens on the press: it is what makes the record true,
+     and nothing here defers that. What is deferred is the DRAWING. The item
+     takes its tick, the opener takes its new label, and the page redraws once
+     the menu has finished leaving — which is the first moment anybody can see
+     the page again. */
+  let PICK_DIRTY = false;
+  function pickSettle() {
+    if (!PICK_DIRTY) return;
+    PICK_DIRTY = false;
+    paint();
+  }
+
+  /* The opener says what is ticked, read back off the menu rather than
+     recomposed per field: three value types, one sentence, and it cannot
+     drift from what the menu is showing because it IS what the menu is
+     showing. Only for an opener that stands in a field's slot — a verb like
+     "Add to the team" is a verb whatever is ticked behind it. */
+  function pickRelabel(panel) {
+    const open = panel && panel.id &&
+      document.querySelector('[data-pickopen="' + panel.id + '"]');
+    if (!open || !open.classList.contains('b-draft-pick')) return;
+    const names = [];
+    panel.querySelectorAll('.b-menu-item.is-on .b-menu-name')
+      .forEach((n) => names.push(n.textContent));
+    open.innerHTML = names.length
+      ? esc(names.join(', '))
+      : '<span class="b-draft-none">Choose</span>';
+  }
+
   function menuIsOpen(m) { return !!m && !m.hidden && !m.classList.contains('is-closing'); }
   function menuOpen(m) {
     m._shutId = (m._shutId || 0) + 1;
@@ -27770,7 +27826,7 @@
     if (!m || m.hidden || m.classList.contains('is-closing')) return;
     const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const leaves = m.classList.contains('b-menu') || m.classList.contains('ntf-panel');
-    if (still || !leaves) { m.hidden = true; return; }
+    if (still || !leaves) { m.hidden = true; pickSettle(); return; }
     const id = (m._shutId = (m._shutId || 0) + 1);
     /* ANIMATIONEND BUBBLES, so a row inside the menu finishing an animation
        of its own would arrive here and hide the menu early. Only the menu's
@@ -27785,6 +27841,7 @@
       m._shutH = null;
       m.classList.remove('is-closing');
       m.hidden = true;
+      pickSettle();
     };
     m.classList.add('is-closing');
     m._shutH = done;
