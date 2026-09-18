@@ -4626,7 +4626,13 @@ textarea::placeholder,
 }
 .b-owed-sev.p1 { background: var(--err); }
 .b-owed-main { flex: 1; min-width: 0; }
-.b-owed-head { display: flex; align-items: baseline; gap: 8px; }
+/* Wrapping at every width, not only the narrow ones. The two halves are a
+   name and the line that places them, and unwrapped they share one line by
+   squeezing BOTH: at 360px "Mia Foster" came out as two words stacked in a
+   column four characters wide beside a title in another. There is nothing to
+   decide here — when they fit they sit together, and when they do not the
+   name takes the line. */
+.b-owed-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .b-owed-type {
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
@@ -4696,6 +4702,37 @@ textarea::placeholder,
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
 @media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }
+
+/* ══ A ROW OF COLUMNS IS NOT A ROW ON A PHONE ═══════════════════
+   Both of these are one line of facts with the verb at the far end, which is
+   the right shape while there is room for it and falls apart without one. A
+   diary row spends 84 fixed pixels on the date and about a hundred on "Say
+   how it went", so at 360 the middle got 130 and put a name over two lines
+   and its sentence over three — five lines of two-word columns for one
+   meeting. The connections row does the same with a bridge's job title.
+
+   THE COMPONENT CHANGES FORM; NOTHING IS DELETED. The verb is the whole
+   point of the row and a breakpoint that hides it takes the capability with
+   it. So the row stops being columns and becomes what it is on a narrow
+   screen: the facts down the page in the order you read them, and the verb
+   under them on a line of its own, where a stacked row's action goes.
+
+   560 is this file's own mobile step and the width these two stop fitting
+   at, measured rather than picked: the diary row's fixed 84 plus its verb
+   leave the middle column under half the line from there down. */
+@media (max-width: 559.98px) { /* 560 layout px */
+  .b-loop-row { flex-direction: column; align-items: stretch; gap: 4px; }
+  /* The date stops being a column and becomes the line above the name. */
+  .b-loop-when { width: auto; }
+  .b-loop-go { align-self: flex-start; }
+
+  /* The dot stays on the line it marks — it is the row's severity and it
+     belongs beside the first words, not on a line of its own. Only the verb
+     wraps, and it lands in the text column rather than under the dot: 18px
+     is the dot's 6 and the row's 12 of gap. */
+  .b-owed-row { flex-wrap: wrap; }
+  .b-owed-go { width: 100%; margin-left: 18px; margin-top: 6px; align-self: flex-start; }
+}
 
 /* ══ 72. THE BAR TAKES DICTATION ═══════════════════════════════════════════
    The control ships in the library and nothing had ever used it. What it
