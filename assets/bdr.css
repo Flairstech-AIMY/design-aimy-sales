@@ -1246,8 +1246,18 @@
   --t-lead: 16px;    /* the goal under a title; the sentence beside a figure */
   --t-body: 16px;    /* readings, brief lines, feed notes */
   --t-ui: 14px;      /* buttons, chips, facts rows, row text */
-  --t-small: 14px;   /* section sub-lines, foot lines */
-  --t-micro: 12px;   /* minimal components. Capitals and tracked, or not at all. */
+  --t-small: 14px;   /* foot lines */
+  /* ══ AND SENTENCE CASE STARTS AT TWELVE ═════════════════════
+     This read "Capitals and tracked, or not at all", which is the rule
+     §26b states for ELEVEN — "eleven is for capitals, which have no
+     descenders to lose and get the tracking that makes them legible" — and
+     the same paragraph says in as many words that sentence case starts at
+     twelve. The gloss was one step out and this step is where the caps
+     components happen to live, not a ban on prose at its size. A dozen
+     rules already set sentence case at the same twelve through `--fs-2xs`.
+
+     So: minimal components, and the sub-line under a section heading. */
+  --t-micro: 12px;
 }
 
 /* ══ 26b. THE FLOOR, AND THE BOTTOM OF THE INK RAMP ════════════════════════
@@ -1288,7 +1298,20 @@
    said 18, and the doctrine comment above that block was describing a card
    that had not existed for some time. One element, one rule. */
 .b-reading { font-size: var(--t-body); }
-.s-block-say { font-size: var(--t-small); font-weight: var(--fw-medium); }
+/* ══ THE LINE UNDER A HEADING IS NOT A SECOND HEADING ═════════════
+   It shared `--t-small` with `.b-vfoot` and so came out at the same size as
+   the row text under it: "4 companies you have a way into · worth the most
+   first" set as loudly as the rows it was introducing. It is the quietest
+   thing on its row by job — the heading says what the block is and this says
+   how it is ordered — and it was only one step below the heading on size
+   with none on weight.
+
+   Twelve, which §26b's own paragraph makes legal for sentence case. Against
+   the heading that is now two steps of size and a step of weight, which is
+   the rule this build applies to any two ranks. `.b-vfoot` keeps fourteen:
+   a foot line closes a list rather than introducing one, and it is the last
+   sentence on the surface rather than the smallest. */
+.s-block-say { font-size: var(--t-micro); font-weight: var(--fw-medium); }
 .b-vfoot { font-size: var(--t-small); }
 
 /* [2] THE HEADER'S ROWS HAVE ROOM. A flex column so every gap is stated
