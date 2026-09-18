@@ -3483,7 +3483,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'ag', 'ev', 'eng'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'ag', 'ev', 'eng', 'ed'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -14978,10 +14978,16 @@
      not cover.
 
      AiMY drafts two of the three and never the third. */
-  function campSaid(k, own) {
+  /* `edit` draws fields, which only the draft and the edit page do. `empty`
+     draws a caption over an absence, which only the campaign's own manager
+     sees: a caption with nothing under it is the one thing on the page that
+     says the field is there at all, and a caller who cannot fill it does not
+     need telling it is empty. */
+  function campSaid(k, edit, empty) {
     const P = k.persona || {};
     const out = [];
-    if (own || P.who) {
+    const none = (say) => '<p class="b-cmeta-p b-draft-none">' + esc(say) + '</p>';
+    if (edit || P.who || empty) {
       /* ══ ONE FIELD, AND IT MAY STILL NEED TWO LINES ═══════════════════
          It was an `<input>`, which is the right control for one line and the
          wrong one for this line: six titles is 78 characters, an input does
@@ -14993,23 +14999,26 @@
          It is still one field and one value \u2014 which is what "one line even
          if it is several personas" asks for \u2014 and a line break typed into
          it is whitespace everywhere it is read. */
-      out.push(draftPart('Targeted persona', own ? aiDraft('persona') : '',
-        own ? draftArea('persona.who', P.who,
+      out.push(draftPart('Targeted persona', edit ? aiDraft('persona') : '',
+        edit ? draftArea('persona.who', P.who,
           'The titles to ask reception for \u2014 Head of Quality, QA Manager', 1)
-          : '<p class="b-cmeta-p">' + esc(P.who) + '</p>'));
+          : P.who ? '<p class="b-cmeta-p">' + esc(P.who) + '</p>'
+            : none('No titles named \u2014 callers are asking for whoever picks up.')));
     }
-    if (own || k.pitch) {
-      out.push(draftPart('Sales pitch', own ? aiDraft('pitch') : '',
-        own ? draftArea('pitch', k.pitch,
+    if (edit || k.pitch || empty) {
+      out.push(draftPart('Sales pitch', edit ? aiDraft('pitch') : '',
+        edit ? draftArea('pitch', k.pitch,
           'What we give them, why it is worth having now, and what to open on')
-          : '<p class="b-cmeta-p">' + esc(k.pitch) + '</p>'));
+          : k.pitch ? '<p class="b-cmeta-p">' + esc(k.pitch) + '</p>'
+            : none('Nothing written, so every caller opens on their own words.')));
     }
-    if (own || k.notes) {
+    if (edit || k.notes || empty) {
       out.push(draftPart('Notes', '',
-        own ? draftArea('notes', k.notes,
+        edit ? draftArea('notes', k.notes,
           'Anything the book does not know \u2014 who we have already been introduced to, ' +
           'what went wrong last time, when their procurement shuts')
-          : '<p class="b-cmeta-p">' + esc(k.notes) + '</p>'));
+          : k.notes ? '<p class="b-cmeta-p">' + esc(k.notes) + '</p>'
+            : none('Nothing written.')));
     }
     return out.length ? '<div class="b-cmeta b-said">' + out.join('') + '</div>' : '';
   }
@@ -15018,19 +15027,43 @@
      obstacles block above it has always promised: "the block above says
      where the campaign stands; the one below says the words". There was no
      block below it. */
+  /* ══ A RECORD IS READ, AND CHANGED IN ONE PLACE ═══════════════════════
+     These three were fields here for as long as the owner was looking at
+     them, which made a running campaign half a record and half a form: Draft
+     it sitting over the pitch a floor is working to, and a caret in it that
+     rewrites what everybody says next with no moment where anybody decided
+     to start editing. They are words now, and Edit in the masthead is the
+     one door to changing them \u2014 the same page a draft is filled in on, with
+     the answers already in it. */
   function campSaidBlock(k) {
-    const own = isMgr() && k.owner === me().id;
-    const body = campSaid(k, own);
+    const body = campSaid(k, false, campMine(k));
     if (!body) return '';
     return '<section class="s-block s-block-wide" aria-label="Who we call, and what we say">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Who we call, and what we say</h2>' +
-        (own ? '<span class="s-block-say">saved as you type</span>' : '') +
       '</div>' + body +
     '</section>';
   }
 
-  function campDraftPage(k) {
+  /* ══ WHO MAY OPEN A RUNNING CAMPAIGN AND CHANGE IT ════════════════════
+     The manager whose campaign it is, and nobody else \u2014 the same test the
+     team block uses to decide whether the crew picker is drawn. A caller
+     crewed onto it reads the words; they do not rewrite the pitch their
+     floor is working to. */
+  const campMine = (k) => !!k && isMgr() && k.owner === me().id;
+  const campEditing = (k) => !!k && S.ed === k.id && campMine(k) && !isDraft(k);
+
+  /* ══ ONE PAGE, TWO REASONS TO BE ON IT ═════════════════════════════════
+     A draft is this page because nothing has been answered yet. A running
+     campaign is this page because somebody pressed Edit, and then it is the
+     same fields with the answers already in them \u2014 which is the argument
+     this page was built on, read the other way round.
+
+     What changes is the two decisions at the top and the one at the foot.
+     A draft is started or kept or thrown away; a campaign that is already
+     running is none of those, so it gets one verb, Done, and no Discard
+     anywhere near it. */
+  function campDraftPage(k, editing) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
     const weeks = Math.max(1, Math.round(daysBetween(k.from, k.to) / 7));
@@ -15041,14 +15074,33 @@
        only made when there is something behind it; read again on the press,
        because the answer changes as the page is filled in. */
     const fillable = Object.keys(campFill(k)).length;
+    /* ══ THE FIELD SHOWS WHAT THE RECORD SHOWS ════════════════════════════
+       A campaign in the book has no stored goal. `campGoalSay` derives one,
+       because none of them was ever asked and a record with no goal on it is
+       not a record anybody would recognise. So opening Edit on a seeded
+       campaign put an empty field under a caption the page prints a sentence
+       under, said it still wanted a goal, and greyed Done \u2014 the one page that
+       exists to correct a running campaign could not be left.
+
+       The derived sentence IS the value here. Typing over it stores what you
+       typed; leaving it alone stores nothing and the record goes on deriving
+       the same words, which is the state it was already in. Unescaped,
+       because `draftText` escapes and `campGoalSay` escapes too \u2014 running
+       both over one string is how an ampersand becomes &amp;amp; in a field
+       somebody is about to edit. */
+    const aimNow = k.aim || (editing ? goalSay(campGoal(k)) : '');
     const miss = [];
     if (!k.name) miss.push('a name');
-    if (!k.aim) miss.push('a goal');
+    if (!aimNow) miss.push('a goal');
     if (!k.sells.length) miss.push('something to sell');
     if (!k.industry || !k.region) miss.push('a market');
     if (!k.crew.length) miss.push('somebody to work it');
     return '<div class="s-home">' +
-      backBtn('data-home', 'Back to the briefing') +
+      /* Back to where you came from. Editing was entered from the record, so
+         that is what is behind it; a draft has no record to go back to. */
+      (editing
+        ? backBtn('data-cdone="' + esc(k.id) + '"', 'Back to the campaign')
+        : backBtn('data-home', 'Back to the briefing')) +
       '<section class="s-rec-head s-block-wide">' +
         /* ══ THE TWO DECISIONS SIT WHERE DECISIONS SIT ═══════════════════
            They were under the fields, which is where a form puts its Submit
@@ -15058,10 +15110,18 @@
            you can do with it is at the top beside what it is. */
         '<div class="b-draft-top">' +
           '<span class="s-rec-kind b-kinds">' + fact('campaign', 'Campaign') +
-            '<span class="tag tag-neutral">Draft</span></span>' +
+            '<span class="tag tag-neutral">' + (editing ? 'Editing' : 'Draft') +
+            '</span></span>' +
           '<span class="b-draft-acts">' +
-            '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
-              (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>' +
+            /* Greyed for the same reason and with the same sentence under it:
+               a campaign is already running, and leaving it without a name or
+               without a market would take those off a page somebody is
+               dialling from. */
+            (editing
+              ? '<button class="s-insight-lnk primary" type="button" data-cdone="' + esc(k.id) + '"' +
+                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Done</button>'
+              : '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
+                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>') +
             /* ══ THE EMPTY FIELDS, WITHOUT STARTING THE CAMPAIGN ═════════
                Run it has always filled whatever was left empty, and that is
                the wrong moment to find out what the product would have
@@ -15075,7 +15135,8 @@
                the draft stands. */
             (fillable ? '<button class="b-ghost b-draft-fill" type="button" data-cfill>' +
               AIMY_SPARK + 'Let AiMY fill the rest</button>' : '') +
-            '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>' +
+            (editing ? '' :
+              '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>') +
           '</span>' +
         '</div>' +
         '<input class="b-draft-name" type="text" data-cfield="name" value="' + esc(k.name) + '" ' +
@@ -15084,7 +15145,7 @@
           /* The one field above the fold AiMY can write, so it carries the
              same verb the persona and the pitch do. `draftPart` rather than
              `draftField` for exactly that: a caption with a verb beside it. */
-          draftPart('The goal', aiDraft('aim'), draftText('aim', k.aim,
+          draftPart('The goal', aiDraft('aim'), draftText('aim', aimNow,
             'What it is worth having worked — 2 new clients for AiMY QA')) +
           draftField('What we sell them', draftMenu('dSell',
             sells.length ? sells.map((x) => esc(x.name)).join(', ') : '',
@@ -15165,7 +15226,7 @@
            paragraph in a 1fr track of a three-column grid is a column of
            single words. It is also the order the brief this was drawn from
            puts them in: what it is, then who we are after, then the angle. */
-        campSaid(k, true) +
+        campSaid(k, true, true) +
         /* What is still missing stays down here with the fields it is about.
            Run it is greyed from the first moment and this is the sentence
            saying why — a control that appears only once you are allowed to
@@ -15174,9 +15235,17 @@
           (miss.length
             ? '<span class="b-draft-miss">It still wants ' +
               esc(miss.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.</span>'
-            : '<span class="b-draft-saved">Everything it needs is in it. Saved as you type.</span>') +
-          '<button class="b-ghost b-draft-bin" type="button" data-cdrop="' + esc(k.id) +
-            '">Discard</button>' +
+            : '<span class="b-draft-saved">' + (editing
+              ? 'Saved as you type. Nothing here waits for a press.'
+              : 'Everything it needs is in it. Saved as you type.') + '</span>') +
+          /* NOT WHILE IT IS RUNNING. Discard removes the campaign, its
+             members and its lists' pointers at it, and a control that does
+             that has no business sitting under a page somebody opened to
+             correct a sentence. A campaign is ended by its own date or by
+             its state, not by the button next to a field. */
+          (editing ? '' :
+            '<button class="b-ghost b-draft-bin" type="button" data-cdrop="' + esc(k.id) +
+              '">Discard</button>') +
         '</div>' +
       '</section>' +
     '</div>';
@@ -15191,7 +15260,12 @@
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
-    if (isDraft(k) && mine(k)) return campDraftPage(k);
+    if (isDraft(k) && mine(k)) return campDraftPage(k, false);
+    /* Editing a running campaign is the same page with the answers in it.
+       `campEditing` checks the id in the URL against this campaign, so a
+       stale `ed` left on a link cannot open somebody else's record as a
+       form. */
+    if (campEditing(k)) return campDraftPage(k, true);
     if (!mine(k)) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
@@ -15263,6 +15337,15 @@
              that does not know which campaign you were working. */
           /* The closed line stays for everybody — it is a fact about their
              campaign. The finder does not: it is us spending a supplier. */
+          /* ══ THE ONE DOOR TO CHANGING IT ═══════════════════════════════
+             Whose campaign it is decides who sees this, the same test the
+             team block uses. It is a ghost and not the primary: what a
+             manager comes to a running campaign to do is read how it is
+             going, and correcting a sentence is the second thing. */
+          (campMine(k)
+            ? '<button class="b-ghost" type="button" data-cedit="' + esc(k.id) +
+              '">Edit the campaign</button>'
+            : '') +
           (campOpen(k)
             ? (seesCost()
               ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
@@ -25866,6 +25949,11 @@
      rather than from wherever a counter happened to be. */
   function nextGoal(k) {
     const g = campGoal(k);
+    /* What the page is showing, which on a seeded campaign is the derived
+       sentence rather than anything stored. Comparing against `k.aim` there
+       matched nothing, so the first press handed back the very sentence the
+       reader had just pressed the button to get away from. */
+    const now = k.aim || goalSay(g);
     /* ══ IT CYCLES OVER THE SENTENCES, NOT OVER THE NUMBERS ═════════════
        Two kinds can print the same words: the foothold falls back to logos
        where the market is not named, so a campaign with no sector on it yet
@@ -25887,7 +25975,7 @@
       ring.push({ kind: kind, said: said });
     }
     let at = -1;
-    ring.forEach((x, i) => { if (x.said === k.aim) at = i; });
+    ring.forEach((x, i) => { if (x.said === now) at = i; });
     return Object.assign({}, g, { kind: ring[(at + 1) % ring.length].kind });
   }
 
@@ -26841,6 +26929,32 @@
     if (crun) {
       if (crun.disabled) return;
       campRun(DB.byCamp[crun.getAttribute('data-crun')]);
+      return;
+    }
+
+    const cedit = t.closest('[data-cedit]');
+    if (cedit) {
+      const id = cedit.getAttribute('data-cedit');
+      if (!campMine(DB.byCamp[id])) return;
+      go(Object.assign(cleared(), { camp: id, ed: id }));
+      return;
+    }
+
+    /* ══ A RUNNING CAMPAIGN CANNOT LEAVE WITHOUT A NAME ══════════════════
+       It never could: Run it refuses a draft without one, so every campaign
+       that has ever run had a name. Editing is the first door that can take
+       one off, and the way back has to open whatever the page says about
+       what is missing — a control you cannot leave is worse than a field you
+       can empty. So the name is put back on the way out rather than the way
+       being shut, and it is put back to the one the builder would have
+       offered. */
+    const cdone = t.closest('[data-cdone]');
+    if (cdone) {
+      if (cdone.disabled) return;
+      const id = cdone.getAttribute('data-cdone');
+      const k = DB.byCamp[id];
+      if (k && !k.name) campSet(k, { name: campFill(k).name || 'Untitled campaign' });
+      go(Object.assign(cleared(), { camp: id }));
       return;
     }
 
