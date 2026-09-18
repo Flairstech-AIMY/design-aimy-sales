@@ -4755,6 +4755,17 @@
   font-size: var(--t-small); font-weight: var(--fw-bold); color: var(--ink-muted);
 }
 .b-door-say { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200); }
+/* ── the half of the line that is an alarm ───────────────────────────
+   `--err-text` rather than `--err` literally, because the -text pair is what
+   a product colours INK with and the two diverge in light, where the fill's
+   red is 3.82:1 on a white card. Measured where this one actually sits — on
+   `--card-bg`, not on the page — it is 6.59:1 in dark and 7.58:1 in light.
+
+   `--fw-bold`, which is 600 here, against the line's own 400. Two steps, not
+   the one `--fw-semibold` would give: colour is never the only difference
+   between two clauses, and at `--fs-sm` a single step is a difference you
+   have to go looking for. */
+.b-door-miss { color: var(--err-text); font-weight: var(--fw-bold); }
 
 /* ── who the time belongs to ────────────────────────────────────────────
    The name sits under the clock with the kind of thing it is beside it, so
@@ -4773,6 +4784,14 @@
 /* "Clear" is a good day, not a big number: it takes the size so the two cards
    still line up, and the ink of something that is not a figure. */
 .b-door-fig.is-quiet { color: var(--ink-muted); }
+/* ── and a count of missed calls is not a good day ───────────────────
+   The one figure on any of these cards that is somebody waiting rather than a
+   fact about the day. Same token as `.b-door-miss` on the book desk's line,
+   for the same fact, so one red means missed calls across both desks — and
+   the same reasoning about ink: `--err-text`, never `--err`. The weight is
+   already extrabold from `.b-door-fig`, so the colour is the only thing this
+   rule adds and the figure is legible without it. */
+.b-door-fig.is-miss { color: var(--err-text); }
 /* ── WHAT THE FIGURE IS ──
    A number this size with no noun on it is a card asking a question. The
    report's own headline solves it the same way — `.s-att-of` after
@@ -5807,22 +5826,16 @@
 }
 .b-dir svg { width: 1em; height: 1em; stroke-width: 2.25; }
 
-/* ══ THE CAPTION AND THE DOOR ONTO WHAT YOU MISSED ════════════════
-   `.b-loop-head`'s row, in its own words, for the same pair: a micro capital
-   on the left and the way somewhere on the right. The caption keeps its own
-   type — a control beside a micro capital is the pair this row is for, not a
-   mismatch to correct — and gives up its own bottom margin to the row, which
-   now owns the gap to the cards.
+/* ══ THE ROW THE DOOR STOOD ON IS GONE WITH IT ═══════════════════
+   `.s-starts-head` was a flex row holding the Start caption and, at its right
+   edge, the door onto the call log — plus a reserved 28px so the four opener
+   cards did not jump when the last missed call was dealt with. The log stands
+   in the rail now, so the row holds one caption, and a flex container around
+   a single child is a container with nothing to arrange. The caption is back
+   on its own `margin-bottom` in sales.css, which is the gap the row borrowed.
 
-   `min-height` on the row rather than a margin on the button: the door is
-   drawn only when there is something to open, and without a reserved height
-   the four opener cards jumped 28px up the page the moment the last missed
-   call was dealt with. */
-.s-starts-head {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; min-height: 28px; margin-bottom: 12px;
-}
-.s-starts-head .s-starts-cap { margin-bottom: 0; }
+   Both rules are deleted rather than left standing: a rule that matches
+   nothing is the kind of dead CSS this file cannot see from the inside. */
 
 /* ══ THE COUNT IS THE PAYLOAD, SO IT IS NOT SET IN THE QUIET INK ═════
    The bell beside it carries a 6px dot, which says THERE IS SOMETHING. This
@@ -5840,7 +5853,13 @@
    6.65:1 dark, 7.0:1 light. Tabular figures so 1 and 11 are the same
    width — the badge is redrawn on every paint and a number that changes
    width nudges the label under the cursor. */
+/* The gap between the words and the count, on whichever button is carrying
+   them: the pill in the briefing had it, and the diary's nav button — which
+   centres its content and declares no gap of its own — needs the same one.
+   The nav button is 32px against the pill's 28, so the badge gets the 4px of
+   right padding back that a 14px inset would otherwise put beyond it. */
 .b-missed-door { gap: 7px; }
+.b-cal-btn.b-missed-door { padding-right: 10px; }
 .b-missed-n {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 17px; height: 17px; padding: 0 5px;

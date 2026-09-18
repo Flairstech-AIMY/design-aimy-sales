@@ -5413,6 +5413,18 @@
       return backBtn('data-back', S.q === 'won' ? 'Back to the clients' : 'Back to accounts');
     }
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
+    /* ══ AND THE LOG GOES BACK WHERE ITS DOOR IS ════════════════════
+       `data-back` clears to the briefing, which is where the log's door used
+       to stand. It stands in two different places now, so the way back is
+       two different places: a book desk opens the log from the diary's own
+       nav, and landing back on the briefing loses the day they were reading.
+       A caller opens it from a rail card that follows them everywhere, so
+       there is no one page to return to and the briefing is the honest
+       answer — the same call `notes` makes two lines down. */
+    if (S.on === 'missed' && onBook()) {
+      return backBtn('data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '"', 'Back to the diary');
+    }
     if (S.on === 'money') return backBtn('data-back', 'Back to Financials');
     /* Named for where it now comes from. `data-back` clears to the briefing,
        which was true while the notes block lived there and is a lie now. */
@@ -5550,7 +5562,10 @@
       /* Only this desk has a day and a book to stand here. */
       /* Both doors open a pipeline surface — the diary and the report.
          A floor is already standing on the report and has no diary. */
-      (onBook() && onPipeline() ? railDoors() : '') +
+      /* And a caller, who has neither, gets the one card that is theirs.
+         `onBook` is false for exactly one job, so the two branches are the
+         two desks and there is no third case to fall through. */
+      (onBook() ? (onPipeline() ? railDoors() : '') : railLog()) +
       /* ══ THE QUIETER OF THE TWO WAYS INTO THE CONSOLE ══════════════════
          Knowledge's own note on the same control: the corner button is the
          one that gets found, this is the one that gets used, because it sits
@@ -5974,7 +5989,14 @@
   function missedPage() {
     const calls = missedCalls();
     const meets = missedMeets();
-    const on = S.q === 'meets' ? 'meets' : 'calls';
+    /* ══ TWO TABS IS A BOOK DESK'S SHAPE ═════════════════════
+       A caller holds no unwritten meeting — `missedMeets` says why one
+       function up — so on that desk the strip was one live chip beside a
+       chip reading "Meetings 0", which is a control that exists to tell you
+       there is nothing behind it. The page is its heading and the calls,
+       and `q` cannot select a half that is not drawn. */
+    const both = onBook();
+    const on = both && S.q === 'meets' ? 'meets' : 'calls';
     const nOf = (k) => (k === 'meets' ? meets.length : calls.length);
     /* The same chip the queue's cuts use, so the one control in this build
        that means "same frame, different body" means it here too. */
@@ -5990,7 +6012,7 @@
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">Call log</h2>' +
         '</div>' +
-        tabs +
+        (both ? tabs : '') +
         (on === 'meets' ? logMeets(meets) : logCalls(calls)) +
       '</section>' +
     '</div>';
@@ -6729,6 +6751,33 @@
             '<h3 class="b-cal-month">' + esc(MONTH_FULL[mo]) + ' ' + y +
               '<span class="b-cal-count">' + commas(inMonth) + '</span></h3>' +
             '<div class="b-cal-nav">' +
+              /* ══ AND THE WAY INTO WHAT CAME FOR YOU ═════════════════
+                 The diary is the forward half of the same question: what is
+                 in it is what is coming, and the log is what came and went
+                 without you. On a book desk the rail card over this page
+                 already says how much of that there is — this is the door
+                 that sentence needs, and it stands beside Today because
+                 Today is the other control on this row about NOW.
+
+                 It wears the nav's own button rather than the pill it wore
+                 in the briefing. Four controls on one row, one of them four
+                 pixels shorter and carrying a fill nothing else has, is a
+                 row that reads as two rows; it is the same control — same
+                 words, same badge, same surface behind it — dressed as the
+                 row it now lives in.
+
+                 Drawn when there is something in the log at all, on either
+                 of its two tabs. The badge counts the CALLS only, which is
+                 the call the briefing's door already made and the reason it
+                 made it: a number over two kinds of thing is a number you
+                 cannot act on. */
+              (missedN() || missedMeets().length
+                ? '<button class="b-cal-btn is-word b-missed-door" type="button" data-go="' +
+                  esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
+                  'Call log' + (missedN()
+                    ? '<span class="b-missed-n">' + commas(missedN()) + '</span>' : '') +
+                  '</button>'
+                : '') +
               '<button class="b-cal-btn is-word" type="button" data-calstep="' + esc(TODAY_ISO) +
                 '">Today</button>' +
               '<button class="b-cal-btn" type="button" data-calstep="' + esc(monthStep(sel, -1)) +
@@ -6823,11 +6872,16 @@
     const first = timed[0] || on[0];
     if (!on.length) {
       const soon = meetings(dayAdd(1), dayAdd(14));
+      /* The fortnight moved onto the name's own line, into the slot a day
+         with something in it gives to the KIND of thing it is. It is the
+         same rank of fact — a second reading about the diary, beside the
+         first — and the line under it belongs to the log now. */
       return '<span class="b-door-fig is-quiet">Clear</span>' +
-        '<span class="b-door-who">Nothing is in the diary</span>' +
-        '<span class="b-door-say">' + (soon.length
-          ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
-          : 'and nothing in the fortnight ahead') + '</span>';
+        '<span class="b-door-who">Nothing is in the diary' +
+          '<span class="b-kind">' + (soon.length
+            ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
+            : 'none in the fortnight ahead') + '</span></span>' +
+        '<span class="b-door-say">' + logLine() + '</span>';
     }
     const k = MEET_KIND[first.kind];
     /* The mark only where there is a time to mark. "All day" is the absence
@@ -6841,8 +6895,55 @@
       '</span>' +
       '<span class="b-door-who">' + esc(first.con.name) +
         '<span class="b-kind">' + esc(k.label) + '</span></span>' +
-      '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
-        ' in the diary today</span>';
+      /* ══ AND THE LAST LINE IS WHAT CAME FOR YOU ════════════════════════
+         It counted the day again — "4 things in the diary today" under a
+         card already showing the first of them, over a page that counts
+         them a third time in its own heading. The one fact this desk had
+         no standing place for is what happened WITHOUT you, and it was
+         hanging off the briefing's Start row as a badge on a control.
+
+         So the log stands here, on the card that opens the surface the log
+         now lives on. `logLine` is the same sentence on both desks: a caller
+         gets it as a rail card of its own, because a caller has no diary
+         card to hang it off. */
+      '<span class="b-door-say">' + logLine() + '</span>';
+  }
+
+  /* ══ THE LOG IN ONE LINE ═══════════════════════════════════════════════
+     Both halves of the call log, in the words its own two tabs use, because
+     a line that named only the calls would be a card claiming the log is
+     empty on a day when six meetings are sitting unwritten. The separator
+     is the middle dot this build already puts between two facts of one kind
+     — `.s-block-say` uses it, and so does every log row's meta. */
+  /* NOT `logSay`, WHICH IS TAKEN. Twenty thousand lines down, `logSay(call)`
+     is the sentence AiMY says back about one call it just heard — a different
+     sense of "log" and a different sense of "say". Both are function
+     declarations in one closure, so the second silently replaces the first
+     and the only symptom is the rail going blank. */
+  /* ══ AND ONE HALF OF IT IS RED ═══════════════════════════════
+     The two clauses are not the same kind of fact. A meeting nobody wrote up
+     is work owed and nothing is lost by it waiting another hour; a call that
+     rang out is somebody who tried to reach this desk and got nothing, and
+     the longer it sits the less a call back is worth. The badge on the
+     briefing's door said that in a fill, and the sentence that replaced it
+     said it in the same grey as everything else.
+
+     `--err-text`, which is the token that exists because `--err` as INK
+     measures 4.37:1 in dark and 3.82:1 in light and fails AA at both — the
+     same reasoning `.b-missed-n` states for going to a fill instead. One
+     clause, not the line: a sentence that is entirely red is a sentence with
+     no emphasis in it, and the half about the meetings is not an alarm.
+
+     Returned as markup, so both call sites take it unescaped. Everything in
+     it comes from `plural` over an integer; there is no name or free text
+     anywhere in this string to escape. */
+  function logLine() {
+    const c = missedN();
+    const m = missedMeets().length;
+    const bits = [];
+    if (c) bits.push('<b class="b-door-miss">' + esc(plural(c, 'call') + ' missed') + '</b>');
+    if (m) bits.push(esc(plural(m, 'meeting') + ' unwritten'));
+    return bits.length ? bits.join(' · ') : 'Nothing was missed while you were out';
   }
 
   /* ══ A DOOR IS A SPECIMEN OF WHAT IS BEHIND IT ═════════════════════════
@@ -6954,6 +7055,64 @@
         bookBar() +
         '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
         doorGo('Open the report') +
+      '</button>' +
+    '</div>';
+  }
+
+  /* ══ AND A CALLER'S ONE STANDING FACT IS THE LOG ═════════════════════
+     The two cards above are a book desk's: a caller has no diary to open
+     and no target to stand against, so the rail carried a reading and
+     nothing else. What a caller DOES have that no other desk has as much
+     of is a phone that rang while they were on another call — fourteen of
+     them on this corpus — and that fact was a badge on a control in the
+     briefing's Start row, which is the row of ways to BEGIN something. What
+     already happened without you is not a way to begin anything.
+
+     So it stands where the other desks' standing facts stand, in the same
+     card, and it comes with you off the briefing the way they do. A book
+     desk gets the same fact on the line under its diary card, because it
+     has a card to put it on and a caller does not.
+
+     Drawn on a quiet day too, unlike the badge it replaces. A badge wearing
+     a nought teaches you to ignore it; a card that says the phone was
+     answered every time is the good news, and it is the same call the diary
+     card makes when the day is clear. */
+  function railLog() {
+    const calls = missedCalls();
+    const t = calls[0];
+    const c = t ? DB.byCon[t.con] : null;
+    /* The hour where the hour still means something, the day where it does
+       not — `sayAgo` answers "today" for a call an hour ago, which is the
+       one thing a reader looking at today's log already knows. */
+    const when = t
+      ? (daysBetween(TODAY_ISO, t.at.slice(0, 10)) === 0 ? timeOf(t.at) : sayAgo(t.at))
+      : '';
+    /* ══ AND THERE IS NO THIRD LINE ═════════════════════════
+       Two lines stood here in turn and neither was this card's to say. The
+       first counted unwritten meetings, which is a book desk's fact; the
+       second named the tail of the list — "13 more behind them, the oldest
+       last week" — which is the page's own job the moment you open it, and
+       ran to two lines of prose under a figure that had already answered
+       the question the card is for. The count is the reading. */
+    return '<div class="rail-doors">' +
+      '<button class="b-door" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
+        '<span class="b-door-cap">Call log</span>' +
+        (calls.length
+          /* The figure takes the same red the book desk's line takes, for
+             the same fact, so one colour means missed calls on both desks.
+             The unit beside it stays quiet: "missed calls" is what the
+             number IS, and a red noun is a second alarm about nothing. */
+          ? '<span class="b-door-fig is-miss">' + esc(commas(calls.length)) +
+              '<span class="b-door-of">' +
+              (calls.length === 1 ? 'missed call' : 'missed calls') + '</span></span>' +
+            (c
+              ? '<span class="b-door-who">' + esc(c.name) +
+                '<span class="b-kind">' + esc(when) + '</span></span>'
+              : '')
+          : '<span class="b-door-fig is-quiet">Clear</span>' +
+            '<span class="b-door-who">Every call that came in got taken</span>') +
+        doorGo('Open the call log') +
       '</button>' +
     '</div>';
   }
@@ -11366,30 +11525,23 @@
       '</div>' +
       '<div class="slv-body"><p class="slv-line">' +
         briefSentence(here, counts, all, camps) + '</p></div>' +
-      /* ══ AND THE DOOR ONTO WHAT CAME FOR YOU ══════════════════
-         On this caption's row, which is the shape `.b-loop-head` already
-         uses for the same pair: a micro capital naming what is below it, and
-         a door at the right edge onto the thing a reader who has just read
-         it asks for next. Four ways to START, and beside them the one
+      /* ══ AND THE LOG IS NOT A WAY TO START ════════════════════════
+         A door onto the call log sat on this caption's row, wearing the
+         count as a badge: four ways to START, and beside them the one
          question none of them answers — what already happened without you.
 
-         `topBrief` is the caller's home and the manager's, so one placement
-         is both desks. The count is missed CALLS: the page holds meetings
-         too and they have three other doors already, and a badge that counts
-         two kinds of thing is a badge you cannot act on.
+         That reading was right about the log and wrong about the row. The
+         caption says Start, the four cards under it are all ways to begin
+         something, and a fact about what is already over is the one kind of
+         thing that row cannot hold. It also only appeared when the count
+         was not zero, so the good news had nowhere to be said at all.
 
-         Drawn only when it is not zero. A door onto an empty page, wearing a
-         nought, is a control that teaches you to ignore it — and the page
-         itself still says the good news to anybody who arrives by URL. */
+         It stands in the rail now — as a card of its own on a caller's
+         desk, and on the line under the diary card everywhere else — which
+         is where this build keeps a fact that is true wherever you are
+         standing. The row is back to its caption. */
       '<div class="s-starts-wrap">' +
-        '<div class="s-starts-head">' +
-          '<span class="s-starts-cap">Start</span>' +
-          (missedN()
-            ? '<button class="s-insight-lnk b-missed-door" type="button" data-go="' +
-              esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
-              'Call log<span class="b-missed-n">' + commas(missedN()) + '</span></button>'
-            : '') +
-        '</div>' +
+        '<span class="s-starts-cap">Start</span>' +
         startStrip(here, counts, all, camps) +
       '</div>' +
     '</section>';
@@ -17722,32 +17874,22 @@
      So this is not a third derivation. It is the two of them flattened to one
      row shape, so the page can draw them without asking which desk it is on
      — the call `switcher` and `queue` already make one level up. */
-  function missedMeets() {
-    const out = onBook()
-      ? unrecorded().filter((m) => m.con).map((m) => ({
-        con: m.con, iso: m.iso, what: m.title, kind: m.kind, clock: clockOf(m) }))
-      /* ══ AND THE HOUR IS THE DIARY'S, NOT A SECOND GUESS ═════════
-         A caller's commitment is stored as a day with no time, so this branch
-         had no clock and the log showed one column of hours on the calls tab
-         and none on the meetings tab. `meetTime` is where the diary gets the
-         hour it draws for exactly this case — off the contact and the date,
-         so it is stable — and calling it here means the log and the diary
-         name the same o'clock instead of two. */
-      /* ══ OWNERSHIP, NOT QUEUE MEMBERSHIP ════════════════════
-         `queue(null, 'after')` was the obvious reuse and it is the wrong cut
-         here. A queue answers what to WORK next, so it drops anybody on a
-         campaign that has closed — and a meeting you set on a campaign that
-         has since ended is still a meeting you walked out of without writing
-         anything down. Two of the caller's six were invisible for no reason
-         the reader could have guessed.
+  /* ══ AND ONLY ONE OF THE TWO DESKS HOLDS MEETINGS ════════════════
+     There was a second branch here, off `afterMeeting`, and it was reading a
+     caller's ladder for something a caller does not own. A caller SETS a
+     meeting and hands it over; sitting in it, and writing up what happened
+     in it, is the book desk's work — which is why `unrecorded` reads the
+     phase touchpoints that only that desk writes.
 
-         The same call `missedCalls` makes one function up: whose it is, not
-         whether the list still wants them. */
-      : DB.con.filter((c) => c.owner === me().id && afterMeeting(c)).map((c) => {
-        const k = kindOfNext(c.next.what);
-        return { con: c, iso: c.next.due, what: c.next.what, kind: k,
-          clock: clockOf(meetTime(c.id, c.next.due, k)) };
-      });
+     So the caller's log is calls, and it says so by having nothing to say
+     about meetings rather than by drawing an empty second tab. `afterMeeting`
+     is untouched and still cuts the caller's own queue: a lead whose meeting
+     has been and gone is somebody to ring, which is a queue's question and
+     not a log's. */
+  function missedMeets() {
+    if (!onBook()) return [];
+    const out = unrecorded().filter((m) => m.con).map((m) => ({
+      con: m.con, iso: m.iso, what: m.title, kind: m.kind, clock: clockOf(m) }));
     /* ══ NEWEST FIRST, LIKE EVERY OTHER LOG IN THIS BUILD ═══════════
        Neither source arrives in this order and neither is wrong to: the diary
        runs forwards because that is how a day is read, and the queue runs by
