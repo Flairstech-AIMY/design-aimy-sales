@@ -14000,8 +14000,21 @@
      press produced a set of five hundred people sitting in a drawer. Putting
      them on a campaign is the point of having found them: it is the primary,
      it opens the menu, and a name in that menu saves and attaches in the one
-     press. Saving without one is still there, named for what it leaves you
-     with — a draft. */
+     press.
+
+     AND THE OTHER ONE IS CALLED SAVE. It read "Save as draft", to say what
+     it left you with — and what it leaves you with is a list. A list has no
+     draft: there is no flag on the record, the page you land on is the same
+     page either way, and the only difference is `for` being null, which that
+     page already states in as many words with "Not on a campaign yet". So
+     the word was naming a state the model does not have, and naming it on
+     the one control a caller presses when they have decided to keep
+     something. Keeping something is Save.
+
+     It still reads as the quieter of the two, because it is: the campaign is
+     the primary and the filled button, and this is the inline one beside it.
+     Weight says which is the better idea; the label should only say what the
+     press does. */
   const campPickMenu = () => {
     const ks = myCampaigns().filter(campOpen);
     if (!ks.length) return '';
@@ -14134,8 +14147,12 @@
       '<p class="b-gate-note">Leaving throws them away. Save it and it is yours; put it on a campaign ' +
         'and they join your queue.</p>' +
       '<div class="s-lead-acts">' +
-        '<button class="s-insight-lnk primary" type="button" data-save>Save as draft</button>' +
-        '<button class="s-insight-lnk" type="button" data-discard>Discard it</button>' +
+        /* The same two words the action row uses, forty pixels up. They were
+           "Save as draft" and "Discard it" here against "Save as draft" and
+           "Discard" there — one control with two labels, which this build
+           keeps finding and keeps saying is two controls to learn. */
+        '<button class="s-insight-lnk primary" type="button" data-save>Save</button>' +
+        '<button class="s-insight-lnk" type="button" data-discard>Discard</button>' +
         '<button class="s-inline-btn" type="button" data-stay>Stay</button>' +
       '</div>' +
     '</section>';
@@ -14238,7 +14255,7 @@
            them, and Save without one is named for what it leaves you. */
         '<div class="s-rec-actions">' +
           campPickMenu() +
-          '<button class="s-inline-btn" type="button" data-save>Save as draft</button>' +
+          '<button class="s-inline-btn" type="button" data-save>Save</button>' +
           '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
         '</div>' +
         /* Under the actions and inside the masthead, which is where the
