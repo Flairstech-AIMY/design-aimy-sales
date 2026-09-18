@@ -23861,6 +23861,14 @@
       /* The way out, said rather than pressed. It is a button on the first
          turn only, and a sentence under the second says this works. */
       if (/^\s*open (the )?builder\s*$/i.test(t)) { lbuildOpt('open'); return; }
+      /* The same shape: a way out that is a sentence rather than a chip,
+         because the turn it belongs to already offers two answers and a way
+         out, and a fourth control on a question with two answers is how the
+         answers stop looking like the answers. */
+      if (/^\s*(start again|start the criteria again|clear( it)?|forget that)\s*$/i.test(t)) {
+        lbuildOpt('reset');
+        return;
+      }
       lbuildRead(t);
       return;
     }
@@ -26063,10 +26071,34 @@
     return '<b>' + commas(hit) + '</b> of the ' + commas(DB.net.length) +
       ' I can reach match.';
   };
+  /* What one more term would leave, without putting it on. The page
+     builder's chips have quoted this since they were written \u2014 "11 of the 20
+     have 200 to 1,000 staff" \u2014 and it is the only honest way to offer a
+     narrowing: the cost of it is the count on the other side. */
+  function lbuildWould(term) {
+    const t = Object.create(null);
+    lbuildTerms().concat([term]).forEach((p) => (t[p[0]] || (t[p[0]] = [])).push(p[1]));
+    return buildMatched(t).length;
+  }
+
   function lbuildAutoName() {
     const t = Object.create(null);
     lbuildTerms().forEach((p) => (t[p[0]] || (t[p[0]] = [])).push(p[1]));
-    return autoName(t, LBUILD.kind || 'con');
+    /* ══ A REGION CAME IN AS ITS COUNTRIES ════════════════════════════
+       `where` is a country code everywhere in this builder, so a campaign's
+       region seeds one term per country \u2014 and the offered name became
+       "People \u00b7 Software \u00b7 France or Italy or Spain or Portugal or Greece",
+       which is the region's name spelled the long way and then truncated at
+       seventy characters. Where the seeded countries are exactly a region,
+       the region's own label stands in for them. `countryName` falls back to
+       whatever it is handed, so nothing else has to know. */
+    const k = LBUILD.camp ? DB.byCamp[LBUILD.camp] : null;
+    const reg = k && k.region ? REGION[k.region] : null;
+    const cc = t.where || [];
+    const whole = reg && cc.length === reg.cc.length &&
+      reg.cc.every((x) => cc.indexOf(x) >= 0);
+    return autoName(whole ? Object.assign({}, t, { where: [reg.label] }) : t,
+      LBUILD.kind || 'con');
   }
 
   /* AN AXIS NOBODY HAS NAMED IS NOT A BLOCKER, it is the next useful thing to
@@ -26094,6 +26126,39 @@
      before anybody had answered which of the two it was. Ask the question
      on a clean surface: the draft goes, and a half-built list is left
      rather than reopened underneath. */
+  /* ══ THE FINDER OPENS ON THE CAMPAIGN'S OWN MARKET ════════════════════
+     "Find more for this campaign" remembered WHICH campaign and nothing
+     about it. The builder opened with no criteria and asked the manager to
+     type the sector, the country and the size that were printed on the
+     record four inches above the button he had just pressed \u2014 and typed
+     from memory they can come out different, which is a list that quietly
+     does not match the campaign it was built for.
+
+     A region arrives as its countries, because `where` is a country code
+     everywhere else in this builder and a second spelling of an axis is a
+     second thing to keep in step. The read-back says the region's own name,
+     which is what the record says and what the manager chose.
+
+     Nothing is hidden and nothing is locked: they are ordinary terms, the
+     count they leave is stated before anything is pressed, and "start again"
+     drops the lot. */
+  function campMarket(k) {
+    if (!k) return [];
+    const out = [];
+    if (k.industry && INDUSTRY[k.industry]) out.push(['industry', k.industry]);
+    const reg = k.region ? REGION[k.region] : null;
+    if (reg) (reg.cc || []).forEach((cc) => out.push(['where', cc]));
+    /* Guarded against a band this build no longer has: a campaign saved in
+       somebody's browser outlives the list it chose from. */
+    if (k.size && SIZE_BANDS.some((b) => b.k === k.size)) out.push(['size', k.size]);
+    return out;
+  }
+  const campMarketSay = (k) => [
+    INDUSTRY[k.industry] ? INDUSTRY[k.industry].label : null,
+    k.region ? regionLabel(k.region) : null,
+    k.size ? sizeLabel(k.size) + ' staff' : null,
+  ].filter(Boolean).join(' \u00b7 ');
+
   function lbuildStart(campId) {
     /* The builder names a supplier on every screen of it — which one we
        asked, what each fills, which to ask next — so there is no version of
@@ -26101,22 +26166,81 @@
     if (isBuyer()) { toast('Finding people is ours. Add anybody you have met yourself.'); return; }
     DRAFT = null;
     if (S.build || S.list) goFree(Object.assign(cleared(), { on: 'lists' }), true);
-    LBUILD = { kind: null, terms: [], step: 'kind', name: null,
-      camp: (campId && DB.byCamp[campId] && mine(DB.byCamp[campId])) ? campId : null };
+    const k = (campId && DB.byCamp[campId] && mine(DB.byCamp[campId]))
+      ? DB.byCamp[campId] : null;
+    LBUILD = { kind: null, terms: campMarket(k), step: 'kind', name: null,
+      /* The one narrowing AiMY is holding out on the current turn. Null
+         everywhere else, so pressing a spent chip cannot apply a stale one. */
+      offer: null, camp: k ? k.id : null };
     TURNS.length = 0;
     openCanvas();
-    lbuildPush('What are you collecting — companies, or the people at them?',
-      [{ k: 'kind-acc', label: 'Companies' }, { k: 'kind-con', label: 'People' }, LB_OUT],
+    const ways = [{ k: 'kind-acc', label: 'Companies' },
+      { k: 'kind-con', label: 'People' }, LB_OUT];
+    /* The same question either way. What changes is whether it is asked on
+       an empty page or on the market the campaign already has. */
+    if (LBUILD.terms.length) {
+      lbuildPush('More for <b>' + esc(k.name) + '</b>. I have its market already — <b>' +
+        esc(campMarketSay(k)) + '</b> — and ' + lbuildSay() +
+        ' Companies, or the people at them?', ways,
+        'Say anything that narrows it further, or say \u201cstart again\u201d to drop what ' +
+        'the campaign brought.');
+      return;
+    }
+    lbuildPush('What are you collecting — companies, or the people at them?', ways,
       'Or just say who you are after and I will work it out.');
   }
 
   function lbuildKind(kind) {
     LBUILD.kind = kind;
     LBUILD.step = 'said';
-    lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b>. ' +
-      'Who are you after? Say it however you like — a sector, a country, a size, ' +
-      'a job title.',
-      [], 'Something like “QA managers at software companies in the Netherlands”.');
+    if (!LBUILD.terms.length) {
+      lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b>. ' +
+        'Who are you after? Say it however you like — a sector, a country, a size, ' +
+        'a job title.',
+        [], 'Something like “QA managers at software companies in the Netherlands”.');
+      return;
+    }
+    /* ══ THE MARKET IS APPLIED AND THE PERSONA IS OFFERED ════════════════
+       The difference is whose assertion it is. The sector, the country and
+       the size are what the record SAYS the campaign is, so a finder opened
+       from that campaign starts from them and the turn before this one said
+       so. The persona is who to ask for once you reach the company, which is
+       a different question from who is in the index \u2014 and `title` is one of
+       the four axes `buildMatched` applies whatever the kind is, so a band
+       put on quietly would narrow a companies list by the job titles of the
+       people inside it.
+
+       Measured before it was written: on the energy campaign the market
+       leaves eleven and the persona leaves one of those. So it follows the
+       rule the page builder's own chips follow \u2014 each states the count behind
+       it and waits to be pressed, and one that holds less than a third is a
+       fact rather than a finding and is not offered at all. Same threshold,
+       same sentence, same verb.
+
+       The nudge stands down when the offer is up. Both are about job titles
+       and two sentences asking for the same thing is a turn arguing with
+       itself. */
+    const k = LBUILD.camp ? DB.byCamp[LBUILD.camp] : null;
+    const hit = lbuildMatched().length;
+    let band = null;
+    let left = 0;
+    if (kind === 'con' && k && k.persona && k.persona.who &&
+        !LBUILD.terms.some((p) => p[0] === 'title')) {
+      const b = titleBand(k.persona.who);
+      if (b !== 'other') {
+        const would = lbuildWould(['title', b]);
+        if (would / Math.max(1, hit) >= 0.33) { band = b; left = would; }
+      }
+    }
+    LBUILD.offer = band;
+    const bandSay = band ? (TITLE_BANDS.filter((b) => b.k === band)[0] || {}).label : '';
+    lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b> in that market. ' +
+      lbuildSay() +
+      (band ? ' <b>' + commas(left) + ' of the ' + commas(hit) + '</b> are in ' +
+        esc(bandSay) + ', which is what the campaign asks for.' : '') +
+      (band ? '' : lbuildNudge()),
+      band ? [{ k: 'band', label: 'Only those' }, LB_GO] : [LB_GO],
+      'Say anything else that narrows it, or say go.');
   }
 
   /* Read a sentence into criteria, then say what was understood and what it
@@ -26211,10 +26335,31 @@
     }
     if (k === 'kind-acc') { lbuildKind('acc'); return; }
     if (k === 'kind-con') { lbuildKind('con'); return; }
+    if (k === 'band') {
+      const b = LBUILD.offer;
+      LBUILD.offer = null;
+      if (!b) return;
+      LBUILD.terms.push(['title', b]);
+      const say = (TITLE_BANDS.filter((x) => x.k === b)[0] || {}).label || '';
+      lbuildPush('<b>' + esc(say) + '</b> only. ' + lbuildSay() + lbuildNudge(),
+        [LB_GO], 'Say anything else that narrows it, or say go.');
+      return;
+    }
     if (k === 'go') { lbuildName(); return; }
     if (k === 'name-auto') { lbuildConfirm(lbuildAutoName()); return; }
     if (k === 'reset') {
       LBUILD.terms = [];
+      /* Clearing a seeded builder before the first question is answered puts
+         you back at that question, not past it. Without this it dropped you
+         on "Who are you after?" with the companies-or-people step never
+         asked, and `lbuildRead` then guessed the kind off your next
+         sentence. */
+      if (!LBUILD.kind) {
+        lbuildPush('Cleared \u2014 nothing on it now. Companies, or the people at them?',
+          [{ k: 'kind-acc', label: 'Companies' }, { k: 'kind-con', label: 'People' }],
+          'Or just say who you are after and I will work it out.');
+        return;
+      }
       lbuildPush('Cleared. Who are you after?', [], 'Name a sector, a country or a size.');
     }
   }
