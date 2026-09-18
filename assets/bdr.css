@@ -6189,9 +6189,20 @@
    `min-width: 0` on the anchor because a domain does not break: without it
    a long one pushes the card wider than its column and the grid stops being
    a grid. */
+/* ══ AND IT SITS IN THE CARD'S GUTTER LIKE EVERY OTHER ROW ═══════════
+   This had no horizontal padding, so its marks began at the card's edge
+   while the tag, the name, the sentence, the facts and the foot all begin
+   14px in. One row out of seven breaking the left margin is the kind of
+   thing you see before you can say what it is. Measured: 353 against 367.
+
+   AND IT GETS THE BREAK THE BLOCK IT REPLACED HAD. `.b-aimy` sat here
+   with 10px above it, which is what separated the card's FACTS from the
+   thing under them. This went in at 2 and the three rows below the
+   sentence — two of facts and one of links — closed into one grey mass
+   with nothing saying which of them was a different kind of thing. */
 .b-net-links {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
-  margin: 2px 0 0; min-width: 0;
+  padding: 0 14px; margin: 10px 0 0; min-width: 0;
 }
 .b-net-link {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0;
@@ -6200,7 +6211,11 @@
   transition: color var(--t-fast);
 }
 .b-net-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.b-net-link > svg { flex: none; width: 11px; height: 11px; }
+/* 10px, which is what `.b-qcard-where` gives its marks. Three stacked
+   rows of mark-then-text whose marks are 10, 11 and 12 wide start their
+   text at three different places — 383, 370 and 385 — and a column that
+   is nearly aligned reads worse than one that is plainly not. */
+.b-net-link > svg { flex: none; width: 10px; height: 10px; }
 .b-net-link:hover { color: var(--accent); text-decoration: underline; }
 .b-net-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
@@ -6266,4 +6281,31 @@
 .b-net-fact {
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
 }
-.b-net-fact > svg { flex: none; width: 12px; height: 12px; }
+/* `--mark` rather than width/height: that is the property `.b-fact > svg`
+   sizes from, and it is also what the leading correction above it reads,
+   so setting the two directly left the mark sized right and nudged onto
+   the cap height of a 13px mark that was not there. */
+.b-net-fact > svg { --mark: 10px; }
+/* ══ THE CARD'S OWN RHYTHM, WHICH WAS ALL ONE INTERVAL ════════════════
+   `.b-qcard-where` carries `padding-top: 2px` because the two fact lines are
+   ONE block: the organisation on one, where and how big on the next, and 2px
+   is what keeps them reading as a pair rather than as two rows. Right for the
+   second one, wrong for the first, which is not continuing anything — it is
+   the first fact after a sentence about the company, and it sat 2px under it.
+
+   AND IT IS THE PROSE THAT NEEDS IT, NOT THE CARD. A person's line here is
+   `b-qcard-role` — a job title of three or four words, at `--fs-xs`, which is
+   exactly what a roster card on the saved list carries and where 2px has
+   always been right: the step down in size does the separating on its own. A
+   company's is `b-qcard-what`, a sentence at `--fs-sm`, and prose needs a gap
+   under it or the eye runs straight on into the facts.
+
+   So the selector names the prose and not the surface. Written as
+   `.tc-summary + .b-qcard-where` it caught both, which would have given a
+   person 10px here and the same person 2px on the list thirty seconds later —
+   a difference between the two pages, introduced by a rule whose whole
+   argument is about the other one.
+
+   Not `:first-of-type` either: the sentence is a `<p>` too, so first-of-type
+   is the sentence and the rule would have landed on nothing at all. */
+.b-netcard .b-qcard-what + .b-qcard-where { padding-top: 10px; }
