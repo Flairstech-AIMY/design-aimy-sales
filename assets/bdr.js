@@ -23927,6 +23927,54 @@
     }
   }
 
+  /* \u2550\u2550 AND SHE SAYS HELLO BEFORE SHE IS ASKED ANYTHING \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     Every other thing this card has ever held was an answer: you asked, it
+     thought, the words arrived. So the card only ever appeared once somebody
+     had spoken to it, and a product whose whole claim is that it has already
+     read the book opened every morning in silence.
+
+     \u2550\u2550 NO THINKING, BECAUSE THERE IS NOTHING TO THINK ABOUT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `peekAsk`'s 1400ms is the card's own argument written down: an answer
+     that is simply THERE reads as a lookup rather than as a reading, so the
+     wait is real and earns the word. A greeting has nothing behind it \u2014 it
+     is not a reading of anything, it is a door held open \u2014 and a mark
+     pretending to consider your name for a second and a half would be the
+     one place on this surface where the wait was decoration.
+
+     It still arrives as words rather than at once, because that is what
+     makes it AiMY speaking rather than a label that was always there.
+     `peekStream` is the same writer the answers use, straight to the body,
+     and it already stands down under `prefers-reduced-motion`.
+
+     \u2550\u2550 AND IT IS NOT WRITTEN TO THE THREAD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `peekFlush`'s note says an answer lands in the thread whether or not the
+     card is still on screen, because "an answer that only exists while you
+     are looking at it is a record that forgets". Nothing is owed here, so
+     there is nothing to forget. It also keeps the canvas empty, which is
+     what draws the four opening questions \u2014 press this card and you get
+     them, which is a better answer to "how can I help" than a transcript
+     with one line of hello in it. */
+  function peekWelcome() {
+    const box = peekEl();
+    if (!box) return;
+    /* Somebody who arrived on a link is already in a conversation. */
+    const over = byId('aimyOverlay');
+    if (over && over.classList.contains('open')) return;
+    box.hidden = false;
+    box.classList.remove('is-thinking');
+    box.classList.remove('is-clipped');
+    peekShut(false);
+    byId('peekBody').style.maxHeight = '';
+    byId('peekActs').innerHTML = '';
+    PEEK_ACTS = '';
+    byId('aimyFloatWrap').classList.add('has-peek');
+    /* The name people are called by. `reachDraft` opens its letters on the
+       same half for the same reason. */
+    const first = String(me().name || '').split(' ')[0];
+    peekStream(byId('peekBody'),
+      'Welcome, <b>' + esc(first) + '</b>. How can I help you today?', peekSettle);
+  }
+
   function peekAsk(html) {
     const box = peekEl();
     if (!box) { say('aimy', html); return; }
@@ -29233,6 +29281,10 @@
     openChat(S.chat);
     openCanvas();
   } else {
+    /* Every desk, because every desk has a name and none of them has been
+       said hello to. Before the greeting, which is a finding rather than an
+       opening and lands in the thread behind the badge. */
+    peekWelcome();
     /* After the first paint, because she is talking about the board and the
        board has to exist to be talked about. */
     reachGreet();
