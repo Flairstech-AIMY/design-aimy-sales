@@ -15081,7 +15081,10 @@
         '<input class="b-draft-name" type="text" data-cfield="name" value="' + esc(k.name) + '" ' +
           'placeholder="Name this campaign" spellcheck="false" aria-label="The name" />' +
         '<div class="b-cmeta b-draft-meta">' +
-          draftField('The goal', draftText('aim', k.aim,
+          /* The one field above the fold AiMY can write, so it carries the
+             same verb the persona and the pitch do. `draftPart` rather than
+             `draftField` for exactly that: a caption with a verb beside it. */
+          draftPart('The goal', aiDraft('aim'), draftText('aim', k.aim,
             'What it is worth having worked — 2 new clients for AiMY QA')) +
           draftField('What we sell them', draftMenu('dSell',
             sells.length ? sells.map((x) => esc(x.name)).join(', ') : '',
@@ -25849,6 +25852,45 @@
     size: 'the company size', pitch: 'the pitch', goal: 'the ask',
     objections: 'the objections', resources: 'the one-pagers', target: 'the quota' };
 
+  /* ══ A SECOND PRESS IS "NOT THAT ONE" ═════════════════════════════════
+     A campaign's goal is one of four kinds \u2014 logos, money, a foothold, an
+     account taken off whoever has it \u2014 and `campGoal` deals one off the id.
+     That is right for a book where nobody was ever asked, and wrong for a
+     button somebody is pressing BECAUSE the last sentence was not it. Each
+     press moves to the next kind, so the control answers the reason it was
+     pressed.
+
+     Where it has got to is read back off the value rather than held in a
+     counter: it survives a reload, it cannot drift from what is in the
+     field, and a goal somebody typed by hand starts the cycle from the top
+     rather than from wherever a counter happened to be. */
+  function nextGoal(k) {
+    const g = campGoal(k);
+    /* ══ IT CYCLES OVER THE SENTENCES, NOT OVER THE NUMBERS ═════════════
+       Two kinds can print the same words: the foothold falls back to logos
+       where the market is not named, so a campaign with no sector on it yet
+       has three distinct goals and not four. Walking the numbers and
+       recognising where you are by matching the string then finds the FIRST
+       kind that renders it \u2014 which is not the one you were shown \u2014 and the
+       button sat in a two-cycle with money unreachable. Measured: four
+       presses gave logos, competitor, logos, competitor.
+
+       The ring is built once, distinct, starting from the campaign's own
+       dealt kind so the first press offers what the record already says. */
+    const seen = Object.create(null);
+    const ring = [];
+    for (let i = 0; i < 4; i++) {
+      const kind = (g.kind + i) % 4;
+      const said = goalSay(Object.assign({}, g, { kind: kind }));
+      if (seen[said]) continue;
+      seen[said] = 1;
+      ring.push({ kind: kind, said: said });
+    }
+    let at = -1;
+    ring.forEach((x, i) => { if (x.said === k.aim) at = i; });
+    return Object.assign({}, g, { kind: ring[(at + 1) % ring.length].kind });
+  }
+
   function campFill(k) {
     const p = campParts(k);
     const x = SELL[p.sell];
@@ -26735,25 +26777,31 @@
       if (!k) return;
       const f = cdraft.getAttribute('data-cdraft');
       const p = campParts(k);
-      const made = f === 'persona' ? sayPersona(p) : sayPitch(p);
       /* It says what it is short of rather than writing something out of a
-         default. Every word of both sentences comes out of the offering. */
+         default. Every word of all three comes out of the offering, so the
+         guard is one guard \u2014 `goalSay` would happily write "2 new clients
+         for us", which is the product deciding what the campaign is for. */
+      const made = !SELL[p.sell] ? null
+        : f === 'persona' ? sayPersona(p)
+          : f === 'pitch' ? sayPitch(p)
+            : goalSay(nextGoal(k));
       if (!made) {
         toast('Say what we are selling first \u2014 every word of this comes out of that.');
         return;
       }
-      const wasP = k.persona;
-      const wasT = k.pitch;
+      const was = { persona: k.persona, pitch: k.pitch, aim: k.aim };
       if (f === 'persona') {
-        campSet(k, { persona: { who: made, at: (wasP && wasP.at) || '',
-          why: (wasP && wasP.why) || WHY_NOW[p.sell] || '' } });
-      } else campSet(k, { pitch: made });
+        campSet(k, { persona: { who: made, at: (was.persona && was.persona.at) || '',
+          why: (was.persona && was.persona.why) || WHY_NOW[p.sell] || '' } });
+      } else if (f === 'pitch') campSet(k, { pitch: made });
+      else campSet(k, { aim: made });
       paint();
-      toast((f === 'persona' ? 'Persona' : 'Pitch') + ' drafted \u2014 it is yours to edit',
-        () => {
-          campSet(k, f === 'persona' ? { persona: wasP } : { pitch: wasT });
-          paint();
-        });
+      const named = f === 'persona' ? 'Persona' : f === 'pitch' ? 'Pitch' : 'Goal';
+      toast(named + ' drafted \u2014 it is yours to edit', () => {
+        campSet(k, f === 'persona' ? { persona: was.persona }
+          : f === 'pitch' ? { pitch: was.pitch } : { aim: was.aim });
+        paint();
+      });
       return;
     }
 
