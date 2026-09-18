@@ -3399,7 +3399,10 @@
      the thing you just asked for would vanish the moment you sent it. */
   const mine = (c) => (c.by && c.by === me().id) || (isBuyer() ? onClient(c)
     : isLine() ? onLine(c)
-    : onBook() ? c.owner === me().id
+    /* Or it is a request nobody has taken, which is every manager's to
+       take: the briefing lists it for all of them, so the record has to open
+       for all of them too. */
+    : onBook() ? (c.owner === me().id || (isMgr() && campFree(c)))
     : c.crew.indexOf(me().id) >= 0);
   /* A request that has not been sent yet is nobody's but its writer's. It
      is half a sentence: without this it would sit on the manager's list from
@@ -3437,6 +3440,19 @@
      which of them reach the manager's briefing. */
   const isDraft = (k) => !!k && (k.state === 'draft' || k.state === 'asked');
   const isAsked = (k) => !!k && k.state === 'asked';
+  /* \u2550\u2550 AND NOBODY HAS IT UNTIL SOMEBODY RUNS IT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A request shipped owned by `MANAGERS[0]`, as a placeholder for a
+     decision nobody was being asked to make: which manager takes this one.
+     A placeholder in a FIELD does not stay in the field \u2014 the card printed
+     it in the gov row under a person icon, which is the same slot that says
+     whose campaign a running one is, so a request nobody had looked at
+     announced a manager who did not know it existed.
+
+     So `owner` is empty until it is run, and running it is what claims it.
+     That is the truth of the thing and it is also the smaller change when
+     the CEO's desk arrives: he writes `owner` earlier, and every predicate
+     below already reads "or nobody has it". */
+  const campFree = (k) => isAsked(k) && !k.owner;
   /* The desks that ask rather than run. Not `!isMgr()`: a BDR is neither,
      and a BDR has no door to a campaign at all. */
   const asksOnly = () => isLine() || isBuyer();
@@ -3450,7 +3466,7 @@
      it says who wrote it, which never changes \u2014 and `state` says how far
      it has got. A plain draft carries no `by` and falls through to `mine`,
      which is what this build did before there was anything else. */
-  const campFills = (k) => (isAsked(k) ? isMgr() && k.owner === me().id
+  const campFills = (k) => (isAsked(k) ? isMgr() && (!k.owner || k.owner === me().id)
     : k.by ? k.by === me().id : mine(k));
   const campOpen = (k) => k.state !== 'done' && !isDraft(k) && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
@@ -4834,8 +4850,14 @@
          block must never do. */
       (isDraft(k) ? '' : aimyBlock(campSays(k, q, back, fresh, left))) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num b-fact">' + chIcon('user') +
-          '<span>' + esc(actor(k.owner).name) + '</span></span>' +
+        /* \u2550\u2550 AND ON A REQUEST THERE IS NO NAME TO PUT HERE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+           This slot is whose campaign it is. A request is nobody's until a
+           manager runs it, and the line above already says who asked for it,
+           so the row holds one thing \u2014 which the foot's own rule for a lone
+           child already knows what to do with. */
+        (campFree(k) ? ''
+          : '<span class="b-qcard-num b-fact">' + chIcon('user') +
+            '<span>' + esc(actor(k.owner).name) + '</span></span>') +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' +
           (isAsked(k) ? (campFills(k) ? 'Open it' : 'See it')
@@ -6452,7 +6474,8 @@
      asked yet which manager should take it. When the CEO's desk arrives it
      answers that, this filter goes on reading `owner`, and the only thing
      that changes is who wrote the field. */
-  const campAsks = () => DB.camp.filter((k) => isAsked(k) && k.owner === me().id)
+  const campAsks = () =>
+    DB.camp.filter((k) => isAsked(k) && (!k.owner || k.owner === me().id))
     /* Longest waiting first, which is the order every other list of things
        owed on this page uses: what was missed first. */
     .sort((a, b) => ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
@@ -15528,8 +15551,15 @@
             ? '<span class="b-kind">sent ' + esc(sayWhen(k.askedAt)) + '</span>' : '') +
         '</div>' +
         '<p class="s-block-sub">' + (sent
-          ? '<b>' + esc(actor(k.owner).name) + '</b> has it. They put a team and the lists ' +
-            'on it and start it, and it turns into a campaign on this page when they do.'
+          ? (k.owner
+            ? '<b>' + esc(actor(k.owner).name) + '</b> has it. They put a team and the lists ' +
+              'on it and start it, and it turns into a campaign on this page when they do.'
+            /* Nobody has taken it, so nobody is named. It is on every sales
+               manager's briefing and the first to open it is the one who
+               runs it. */
+            : 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
+              'and the lists on it and starts it, and it turns into a campaign on this ' +
+              'page when they do.')
           : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
             'asked for it yet.') + '</p>' +
         campMeta(k) +
@@ -15566,7 +15596,10 @@
         '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">You are not on this campaign, so there is nothing here for you ' +
-          'to work. ' + esc(actor(k.owner).name) + ' owns it — ask them to add you.</p>' +
+          /* An unclaimed request has no owner to be sent to. Nobody who can
+             reach this line can act on one either, so it says what it is. */
+          'to work. ' + (k.owner ? esc(actor(k.owner).name) + ' owns it — ask them to add you.'
+            : 'Nobody has picked it up yet.') + '</p>' +
           backBtn('data-home', 'Back to the briefing') +
         '</div>' +
       '</section></div>';
@@ -26109,7 +26142,7 @@
       [{ k: 'way-ask', label: 'Ask me through it' },
         { k: 'way-hand', label: 'I will fill it in' }],
       'Five questions and it is ' +
-      (asksOnly() ? 'on ' + esc(actor(campOwner()).name) + '\u2019s desk' : 'running') +
+      (asksOnly() ? 'in front of a sales manager' : 'running') +
       ' \u2014 or an empty page with every field on it, saved as you type.');
   }
 
@@ -26281,8 +26314,10 @@
       /* The slot says who will decide rather than standing empty. A desk
          that cannot choose the team is not shown a team it did not choose;
          it is shown the name of the person who will. */
-      (asksOnly() ? draftField('Goes to', esc(actor(campOwner()).name))
-        : draftField('The team', esc(listSay(crew)))) +
+      /* No slot at all rather than one naming a manager who has not seen
+         it. The turn under this card says what happens to it next, which is
+         a sentence and not a field. */
+      (asksOnly() ? '' : draftField('The team', esc(listSay(crew)))) +
       draftField('Counted in', esc(commas(CBUILD.n) + ' ' + CBUILD.noun + 's')) +
       draftField('Time frame', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
         sayDay(dayAdd(CBUILD.weeks * 7)))) +
@@ -26306,7 +26341,7 @@
     const ask = asksOnly();
     cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
       (ask
-        ? esc(actor(campOwner()).name) + ' picks who works it and which lists go on it.'
+        ? 'A sales manager picks it up, puts a team and the lists on it, and runs it.'
         : 'Nobody is on it yet — a list goes on from its own page.'),
       [{ k: 'make', label: ask ? 'Request it' : 'Make it' },
         { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
@@ -26386,7 +26421,7 @@
      make yet: which manager takes this one. When the CEO's desk arrives it
      is the desk that answers that, and a request will arrive owned by
      nobody until he does. One field, one function, one change. */
-  const campOwner = () => (isMgr() ? me().id : MANAGERS[0].id);
+  const campOwner = () => (isMgr() ? me().id : '');
   function emptyCamp() {
     const id = 'k' + Date.now().toString(36);
     const k = {
@@ -26637,9 +26672,17 @@
      `campFill` the button above the fields calls. */
   function campRun(k) {
     if (!k) return;
+    /* Both, because a request goes back to being a request rather than
+       becoming a draft with your name on it. */
+    const was = { state: k.state, owner: k.owner };
     const patch = campFill(k);
     patch.state = 'running';
     patch.from = TODAY_ISO;
+    /* \u2550\u2550 THE PRESS THAT CLAIMS IT \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+       A request has no manager until this moment, and this is the moment
+       because it is the one act only a manager can do. Nothing assigns it
+       beforehand, which is why the gov row on its card is empty. */
+    if (!k.owner) patch.owner = me().id;
     campSet(k, patch);
     go(Object.assign(cleared(), { camp: k.id }));
     /* \u2550\u2550 IT SAYS WHAT IS ON IT, RATHER THAN ASSUMING NOTHING IS \u2550\u2550\u2550\u2550\u2550\u2550
@@ -26652,7 +26695,7 @@
     const on = membersOf(k.id).length;
     toast(k.name + ' is running \u2014 ' +
       (on ? plural(on, 'person') + ' on it' : 'nobody is on it yet'), () => {
-      campSet(k, { state: 'draft' });
+      campSet(k, { state: was.state, owner: was.owner });
       go(Object.assign(cleared(), { camp: k.id }));
     });
   }
@@ -26679,7 +26722,7 @@
     go(Object.assign(cleared(), { camp: k.id }));
     /* Undone the way running one is undone: back to a draft, still yours,
        still every word of it where you left it. */
-    toast('Requested \u2014 ' + actor(k.owner).name + ' has it', () => {
+    toast('Requested \u2014 waiting for a sales manager', () => {
       campSet(k, { state: 'draft', askedAt: null });
       go(Object.assign(cleared(), { camp: k.id }));
     });
@@ -26768,7 +26811,7 @@
     lbuildSpend();
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
-    toast(ask ? 'Requested \u2014 ' + actor(k.owner).name + ' has it'
+    toast(ask ? 'Requested \u2014 waiting for a sales manager'
       : k.name + ' is running \u2014 nobody is on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
