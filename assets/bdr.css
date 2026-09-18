@@ -431,6 +431,36 @@
    other row is left-aligned, which made the verb read as another line of
    text. It stays where it has always been. */
 .b-qcard .b-qcard-foot > :only-child { margin-left: auto; }
+/* ══ THE BODY'S LAST LINE DOES NOT ALWAYS END ITSELF ═══════════════
+   On a card with a reading on it, `.b-aimy` closes the body with its own
+   `margin-bottom: 14px`, and that is the space between the last block and
+   the rule `.tc-gov` draws along its top. A campaign nobody has started has
+   no reading — there is nothing to read off one with no calls on it — so
+   `.b-qcard-why` becomes the last block in the body and it has no bottom of
+   its own. Measured at 0px from the words to the rule: the line saying who
+   asked for this and the line saying whose desk it is on read as one
+   paragraph with a hairline through them.
+
+   ══ AND THE FIRST FIX PUT THE SPACE ON THE WRONG SIDE OF THE RULE ═══
+   It was `padding-top: 23px` on the foot, which is INSIDE the border: the
+   foot's contents moved down 14px, the rule stayed exactly where it was
+   against the words above it, and the card grew for nothing. Measured text
+   to text it read as fixed — 27px against 13 — and the thing anybody could
+   actually see had not moved at all. Space meant to separate a block from a
+   BORDERED one below it has to sit above that border: padding under the
+   block, or a margin, and never padding inside the bordered box.
+
+   `margin-top: auto` cannot do it either. That is what pushes the foot to
+   the card's bottom, and on the tallest card in a row there is no slack for
+   it to take, so it computes to 0.
+
+   So it goes under the line itself, and `is-last` is written by the card,
+   which already knows the answer: the same `isDraft` that decides whether
+   to draw the reading. A class rather than `:has(+ .b-qcard-foot)`, which
+   says the same thing in a feature that can be absent, and which the audit
+   cannot pair with anything. 14px, so a draft and a running campaign close
+   their bodies the same distance from the rule. */
+.b-qcard .b-qcard-why.is-last { padding-bottom: 14px; }
 .b-qcard-num {
   font-size: var(--fs-base); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; color: var(--ink-secondary);
@@ -1216,8 +1246,18 @@
   --t-lead: 16px;    /* the goal under a title; the sentence beside a figure */
   --t-body: 16px;    /* readings, brief lines, feed notes */
   --t-ui: 14px;      /* buttons, chips, facts rows, row text */
-  --t-small: 14px;   /* section sub-lines, foot lines */
-  --t-micro: 12px;   /* minimal components. Capitals and tracked, or not at all. */
+  --t-small: 14px;   /* foot lines */
+  /* ══ AND SENTENCE CASE STARTS AT TWELVE ═════════════════════
+     This read "Capitals and tracked, or not at all", which is the rule
+     §26b states for ELEVEN — "eleven is for capitals, which have no
+     descenders to lose and get the tracking that makes them legible" — and
+     the same paragraph says in as many words that sentence case starts at
+     twelve. The gloss was one step out and this step is where the caps
+     components happen to live, not a ban on prose at its size. A dozen
+     rules already set sentence case at the same twelve through `--fs-2xs`.
+
+     So: minimal components, and the sub-line under a section heading. */
+  --t-micro: 12px;
 }
 
 /* ══ 26b. THE FLOOR, AND THE BOTTOM OF THE INK RAMP ════════════════════════
@@ -1258,7 +1298,20 @@
    said 18, and the doctrine comment above that block was describing a card
    that had not existed for some time. One element, one rule. */
 .b-reading { font-size: var(--t-body); }
-.s-block-say { font-size: var(--t-small); font-weight: var(--fw-medium); }
+/* ══ THE LINE UNDER A HEADING IS NOT A SECOND HEADING ═════════════
+   It shared `--t-small` with `.b-vfoot` and so came out at the same size as
+   the row text under it: "4 companies you have a way into · worth the most
+   first" set as loudly as the rows it was introducing. It is the quietest
+   thing on its row by job — the heading says what the block is and this says
+   how it is ordered — and it was only one step below the heading on size
+   with none on weight.
+
+   Twelve, which §26b's own paragraph makes legal for sentence case. Against
+   the heading that is now two steps of size and a step of weight, which is
+   the rule this build applies to any two ranks. `.b-vfoot` keeps fourteen:
+   a foot line closes a list rather than introducing one, and it is the last
+   sentence on the surface rather than the smallest. */
+.s-block-say { font-size: var(--t-micro); font-weight: var(--fw-medium); }
 .b-vfoot { font-size: var(--t-small); }
 
 /* [2] THE HEADER'S ROWS HAVE ROOM. A flex column so every gap is stated
@@ -1336,6 +1389,83 @@
    the today-line stacked inside two margins. */
 .s-home .s-lead-line { margin-bottom: 12px; }
 .b-lead-today { margin: -6px 0 14px; font-size: var(--t-ui); }
+
+/* ══ 26c. A PLACEHOLDER IS NOT A VALUE, AND NOW IT DIFFERS ON THREE ════════
+   §83 fixed this on one axis and wrote down the rule it was fixing: "the rule
+   this build adopted for every other pair of ranks is that they differ in at
+   least two of {size, weight, ink}, and the two things on this page that must
+   never be confused differed on one axis by its smallest increment." The ink
+   was corrected then. The size and the weight were not, so the pair still
+   differed on one axis — a better one.
+
+   Measured on the campaign draft, where a page of empty fields is the normal
+   state: the placeholder and the value it will be replaced by were both
+   16px/400. Elsewhere on the product they were 14px/400, and the composer and
+   the canvas bar 13.5px/400. Three sizes for one meaning, and in no case a
+   weight of its own.
+
+   One step and one weight, everywhere: 14px, which is `--t-ui`, the step this
+   build already sets every control in; and `--fw-regular`, which is the
+   lightest weight the family loads and is used by nothing else on the
+   product, so a placeholder cannot be mistaken for any other rank either. The
+   two shell inputs at 13.5 come UP to it, which is §26b's own rule about the
+   steps: the product's sizes are 12, 14, 16 and 13.5 is not one of them.
+
+   IT IS DELIBERATELY UNDER THE FLOOR, AND SO IS ITS INK. `aimy-ds.css:307`
+   says `--fw-regular` is "deliberately unused: the type floor is 400 or
+   heavier below 18px" — measured, because Poppins 300 sets 8% lighter than
+   the colour the ladder targets. The same stylesheet makes exactly one
+   exception on the ink ramp, thirty lines above it: `--ink-placeholder` is
+   "the ONE exception — must not read as a value". This is that same
+   exception, on the axis next to it, for that same reason. A placeholder is
+   the one piece of type on the product whose job is to NOT read as content,
+   and it is the only thing in this build set under 400.
+
+   The two classes from the shell are named rather than left to
+   `input::placeholder`, because `aimy-ds.css` sets `font-weight: 400` on
+   both at class specificity and would have won — this sheet loads last, so
+   naming them at the same specificity is what makes the rule true at runtime
+   rather than only in the file. `.b-draft-none` is the hand-drawn one: a
+   `<span>` reading "Choose" in the slot a value will occupy, and §83 already
+   argues it takes the placeholder rank for the same reason the inputs do. */
+input::placeholder,
+textarea::placeholder,
+.b-draft-none {
+  font-size: var(--t-ui);
+  font-weight: var(--fw-regular);
+}
+
+/* ══ AND ONE FIELD KEEPS ITS SIZE ═════════════════════════════════
+   A campaign's name is set at `--t-title` because it is the name of the
+   record you have open, and dropping its placeholder to 14px left the
+   masthead of an empty draft with nothing in it. True — the campaign has no
+   name yet — and not what the page is for: the reader has to see where the
+   name goes.
+
+   It keeps the size and takes the weight, which was the better half of the
+   rule here anyway. `aimy-ds.css:307` puts the 400 floor "below 18px" and
+   says `--fw-regular` "is here for display sizes, where 300 is legal"; 26px
+   is one of those. So this is the one placeholder on the product that is
+   light without being an exception to anything, and against the value that
+   will replace it — 26px, `--fw-extrabold`, `--d50` — it differs on weight
+   and on ink, which is the two axes the rank rule asks for. */
+.b-draft-name::placeholder { font-size: var(--t-title); font-weight: var(--fw-regular); }
+
+/* The two the shell sets at class specificity, named so this sheet wins, and
+   brought onto the placeholder ink while they are here. Measured in dark:
+   `--d500` on the bar’s ground is 3.18:1, which is under AA before this pass
+   and thinner after it, since a lighter weight is less ink over the same
+   area. §26b named this exact case — "`--d500` is not a role ... both were
+   carrying type: the resting switcher tab, the search placeholder and its
+   icon" — and could not reach it, because a bare element selector loses to a
+   class. On `--ink-placeholder` it is 5.6:1 there and 6.1 on the page ground,
+   which is the rank every other placeholder on the product now reads at. */
+.aimy-float-input::placeholder,
+.overlay-input::placeholder {
+  font-size: var(--t-ui);
+  font-weight: var(--fw-regular);
+  color: var(--ink-placeholder);
+}
 
 /* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
    A 2px rail down the left, a node per touchpoint on it in the tone of how
@@ -1881,6 +2011,43 @@
   pointer-events: none; transition-duration: 160ms;
 }
 @media (prefers-reduced-motion: reduce) { .s-toast { transition: none; } }
+
+/* ══ 31b. A RECEIPT IS NOT A HEADING ══════════════════════════════
+   Measured on "Pitch drafted — it is yours to edit": a 360x74 box in which
+   the sentence had 222px — the other 138 went on padding, a 30px icon tile,
+   a divider and Undo — and at 16px/600 that sentence wants about 280, so it
+   wrapped onto two lines. A big box and cramped text are the same fault
+   here, not two: the type was set at a rank that does not fit the room the
+   component gives it.
+
+   16px is `--t-body` and 600 is the weight this build puts on a card title.
+   A toast is neither. It is one line saying what just happened, and it
+   belongs on `--t-ui`, the step every control and every row on this product
+   is already set in. At 14 the same sentence fits on one line and the box
+   comes down from 74 to 48, because nothing else in it was ever taller than
+   the icon.
+
+   THE SUB KEEPS ITS SIZE. Title and sub then differ on weight and on ink
+   rather than on size, which is the rank rule this build keeps everywhere
+   and the right pair of axes here, because both lines are the same kind of
+   sentence about the same event. Two pixels between them rather than one:
+   `gap: 1px` is not a gap, it is a rounding error.
+
+   The icon comes 30 → 26 and the padding 12/16 → 11/14, which is where the
+   rest of the slack was. Nothing moves position and nothing changes what
+   anything says — §26b's rule, applied to the one component the whole
+   product uses to report that it did something. It is corrected here rather
+   than in the library, because the library's block says every value in it is
+   quoted from the published anatomy table and that is a document this build
+   does not own. */
+.aimy-toast { min-width: 264px; padding: 11px 14px; gap: 10px; }
+.aimy-toast-icon { width: 26px; height: 26px; border-radius: 8px; }
+.aimy-toast-body { gap: 2px; }
+.aimy-toast-title {
+  font-size: var(--t-ui); font-weight: var(--fw-bold); line-height: var(--lh-snug);
+}
+.aimy-toast-sub { font-size: var(--t-ui); font-weight: var(--fw-medium); line-height: var(--lh-snug); }
+.aimy-toast-divider { height: 24px; }
 
 /* ══ 32. THE RULE SLIDES, AND A CHANGED FIGURE TICKS ═══════════════════════
    The page is rebuilt from a string, so nothing on it knows where it was a
@@ -4019,6 +4186,11 @@
    here the row owns the spacing. */
 .b-topbar { display: flex; align-items: center; gap: 12px; }
 .b-topbar .s-back { margin-bottom: 0; }
+/* The other edge. `.b-end` is the same two declarations and is spoken for —
+   it is the gate that ends a lead, not a position — so the record's own door
+   carries them under its own name rather than borrowing a word that means
+   something else three sections away. */
+.b-rec-edit { margin-left: auto; flex: none; }
 
 /* CENTRED ON THE LETTERS, WHICH HERE IS THE SAME AS CENTRED ON THE BOX.
    Measured rather than nudged: in Urbanist at this size and weight the cap
@@ -4459,9 +4631,26 @@
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 .b-owed-when { font-size: var(--fs-2xs); color: var(--ink-quiet); }
+/* ══ A ROW'S SENTENCE IS STILL A SENTENCE ═══════════════════════
+   It was a clause when this row was built — "7 deals with the price on the
+   table" — and the rows it carries now are two and three of them, with two
+   names and a job title in the middle. At that length it was a paragraph
+   set to the full width of the column and leaded like a caption: it ran to
+   the verb on the right and the lines sat on top of each other.
+
+   `62ch` is this build's measure, used a dozen times in this file and
+   always with `text-wrap: pretty` beside it. It is the cap and not the
+   width: the column stays `flex: 1` so the verbs go on lining up down the
+   right-hand edge, and on a narrow pane the cap never binds. What it stops
+   is the long line on a wide screen, which is where the crowding was.
+
+   `--lh-snug` is 1.4, which is right for a clause and tight for a
+   paragraph; `--lh-base` is the body step and the one this build gives
+   anything anybody reads a whole sentence of. 19.6px to 21. */
 .b-owed-body {
   display: block; margin-top: 2px;
-  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-base);
+  max-width: 62ch; text-wrap: pretty;
 }
 /* ══ THE VERB IS AN ACTION, SO IT TAKES THE INK ACTIONS TAKE ════════
    `--accent` measured 3.77:1 here at 12px/600 and fails AA — and it failed in
@@ -4885,6 +5074,11 @@
   display: block; width: 100%; margin: 4px 0;
   font-family: var(--font-display); font-size: var(--t-title); font-weight: var(--fw-extrabold);
   letter-spacing: -0.02em; line-height: 1.1; color: var(--d50);
+  /* Transparent at rest, and it can stay that way because the placeholder
+     is still set at the size of a name: "Name this campaign" IS the
+     affordance, which is the whole reason §26c exempts this one field from
+     the 14px rank. An underline was added here while it was 14px and is
+     gone with the reason for it. */
   background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
   transition: border-color var(--t-base);
 }
@@ -4960,7 +5154,87 @@
 
 /* The kind line on the left, the two decisions on the right, on one line. */
 .b-draft-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* Three verbs now rather than two, and the third is a sentence. They fit on
+   one row at 375 layout px with their labels wrapping inside the pills; the
+   wrap is here for the widths under that and for a page zoomed past 150%,
+   where a button pushed off the right is a capability nobody can reach. */
+.b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ══ 83b. THE HALF OF A CAMPAIGN THAT IS SENTENCES ═══════════════════
+   The eight facts above this block are a word or a name each and sit three to
+   a row. These three are prose — a line of job titles, the angle somebody
+   says out loud, and whatever the manager knows that the book does not — and
+   a paragraph in a 1fr track of a three-column grid is a column of single
+   words. One column, and the measure comes from the type rather than from the
+   grid. 68ch because a pitch is read once, fast, by somebody about to speak.
+
+   It is the record's own `.b-cmeta` either way, so the block reads as part of
+   the record on a running campaign and as part of the form on a draft without
+   either of them learning a second layout. */
+.b-said { grid-template-columns: minmax(0, 1fr); max-width: 100%; row-gap: 20px; }
+.b-said .b-draft-in, .b-said .b-cmeta-p { max-width: 68ch; }
+
+/* The caption and the verb on one row — `.b-team-head`'s shape, which is what
+   this build uses wherever a section has exactly one thing you can do to it.
+   `.b-cmeta-cap` keeps its own 8px underneath, so the field below sits where
+   it sits on every other part whether or not the verb is drawn. */
+.b-draft-caprow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+
+/* ══ ASKING AiMY IS NOT A PEER OF ANSWERING ═════════════════════════
+   A filled button beside a field would make writing the field yourself the
+   second option, on a page whose whole argument is that you already know what
+   this campaign is. This is the weight of a word with the mark in front of
+   it: on screen the whole time, never louder than the caption beside it, and
+   it takes the accent on hover where every other quiet verb here does.
+
+   `--d200` and not below it. It is a control, and the ramp's floor for type
+   is the floor for a control that is type. */
+.b-draft-ai {
+  display: inline-flex; align-items: center; gap: 5px; padding: 0;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d200); background: none; border: 0; cursor: pointer;
+  transition: color var(--t-fast);
+}
+.b-draft-ai:hover { color: var(--accent-text); }
+.b-draft-ai:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+/* The mark's own class. `.b-aimy-mark` belongs to a card's note and carries
+   that block's size and its one-pixel optical nudge, and `.b-ghost > svg` in
+   this same sheet is 14px square and outranks it — so the same markup drew at
+   two sizes depending on what it had been put inside. */
+.b-spark { flex: none; width: 11px; height: 13px; }
+.b-draft-fill > .b-spark { width: 13px; height: 15px; }
+
+/* A field whose answer is a paragraph. The underline is the one every other
+   field on the page wears; what changes is the box, because a sentence needs
+   a second line and a 34ch input scrolls sideways rather than giving it one.
+
+   NO HANDLE. It had `resize: vertical`, defended at the time as an addition
+   to a box that already sizes itself rather than the only way to see what you
+   wrote — and that defence is the argument against it: the drag did nothing
+   the typing had not already done, and a corner grab with no press behind it
+   is the one shape this build does not ship. What it cost was a grey wedge in
+   the corner of all three fields, on a page whose whole job is to look like
+   the record rather than like a form.
+
+   Nothing is hidden by taking it away. Where `field-sizing` exists the
+   browser measures the box; where it does not, `draftArea` sets the rows from
+   the value on every repaint and the `input` handler grows it on every
+   keystroke, which is the half a repaint cannot cover because this build
+   deliberately does not repaint a field while it is being typed in. */
+.b-draft-area {
+  display: block; width: 100%; max-width: 68ch;
+  line-height: var(--lh-base); resize: none;
+  /* The browser measures its own text better than any character count can.
+     Where it is supported this is exact at every width and every zoom; where
+     it is not, `rows` is computed from the value and lands within a line.
+     Both are needed: one of them is right and the other one always runs. */
+  /* No min-height. It was 2lh, and it made the persona — one line of job
+     titles, sized by its own rows to one line — stand in a two-line box with
+     its underline floating an empty line below the words. The row count and
+     the browser's own measurement both already know how tall this is. */
+  field-sizing: content;
+}
 
 /* On a page the two doors sit in a column 282px wide, so the figure and its
    bar have the width of the card rather than half of it. Nothing else about
@@ -5024,6 +5298,13 @@
   margin-top: 12px; max-width: 100%;
 }
 @media (max-width: 719.98px) { /* 720 layout px */ .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
+/* Eight of the card's cells are a word or a name and pair up across two
+   columns. The pitch is three sentences, and three sentences in a 1fr track
+   of a half-width turn is a column of single words. It takes the row, last,
+   where the card reads as a record with a paragraph at the foot of it rather
+   than as a grid with one cell that will not fit. */
+.b-cb-wide { grid-column: 1 / -1; }
+.b-cb-wide .b-cmeta-say { line-height: var(--lh-base); text-wrap: pretty; }
 
 /* ══ 84. THE DIARY, AS A PAGE ══════════════════════════════════════════════
    The same month the pop-out draws, standing on a surface instead of hanging
