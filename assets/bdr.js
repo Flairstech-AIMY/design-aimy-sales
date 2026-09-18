@@ -6598,10 +6598,15 @@
                  the ORDER of these rows and the caption has already said
                  so, so saying it loudly on each row says it twice. */
               '<span class="b-owed-type">' + esc(h.c.name) + '</span>' +
-              '<span class="b-owed-when">' + esc(h.c.co) + ' \u00b7 ' +
-                esc(headLabel(h.c)) + '</span>' +
+              /* `reachWho` again, which is the clause the turn opens with.
+                 A reader who presses the row meets the same words in the
+                 same order rather than a summary and then a restatement. */
+              '<span class="b-owed-when">' + reachWho(h.c) + '</span>' +
             '</span>' +
-            '<span class="b-owed-body">' + esc(reachLine(h)) + '</span>' +
+            /* Not escaped: `reachLine` returns the sentence with the two
+               names in it already marked, the way every other sentence this
+               build writes about people does. */
+            '<span class="b-owed-body">' + reachLine(h) + '</span>' +
           '</span>' +
           '<span class="b-owed-go">' +
             (h.r.k === 'first' ? 'Write the message' : 'Write the ask') + '</span>' +
@@ -6618,12 +6623,22 @@
          been late for three days, because nobody else can move it and it is
          one press. */
       reqBlock() +
-      owedBlock() +
-      /* Last, and the order is what is owed before what is possible. Every
-         row above this is something that has happened and wants answering;
-         every row in here is something that has not happened and might.
-         A morning spends the first list before it reads the second. */
+      /* \u2550\u2550 THE TWO THAT CAME FROM OUTSIDE THIS DESK, TOGETHER \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+         It sat under "What wants you" on the argument that what is owed is
+         read before what is possible. True of a morning, and it buried the
+         block: what is owed is nine rows long and a reader who has worked
+         through nine rows has finished, not scrolled on.
+
+         These two belong together for a better reason than order of work.
+         Everything in "What wants you" is this desk's own account of itself
+         \u2014 a meeting nobody wrote up, a deal past its date \u2014 and both blocks
+         above it arrived from somewhere else: one is a person asking for a
+         campaign, the other is AiMY having found a way into a company
+         nobody here knows. Neither would ever occur to you to go and look
+         for, which is the whole reason they are on the page you open the day
+         on. */
       connBlock() +
+      owedBlock() +
     '</div>';
   }
 
@@ -12886,8 +12901,13 @@
      a campaign that already knows what we would sell them; a stranger has
      only their sector, and `IND_FIT` is what this build uses to answer that
      everywhere else. */
-  const reachSell = (x) => SELL[x.camps ? sellOf(x)
-    : ((IND_FIT[x.industry] || { fits: ['qa'] }).fits[0])] || SELL.qa;
+  /* Which of the eight this person's company is for. It was written out
+     here and again inside `reachDraft` \u2014 two copies of one rule, and the
+     row now wants a third \u2014 so it is a function. `WHY_NOW` is keyed by it
+     too, which is the reason the key and not only the offering is needed. */
+  const reachKey = (x) => (x.camps ? sellOf(x)
+    : (IND_FIT[x.industry] || { fits: ['qa'] }).fits[0]);
+  const reachSell = (x) => SELL[reachKey(x)] || SELL.qa;
 
   /* ══ AND AiMY SAYS IT RATHER THAN FILING IT ════════════════════════════
      The bell holds what is OWED — a meeting unwritten, a deal past its
@@ -12966,34 +12986,54 @@
      its size, then asks whether to write. A row on the briefing has already
      said the first four in its own head row and must not ask anything \u2014 it
      is a thing you are choosing between, and a list of four questions is a
-     list nobody answers. So this is what is LEFT: the path in, which is the
-     thing you are actually deciding about \u2014 whether this company is worth
-     asking that person for.
+     list nobody answers.
 
-     \u2550\u2550 AND NOT WHAT WE WOULD SELL THEM \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     It was here, and drawn it read "QA and test automation is what fits
-     them" on all four rows \u2014 because the ranking is BY that fit, so the top
-     of it clusters in one sector by construction. A clause repeated on every
-     row of a list is a clause doing no work in any of them, and four rows
-     ending in the same eight words look like one row drawn four times.
+     \u2550\u2550 AND IT IS EVERYTHING THE LETTER IS MADE OF \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     This was one clause \u2014 the path in and nothing else \u2014 on the argument
+     that the fit repeats down a list ranked BY fit, which it does. The
+     argument was about a list and the row is a decision: spending a
+     connection is a favour asked of a named colleague, and nobody decides
+     that off "2 connections in common".
 
-     It is not lost: the turn a row opens names the service in its first
-     sentence, which is where it is about to be used. And "nowhere in your
-     book" went the same way \u2014 true of every row, since `reachAll` reads
-     `DB.net`, which is the outside world. The caption carries what is true
-     of all of them; a row carries what is true of it. */
-  const reachLine = (hit) => (hit.r.k === 'first'
-    ? 'A connection of yours.'
-    : plural(hit.r.n, 'connection') + ' in common, the closest ' +
-      hit.r.via.name + '.');
+     So the row says what `reachDraft` will say. The letter names the person
+     it goes to, their job and where they work; it names what we run; and it
+     ends on the one sentence that is the reason to write at all, the thing
+     that is probably true of them this quarter. All four are here, which
+     means the press is a confirmation rather than a reveal.
+
+     The fit does still repeat where two rows share a sector, and that is the
+     honest cost: it is the same fit, and hiding it made the rows shorter
+     without making them different. What separates them is the bridge \u2014 a
+     name, a job, a company, and whether they are somebody we already talk to
+     \u2014 which is the part the reader is actually weighing. */
+  function reachLine(hit) {
+    const r = hit.r;
+    const path = r.k === 'first'
+      ? 'A connection of yours.'
+      : plural(r.n, 'connection') + ' in common. The closest is <b>' +
+        esc(r.via.name) + '</b>, ' + esc(r.via.title) + ' at ' + esc(r.via.co) +
+        /* The warmest fact on the row when it is true, and it is rarely
+           true: a bridge who works somewhere we already talk to is a
+           different kind of ask from a stranger doing a favour. */
+        (r.via.known ? ', already in your book' : '') + '.';
+    const why = WHY_NOW[reachKey(hit.c)];
+    return path + ' <b>' + esc(reachSell(hit.c).name) + '</b> is what fits them' +
+      (why ? ': ' + esc(why) : '') + '.';
+  }
+
+  /* The job, the company, the sector and the size, in the order the turn
+     says them. Lifted out of `reachSay` because the row on the briefing
+     needs exactly this clause and a second spelling of it would be the two
+     surfaces describing one person differently. */
+  const reachWho = (c) => esc(c.title) + ' at <b>' + esc(c.co) + '</b>, ' +
+    esc((INDUSTRY[c.industry] || { label: 'a company' }).label.toLowerCase()) +
+    ' at ' + esc(headLabel(c));
 
   function reachSay(hit) {
     const c = hit.c;
     const r = hit.r;
     const sell = reachSell(c);
-    const who = esc(c.title) + ' at <b>' + esc(c.co) + '</b>, ' +
-      esc((INDUSTRY[c.industry] || { label: 'a company' }).label.toLowerCase()) +
-      ' at ' + esc(headLabel(c));
+    const who = reachWho(c);
     if (r.k === 'first') {
       return '<b>' + esc(c.name) + '</b> is a connection of yours — ' + who + '. ' +
         '<b>' + esc(sell.name) + '</b> is what fits them and they are nowhere in your ' +
@@ -13033,7 +13073,7 @@
     const c = hit.c;
     const r = hit.r;
     const sell = reachSell(c);
-    const key = c.camps ? sellOf(c) : (IND_FIT[c.industry] || { fits: ['qa'] }).fits[0];
+    const key = reachKey(c);
     const first = c.name.split(' ')[0];
     const body = r.k === 'first'
       ? '<p class="s-callp"><b>To</b> ' + esc(c.name) + ' · ' + esc(c.title) +
