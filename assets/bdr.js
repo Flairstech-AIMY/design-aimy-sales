@@ -750,10 +750,10 @@
      dealt off the id's hash rather than the seed's cursor, so adding them
      moves nothing else in the corpus. */
   const CAMP_NOTES = [
-    'Two of these came in through the partner list — check whether we have already been introduced before dialling.',
+    'Two of these came in through the partner list \u2014 check whether we have already been introduced before dialling.',
     'Do not lead with price here. The last three that went cold went cold on the number.',
     'Their procurement shuts in December. Anything not agreed by the end of November lands in the new year.',
-    'The buying committee is bigger than it looks — nothing moves without the technical lead in the room.',
+    'The buying committee is bigger than it looks \u2014 nothing moves without the technical lead in the room.',
     'We lost two of these to an incumbent last year. Ask what changed before pitching anything.',
     'Keep the first call short. They take meetings and they do not take calls.',
   ];
@@ -16158,7 +16158,7 @@
            rather than appending "by the job" to a comma list and reading as
            though the job were one more title on it. */
         beats: 'Ask for the job, not a name' +
-          (k.persona && k.persona.who ? ' — ' + k.persona.who : '') +
+          (k.persona && k.persona.who ? ' \u2014 ' + k.persona.who : '') +
           '. Reception puts a name through to nobody.',
       });
     }
