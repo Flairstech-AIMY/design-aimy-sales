@@ -23163,6 +23163,37 @@
   /* What AiMY can answer, and it is deliberately short: every question a BDR
      asks has a surface that already answers it, so the canvas states the
      figure and hands over the door rather than becoming a second product. */
+  /* ══ AND A BDR IS NOT THE ONLY PERSON HOLDING THE BAR ═══════════════
+     Four desks read this composer and every reading in here was written
+     against the CALLER's model: `queue` narrowed by `BUCKETS`, callbacks,
+     the after-meeting cut, the four-touch rule. `queue` and `cutOf` already
+     fork on `onBook()`, so the book desks got the right SET and then had it
+     described in the caller's words — which is how five of these answers
+     came out wrong in the worst available way. Not blank. Confidently
+     false, in AiMY's voice, on the record:
+
+       what is due          "0 people asked to be called back across your 6
+                            campaigns" — a manager has no callback cut, so
+                            the figure is nought on every desk and every day
+       how many are left    "43 people can be called — ." The stages ARE
+                            counted, in `counts`, off `cutOf`; the sentence
+                            then walked `BUCKETS`, matched none of them, and
+                            joined an empty list onto a dangling dash
+       meetings passed      "No meeting has passed without an outcome" while
+                            `unrecorded()` held seven and the same widget's
+                            own "what to do first" named one of them two
+                            questions earlier
+       who went quiet       "Nobody" on every book desk, for ever, because
+                            the four-touch rule is a fact about cold calls
+       what happened today  a manager's day is 120 `phase` touchpoints and
+                            `callsIn` filters every one of them out
+
+     So each of these forks, and the fork is not a second product: every
+     book branch below is drawn from a derivation this desk already has and
+     already shows somewhere else — `unrecorded`, `dealLive`, `stageOf`,
+     `MGR_BUCKETS`, and `lastActivity` against `checkinDays`, which is the
+     rule every deal card already states in its own words. One derivation,
+     two readers, so the bar and the board cannot disagree. */
   function answer(text) {
     const q = text.toLowerCase();
     const all = queue(S.camp || null, 'all');
@@ -23251,6 +23282,31 @@
         '</div>';
     }
     if (/\b(quiet|fourth|four touch|touchpoints?)\b/.test(q)) {
+      /* The four-touch rule is a fact about cold calling and there is no
+         cold calling on this desk, so this answered "nobody" on every book
+         desk on every day. The book has its own silence and every deal
+         card already states it: nothing said for longer than the account's
+         tier is worth a call, `lastActivity` against `checkinDays`. Same
+         derivation, so a card and the bar cannot disagree about who has
+         gone quiet. */
+      if (onBook()) {
+        const cold = all.filter(dealLive).map((c) => {
+          const at = lastActivity(c);
+          return { c: c, days: at ? daysBetween(at, TODAY_ISO) : null };
+        }).filter((x) => x.days != null && x.days > checkinDays(x.c))
+          .sort((x, y) => y.days - x.days);
+        if (!cold.length) {
+          return 'Nothing on your board has gone quiet — every live deal has been ' +
+            'touched inside what its account is worth.';
+        }
+        return '<b>' + plural(cold.length, 'deal') + '</b> ' +
+          (cold.length === 1 ? 'has' : 'have') + ' gone quiet for longer than the ' +
+          'account is worth, the oldest <b>' + esc(plural(cold[0].days, 'day')) + '</b> ago.' +
+          '<div class="b-cuts">' + cold.slice(0, 6).map((x) =>
+            door(x.c.name + ' \u00b7 ' + plural(x.days, 'day') + ' quiet',
+              Object.assign(cleared(), { con: x.c.id }))).join('') +
+          '</div>';
+      }
       const quiet = queue(null, 'all').filter(quietUnderFour);
       if (!quiet.length) return 'Nobody you called or reached has gone quiet under four touches.';
       return '<b>' + plural(quiet.length, 'person') + '</b> went quiet before the fourth touch. They are first in their cuts now.' +
@@ -23261,6 +23317,28 @@
         '</div>';
     }
     if (/\bmeeting/.test(q)) {
+      /* THE BOOK KEEPS THIS SOMEWHERE ELSE. A caller answers for a meeting
+         by moving a checkpoint and a manager by writing a `phase`
+         touchpoint, so `afterMeeting` finds nothing on this desk and
+         `unrecorded` is where the same gap lives — which is exactly what
+         `missedMeets` says two hundred lines up, and what the bell has
+         been reading all along. This answered "everything booked is still
+         ahead" over seven meetings the same widget had just named. */
+      if (onBook()) {
+        const gone = unrecorded();
+        if (!gone.length) {
+          return 'No meeting has passed without an outcome. Everything booked is still ahead.';
+        }
+        return '<b>' + plural(gone.length, 'meeting') + '</b> ' +
+          (gone.length === 1 ? 'has' : 'have') +
+          ' been and gone with nothing on the record about how ' +
+          (gone.length === 1 ? 'it' : 'they') + ' went.' +
+          '<div class="b-cuts">' + gone.slice(0, 6).map((m) =>
+            '<button class="s-insight-lnk" type="button" data-fill="' +
+            esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '">' +
+            esc(m.con.name + ' \u00b7 ' + sayWhen(m.iso)) + '</button>').join('') +
+          '</div>';
+      }
       const met = queue(S.camp || null, 'after');
       if (!met.length) return 'No meeting has passed without an outcome. Everything booked is still ahead.';
       return '<b>' + plural(met.length, 'meeting') + '</b> ' + (met.length === 1 ? 'has' : 'have') +
@@ -23271,6 +23349,22 @@
         '</div>';
     }
     if (/\blists?\b/.test(q)) {
+      /* ══ AND A LIST IS NOT THE CLIENT'S TO SEE ══════════════════════
+         `DB.list` is unscoped — every list in the product — and this
+         handed a buyer two of ours by name with their headcounts, plus a
+         door into each. `parse()` has refused this desk the lists surface
+         and any single list since it was written, so the doors did not
+         even work: pressing one landed back where it started because the
+         URL was stripped on the way. The sentence was the leak and the
+         chips were the dead end.
+
+         Which is the rule rather than an exception. Prospecting is what
+         they are buying, not something they audit — the same reason
+         `fillList` answers this desk with "We fill the numbers in." */
+      if (isBuyer()) {
+        return 'Finding the people is our side of it. What is on your desk is what we ' +
+          'are doing with them once we have.';
+      }
       const loose = DB.list.filter((l) => listLoose(l));
       if (!loose.length) return 'Every list is on a campaign, so everybody on them is in your queue.';
       return '<b>' + plural(loose.length, 'list') + '</b> ' + (loose.length === 1 ? 'is' : 'are') +
@@ -23281,6 +23375,47 @@
         '</div>';
     }
     if (/callback|call back|called back|owe|due/.test(q)) {
+      /* WHAT IS OWED IS NOT A CALLBACK ON THIS DESK. The caller's answer
+         is the callback cut; the book's is the step each deal set for
+         itself and the meeting that has been and gone without a word,
+         which are the two rows the bell already leads with. */
+      if (onBook()) {
+        const live = all.filter(dealLive);
+        const late = live.filter((c) => c.next && c.next.due < TODAY_ISO);
+        const now = live.filter((c) => c.next && c.next.due === TODAY_ISO);
+        /* `unrecorded` walks the diary rather than a campaign, so it is
+           said only where the question was not narrowed to one. */
+        const gone = S.camp ? [] : unrecorded();
+        if (!late.length && !now.length && !gone.length) {
+          return 'Nothing is owed on your desk' + (S.camp ? ' on this campaign' : '') +
+            '. Every deal is inside its date' + (S.camp ? '' : ' and every meeting is written up') + '.';
+        }
+        const bits = [];
+        if (late.length) bits.push('<b>' + plural(late.length, 'deal') + '</b> past ' +
+          (late.length === 1 ? 'its' : 'their') + ' date');
+        if (now.length) bits.push('<b>' + commas(now.length) + '</b> due today');
+        if (gone.length) bits.push('<b>' + plural(gone.length, 'meeting') +
+          '</b> nobody has written up');
+        /* ══ ONE PERSON, ONE CHIP ═══════════════════════════════════
+           The two halves of this answer overlap by construction: the step
+           a deal is late on is very often the meeting nobody wrote up, so
+           Edward Palmer arrived twice in a row of nine, once as a date and
+           once as a room. Two chips opening one record is the reader
+           choosing between identical doors. The deal says it first,
+           because it carries what is owed; the meetings fill the rest. */
+        const seen = Object.create(null);
+        const chip = (id, say) => (seen[id] ? ''
+          : ((seen[id] = 1), door(say, Object.assign(cleared(), { con: id }))));
+        return listSay(bits) + '.' +
+          '<div class="b-cuts">' +
+            late.concat(now).slice(0, 5).map((c) =>
+              chip(c.id, c.name + ' \u00b7 ' + c.next.what.toLowerCase() + ' ' +
+                sayWhen(c.next.due))).join('') +
+            gone.slice(0, 4).map((m) =>
+              chip(m.con.id, m.con.name + ' \u00b7 ' + m.title.toLowerCase() + ' ' +
+                sayWhen(m.iso))).join('') +
+          '</div>';
+      }
       const late = queue(S.camp || null, 'callback').filter((c) => c.next && c.next.due < TODAY_ISO).length;
       return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be called back' +
         (S.camp ? ' on this campaign' : ' across your ' +
@@ -23288,15 +23423,27 @@
         doors(door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' })));
     }
     if (/how many|left|remaining|to call/.test(q)) {
-      /* the after-meeting cut is not called, so it is not in the sum; it is said */
-      return '<b>' + commas(all.length) + '</b> people can be called' +
+      /* `counts` is keyed off `cutOf`, which is already the stage on this
+         desk — so the figures were right and only the list they were read
+         against was the caller's. The noun goes with it: these are deals
+         on a board, and nobody on the book desk is calling all forty-three
+         of them. */
+      const cuts = onBook() ? MGR_BUCKETS : BUCKETS;
+      /* The caller's after-meeting cut and the book's unwritten meeting
+         are one event in two ladders, and `missedMeets` says so in a
+         comment. Counted here the way each desk stores it. */
+      const gone = onBook() ? (S.camp ? 0 : unrecorded().length) : (counts.after || 0);
+      return '<b>' + commas(all.length) + '</b> ' +
+        (onBook() ? (all.length === 1 ? 'deal on your board' : 'deals on your board')
+          : 'people can be called') +
         (S.camp ? ' on this campaign' : '') + ' — ' +
-        BUCKETS.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
+        cuts.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
           commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
-        (counts.after ? ' And <b>' + plural(counts.after, 'meeting') + '</b> ' +
-          (counts.after === 1 ? 'has' : 'have') + ' passed without a word.' : '') +
-        doors(door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' })) +
-          (counts.after ? door('Say what happened',
+        (gone ? ' And <b>' + plural(gone, 'meeting') + '</b> ' +
+          (gone === 1 ? 'has' : 'have') + ' passed without a word.' : '') +
+        doors(door(onBook() ? 'Show the board' : 'Work the queue',
+            Object.assign(cleared(), { on: onBook() ? 'deals' : 'calls', camp: S.camp || '' })) +
+          (gone && !onBook() ? door('Say what happened',
             Object.assign(cleared(), { camp: S.camp || '', q: 'after' })) : ''));
     }
     if (/happened|yesterday|today.*call|did i/.test(q)) {
@@ -23305,14 +23452,21 @@
       const from = yday ? dayAdd(-1) : TODAY_ISO;
       const to = yday ? TODAY_ISO : dayAdd(1);
       const label = yday ? 'yesterday' : 'today';
-      const mineT = callsIn(DB.touch.filter((t) => t.by === me().id &&
-        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to));
+      /* `callsIn` keeps the rows with a call OUTCOME on them, which is the
+         whole of a caller's day and none of a manager's: this desk writes
+         `phase` — a hundred and twenty of them on one seat — and every one
+         was filtered out before the count, so a manager who had spent the
+         day in meetings was told nothing was on the record. Each desk
+         counts what it writes. */
+      const said = DB.touch.filter((t) => t.by === me().id &&
+        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to);
+      const mineT = onBook() ? said : callsIn(said);
       if (!mineT.length) return 'Nothing on the record from you ' + label + '.';
       const by = Object.create(null);
-      mineT.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
-      return '<b>' + plural(mineT.length, 'call') + '</b> ' + label + ' — ' +
-        Object.keys(by).map((k) => by[k] + ' ' +
-          ((OUTCOME[k] || { label: k }).label.toLowerCase())).join(', ') + '.';
+      mineT.forEach((t) => (by[kindLabel(t)] = (by[kindLabel(t)] || 0) + 1));
+      return '<b>' + plural(mineT.length, onBook() ? 'touchpoint' : 'call') + '</b> ' +
+        label + ' — ' +
+        Object.keys(by).map((k) => by[k] + ' ' + k.toLowerCase()).join(', ') + '.';
     }
     if (/answer|best time|when do/.test(q)) {
       /* The hour with the best connect rate, computed over the calls that
@@ -23418,11 +23572,20 @@
        behind `onBook()` in `runInput`, so telling a caller their sentence
        moves a deal would be this page describing a route it will not take.
        The desk that has them is told about them. */
+    /* ══ AND IT PROMISED A BUYER TWO THINGS THE URL REFUSES THEM ═════════
+       The lists reading and the builder are both stripped for this desk in
+       `parse()`, so naming them here was the capability list describing a
+       route the product will not take — the empty room the comment above
+       says this answer exists to avoid. It is gated the same way the
+       meeting sentences are. */
+    const ours = !isBuyer();
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
       'people answer, which meetings passed, what changed at the companies you call, who went ' +
-      'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
-      'what to do first. Name a person or a campaign to go there, and describe who to look for ' +
-      'to get a list back. A sentence about a call logs it' +
+      'quiet, who got a decision, ' + (ours ? 'which lists are off a campaign, ' : '') +
+      'how a campaign stands, and ' +
+      'what to do first. Name a person or a campaign to go there' +
+      (ours ? ', and describe who to look for to get a list back' : '') +
+      '. A sentence about a call logs it' +
       (onBook() ? ', a sentence about a meeting moves the deal, and a sentence with a day in it ' +
         'books the meeting' : '') + '.';
   }
