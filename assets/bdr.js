@@ -4851,11 +4851,27 @@
       (isDraft(k) ? '' : aimyBlock(campSays(k, q, back, fresh, left))) +
       '<div class="tc-gov b-qcard-foot">' +
         /* \u2550\u2550 AND ON A REQUEST THERE IS NO NAME TO PUT HERE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-           This slot is whose campaign it is. A request is nobody's until a
-           manager runs it, and the line above already says who asked for it,
-           so the row holds one thing \u2014 which the foot's own rule for a lone
-           child already knows what to do with. */
-        (campFree(k) ? ''
+           This slot is whose campaign it is, and a request is nobody's: it
+           gets a manager when one runs it, which is the moment it stops
+           being a request. The line above already says who asked for it, so
+           the row holds one thing \u2014 which the foot's own rule for a lone
+           child already knows what to do with.
+
+           \u2550\u2550 `isAsked`, NOT `campFree` \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+           This asked whether the field was EMPTY, to leave room for a CEO
+           who has not been built to assign one. Every request this build can
+           make has an empty owner, so the only records that took the other
+           branch were ones saved before `campOwner` stopped writing a
+           placeholder \u2014 which is exactly the card that was reported, still
+           reading "Lina Haddad" out of a browser's own storage after the fix
+           was in.
+
+           A guard written for a case that does not exist yet, which fires
+           only for the case it was meant to fix. Whose campaign this is has
+           one answer on a request and it is nobody, whatever the field says.
+           When the CEO assigns one, "assigned to" is a different fact from
+           "whose campaign this is" and wants saying differently. */
+        (isAsked(k) ? ''
           : '<span class="b-qcard-num b-fact">' + chIcon('user') +
             '<span>' + esc(actor(k.owner).name) + '</span></span>') +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
@@ -15551,15 +15567,14 @@
             ? '<span class="b-kind">sent ' + esc(sayWhen(k.askedAt)) + '</span>' : '') +
         '</div>' +
         '<p class="s-block-sub">' + (sent
-          ? (k.owner
-            ? '<b>' + esc(actor(k.owner).name) + '</b> has it. They put a team and the lists ' +
-              'on it and start it, and it turns into a campaign on this page when they do.'
-            /* Nobody has taken it, so nobody is named. It is on every sales
-               manager's briefing and the first to open it is the one who
-               runs it. */
-            : 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
-              'and the lists on it and starts it, and it turns into a campaign on this ' +
-              'page when they do.')
+          /* Nobody is named, for the reason the card's gov row gives: a
+             request has no manager until one runs it, and a `k.owner` branch
+             here would say somebody has it on exactly the records where that
+             is least true \u2014 the ones saved before the field stopped carrying
+             a placeholder. */
+          ? 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
+            'and the lists on it and starts it, and it turns into a campaign on this ' +
+            'page when they do.'
           : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
             'asked for it yet.') + '</p>' +
         campMeta(k) +
