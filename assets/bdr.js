@@ -14370,10 +14370,27 @@
      nothing missing got eighty pixels of nothing between the links and the
      foot, in a grid that stretches every card in a row to the tallest. Take
      it out and every card has the same rows. */
+  /* ══ THE NUMBER AND THE ADDRESS, BEFORE THEY ARE RECORDS ═════════════
+     `saveList` minted these at the moment it wrote: the supplier's hit rate
+     decides whether a row has one, and the value is derived from the row so a
+     re-run says the same thing. The formula lived inside the save, which is
+     why the card in front of you could say no more than whether one existed
+     — "A number" — the product telling you it knows something and not
+     telling you what. Nothing was stopping it: the value is a pure function
+     of a row that is already on screen.
+
+     Lifted out and read by both, so what the card shows is exactly what the
+     record gets and there is no second copy of the formula to drift. */
+  const netPhone = (n) => (n.seedPhone < finderOf().phone
+    ? '+31 6 ' + String(1000000 + Math.floor(n.seedPhone * 8999999)) : null);
+  const netEmail = (n) => (n.seedEmail < finderOf().email
+    ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') +
+      '@' + n.domain
+    : null);
+
   function netCard(n, i) {
-    const f = finderOf();
-    const hasPhone = n.seedPhone < f.phone;
-    const hasMail = n.seedEmail < f.email;
+    const tel = netPhone(n);
+    const mail = netEmail(n);
     const dropped = !!(DRAFT && DRAFT.drop.indexOf(n.id) >= 0);
     const person = buildKind() === 'con';
     const who = person ? n.name : n.co;
@@ -14410,6 +14427,41 @@
       '<p class="b-qcard-where">' +
         fact('money', esc(n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm')) +
         fact('company', esc(person ? n.type : n.type + ' · founded ' + n.founded)) + '</p>' +
+      /* ══ AND ON A COMPANY CARD, WHOSE NUMBER IT IS ══════════════════════
+         `saveList` mints one contact per row whichever kind you asked for —
+         a company list is a list of people at companies, and always has been.
+         So the address under a company card belongs to somebody, and the
+         card was not saying who: the name and the job were in the row and
+         drawn nowhere. A person's card has them in the line under the name
+         already, so this is the company card catching up rather than a new
+         fact. */
+      (person ? ''
+        : '<p class="b-qcard-where b-net-contact">' +
+          fact('user', esc(n.name)) + fact('role', esc(n.title)) + '</p>') +
+      /* ══ THE NUMBER ITSELF, NOT THE FACT THAT THERE IS ONE ═══════════════
+         These were two pills in the foot reading "A number" and "An address",
+         which is the card describing its own data instead of showing it. The
+         queue card in the same slot prints +31 6 4786055, because a number is
+         a thing you read, check against what you already hold, and act on. A
+         euphemism for it is none of those.
+
+         ONE FACT TO A LINE, and that is not a rhythm decision. An email runs
+         to thirty-eight characters on a long name and a domain, a number to
+         thirteen, and the pair on one wrapping line means some cards break
+         and their neighbours do not — which in a grid that stretches a row to
+         its tallest is the hole this card has already been fixed for once.
+         Separately they cannot wrap at any width this is drawn at.
+
+         AND WHERE NOTHING CAME BACK IT SAYS SO. The supplier not finding an
+         address is the more useful of the two answers on this page: it is
+         what the panel above is offering to fix, and it is a reason to
+         untick. A blank line would hide it. */
+      '<p class="b-qcard-where' + (person ? ' b-net-contact' : '') + '">' +
+        (tel ? fact('phone', esc(tel))
+          : fact('no', 'No number came back')) + '</p>' +
+      '<p class="b-qcard-where">' +
+        (mail ? fact('mail', esc(mail))
+          : fact('no', 'No address came back')) + '</p>' +
       /* The two addresses the row carried, kept because they are the only
          way to check a stranger before you keep them — and drawn as links
          rather than as two more grey facts, because that is what they are.
@@ -14421,21 +14473,14 @@
           'target="_blank" rel="noopener">' + chIcon('linkedin') +
           '<span>LinkedIn</span></a>' +
       '</p>' +
+      /* ══ AND THE FOOT IS THE DECISION, WITH NOTHING BESIDE IT ════════════
+         It held the two reach pills on its left. With those gone to the
+         facts where they belong, the one thing you can do to this card is
+         the only thing in its foot — which is what the foot was for. The
+         build already answers the lone-child case: `.b-qcard-foot >
+         :only-child` takes `margin-left: auto`, so it sits where every
+         other card's verb sits rather than sliding to the left. */
       '<div class="tc-gov b-qcard-foot">' +
-        /* The two things the supplier either filled or did not, which is the
-           only question this page asks about a stranger — and the two the
-           panel above offers to go and fill.
-
-           Both pairs are set within nine pixels of each other, so whether
-           this row fits on one line is a question about the CARD's width and
-           not about which of the four answers a given stranger got. Below
-           about 324px of card it wraps, and it wraps on all of them. */
-        '<span class="b-net-reach">' +
-          '<span class="b-net-fact b-fact">' + chIcon(hasPhone ? 'phone' : 'no') +
-            '<span>' + (hasPhone ? 'A number' : 'No number') + '</span></span>' +
-          '<span class="b-net-fact b-fact">' + chIcon(hasMail ? 'mail' : 'no') +
-            '<span>' + (hasMail ? 'An address' : 'No address') + '</span></span>' +
-        '</span>' +
         /* The label is the control, so the word is pressable along with the
            box — a 15px tick on its own is the smallest target on the page.
 
@@ -14546,10 +14591,10 @@
       };
       const c = {
         id: 'y' + id + '_' + i, acc: accId, name: n.name, title: n.title,
-        phone: n.seedPhone < f.phone ? '+31 6 ' + String(1000000 + Math.floor(n.seedPhone * 8999999)) : null,
-        email: n.seedEmail < f.email
-          ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') + '@' + n.domain
-          : null,
+        /* The same two functions the card drew from, so the number on the
+           card and the number on the record are one value and not two
+           spellings of one intention. */
+        phone: netPhone(n), email: netEmail(n),
         /* Dealt out in order, so three callers get a third each rather than
            one of them getting five hundred. */
         camps: camp ? [camp.id] : [], owner: crew[i % crew.length],

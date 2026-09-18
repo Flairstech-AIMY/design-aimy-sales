@@ -6269,35 +6269,28 @@
    at full strength, which is what you want on the card you are least sure
    about. */
 .b-netcard.is-dropped > *:not(.b-qcard-foot) { opacity: 0.45; }
-.b-netcard.is-dropped .b-qcard-foot > .b-qcard-num { opacity: 0.45; }
+/* The foot's own fact was dimmed by name here. It has not carried a
+   `.b-qcard-num` since the reach pills went in, so this rule has been
+   applying to nothing — the second kind of dead rule the audit cannot
+   see, after the one whose effect is cancelled by its parent. The foot
+   holds only the tick now, and the tick is what must stay bright. */
 .b-netcard.is-dropped:hover > *:not(.b-qcard-foot),
 .b-netcard.is-dropped:focus-within > *:not(.b-qcard-foot) { opacity: 0.85; }
 @media (prefers-reduced-motion: no-preference) {
   .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
 }
-/* ══ THE TWO FACTS A FOOT CARRIES HERE ═══════════════════════════════
-   `.b-qcard-num` is the number to call: one fact, at body size in bold,
-   because on a queue card it IS the next press. Neither of these is. They
-   are what the supplier managed to fill, which is a thing you read once per
-   card while deciding whether to keep it, so they take the interface step
-   rather than the figure step and there is room for both.
+/* ══ THE CONTACT BLOCK, UNDER THE FIRMOGRAPHICS ══════════════════════
+   The number and the address moved out of the foot and into the card's
+   facts, where they are the value rather than a word about the value. They
+   are a different KIND of fact from the two lines above them — where the
+   place is and how big it is describe the company; these are how you reach
+   somebody — so the block starts with the same 8px the facts take under the
+   name, and the lines inside it keep `.b-qcard-where`'s own 2px because they
+   are a pair in exactly the way the two firmographic lines are.
 
-   BOTH STATES TAKE THE SAME INK. A missing field is not a quieter fact than
-   a present one — it is the more interesting of the two on this page — and
-   setting it grey would make the cards you most need to look at the hardest
-   to read. The icon and the word carry the difference. */
-.b-net-reach {
-  display: inline-flex; align-items: center; flex-wrap: wrap;
-  gap: 4px 14px; min-width: 0;
-}
-.b-net-fact {
-  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
-}
-/* `--mark` rather than width/height: that is the property `.b-fact > svg`
-   sizes from, and it is also what the leading correction above it reads,
-   so setting the two directly left the mark sized right and nudged onto
-   the cap height of a 13px mark that was not there. */
-.b-net-fact > svg { --mark: 10px; }
+   On a company card the 8px falls on the contact's name instead, because
+   there the block is who-and-how rather than just how. */
+.b-netcard .b-net-contact { padding-top: 8px; }
 /* ══ THE CARD'S OWN RHYTHM, WHICH WAS ALL ONE INTERVAL ════════════════
    `.b-qcard-where` carries `padding-top: 2px` and there are two of them, so
    that one value was doing two different jobs. Between the two fact lines it
