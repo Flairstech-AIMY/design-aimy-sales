@@ -17655,11 +17655,74 @@
      AiMY is not on it. It enriches numbers and reads calls back, and a
      section headed "the team" listing a piece of software next to two
      people is the kind of thing that reads as a joke the second time. */
-  function conTeam(c) {
-    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+  /* ══ THE LEAD'S TEAM, AS A DEFAULT RATHER THAN A FACT ══════════════════
+     The four sources below are the right answer on every lead nobody has
+     corrected, which is all of them until somebody does. A manager who
+     changes it stores a list and that list wins from then on \u2014 the shape
+     the account's team and the campaign's goal both have: the book knows an
+     answer, and the moment somebody writes one down it is theirs.
+
+     `Array.isArray`, so a lead stripped to nobody stays stripped. A length
+     test read an emptied team as "nothing set" and handed the whole
+     derivation straight back. */
+  function conWorked(c) {
     const k = dealCamp(c);
     const ids = [];
     const add = (id) => { if (id && REP[id] && ids.indexOf(id) < 0) ids.push(id); };
+    add(c.owner);
+    if (k) k.crew.forEach(add);
+    add(c.manager || (k ? k.owner : null));
+    (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)
+      .forEach((t) => add(t.by));
+    return ids;
+  }
+  const conCrew = (c) => (Array.isArray(c.crew) ? c.crew : conWorked(c));
+
+  /* `crewPick` and `crewOff` again, under this record's own attribute \u2014 the
+     same verb, the same search, the same cross, and `teamFaces` supplies the
+     roster and the rule about where the cross lives. */
+  const conItem = (r) =>
+    '<button class="b-menu-item" type="button" role="menuitem" data-pcrew="' +
+    esc(r.id) + '">' + faceOf(r.id, 26) + '<span class="b-menu-line">' +
+    '<span class="b-menu-name">' + esc(r.name) + '</span>' +
+    '<span class="b-menu-sub">' + esc(JOB[r.fn] || '') + '</span></span></button>';
+
+  const conOff = (c, id) =>
+    '<button class="b-crew-x" type="button" data-pcrew="' + esc(id) + '" ' +
+    'aria-label="' + esc('Take ' + actor(id).name + ' off ' + c.name) + '">' +
+    chIcon('x') + '</button>';
+
+  function conCrewPick(c) {
+    const on = conCrew(c);
+    const off = REPS.filter((r) =>
+      (r.fn === 'bdr' || r.fn === 'sales-manager') && on.indexOf(r.id) < 0);
+    if (!off.length) return '';
+    return draftMenu('pCrew', 'Add to the team', '',
+      '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+        'placeholder="Find someone" aria-label="Find someone" spellcheck="false" />' +
+      off.map(conItem).join(''),
+      's-inline-btn');
+  }
+
+  /* What we know about this person that no call log holds. `remember` is the
+     one line a caller is shown before dialling and belongs to the next call;
+     this is the standing one. */
+  function conSaid(c) {
+    const own = isMgr();
+    if (!c.notes && !own) return '';
+    return '<div class="b-cmeta b-said">' +
+      draftPart('Notes', '', own
+        ? draftArea('notes', c.notes,
+          'Anything the record does not hold \u2014 how they like to be reached, ' +
+          'who introduced you, what they said off the call', 2, 'data-pfield')
+        : '<p class="b-cmeta-p">' + esc(c.notes) + '</p>') +
+    '</div>';
+  }
+
+  function conTeam(c) {
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const own = isMgr();
+    const ids = conCrew(c);
     /* ══ THE TEAM ON A LEAD IS THE CAMPAIGN'S TEAM ══════════════════════
        A first cut showed only the people who had already touched the
        record, so on a lead one caller had been working alone it was one
@@ -17670,16 +17733,14 @@
 
        Whoever found them first, then the rest of the crew, then whoever
        owns it — the order it reaches people in. */
-    add(c.owner);
-    if (k) k.crew.forEach(add);
-    add(c.manager || (k ? k.owner : null));
-    hist.forEach((t) => add(t.by));
-    if (!ids.length) return '';
+    if (!ids.length && !own) return '';
     return '<section class="s-block s-block-wide" aria-label="The team">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">The team</h2>' +
-        '<span class="s-block-say">' + esc(plural(ids.length, 'person')) +
-          ' on this lead</span>' +
+        '<span class="s-block-say">' + (ids.length
+          ? esc(plural(ids.length, 'person')) + ' on this lead'
+          : 'nobody on this lead') + '</span>' +
+        (own ? conCrewPick(c) : '') +
       '</div>' +
       /* ══ AND THE SAME OVERFLOW, BECAUSE THIS ONE GROWS FASTER ══════════
          A campaign's team is whoever is crewed on it. A lead's is that plus
@@ -17720,7 +17781,11 @@
             if (!rings || mets) bits.push(plural(mets, 'meeting'));
             return ((REP[id] && JOB[REP[id].fn]) || 'On the team') + ' · ' + bits.join(', ');
           };
-          return teamFaces(ids, (id) => mateRow(id, say(id)), { sub: say });
+          if (!ids.length) {
+            return '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>';
+          }
+          return teamFaces(ids, (id, x) => mateRow(id, say(id), x),
+            { sub: say, off: own ? ((id) => conOff(c, id)) : (() => '') });
         })() +
       '</div>' +
     '</section>';
@@ -17879,6 +17944,7 @@
               : '') +
           '</div>' +
         '</div>' +
+        conSaid(c) +
         actionsRow(c) +
       '</section>' +
 
@@ -27126,6 +27192,28 @@
        keep: write now, draw the tick now, and let the page catch up when the
        menu shuts rather than repainting the panel out from under the hand
        using it. */
+    const pcrew = t.closest('[data-pcrew]');
+    if (pcrew) {
+      const c = DB.byCon[S.con];
+      if (!c || !isMgr()) return;
+      const who = pcrew.getAttribute('data-pcrew');
+      const on = conCrew(c);
+      const next = on.indexOf(who) >= 0 ? on.filter((x) => x !== who) : on.concat([who]);
+      patchCon(c, { crew: next });
+      const panel = pcrew.closest('.b-menu');
+      if (!panel) { paint(); return; }
+      PICK_DIRTY = true;
+      if (pcrew.classList.contains('b-crew-x')) {
+        const row = pcrew.closest('.b-menu-item');
+        if (row) row.remove();
+        menuShut(panel);
+        return;
+      }
+      const added = pcrew.closest('.b-menu-item');
+      if (added) added.remove();
+      return;
+    }
+
     const acrew = t.closest('[data-acrew]');
     if (acrew) {
       const a = DB.byAcc[S.acc];
@@ -27774,6 +27862,18 @@
     /* A company's note, written the way a campaign's fields are: every
        keystroke, no repaint, and the box grown by hand where the browser
        will not grow it. */
+    const pf = e.target.closest && e.target.closest('[data-pfield]');
+    if (pf) {
+      const c = DB.byCon[S.con];
+      if (c && isMgr()) {
+        if (!FITS && pf.tagName === 'TEXTAREA') {
+          pf.style.height = 'auto';
+          pf.style.height = pf.scrollHeight + 'px';
+        }
+        patchCon(c, { notes: pf.value });
+      }
+      return;
+    }
     const af = e.target.closest && e.target.closest('[data-afield]');
     if (af) {
       const a = DB.byAcc[S.acc];
