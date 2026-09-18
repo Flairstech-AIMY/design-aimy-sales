@@ -4960,7 +4960,11 @@
 
 /* The kind line on the left, the two decisions on the right, on one line. */
 .b-draft-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* Three verbs now rather than two, and the third is a sentence. They fit on
+   one row at 375 layout px with their labels wrapping inside the pills; the
+   wrap is here for the widths under that and for a page zoomed past 150%,
+   where a button pushed off the right is a capability nobody can reach. */
+.b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ══ 83b. THE HALF OF A CAMPAIGN THAT IS SENTENCES ═══════════════════
    The eight facts above this block are a word or a name each and sit three to
