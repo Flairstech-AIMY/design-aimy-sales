@@ -4133,6 +4133,11 @@ textarea::placeholder,
    here the row owns the spacing. */
 .b-topbar { display: flex; align-items: center; gap: 12px; }
 .b-topbar .s-back { margin-bottom: 0; }
+/* The other edge. `.b-end` is the same two declarations and is spoken for —
+   it is the gate that ends a lead, not a position — so the record's own door
+   carries them under its own name rather than borrowing a word that means
+   something else three sections away. */
+.b-rec-edit { margin-left: auto; flex: none; }
 
 /* CENTRED ON THE LETTERS, WHICH HERE IS THE SAME AS CENTRED ON THE BOX.
    Measured rather than nudged: in Urbanist at this size and weight the cap

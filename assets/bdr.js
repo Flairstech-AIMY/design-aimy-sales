@@ -15301,7 +15301,25 @@
        caption gutter — `.s-rec-head` is what this build had been reaching
        for and reimplementing badly. */
     return '<div class="s-home">' +
-      backBtn('data-home', 'Back to the briefing') +
+      /* ══ THE WAY BACK AND THE ONE THING YOU DO TO IT ═══════════════════
+         Edit sat in the actions row under the masthead, third after Call the
+         next one and Find more for this campaign \u2014 which put the door to
+         changing the record among the two verbs for working it, and a
+         manager looking for it read past both.
+
+         `.b-topbar` is this build's row for exactly this and says so where it
+         is declared: the way back and the way out at opposite edges of one
+         line. Five surfaces already use it. Whose campaign it is still
+         decides who sees the door \u2014 the same test the team block uses \u2014 and
+         with nobody's name on it the row is the bare back link it has always
+         been. */
+      '<div class="b-topbar s-block-wide">' +
+        backBtn('data-home', 'Back to the briefing') +
+        (campMine(k)
+          ? '<button class="b-ghost b-rec-edit" type="button" data-cedit="' + esc(k.id) +
+            '">Edit the campaign</button>'
+          : '') +
+      '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind b-kinds">' +
@@ -15337,15 +15355,6 @@
              that does not know which campaign you were working. */
           /* The closed line stays for everybody — it is a fact about their
              campaign. The finder does not: it is us spending a supplier. */
-          /* ══ THE ONE DOOR TO CHANGING IT ═══════════════════════════════
-             Whose campaign it is decides who sees this, the same test the
-             team block uses. It is a ghost and not the primary: what a
-             manager comes to a running campaign to do is read how it is
-             going, and correcting a sentence is the second thing. */
-          (campMine(k)
-            ? '<button class="b-ghost" type="button" data-cedit="' + esc(k.id) +
-              '">Edit the campaign</button>'
-            : '') +
           (campOpen(k)
             ? (seesCost()
               ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
