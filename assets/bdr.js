@@ -2947,7 +2947,8 @@
 
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
-  let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
+  let DELTA = { v: 1, con: Object.create(null), acc: Object.create(null),
+    touch: [], list: [], session: [],
     dismissed: [], read: [], made: [], meet: Object.create(null), camp: [], cal: [],
     /* What was said in the canvas. `session` above is a run of calls and
        has been since before there was a canvas; the two are unrelated and
@@ -3022,6 +3023,15 @@
   function patchCon(c, fields) {
     Object.assign(c, fields);
     const p = DELTA.con[c.id] || (DELTA.con[c.id] = {});
+    Object.assign(p, fields);
+    save();
+  }
+  /* The same over a company. An account carries two things this browser can
+     change \u2014 who works it and what somebody wrote down \u2014 and neither is in
+     the seed, so they survive a reload exactly the way a contact's do. */
+  function patchAcc(a, fields) {
+    Object.assign(a, fields);
+    const p = DELTA.acc[a.id] || (DELTA.acc[a.id] = {});
     Object.assign(p, fields);
     save();
   }
@@ -3182,6 +3192,13 @@
           DB.con.forEach((c) => (byId[c.id] = c));
           Object.keys(DELTA.con).forEach((id) => {
             if (byId[id]) Object.assign(byId[id], DELTA.con[id]);
+          });
+          /* `|| {}` because a delta written before a company could be edited
+             has no `acc` in it, and a reload must not throw on one. */
+          const accById = Object.create(null);
+          DB.acc.forEach((x) => (accById[x.id] = x));
+          Object.keys(DELTA.acc || {}).forEach((id) => {
+            if (accById[id]) Object.assign(accById[id], DELTA.acc[id]);
           });
           DELTA.touch.forEach((t) => DB.touch.push(t));
           DB.list = s.list.concat(DELTA.list);
@@ -14932,7 +14949,7 @@
      is not free in a handler that runs on every keystroke. */
   const FITS = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
 
-  function draftArea(field, val, ph, least) {
+  function draftArea(field, val, ph, least, attr) {
     const v = String(val || '');
     const lines = v.split('\n').length - 1;
     /* MEASURED, NOT GUESSED AT. 72 was the first number tried and it drew a
@@ -14943,7 +14960,8 @@
        for the ones that cannot, and a fallback that is a row out is a box
        with a gap under the last line rather than one that hides it. */
     const rows = Math.max(least || 2, Math.min(12, Math.ceil(v.length / 82) + lines));
-    return '<textarea class="b-draft-in b-draft-area" data-cfield="' + esc(field) + '" ' +
+    return '<textarea class="b-draft-in b-draft-area" ' + (attr || 'data-cfield') +
+      '="' + esc(field) + '" ' +
       'rows="' + rows + '" placeholder="' + esc(ph) + '" spellcheck="true">' +
       esc(v) + '</textarea>';
   }
@@ -16901,6 +16919,85 @@
   }
 
 
+  /* ══ AN ACCOUNT HAS TWO THINGS THAT ARE OURS, AND NO MODE ══════════════
+     Its name, domain, sector, city and headcount came from the supplier it
+     was enriched from. Correcting those by hand is a different act with
+     different consequences \u2014 the masthead would then disagree with its own
+     source and nothing on the record would say it had been overridden \u2014 so
+     they stay read-only and stated.
+
+     What is ours is who works the company and what we have learnt about it,
+     and both are edited on the record. A campaign's prose goes behind Edit
+     because it is script: the pitch is what a floor says out loud, and a
+     half-typed one is what the next caller reads. A company's note is a
+     scratchpad, written by whoever just learnt something and read as
+     reference rather than recited \u2014 there is nothing to protect it from, and
+     a mode whose whole content is two fields costs more than it protects. */
+  /* Whoever has actually called here. Derived until a manager sets one,
+     which is the shape the campaign's goal already has: the book knows an
+     answer, and the moment somebody writes one down it becomes theirs. */
+  function accWorked(a) {
+    const seen = Object.create(null);
+    const out = [];
+    touchesAt(a.id).forEach((t) => {
+      if (t.by && !seen[t.by] && REP[t.by]) { seen[t.by] = 1; out.push(t.by); }
+    });
+    return out;
+  }
+  const accCrew = (a) => ((a.crew && a.crew.length) ? a.crew : accWorked(a));
+
+  /* One menu for both directions rather than a menu to add and a cross to
+     take off: `crewOff` writes a campaign's crew and says so in its own
+     comment, and a second cross for a second kind of team is a second thing
+     to keep in step. Everybody is listed, the ones on are ticked, and a tick
+     is a tick \u2014 it stays open, and the faces behind it catch up when it
+     shuts, like every other ticking menu in this build. */
+  function accCrewPick(a) {
+    const on = accCrew(a);
+    const pool = REPS.filter((r) => r.fn === 'bdr' || r.fn === 'sales-manager');
+    return draftMenu('aCrew', 'Change the team', 'Who works this company',
+      pool.map((r) =>
+        '<button class="b-menu-item' + (on.indexOf(r.id) >= 0 ? ' is-on' : '') +
+        '" type="button" role="menuitem" data-acrew="' + esc(r.id) + '">' +
+        faceOf(r.id, 26) + '<span class="b-menu-line">' +
+        '<span class="b-menu-name">' + esc(r.name) + '</span>' +
+        '<span class="b-menu-sub">' + esc(JOB[r.fn] || '') + '</span></span></button>').join(''),
+      's-inline-btn');
+  }
+
+  /* A manager gets the fields, everybody else the words \u2014 and a manager gets
+     both captions when one is empty, because a caption with nothing under it
+     is what says the field is there. Nobody else is told about an absence
+     they cannot fill. */
+  function accSaid(a) {
+    const own = isMgr();
+    const ids = accCrew(a);
+    const out = [];
+    if (a.notes || own) {
+      out.push(draftPart('Notes', '', own
+        ? draftArea('notes', a.notes,
+          'Anything the book does not know about this company \u2014 who we have ' +
+          'already been introduced to, what happened last time, when they buy',
+          2, 'data-afield')
+        : '<p class="b-cmeta-p">' + esc(a.notes) + '</p>'));
+    }
+    return (out.length ? '<div class="b-cmeta b-said">' + out.join('') + '</div>' : '') +
+      ((ids.length || own)
+        ? '<div class="b-team">' +
+            '<div class="b-team-head">' +
+              '<span class="b-cmeta-cap b-team-cap">The team</span>' +
+              (own ? accCrewPick(a) : '') +
+            '</div>' +
+            (ids.length
+              /* `off` is passed so `crewOff` is never reached with a campaign
+                 it has not got: the cross belongs to a campaign's crew, and
+                 this team is changed in the menu above. */
+              ? teamFaces(ids, (id, off) => mateRow(id, null, off), { off: () => '' })
+              : '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>') +
+          '</div>'
+        : '');
+  }
+
   function accPage() {
     const a = DB.byAcc[S.acc];
     if (!a) {
@@ -17097,6 +17194,7 @@
               : 'on none of your campaigns')) +
           '</div>' +
         '</div>' +
+        accSaid(a) +
         '<div class="s-rec-actions">' +
           (call.length
             ? '<button class="s-insight-lnk primary" type="button" data-call="' +
@@ -27001,6 +27099,24 @@
       return;
     }
 
+    /* A tick on a company's team. The same contract the campaign's menus
+       keep: write now, draw the tick now, and let the page catch up when the
+       menu shuts rather than repainting the panel out from under the hand
+       using it. */
+    const acrew = t.closest('[data-acrew]');
+    if (acrew) {
+      const a = DB.byAcc[S.acc];
+      if (!a || !isMgr()) return;
+      const who = acrew.getAttribute('data-acrew');
+      const on = accCrew(a);
+      const next = on.indexOf(who) >= 0 ? on.filter((x) => x !== who) : on.concat([who]);
+      patchAcc(a, { crew: next });
+      const panel = acrew.closest('.b-menu');
+      acrew.classList.toggle('is-on', next.indexOf(who) >= 0);
+      if (panel) PICK_DIRTY = true; else paint();
+      return;
+    }
+
     const cedit = t.closest('[data-cedit]');
     if (cedit) {
       const id = cedit.getAttribute('data-cedit');
@@ -27616,6 +27732,21 @@
     /* A field writes on every keystroke and redraws on none of them: a
        repaint mid-word takes the caret with it. The page catches up when you
        leave the field, which is also when what is still missing changes. */
+    /* A company's note, written the way a campaign's fields are: every
+       keystroke, no repaint, and the box grown by hand where the browser
+       will not grow it. */
+    const af = e.target.closest && e.target.closest('[data-afield]');
+    if (af) {
+      const a = DB.byAcc[S.acc];
+      if (a && isMgr()) {
+        if (!FITS && af.tagName === 'TEXTAREA') {
+          af.style.height = 'auto';
+          af.style.height = af.scrollHeight + 'px';
+        }
+        patchAcc(a, { notes: af.value });
+      }
+      return;
+    }
     const cf = e.target.closest && e.target.closest('[data-cfield]');
     if (cf) {
       /* ══ THE BOX GROWS WHERE THE BROWSER WILL NOT GROW IT ═══════════════
