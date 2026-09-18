@@ -25872,10 +25872,23 @@
     go(Object.assign(cleared(), { camp: id }));
   }
 
+  /* ══ WHAT CHANGED WHILE THE PAGE WAS OPEN ══════════════════════════════
+     A record that saves on every keystroke has no moment it can call a save,
+     so the receipt at the end of an edit cannot say "saved" \u2014 it was saved
+     all along \u2014 and it must not say "updated" when nothing was touched. This
+     is the set of fields written while `ed` was on this campaign, so Done can
+     name them or say plainly that nothing moved.
+
+     It is collected in `campSet` rather than in the handlers because there
+     are six of them \u2014 a field, a menu, a list, Draft it, the fill sweep, the
+     name restore \u2014 and a receipt that misses one is a receipt that lies. */
+  let EDITS = null;
+
   /* Every write goes through here so the delta and the book cannot disagree:
      `DB.camp` holds the object the page reads and `DELTA.camp` holds the copy
      that survives a reload, and they are the same object. */
   function campSet(k, patch) {
+    if (EDITS && S.ed === k.id) Object.keys(patch).forEach((f) => (EDITS[f] = 1));
     Object.assign(k, patch);
     if (!DELTA.camp.some((c) => c.id === k.id)) DELTA.camp.push(k);
     reindex();
@@ -25940,9 +25953,16 @@
      offering or the market and the book already holds it. A note is what
      the manager knows and nobody else does, and a product that writes one
      has put words in his mouth and printed them under his name. */
-  const FILL_SAY = { name: 'the name', aim: 'the goal', persona: 'the persona',
+  /* Named in the words the captions use, so a receipt reads as a sentence
+     rather than a count of fields. It covers everything a manager can change
+     and not only what `campFill` writes, because the same map now answers two
+     questions \u2014 what AiMY filled in, and what moved while the page was open. */
+  const FIELD_SAY = { name: 'the name', aim: 'the goal', persona: 'the persona',
     size: 'the company size', pitch: 'the pitch', goal: 'the ask',
-    objections: 'the objections', resources: 'the one-pagers', target: 'the quota' };
+    objections: 'the objections', resources: 'the one-pagers', target: 'the quota',
+    sells: 'what we sell them', client: 'the client', industry: 'the industry',
+    region: 'the region', crew: 'the team', lists: 'its lists',
+    to: 'the time frame', notes: 'the notes' };
 
   /* ══ A SECOND PRESS IS "NOT THAT ONE" ═════════════════════════════════
      A campaign's goal is one of four kinds \u2014 logos, money, a foothold, an
@@ -26054,7 +26074,7 @@
      drops is on the page underneath \u2014 every field it wrote is filled in and
      visible the moment the toast is read. */
   const fillSay = (patch) => namesSay(Object.keys(patch)
-    .map((f) => FILL_SAY[f]).filter(Boolean).map((name) => ({ name: name })), 3);
+    .map((f) => FIELD_SAY[f]).filter(Boolean).map((name) => ({ name: name })), 3);
 
   /* ══ RUNNING IT FILLS THE HALF NOBODY SHOULD HAVE TO TYPE ══════════════
      What a manager knows is what it is for, who it is aimed at and who works
@@ -26945,6 +26965,7 @@
     if (cedit) {
       const id = cedit.getAttribute('data-cedit');
       if (!campMine(DB.byCamp[id])) return;
+      EDITS = Object.create(null);
       go(Object.assign(cleared(), { camp: id, ed: id }));
       return;
     }
@@ -26963,7 +26984,18 @@
       const id = cdone.getAttribute('data-cdone');
       const k = DB.byCamp[id];
       if (k && !k.name) campSet(k, { name: campFill(k).name || 'Untitled campaign' });
+      const moved = EDITS ? Object.keys(EDITS) : [];
+      EDITS = null;
       go(Object.assign(cleared(), { camp: id }));
+      /* ══ IT NAMES WHAT MOVED, OR SAYS NOTHING DID ═══════════════════════
+         Three of them and then a count, the way every other receipt on this
+         product reports a set. No Undo: this is not one write somebody may
+         not have meant, it is a page of them made deliberately one field at
+         a time, and the way back is the door you just came out of. */
+      const said = moved.map((f) => FIELD_SAY[f]).filter(Boolean);
+      toast(said.length
+        ? 'Updated ' + namesSay(said.map((n) => ({ name: n })), 3) + '.'
+        : moved.length ? 'Saved.' : 'Nothing changed.');
       return;
     }
 
