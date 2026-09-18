@@ -25431,7 +25431,11 @@
       id: id, name: '', client: null, aim: '',
       target: { n: 0, noun: 'meeting' },
       persona: { who: '', at: '', why: '' },
-      goal: '', pitch: '',
+      /* `goal` is the ask one call comes away with, `pitch` the angle
+         somebody says out loud, `notes` whatever the manager knows that no
+         derivation can reach. All three start empty and all three stay
+         empty until somebody \u2014 him or AiMY \u2014 writes them. */
+      goal: '', pitch: '', notes: '',
       sells: [], objections: [], resources: [],
       from: TODAY_ISO, to: dayAdd(42),
       owner: campOwner(), crew: [], state: 'draft',
@@ -25454,35 +25458,100 @@
     saveNow();
   }
 
-  /* ══ RUNNING IT FILLS THE HALF NOBODY SHOULD HAVE TO TYPE ══════════════
-     What a manager knows is what it is for, who it is aimed at and who works
-     it. What the objections usually are, which one-pager goes with the
-     product, and the sentence to open on are the book's, not his — the
-     conversational builder writes exactly those and there is no reason a
-     hand-filled campaign should go without them. Anything he DID write is
-     left alone; this only fills what is still empty. */
-  function campRun(k) {
-    if (!k) return;
-    const sell = k.sells[0];
-    const x = SELL[sell];
+  /* ══ THE SENTENCES AiMY WRITES, IN ONE PLACE ═══════════════════════════
+     Three surfaces want the same three sentences, and they were two copies
+     about to become three: Run it, which fills whatever a manager left
+     empty; Let AiMY fill the rest, which does that without starting the
+     campaign; and the conversational builder, which writes the lot from
+     five answers. Two copies of a line somebody says out loud is how the
+     builder's pitch and the page's pitch start disagreeing about what we
+     sell, in a product whose whole claim is that they cannot.
+
+     Each writer takes the PARTS rather than a campaign, because the builder
+     has the parts before the campaign exists. Each returns null when it has
+     not been told enough, which is a different thing from an empty string:
+     nothing here invents a market, an audience or an angle out of a default,
+     and a field AiMY cannot fill is left for the person who knows. */
+  const campParts = (k) => ({ sell: (k.sells || [])[0], industry: k.industry,
+    region: k.region, band: null });
+
+  /* ══ ONE LINE, HOWEVER MANY TITLES ARE ON IT ═══════════════════════════
+     A campaign aimed at four jobs is one audience and not four, so the
+     persona is a line rather than a list: the CEO's own campaign brief
+     carries six titles in a single row for the same reason, and reading
+     them takes one glance instead of six. */
+  const sayPersona = (p) => (p.band && PERSONA_BAND[p.band]) || PERSONA_OF[p.sell] || null;
+
+  /* ══ THE ANGLE, THEN WHY NOW, THEN HOW TO OPEN ═════════════════════════
+     Three short sentences, because this is read once by somebody who is
+     about to speak. The first is the one a manager would have written by
+     hand \u2014 what we give them, in the order the brief this was drawn from
+     says it: the offering, who it is for, what they get. The second is why
+     the call is worth making this quarter. The third is the only
+     instruction, and it is the one every caller forgets. */
+  function sayPitch(p) {
+    const x = SELL[p.sell];
+    if (!x) return null;
+    const who = (INDUSTRY[p.industry] ? INDUSTRY[p.industry].label.toLowerCase() + ' companies'
+      : 'companies') + (p.region ? ' in ' + regionLabel(p.region) : '');
+    return x.name + ' gives ' + who + ' ' + x.blurb + '. Right now ' +
+      (WHY_NOW[p.sell] || 'they are running it with people rather than with a system') +
+      '. Open on what that is costing them today, not on what we do.';
+  }
+
+  /* ══ WHAT IT WOULD WRITE, AND WHAT IT WOULD LEAVE ALONE ════════════════
+     A patch of everything still empty and nothing else. It is called twice
+     from the same press: once to see whether there is anything to offer \u2014
+     the control does not appear on a campaign with nothing missing \u2014 and
+     once to do it, so the receipt names exactly what changed rather than
+     claiming a sweep.
+
+     NOTHING TO SELL MEANS NOTHING TO SAY. Every sentence below is about an
+     offering; with none picked they would all be written about "us", which
+     is the product asserting a campaign nobody described. It returns an
+     empty patch, and the page's own list of what is missing already says
+     that something to sell is the first thing it wants.
+
+     NOTES ARE NEVER IN IT. Everything else here is a fact about the
+     offering or the market and the book already holds it. A note is what
+     the manager knows and nobody else does, and a product that writes one
+     has put words in his mouth and printed them under his name. */
+  const FILL_SAY = { name: 'the name', aim: 'the goal', persona: 'the persona',
+    pitch: 'the pitch', goal: 'the ask', objections: 'the objections',
+    resources: 'the one-pagers', target: 'the quota' };
+
+  function campFill(k) {
+    const p = campParts(k);
+    const x = SELL[p.sell];
+    if (!x) return {};
     const ind = INDUSTRY[k.industry];
-    const regL = k.region ? REGION[k.region].label : 'the region';
-    const askFor = ASK_OF[sell] || 'whoever owns it';
-    const patch = { state: 'running', from: TODAY_ISO };
+    const askFor = ASK_OF[p.sell] || 'whoever owns it';
+    const patch = {};
+    if (!k.name) {
+      patch.name = x.name + (ind ? ' \u2014 ' + ind.label
+        : k.region ? ' \u2014 ' + regionLabel(k.region) : '');
+    }
+    /* `campGoal` derives one for every campaign in the book because none of
+       them was ever asked. Writing it down makes it the manager's \u2014 a
+       sentence he can now edit, rather than one the record prints at him. */
+    if (!k.aim) patch.aim = goalSay(campGoal(k));
     if (!k.persona || !k.persona.who) {
-      patch.persona = { who: askFor,
-        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
-        why: WHY_NOW[sell] || '' };
+      const who = sayPersona(p);
+      if (who) {
+        patch.persona = { who: who,
+          at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') +
+            (k.region ? ' in ' + regionLabel(k.region) : ''),
+          why: WHY_NOW[p.sell] || '' };
+      }
+    }
+    if (!k.pitch) {
+      const said = sayPitch(p);
+      if (said) patch.pitch = said;
     }
     if (!k.goal) {
       patch.goal = k.target.noun === 'meeting'
         ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
         : 'A real conversation with ' + askFor + ' about what this is costing them today';
-    }
-    if (!k.pitch && x) {
-      patch.pitch = 'They are in ' + regL + ', and they are running this with people rather ' +
-        'than with a system. ' + x.name + ' is ' + x.blurb + '. Open on what it costs them ' +
-        'today, not on what we do.';
     }
     if (!k.objections || !k.objections.length) {
       const h = Math.abs(hash(k.id + ':camp'));
@@ -25494,13 +25563,34 @@
       }
       patch.objections = objs;
     }
-    if ((!k.resources || !k.resources.length) && x) {
+    if (!k.resources || !k.resources.length) {
       patch.resources = [
         { name: x.name + ' \u2014 one pager', kind: 'deck' },
         { name: 'What it costs, and against what', kind: 'pricing' },
       ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []);
     }
     if (!k.target.n) patch.target = { n: 12, noun: k.target.noun };
+    return patch;
+  }
+
+  /* What the fill would touch, named in the words the captions use, so the
+     receipt reads as a sentence rather than a count of fields. */
+  const fillSay = (patch) => listSay(Object.keys(patch)
+    .map((f) => FILL_SAY[f]).filter(Boolean));
+
+  /* ══ RUNNING IT FILLS THE HALF NOBODY SHOULD HAVE TO TYPE ══════════════
+     What a manager knows is what it is for, who it is aimed at and who works
+     it. What the objections usually are, which one-pager goes with the
+     product, and the sentence to open on are the book's, not his — the
+     conversational builder writes exactly those and there is no reason a
+     hand-filled campaign should go without them. Anything he DID write is
+     left alone; this only fills what is still empty, and it is the same
+     `campFill` the button above the fields calls. */
+  function campRun(k) {
+    if (!k) return;
+    const patch = campFill(k);
+    patch.state = 'running';
+    patch.from = TODAY_ISO;
     campSet(k, patch);
     go(Object.assign(cleared(), { camp: k.id }));
     toast(k.name + ' is running \u2014 nobody is on it yet', () => {
