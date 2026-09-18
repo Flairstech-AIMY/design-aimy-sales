@@ -22836,7 +22836,13 @@
        A thread that is only her unprompted opener is not written down. Act
        on it — write the message, ask for the introduction — and there is a
        second turn, and it persists like anything else. */
-    if (said.length === 1 && said[0].step === 'reach') return;
+    /* TWO OF THEM NOW, so the test is the predicate rather than one turn of
+       one kind. It was `said.length === 1 && step === 'reach'`, which a
+       greeting broke in the quietest way available: hello plus the
+       connection is two turns, neither of them asked for, and the history
+       would have filled with them on every reload — the exact failure the
+       paragraph above is about, arriving through the door it had shut. */
+    if (unasked()) return;
     let rec = chatRec();
     if (!rec) {
       rec = { id: 'ch' + Date.now().toString(36), at: new Date().toISOString(),
@@ -23297,11 +23303,24 @@
       '</div></div>';
   }
 
-  function say(who, html) {
+  /* `extra` for the fields a turn sometimes has and usually does not \u2014 the
+     twenty call sites that pass two arguments are untouched. */
+  function say(who, html, extra) {
     thinkDrop();
-    TURNS.push({ who: who, html: html });
+    TURNS.push(Object.assign({ who: who, html: html }, extra || {}));
     paintThread();
   }
+
+  /* \u2550\u2550 A TURN AiMY STARTED, RATHER THAN ONE SOMEBODY ASKED FOR \u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     Two of them now: the greeting on the card, and the connection she finds
+     unprompted when the morning starts. Both are her opening the thread, and
+     two surfaces need to know the difference between that and a
+     conversation \u2014 the opening questions, which are for somebody who has not
+     asked anything, and the store, which should not fill with the product
+     talking to itself. `chatSync` made this distinction in a shape that only
+     fitted one of them; it is a predicate now because there are two. */
+  const opener = (t) => !!t.hello || t.step === 'reach';
+  const unasked = () => !TURNS.some((t) => !t.thinking && !opener(t));
 
   /* ══ THE PLACEHOLDER IS A TURN, AND ONE THAT NEVER SETTLES IS A BUG ═══
      It lives in `TURNS` so the thread draws it the way it draws everything
@@ -23946,14 +23965,32 @@
      `peekStream` is the same writer the answers use, straight to the body,
      and it already stands down under `prefers-reduced-motion`.
 
-     \u2550\u2550 AND IT IS NOT WRITTEN TO THE THREAD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     `peekFlush`'s note says an answer lands in the thread whether or not the
-     card is still on screen, because "an answer that only exists while you
-     are looking at it is a record that forgets". Nothing is owed here, so
-     there is nothing to forget. It also keeps the canvas empty, which is
-     what draws the four opening questions \u2014 press this card and you get
-     them, which is a better answer to "how can I help" than a transcript
-     with one line of hello in it. */
+     \u2550\u2550 AND IT IS OWED TO THE THREAD LIKE ANY OTHER CARD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     It was not, for a while, on the argument that nothing is owed by a
+     greeting. That argument is about the RECORD and this card is also a
+     control: pressing it opens the canvas, and a press that opens a surface
+     without the thing you pressed on it is a press that lost your place.
+
+     \u2550\u2550 SAID, NOT OWED, AND THE DIFFERENCE IS THE ORDER \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `PEEK_DUE` is the mechanism for words the card is showing and the thread
+     has not got yet, and it was the obvious route \u2014 it lands on `peekAll`,
+     which every door into the canvas goes through. It put the greeting in
+     the wrong place. `reachGreet` writes its finding at boot and this would
+     not have been written until somebody pressed, so a manager opened the
+     canvas and read "Henry Ward is a connection of yours" first and
+     "Welcome, Lina" under it: the introduction after the business.
+
+     A greeting is not owed, it is SAID, and it is the first thing said. So
+     it goes to the thread here, before the finding, and the card is a peek
+     at the last turn rather than a promise of one. Dismissing the card
+     leaves it written, which is right: you can wave off an answer you did
+     not want, and you cannot un-be greeted.
+
+     THE OPENING QUESTIONS SURVIVE IT. They are drawn while nothing has been
+     ASKED, which a greeting does not change, and they now sit under it
+     rather than instead of it \u2014 a hello and four things to ask being a
+     better opening than either on its own. `opener` is the predicate and the
+     store reads it too. */
   function peekWelcome() {
     const box = peekEl();
     if (!box) return;
@@ -23971,8 +24008,11 @@
     /* The name people are called by. `reachDraft` opens its letters on the
        same half for the same reason. */
     const first = String(me().name || '').split(' ')[0];
-    peekStream(byId('peekBody'),
-      'Welcome, <b>' + esc(first) + '</b>. How can I help you today?', peekSettle);
+    const html = 'Welcome, <b>' + esc(first) + '</b>. How can I help you today?';
+    /* First, so it is first. `reachGreet` pushes its finding straight after
+       this and the thread reads in the order the two were meant. */
+    say('aimy', html, { hello: true });
+    peekStream(byId('peekBody'), html, peekSettle);
   }
 
   function peekAsk(html) {
@@ -24125,6 +24165,14 @@
     const wrap = byId('aimyFloatWrap');
     if (wrap) wrap.classList.remove('has-peek');
   }
+  /* Its own function because two branches draw it now: the empty thread and
+     the one holding nothing but an opener. */
+  const suggChips = () => '<div class="overlay-suggestions">' +
+    ['How many are left to call?', 'Who is due today?',
+      'What happened yesterday?', 'When do people actually answer?'].map((q) =>
+      '<button class="overlay-sugg-chip" type="button" data-ask="' + esc(q) + '">' +
+      esc(q) + '</button>').join('') + '</div>';
+
   function paintThread() {
     const host = byId('overlayThread');
     if (!TURNS.length) {
@@ -24144,11 +24192,7 @@
          it, and the design system's note on the rule says it is visible only
          while the thread is empty — which is the only place it is asked
          for. */
-      host.innerHTML = '<div class="overlay-suggestions">' +
-        ['How many are left to call?', 'Who is due today?',
-        'What happened yesterday?', 'When do people actually answer?'].map((q) =>
-        '<button class="overlay-sugg-chip" type="button" data-ask="' + esc(q) + '">' +
-        esc(q) + '</button>').join('') + '</div>';
+      host.innerHTML = suggChips();
       return;
     }
     host.innerHTML = TURNS.map(turnHtml).join('');
@@ -24156,6 +24200,16 @@
        only when the thread grew — the ones already read stay put. */
     if (TURNS.length > THREAD_SEEN && host.lastElementChild) host.lastElementChild.classList.add('b-arrive');
     THREAD_SEEN = TURNS.length;
+    /* ══ AND A GREETING IS NOT A CONVERSATION ══════════════════
+       The design system's note says these are visible while the thread is
+       empty, and the thread is no longer empty on arrival: AiMY says hello to
+       everybody and finds a connection for two of the desks. Neither was
+       asked for, and what the openers are FOR is somebody who has not asked
+       anything — which is still exactly true under a hello.
+
+       After the arrival class above, so the last ELEMENT when that runs is
+       still the last turn rather than a row of chips. */
+    if (unasked()) host.insertAdjacentHTML('beforeend', suggChips());
     host.scrollTop = host.scrollHeight;
     /* The thread has just been painted, which is the one moment it is known
        to have changed — every push in this file is followed by a paint, so
