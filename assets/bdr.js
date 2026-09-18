@@ -22787,7 +22787,20 @@
      Never the key: Knowledge falls back to one because its keys are
      surfaces and read as names; ours are timestamps and do not. */
   function chatTitle(turns) {
-    const said = turns.filter((t) => t.who === 'you')[0] || turns[0];
+    /* ══ AND A CONVERSATION IS NOT NAMED AFTER HELLO ════════════════
+       The first thing somebody TYPED, which is what a conversation is about,
+       and the first turn otherwise — for the threads nobody typed into at
+       all, which are the ones begun by pressing a button on something AiMY
+       said. That fallback used to land on her finding, "Henry Ward is a
+       connection of yours", which names the thing exactly. It now lands on
+       the greeting, which names nothing and is the same seven words on every
+       row of the column.
+
+       So the greeting is skipped and the fallback goes on doing what it was
+       written to do. `hello` and not `opener`: her finding makes a perfectly
+       good title and always did. */
+    const said = turns.filter((t) => t.who === 'you')[0]
+      || turns.filter((t) => !t.hello)[0] || turns[0];
     if (!said) return 'New conversation';
     const flat = String(said.html || '').replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ').trim();
@@ -24200,16 +24213,20 @@
        only when the thread grew — the ones already read stay put. */
     if (TURNS.length > THREAD_SEEN && host.lastElementChild) host.lastElementChild.classList.add('b-arrive');
     THREAD_SEEN = TURNS.length;
-    /* ══ AND A GREETING IS NOT A CONVERSATION ══════════════════
-       The design system's note says these are visible while the thread is
-       empty, and the thread is no longer empty on arrival: AiMY says hello to
-       everybody and finds a connection for two of the desks. Neither was
-       asked for, and what the openers are FOR is somebody who has not asked
-       anything — which is still exactly true under a hello.
+    /* ══ AND THEY BELONG TO A NEW CHAT, NOT TO A QUIET ONE ═══════════
+       They were drawn here too for a moment, under a thread holding nothing
+       but AiMY's own openers, on the argument that what they are FOR is
+       somebody who has not asked anything. True, and it is not what they
+       LOOK like: four questions under a greeting and a finding read as the
+       only four things she can answer, which is the reading the note above
+       the empty branch says a row of chips must never give. Under nothing
+       at all they are an invitation; under two turns of her talking they
+       are a menu.
 
-       After the arrival class above, so the last ELEMENT when that runs is
-       still the last turn rather than a row of chips. */
-    if (unasked()) host.insertAdjacentHTML('beforeend', suggChips());
+       So they are the empty thread's alone — New chat, and the first canvas
+       of a session before she has said anything. `unasked` stays: the store
+       still needs to know an opener from a conversation, which is a
+       different question with a different answer. */
     host.scrollTop = host.scrollHeight;
     /* The thread has just been painted, which is the one moment it is known
        to have changed — every push in this file is followed by a paint, so
