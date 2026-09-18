@@ -6405,83 +6405,6 @@
     '</section>';
   }
 
-  /* ══ WHAT A BRIEFING IS FOR ════════════════════════════════════════════
-     Today drew six cards off `queue()` under the sentence "10 of your 24
-     deals want something today". That was the board, one tab along, in a
-     smaller box — and the sentence was not true of it: on this corpus six of
-     the ten were five deals already late and one nobody had warm-called,
-     which is the board's job rather than the day's.
-
-     Giving the day to Today instead would have made the same mistake
-     against the diary, which already draws today's agenda and the meetings
-     nobody wrote down. Every kind of content Today could hold has a tab.
-
-     What no tab holds is the one thing a briefing IS: what is owed across
-     ALL of them, ranked together — a meeting that has been and gone, a deal
-     past its date, a lead sitting two days without a warm call, a customer
-     ninety days past what they bought, a price on the table nobody has
-     chased. `mgrTasks` derives exactly that and had fed only the bell. The
-     plan it was written for says one derivation feeds the bell, the digest
-     and the reminder; this is the digest it never got.
-
-     So Today is the only surface that spans the others, and every row is
-     the way into whichever one owns it. The bell keeps the same list for
-     when you are somewhere else. */
-  function owedBlock() {
-    /* \u2550\u2550 THE DIARY'S BUSINESS STAYS IN THE DIARY \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-       Two ids refused, one rule, and the second was asked out loud: is this
-       not already in the diary?
-
-       `diary-today` points at the block directly above this one, so drawing
-       it is the page saying the same thing twice.
-
-       `met:` is the page saying it a THIRD time. A meeting that has been and
-       gone with nothing written about it is counted in the Today paragraph
-       at the top of this very page \u2014 "7 meetings have been and gone with
-       nothing said about them" \u2014 and the diary carries a Missing details
-       block that lists all seven, each with this row's own verb on it. This
-       block drew four of them, and at p1, so the top four rows of what wants
-       you were a subset of another surface's list sitting above the five
-       things no other surface on this page is about: deals past their date,
-       leads never warm-called, contracts renewing, customers who moved, and
-       a price on the table nobody has chased.
-
-       THE BELL KEEPS BOTH, which is the answer `diary-today` already got and
-       for the same reason: the bell is what you read when you are somewhere
-       else, and somewhere else is exactly where those surfaces are. */
-    const tasks = mgrTasks().filter((t) =>
-      t.id !== 'diary-today' && t.id.indexOf('met:') !== 0);
-    const live = queue(null, 'all').filter(dealLive);
-    return '<section class="s-block s-block-wide" aria-label="What wants you">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">What wants you</h2>' +
-        (tasks.length
-          ? '<span class="s-block-say">' + esc(plural(tasks.length, 'thing')) +
-            ' · what was missed first</span>'
-          : '') +
-      '</div>' +
-      (tasks.length
-        ? '<div class="b-owed">' + tasks.map((t, i) =>
-            '<button class="b-owed-row" type="button" data-ask="' + esc(t.ask) + '" ' +
-            'style="--i:' + Math.min(i, 8) + '">' +
-              /* Two poles, and the order carries the rest — the same call
-                 `.ntf-sev` makes in the bell, for the same reason: one of
-                 these rows is about something that went wrong and the others
-                 are about things that have not happened yet. */
-              '<span class="b-owed-sev ' + esc(t.sev) + '" aria-hidden="true"></span>' +
-              '<span class="b-owed-main">' +
-                '<span class="b-owed-head">' +
-                  '<span class="b-owed-type">' + esc(t.type) + '</span>' +
-                  '<span class="b-owed-when">' + esc(t.when) + '</span>' +
-                '</span>' +
-                '<span class="b-owed-body">' + esc(t.body) + '</span>' +
-              '</span>' +
-              '<span class="b-owed-go">' + esc(t.cta) + '</span>' +
-            '</button>').join('') + '</div>'
-        : '<p class="s-block-sub">Nothing is waiting on you. The board has the ' +
-          plural(live.length, 'deal') + ' ' + bookWhose() + '.</p>') +
-    '</section>';
-  }
 
   /* \u2550\u2550 WHAT SOMEBODY ELSE WANTS SOLD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
      A request has one property that decides where it goes: it is not work
@@ -6657,7 +6580,6 @@
          for, which is the whole reason they are on the page you open the day
          on. */
       connBlock() +
-      owedBlock() +
     '</div>';
   }
 
@@ -11977,6 +11899,67 @@
     return { n: n, all: n === total };
   }
 
+  /* \u2550\u2550 A FIGURE, AND THE WAY INTO WHAT IT COUNTS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     The rule the meetings clause already keeps, written down so the clause
+     below can keep it too: a figure counting a set that lives on ANOTHER
+     surface is the door to it. `.slv-n` is the mark, and it is deliberately
+     not on every number here — the things in the diary, the leads on the
+     desk and the campaigns you own are the size of what is already in front
+     of you, and a door to the page you are standing on is not a door. */
+  const briefN = (n, noun, to) =>
+    '<button class="slv-n" type="button" data-go="' +
+    esc(JSON.stringify(Object.assign(cleared(), to))) + '">' +
+    esc(plural(n, noun)) + '</button>';
+
+  /* \u2550\u2550 WHAT WANTS YOU, AS A CLAUSE INSTEAD OF A BLOCK \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     This was a section of nine rows under the briefing, then five once the
+     diary took back its own. Five rows, each a sentence naming three people
+     and ending in a verb, is a lot of page for a set of facts whose whole
+     job is to say what today is \u2014 and it sat below Requests and Connections,
+     which is where a reader has already stopped.
+
+     So it is the last clause of the paragraph the page opens with. Every
+     figure keeps its way in, which is what a row's verb was for: `briefN`
+     makes the number itself the door, the way the meetings clause has always
+     done. A summary you read in one glance, with the actions ON it.
+
+     THREE, AND THE REST ARE IN THE BELL. `namesSay` cuts a list at three
+     everywhere else in this build for the same reason, and the bell holds
+     the whole set already \u2014 it always has. Now it is also where the fourth
+     thing lives.
+
+     \u2550\u2550 AND THE ARGUMENT THE BLOCK WAS CARRYING IS STILL THE ARGUMENT \u2550\u2550\u2550
+     `owedBlock` is gone and its note went with it, so the part worth keeping
+     is here. Every kind of content Today could hold has a tab of its own;
+     what no tab holds is what is owed across ALL of them, ranked together \u2014
+     a deal past its date, a lead sitting two days without a warm call, a
+     contract renewing, a price on the table nobody has chased. `mgrTasks`
+     derives exactly that. Today is the only surface that spans the others,
+     and every figure is the way into whichever one owns it.
+
+     What changed is how much room it takes to say so. Five rows of prose
+     naming three people each is a digest; this is a briefing. */
+  function briefOwed() {
+    const owed = mgrTasks().filter((t) =>
+      t.line && t.id !== 'diary-today' && t.id.indexOf('met:') !== 0);
+    if (!owed.length) return '';
+    const said = owed.slice(0, 3).map((t) => t.line);
+    const rest = owed.length - said.length;
+    if (rest) {
+      said.push('<button class="slv-n" type="button" data-bellopen>' +
+        esc(plural(rest, 'other thing')) + '</button> want' + (rest === 1 ? 's' : '') + ' you');
+    }
+    /* Joined structurally, not by a regex over the finished string. The
+       `, ([^,]*)$` trick this build uses on lists of plain words cannot work
+       here: every clause carries a `data-go` whose JSON is full of commas,
+       so the last one it could find was inside an attribute and the sentence
+       came out with a comma where its "and" should be. Seen on the desk with
+       exactly three of these, where the tail clause happened to hold a door
+       and the one before it did not. */
+    const last = said.pop();
+    return ' ' + (said.length ? said.join(', ') + ' and ' + last : last) + '.';
+  }
+
   function briefSentence(here, counts, all, camps) {
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
@@ -12056,10 +12039,14 @@
       /* The surface is called Diary — on the tab, on the rail door and on
          the block this paragraph now sits above. Two words for one place,
          eighty pixels apart, is the reader doing translation. */
-      if (!on.length) return 'Nothing is in the diary today.' + owed + ' ' + book;
+      /* Last, because it is the only clause that is not about today: the
+         diary has a clock on it, the book is the size of the desk, and this
+         is what has slipped. A reader who stops after two sentences has read
+         the two that are about the next eight hours. */
+      if (!on.length) return 'Nothing is in the diary today.' + owed + ' ' + book + briefOwed();
       return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
         (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
-          esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book;
+          esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book + briefOwed();
     }
     return openerText(counts, all, camps);
   }
@@ -22377,7 +22364,12 @@
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
         body: plural(late.length, 'deal') + ' owed something before today: ' +
           namesSay(late) + '.',
-        cta: 'Show the board', ask: 'How do my deals stand?' });
+        cta: 'Show the board', ask: 'How do my deals stand?',
+        /* The same fact the row stated, at the length a clause has: the
+           figure and what is true of it, with the names left to the board
+           the figure opens. */
+        line: briefN(late.length, 'deal', { on: 'deals' }) +
+          (late.length === 1 ? ' is' : ' are') + ' owed something before today' });
     }
     const cold = live.filter((c) => stageOf(c) === 'qual' &&
       daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
@@ -22385,7 +22377,9 @@
       tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
         body: plural(cold.length, 'lead') + (cold.length === 1 ? ' has' : ' have') +
           ' been on your desk two days or more without a warm call: ' + namesSay(cold) + '.',
-        cta: 'Show them', ask: 'How do my deals stand?' });
+        cta: 'Show them', ask: 'How do my deals stand?',
+        line: briefN(cold.length, 'lead', { on: 'deals' }) +
+          (cold.length === 1 ? ' has' : ' have') + ' waited two days for a warm call' });
     }
     /* ══ AND THE CUSTOMERS, WHICH IS THE ROW THAT USED TO BE A CALENDAR ══
        This counted the customers ninety days past what they bought and put
@@ -22416,7 +22410,9 @@
           plural(one.r.days, 'day') + ', worth ' + euro(one.r.sub.acv) + ' a year' +
           (due.length > 1 ? ', and ' + plural(due.length - 1, 'other') + ' follow' : '') + '.',
         cta: 'Show the book',
-        ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }) });
+        ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
+        line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
+          ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
     }
     const moved = openings();
     if (moved.length) {
@@ -22430,7 +22426,9 @@
               (moved.length === 2 ? ' opened' : ' opened') + ' something too'
             : '') + '.',
         cta: 'Show the book',
-        ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }) });
+        ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
+        line: briefN(moved.length, 'client', { on: 'deals', q: 'won' }) +
+          ' moved this week' });
     }
     /* ══ THE ONE ROW A CLIENT'S BELL HAS AND NO OTHER DESK DOES ═════════
        The promise furthest from its number. `bookAttain`'s margin is the
@@ -22485,7 +22483,10 @@
       tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
         body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
           'for a week: ' + namesSay(quiet) + '.',
-        cta: 'Show the board', ask: 'How do my deals stand?' });
+        cta: 'Show the board', ask: 'How do my deals stand?',
+        line: briefN(quiet.length, 'deal', { on: 'deals' }) +
+          (quiet.length === 1 ? ' has' : ' have') +
+          ' a price on the table and nothing said for a week' });
     }
     return tasks;
   }
@@ -27643,6 +27644,16 @@
     /* The four openers. Each one is a narrowing of the queue or a jump to the
        top of it — none of them opens a surface of its own, because a way to
        start that needs a page first is not a way to start. */
+    /* The whole set, which is the bell and always was. `#ntfBell` is the
+       shell's own control with the shell's own listener behind it, so this
+       presses it rather than reimplementing what it does \u2014 the panel, the
+       read marks and the count are all its business. */
+    if (t.closest('[data-bellopen]')) {
+      const bell = byId('ntfBell');
+      if (bell) bell.click();
+      return;
+    }
+
     const start = t.closest('[data-start]');
     if (start) {
       const k = start.getAttribute('data-start');
