@@ -26868,6 +26868,27 @@
       if (!panel) { paint(); return; }
 
       PICK_DIRTY = true;
+      /* ══ A CROSS IS NOT A TICK ═══════════════════════════════════════
+         `crewOff` writes the same `data-cset` a menu item writes, so taking
+         somebody off the team went down the path built for ticking one on:
+         the write landed and the drawing was deferred to the menu closing.
+         Measured \u2014 press the cross in the roster and nothing moves; close the
+         menu and the person is gone. It worked and it looked broken, which
+         for a control nobody presses twice is the same thing.
+
+         A tick can be followed by another tick, which is why that path keeps
+         the menu open. A removal cannot: what it removes is a row of the very
+         list the menu is showing, and the count on the stack behind it. So it
+         behaves like the single-answer menus \u2014 the row goes at once, the menu
+         closes the way pressing its opener would, and the faces and counts
+         redraw behind it. The cross on the LINE, where there are four or
+         fewer and no roster, is not in a menu at all and repaints above. */
+      if (cset.classList.contains('b-crew-x')) {
+        const row = cset.closest('.b-menu-item');
+        if (row) row.remove();
+        menuShut(panel);
+        return;
+      }
       if (tick === null) {
         /* The answer shows for as long as the close takes, rather than the
            old one sitting ticked while the menu leaves. */
