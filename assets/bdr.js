@@ -13943,19 +13943,14 @@
      Names, while there are few enough to name. "Split between 2" makes you
      open the menu to find out which two.
 
-     ITS OWN FUNCTION BECAUSE TWO THINGS SAY IT NOW — the renderer that draws
-     the control and assignSync(), which relabels it in place when a name is
-     ticked. Two copies of this ladder is two places for the wording to drift. */
-  function assignSay(who, set) {
-    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
-    if (!set) return 'Assign people';
-    if (who.length === 1) {
-      return who[0] === me().id ? 'You are calling them'
-        : actor(who[0]).name + ' is calling them';
-    }
-    if (who.length <= 3) return 'Split between ' + listSay(who.map(first));
-    return 'Split between ' + commas(who.length) + ' of you';
-  }
+     AND THE LADDER IS GONE, BECAUSE THE FACES SAY IT. `assignSay` wrote the
+     answer into the opener's label — "You are calling them", "Split between
+     Omar and Salma", "Split between 5 of you" — which is a sentence doing a
+     roster's job, and it was the only thing on the page that named anybody.
+     The draft draws `buildTeam` now: the block a saved list draws, with the
+     faces, the names and a cross on each. A label repeating what the faces
+     beside it already show is the fact twice, and the shorter of the two is
+     the one that cannot name a single person. The opener is a verb again. */
 
   /* ══ A MULTIPLE CHOICE DOES NOT REPAINT THE PAGE UNDER ITSELF ═══════════
      Ticking a caller called paint(), which rebuilds the surface from a string
@@ -13982,10 +13977,22 @@
         if (tick) tick.classList.toggle('is-on', on);
       });
     }
-    const opener = document.querySelector('[data-pickopen="assignPick"]');
-    if (opener) {
-      opener.classList.toggle('is-set', set);
-      opener.textContent = assignSay(who, set);
+    /* ══ AND THE FACES BESIDE IT ARE MARKUP, SO THEY ARE REBUILT ═══════
+       The opener used to carry the answer as a label, and a label is a
+       string, so syncing it was one assignment. The answer is a roster now
+       — faces, names, crosses, and a stack once there are more than four —
+       and none of that can be written as text.
+
+       So everything after the caption row is thrown away and drawn again.
+       That is safe for exactly the reason the note above gives: the open
+       menu is NOT in here. It lives in the caption row beside the verb,
+       which this does not touch, so the filter you typed and the focus ring
+       survive a tick the way they did when this only moved a string. */
+    const team = byId('buildTeam');
+    const head = team && team.querySelector('.b-team-head');
+    if (head) {
+      while (head.nextSibling) team.removeChild(head.nextSibling);
+      head.insertAdjacentHTML('afterend', buildFaces(who));
     }
   }
   /* ══ A LIST ON NO CAMPAIGN IS A LIST NOBODY IS WORKING ═════════════════
@@ -14015,19 +14022,46 @@
       '</div>' +
     '</span>';
   };
+  /* ══ THE VERB ON A CAPTION ROW, WHICH IS WHERE THIS BUILD PUTS ONE ═════
+     It was a pill in the action row reading whatever `assignSay` made of the
+     choice, standing between Save and Discard as though staging a crew were
+     a fourth thing to do to the list. It is the team block's verb now, on
+     the caption's row, exactly where `listCrewPick` sits on a saved list and
+     where the note above `teamFaces` says an assigning verb belongs.
+
+     IT STAYS A TOGGLE, and that is the one place this differs from the saved
+     list's. `listCrewPick` only ever adds, because taking somebody off lives
+     on their own row and a saved list repaints on every write. Nothing here
+     is written until Save — the whole builder's rule — so this menu cannot
+     repaint the page to rebuild itself, and a toggle with ticks is a list
+     that never needs rebuilding. The cross on a face writes through the same
+     attribute, so the two agree without either one redrawing the other. */
   const assignPickMenu = () => {
     const who = assignedTo();
-    const set = !!(DRAFT && DRAFT.assign);
-    const say = assignSay(who, set);
+    /* ══ A CROSS THE MENU CANNOT UNDO IS A DECISION TAKEN AWAY ══════════
+       The menu was `BDRS`, the calling floor, which is right until you read
+       it on a manager's desk: `assignedTo()` starts at whoever is looking,
+       a manager is not a caller, and so the one name already on the team was
+       the one name the menu did not hold. Nothing exposed that while the
+       block was a pill — there was no way to take anybody off. The faces
+       carry a cross now, and pressing yours left you unable to put yourself
+       back.
+
+       So the roster is the floor plus anybody already on it who is not part
+       of the floor. The invariant is the whole point and it is worth saying
+       plainly: every face this block draws a cross on is a row this menu can
+       tick back on. */
+    const extra = who.filter((id) => !BDRS.some((r) => r.id === id))
+      .map((id) => actor(id)).filter(Boolean);
     return '<span class="b-menu-wrap">' +
-      '<button class="s-inline-btn b-menu-open' + (set ? ' is-set' : '') + '" ' +
+      '<button class="s-inline-btn b-menu-open" ' +
         'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
-        esc(say) + '</button>' +
+        'Change the team</button>' +
       '<div class="b-menu" id="assignPick" role="menu" hidden>' +
         '<span class="b-menu-cap">Who is calling them</span>' +
         '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
           'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
-        BDRS.map((r) =>
+        extra.concat(BDRS).map((r) =>
           '<button class="b-menu-item" type="button" role="menuitem" ' +
           'data-pickrep="' + esc(r.id) + '" aria-pressed="' + (who.indexOf(r.id) >= 0) + '">' +
             '<span class="b-menu-tick' + (who.indexOf(r.id) >= 0 ? ' is-on' : '') + '"></span>' +
@@ -14037,6 +14071,56 @@
       '</div>' +
     '</span>';
   };
+  /* ══ WHO WILL CALL THEM, AS THE BLOCK THAT SAYS SO ═════════════════════
+     A saved list draws `listTeam` under its action row — a caption, the
+     faces, a cross on each, the verb to change it — and it is the block that
+     makes that page look like itself. The draft answered the same question
+     with a pill in the action row, which is the same fact one rank quieter
+     in a different place, and it was the first difference anybody saw with
+     the two pages side by side.
+
+     Same block, same caption, same component. `teamFaces` does the drawing
+     for the campaign, for a saved list and now for this, so a team of two is
+     two rows here and a team of seven is three and a stack, identically.
+
+     ONE REAL DIFFERENCE, AND IT IS ABOUT WHERE THE TRUTH LIVES. A saved
+     list's team is DERIVED: it counts `owner` across the records and so it
+     cannot disagree with them. A draft has no records — that is what a draft
+     is — so this reads `assignedTo()`, the choice staged on `DRAFT`,
+     defaulting to you. Save deals the list against it, and from that moment
+     the same block is reading records instead, without the reader ever being
+     shown a different block. */
+  function buildTeam() {
+    return '<div class="b-team" id="buildTeam">' +
+      '<div class="b-team-head">' +
+        '<span class="b-cmeta-cap b-team-cap">The team</span>' +
+        assignPickMenu() +
+      '</div>' +
+      buildFaces(assignedTo()) +
+    '</div>';
+  }
+  /* Its own function because two things draw it: the paint, and `assignSync`
+     putting it back after a tick. The same split, and the same reason, that
+     `assignSay` used to have. */
+  function buildFaces(who) {
+    /* NEVER THE LAST ONE. `listTeam` refuses the same press because a list
+       held by nobody loses the only block that can give it back; here the
+       write refuses it too — `data-pickrep` will not splice below one — so
+       drawing a cross that cannot work would be the product offering a press
+       it has already decided against. */
+    const off = who.length > 1 ? buildOff : (() => '');
+    return teamFaces(who, (id, x) => mateRow(id, null, x), { off: off });
+  }
+  /* `data-pickrep` is the attribute the menu already toggles on, so a cross
+     on a face and an untick in the menu are one write with one sync behind
+     it. `crewOff` makes the same argument for the campaign: one attribute
+     for both directions, because the model already knows which way it is
+     going. */
+  const buildOff = (id) =>
+    '<button class="b-crew-x" type="button" data-pickrep="' + esc(id) + '" ' +
+      'aria-label="' + esc('Take ' + actor(id).name + ' off this list') + '">' +
+      chIcon('x') + '</button>';
+
   function leaveGate(n) {
     if (!LEAVE) return '';
     return '<section class="s-insight is-lead b-lead-slim b-gate s-block-wide" aria-label="Not saved">' +
@@ -14155,9 +14239,12 @@
         '<div class="s-rec-actions">' +
           campPickMenu() +
           '<button class="s-inline-btn" type="button" data-save>Save as draft</button>' +
-          assignPickMenu() +
           '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
         '</div>' +
+        /* Under the actions and inside the masthead, which is where the
+           saved list puts `listTeam`. Its absence was the gap you saw when
+           the two pages were read one after the other. */
+        buildTeam() +
       '</section>' +
 
       /* The slot the saved list gives `listLead`. Both are AiMY reading the
@@ -14176,7 +14263,12 @@
            how to read the rows below. */
         '<p class="b-tocall">' + esc(some(rows.length)) + ' · untick ' +
           (person ? 'anybody' : 'anything') + ' you do not want</p>' +
-        '<div class="b-vlist" id="netList"></div>' +
+        /* `cardGrid`, the same grid the saved list's roster is drawn in and
+           the same one the queue uses — not `vlist`. A windowed column was
+           the right machinery for five hundred rows and there have never
+           been five hundred on screen: `paged` caps this at fifteen, which
+           is a grid with nothing to window. */
+        cardGrid(pg.rows, netCard) +
         pager(pg, 'row') +
       '</section>' +
     '</div>';
@@ -14229,6 +14321,108 @@
           (n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm') + '</span>' +
         '<span class="s-brow-tag">' + esc(n.type) + '</span>' +
       '</span>';
+  }
+
+  /* ══ A CANDIDATE, AS THE SAME CARD ═══════════════════════════════════
+     `rosterBlock`'s note drew a line and put the builder on the wrong side
+     of it: a person is a card everywhere in this build, EXCEPT here, where
+     they were a table row because "comparing wants columns". The argument
+     is real and it is not worth what it costs. These are the same people
+     you are looking at thirty seconds later on the saved list, where they
+     are cards; the page transformed under you at the one moment you were
+     deciding whether to keep them.
+
+     And the columns were never doing the work claimed for them. A row put
+     the size and the revenue in a right-hand rail so the eye could run down
+     them — which is what a table is for — while the thing you actually
+     scan for is whether they can be called and whether you already have
+     them, and both of those were prose in the middle of a wrapping line.
+
+     So it is `qcard`'s anatomy, slot for slot: what they are across the
+     top, the name, who they are under it, the facts in two lines of two,
+     what AiMY makes of them, and the foot. The three things that differ are
+     the three real ones.
+
+     THE NAME DOES NOT OPEN. There is nothing to open — a candidate is a row
+     out of an index, not a record — so it is a span, and the two places you
+     CAN go and look are drawn as what they are: links, out to the web.
+
+     THE FOOT'S VERB IS THE TICK. Every other card ends in something to do
+     to that person. The only thing you can do to this one is decide whether
+     it survives to being saved, which is the whole job of this page.
+
+     AND AiMY SPEAKS ONLY WHERE IT HAS SOMETHING. `qcard`'s discipline: a
+     line under the mark is a claim, so a card whose supplier filled
+     everything and whose person is new to the book draws no block at all
+     rather than one reading "nothing to report". */
+  function netCard(n, i) {
+    const f = finderOf();
+    const hasPhone = n.seedPhone < f.phone;
+    const hasMail = n.seedEmail < f.email;
+    const dropped = !!(DRAFT && DRAFT.drop.indexOf(n.id) >= 0);
+    const person = buildKind() === 'con';
+    const who = person ? n.name : n.co;
+    const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    /* Ranked the way `aimySays` ranks: the thing that changes what you do
+       with this row, and only one of them. Already holding somebody beats
+       a missing field, because one is a reason to untick and the other is
+       a reason to ask a different supplier. */
+    const said = n.known
+      ? 'Already in your book. Keeping them gives you a second copy of somebody you may already have called.'
+      : !hasPhone && !hasMail
+        ? esc(f.name) + ' found neither a number nor an address.'
+        : !hasPhone
+          ? esc(f.name) + ' found no number, so they cannot be called.'
+          : !hasMail
+            ? esc(f.name) + ' found no email address.'
+            : '';
+    return '<article class="type-card s-card b-qcard b-netcard' +
+      (dropped ? ' is-dropped' : '') + '" style="--i:' + Math.min(i || 0, 8) + '">' +
+      '<div class="tc-head">' +
+        (n.known
+          ? '<span class="tag tag-warn">Already yours</span>'
+          : '<span class="tag tag-neutral">New</span>') +
+        '<span class="tc-type b-fact">' + chIcon('industry') + '<span>' +
+          esc((INDUSTRY[n.industry] || { label: n.industry }).label) + '</span></span>' +
+      '</div>' +
+      '<div class="b-qcard-top">' +
+        /* A span, not a button. The audit's first check is a control that is
+           drawn and not wired, and a card title you can press that opens
+           nothing is exactly that with the styling to prove it. */
+        '<span class="tc-title s-card-title">' + esc(who) + '</span>' +
+      '</div>' +
+      '<p class="tc-summary b-qcard-role">' +
+        (person ? esc(n.title) + ' at ' + esc(n.co) : esc(n.about)) + '</p>' +
+      '<p class="b-qcard-where">' +
+        fact('where', esc(n.city)) +
+        fact('staff', esc(commas(n.size) + ' staff')) + '</p>' +
+      '<p class="b-qcard-where">' +
+        fact('money', esc(n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm')) +
+        fact('company', esc(person ? n.type : n.type + ' · founded ' + n.founded)) + '</p>' +
+      /* The two addresses the row carried, kept because they are the only
+         way to check a stranger before you keep them — and drawn as links
+         rather than as two more grey facts, because that is what they are.
+         The domain reads as itself; the profile does not, so it is named. */
+      '<p class="b-net-links">' +
+        '<a class="b-net-link" href="https://' + esc(n.domain) + '" target="_blank" ' +
+          'rel="noopener">' + chIcon('web') + '<span>' + esc(n.domain) + '</span></a>' +
+        '<a class="b-net-link" href="https://www.linkedin.com/company/' + esc(slug) + '" ' +
+          'target="_blank" rel="noopener">' + chIcon('linkedin') +
+          '<span>LinkedIn</span></a>' +
+      '</p>' +
+      aimyBlock(said ? { text: said } : null, true) +
+      '<div class="tc-gov b-qcard-foot">' +
+        '<span class="b-qcard-num b-fact">' + chIcon(hasPhone ? 'phone' : 'no') +
+          '<span>' + (hasPhone ? 'Has a number' : 'No number') + '</span></span>' +
+        /* The label is the control, so the word is pressable along with the
+           box — a 15px tick on its own is the smallest target on the page. */
+        '<label class="b-net-keep">' +
+          '<input class="s-tick" type="checkbox" data-bdrop="' + esc(n.id) + '"' +
+          (dropped ? '' : ' checked') + ' aria-label="Keep ' + esc(who) + '" />' +
+          '<span>' + (dropped ? 'Left out' : 'Keep') + '</span>' +
+        '</label>' +
+      '</div>' +
+    '</article>';
   }
 
   /* ── WHAT IS MISSING FROM WHAT CAME BACK, AND WHO WOULD FILL IT ──

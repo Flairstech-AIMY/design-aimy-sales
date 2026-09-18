@@ -3718,9 +3718,6 @@
   .pipe-card { max-height: calc(var(--vp-h) - 150px); }
 }
 
-/* A button that carries a staged choice says so by holding full ink; the
-   verb it replaced is still the same button underneath. */
-.b-menu-open.is-set { color: var(--d50); }
 /* A tick in a menu row: on for what is chosen, a held place for what is not,
    so the rows do not shift as you pick. */
 .b-menu-tick {
@@ -6176,4 +6173,78 @@
 .s-rec-title .s-build-name {
   width: auto; max-width: 100%;
   field-sizing: content;
+}
+/* ══ THE CANDIDATE CARD ═══════════════════════════════════════════════
+   `netCard` is `qcard`'s anatomy with three slots doing different work, and
+   these are the rules for those three. Everything else on it — the head, the
+   title, the two fact lines, the AiMY block, the foot — is the card every
+   other surface in this build draws, unstyled again here on purpose. */
+
+/* ══ THE TWO PLACES YOU CAN GO AND LOOK ══════════════════════════════
+   A stranger off an index is the one record in this product you cannot open,
+   so the only way to check them before you keep them is to go outside. The
+   row carried both addresses as bare text and they were the quietest thing
+   on it; here they are links and read as links, one step under the facts.
+
+   `min-width: 0` on the anchor because a domain does not break: without it
+   a long one pushes the card wider than its column and the grid stops being
+   a grid. */
+.b-net-links {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
+  margin: 2px 0 0; min-width: 0;
+}
+.b-net-link {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--accent-label); text-decoration: none;
+  transition: color var(--t-fast);
+}
+.b-net-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-net-link > svg { flex: none; width: 11px; height: 11px; }
+.b-net-link:hover { color: var(--accent); text-decoration: underline; }
+.b-net-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ══ THE FOOT'S VERB IS A DECISION ABOUT THE CARD ═════════════════════
+   Every other card in this build ends in something to do to that person.
+   This one ends in whether they survive, so the tick sits where the verb
+   sits and carries the word with it: a 14px box on its own is the smallest
+   target on the surface, and `<label>` makes the word part of it.
+
+   IT DOES NOT FADE. `.s-tick` is 0.35 until the card is hovered, which is
+   right on a grid where picking is an occasional thing you do to one card.
+   It is wrong here: every card on this page is asking the same question,
+   the answer is already set on all of them, and a page of ticks you cannot
+   see until you reach for them is a page that does not look answerable. */
+.b-net-keep {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: color var(--t-fast);
+}
+.b-net-keep .s-tick { opacity: 1; width: 15px; height: 15px; }
+.b-net-keep:hover { color: var(--d50); }
+
+/* ══ AND ONE YOU HAVE LEFT OUT STAYS ON THE PAGE ══════════════════════
+   Unticking does not remove the card, and it should not: the count in the
+   masthead has already dropped, and a row that vanishes when you untick it
+   makes changing your mind a search. So it goes quiet instead — a treatment
+   rather than a re-inking, so nothing inside it has to hold a second colour.
+
+   THE WAY BACK KEEPS FULL INK, AND THAT IS WHY THIS IS NOT ONE RULE ON THE
+   CARD. `opacity` on a parent cannot be undone by a child: it composites
+   the subtree as one layer, so `.b-net-keep { opacity: 1 }` under a card at
+   0.45 is a rule that reads as an exception and has no effect whatsoever.
+   It was written that way first and it took a screenshot to catch — the
+   audit cannot see a rule that applies cleanly and does nothing.
+
+   So the dimming is applied to the card's CONTENT instead, every child but
+   the foot, and inside the foot to the fact and not to the control. The one
+   press that gives you this person back is the one thing on the card still
+   at full strength, which is what you want on the card you are least sure
+   about. */
+.b-netcard.is-dropped > *:not(.b-qcard-foot) { opacity: 0.45; }
+.b-netcard.is-dropped .b-qcard-foot > .b-qcard-num { opacity: 0.45; }
+.b-netcard.is-dropped:hover > *:not(.b-qcard-foot),
+.b-netcard.is-dropped:focus-within > *:not(.b-qcard-foot) { opacity: 0.85; }
+@media (prefers-reduced-motion: no-preference) {
+  .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
 }
