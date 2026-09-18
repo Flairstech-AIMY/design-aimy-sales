@@ -17704,11 +17704,26 @@
       's-inline-btn');
   }
 
+  /* ══ THE NOTE IS THE CALLER'S TOO ══════════════════════════════════════
+     The team and the note went in together behind `isMgr`, which is right
+     for one of them and wrong for the other. Who works a lead is a manager's
+     call. What we know about the person is the CALLER's: they are the one
+     who learns that somebody prefers a call after four, and a build where
+     they can read that line and not write it makes the record a thing that
+     happens to them.
+
+     `conCrew` is already the answer to "who works this lead" \u2014 its owner,
+     the campaign's crew, whoever manages it and everybody who has called
+     them \u2014 so the test is simply whether you are on it. `isMgr` stays as a
+     floor rather than a gate: without it, a manager who stripped the team to
+     nobody would have locked the note against themselves. */
+  const conWrites = (c) => isMgr() || conCrew(c).indexOf(me().id) >= 0;
+
   /* What we know about this person that no call log holds. `remember` is the
      one line a caller is shown before dialling and belongs to the next call;
      this is the standing one. */
   function conSaid(c) {
-    const own = isMgr();
+    const own = conWrites(c);
     if (!c.notes && !own) return '';
     return '<div class="b-cmeta b-said">' +
       draftPart('Notes', '', own
@@ -27865,7 +27880,7 @@
     const pf = e.target.closest && e.target.closest('[data-pfield]');
     if (pf) {
       const c = DB.byCon[S.con];
-      if (c && isMgr()) {
+      if (c && conWrites(c)) {
         if (!FITS && pf.tagName === 'TEXTAREA') {
           pf.style.height = 'auto';
           pf.style.height = pf.scrollHeight + 'px';
