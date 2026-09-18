@@ -5015,6 +5015,15 @@
 .b-draft-area {
   display: block; width: 100%; max-width: 68ch;
   line-height: var(--lh-base); resize: vertical;
+  /* The browser measures its own text better than any character count can.
+     Where it is supported this is exact at every width and every zoom; where
+     it is not, `rows` is computed from the value and lands within a line.
+     Both are needed: one of them is right and the other one always runs. */
+  /* No min-height. It was 2lh, and it made the persona — one line of job
+     titles, sized by its own rows to one line — stand in a two-line box with
+     its underline floating an empty line below the words. The row count and
+     the browser's own measurement both already know how tall this is. */
+  field-sizing: content;
 }
 
 /* On a page the two doors sit in a column 282px wide, so the figure and its
@@ -5079,6 +5088,13 @@
   margin-top: 12px; max-width: 100%;
 }
 @media (max-width: 719.98px) { /* 720 layout px */ .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
+/* Eight of the card's cells are a word or a name and pair up across two
+   columns. The pitch is three sentences, and three sentences in a 1fr track
+   of a half-width turn is a column of single words. It takes the row, last,
+   where the card reads as a record with a paragraph at the foot of it rather
+   than as a grid with one cell that will not fit. */
+.b-cb-wide { grid-column: 1 / -1; }
+.b-cb-wide .b-cmeta-say { line-height: var(--lh-base); text-wrap: pretty; }
 
 /* ══ 84. THE DIARY, AS A PAGE ══════════════════════════════════════════════
    The same month the pop-out draws, standing on a surface instead of hanging

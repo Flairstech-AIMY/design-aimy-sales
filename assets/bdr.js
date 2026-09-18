@@ -14827,8 +14827,13 @@
       '<span class="b-menu-line"><span class="b-menu-name">' + esc(name) + '</span>' +
       (sub2 ? '<span class="b-menu-sub">' + esc(sub2) + '</span>' : '') + '</span></button>';
   }
-  function draftField(cap, html) {
-    return '<div class="b-cmeta-part"><span class="b-cmeta-cap">' + esc(cap) + '</span>' +
+  /* `cls` is how a cell says it is a paragraph rather than a word. The
+     read-back card is two columns because a canvas turn is half the width of
+     a page, and a pitch in one of those columns is a column of single
+     words. */
+  function draftField(cap, html, cls) {
+    return '<div class="b-cmeta-part' + (cls ? ' ' + cls : '') + '">' +
+      '<span class="b-cmeta-cap">' + esc(cap) + '</span>' +
       '<div class="b-cmeta-say">' + html + '</div></div>';
   }
   function draftText(field, val, ph) {
@@ -14847,10 +14852,17 @@
      `spellcheck` is on here and off in `draftText`, and the difference is
      real: one holds names and job titles, this holds prose somebody will
      read out loud. */
-  function draftArea(field, val, ph) {
+  function draftArea(field, val, ph, least) {
     const v = String(val || '');
     const lines = v.split('\n').length - 1;
-    const rows = Math.max(2, Math.min(12, Math.ceil(v.length / 72) + lines + 1));
+    /* MEASURED, NOT GUESSED AT. 72 was the first number tried and it drew a
+       three-line pitch in a five-row box, because `ch` is the width of a
+       zero and the average character in this face is narrower than one: 68ch
+       holds about 82 characters, not 68. The stylesheet asks the browser for
+       the exact height where it can (`field-sizing`); this is the fallback
+       for the ones that cannot, and a fallback that is a row out is a box
+       with a gap under the last line rather than one that hides it. */
+    const rows = Math.max(least || 2, Math.min(12, Math.ceil(v.length / 82) + lines));
     return '<textarea class="b-draft-in b-draft-area" data-cfield="' + esc(field) + '" ' +
       'rows="' + rows + '" placeholder="' + esc(ph) + '" spellcheck="true">' +
       esc(v) + '</textarea>';
@@ -14907,9 +14919,20 @@
     const P = k.persona || {};
     const out = [];
     if (own || P.who) {
+      /* ══ ONE FIELD, AND IT MAY STILL NEED TWO LINES ═══════════════════
+         It was an `<input>`, which is the right control for one line and the
+         wrong one for this line: six titles is 78 characters, an input does
+         not wrap, and the field showed "Head of Contact Centre, Customer Se"
+         with the rest of the audience scrolled out of sight. A page somebody
+         reads as often as they edit cannot hide half a value.
+
+         A box that wraps, starting at one line and growing to what is in it.
+         It is still one field and one value \u2014 which is what "one line even
+         if it is several personas" asks for \u2014 and a line break typed into
+         it is whitespace everywhere it is read. */
       out.push(draftPart('Targeted persona', own ? aiDraft('persona') : '',
-        own ? draftText('persona.who', P.who,
-          'The titles to ask reception for \u2014 Head of Quality, QA Manager')
+        own ? draftArea('persona.who', P.who,
+          'The titles to ask reception for \u2014 Head of Quality, QA Manager', 1)
           : '<p class="b-cmeta-p">' + esc(P.who) + '</p>'));
     }
     if (own || k.pitch) {
@@ -23738,6 +23761,12 @@
         cbuildMany(m.n, m.weeks);
         return;
       }
+      if (CBUILD.step === 'pitch') {
+        CBUILD.pitch = t.slice(0, 400);
+        TURNS.push({ who: 'you', html: esc(t) });
+        cbuildName();
+        return;
+      }
       if (CBUILD.step === 'name') {
         CBUILD.name = t.slice(0, 60);
         cbuildMake();
@@ -25359,7 +25388,11 @@
     LBUILD = null;
     DRAFT = null;
     CBUILD = { step: 'way', sell: null, industry: null, region: null,
-      who: null, noun: null, n: null, weeks: null, name: null };
+      who: null, noun: null, n: null, weeks: null, name: null,
+      /* The job titles heard in the sentence about who we are after, and a
+         pitch if somebody went and wrote one. Both are null rather than a
+         default, so the card can tell what was said from what was derived. */
+      band: null, pitch: null };
     TURNS.length = 0;
     openCanvas();
     /* ══ WHICH WAY, BEFORE WHAT ARE WE SELLING ════════════════════════
@@ -25405,13 +25438,27 @@
      answering a builder by clicking should be possible the whole way down.
      Whatever was read out of the sentence is kept, so the second turn only
      ever asks for what is still missing. */
+  /* The parts the sentence writers take, out of the answers so far. The
+     builder has them before the campaign exists, which is the whole reason
+     those writers take parts and not a record. */
+  const cbuildParts = () => ({ sell: CBUILD.sell, industry: CBUILD.industry,
+    region: CBUILD.region, band: CBUILD.band });
+  const cbuildPitch = () => CBUILD.pitch || sayPitch(cbuildParts()) || '';
+
   function cbuildWho(text) {
-    const pairs = readSaid(text, 'acc');
+    /* 'con' rather than 'acc': the same reader, asked to hear job titles as
+       well as a sector and a country. "QA managers in Dutch software" names
+       three things and this heard two of them \u2014 the campaign came out aimed
+       at whatever titles the offering ships with, and the half of the
+       sentence naming the audience went on the floor. */
+    const pairs = readSaid(text, 'con');
     const ind = pairs.filter((p) => p[0] === 'industry')[0];
     const cc = pairs.filter((p) => p[0] === 'where')[0];
+    const job = pairs.filter((p) => p[0] === 'title')[0];
     TURNS.push({ who: 'you', html: esc(text) });
     if (ind) CBUILD.industry = ind[1];
     if (cc) CBUILD.region = regionOfCC(cc[1]);
+    if (job) CBUILD.band = job[1];
     if (!CBUILD.industry && !CBUILD.region) {
       cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
         '\u201chealthcare in Belgium\u201d — or pick from these.',
@@ -25461,7 +25508,14 @@
   function cbuildGoalStep() {
     CBUILD.step = 'goal';
     const said = INDUSTRY[CBUILD.industry].label + ' in ' + regionLabel(CBUILD.region);
-    cbuildPush('<b>' + esc(said) + '</b>. What is it worth having worked?',
+    /* A narrowing whose effect is invisible is a narrowing you have to take
+       on faith, and the titles heard in that sentence change who every
+       caller on this campaign asks reception for. Said back on the turn that
+       heard them, not discovered on the card four turns later. */
+    const who = CBUILD.band ? PERSONA_BAND[CBUILD.band] : null;
+    cbuildPush('<b>' + esc(said) + '</b>' +
+      (who ? ', asking for <b>' + esc(who) + '</b>' : '') +
+      '. What is it worth having worked?',
       [0, 1, 2, 3].map((kind) => ({ k: 'goal-' + kind, label: goalSay(cbuildGoalParts(kind)) })),
       'The outcome at the end of it, not the calls along the way — say it in ' +
       'your own words if none of those is it.');
@@ -25500,23 +25554,59 @@
       draftField('Client', 'FlairsTech') +
       draftField('Industry', esc(INDUSTRY[CBUILD.industry].label)) +
       draftField('Region', esc(regionLabel(CBUILD.region))) +
+      /* Who a caller asks reception for, and the sentence they open on.
+         Sixteen fields were being written unseen and the two that anybody
+         reads out loud were among them \u2014 so the read-back showed a count
+         and a closing date while the words the floor would be using arrived
+         with the campaign. Notes are not here: nothing wrote one. */
+      draftField('Targeted persona', esc(sayPersona(cbuildParts()) || '\u2014')) +
       draftField('The team', esc(listSay(crew))) +
       draftField('Counted in', esc(commas(CBUILD.n) + ' ' + CBUILD.noun + 's')) +
       draftField('Time frame', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
         sayDay(dayAdd(CBUILD.weeks * 7)))) +
+      draftField('Sales pitch', esc(cbuildPitch()), 'b-cb-wide') +
     '</div>';
   }
 
   function cbuildMany(n, weeks) {
     CBUILD.n = n;
     CBUILD.weeks = weeks;
-    CBUILD.step = 'name';
     CBUILD.name = cbuildAutoName();
+    cbuildName();
+  }
+
+  /* The last turn, and it is reachable twice now: once when the count is
+     answered, and again when somebody has been off writing the pitch. Both
+     land on the same card, which is the point — whatever was changed is on
+     it before Make it is pressed. */
+  function cbuildName() {
+    CBUILD.step = 'name';
     cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
       'Nobody is on it yet — a list goes on from its own page.',
-      [{ k: 'make', label: 'Make it' }],
+      [{ k: 'make', label: 'Make it' },
+        { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
       'Or type a different name and I will use that.',
       cbuildCard());
+  }
+
+  /* ══ THE ONE SENTENCE WORTH A TURN OF ITS OWN ══════════════════════
+     Five answers write sixteen fields, so the last turn is a confirmation
+     and the flow is right to make it one press — a step whose likeliest
+     outcome is no change is a form with extra questions, which is this
+     builder's own argument against the gate it replaced.
+
+     The pitch is the exception, and it is a door off the confirmation
+     rather than a question in front of it. It is the only thing on the card
+     anybody SAYS, it is what a manager is likeliest to want in his own
+     words, and until this build it was the hardest field on the record to
+     find afterwards. The card carries the drafted one; pressing Make it
+     accepts it, and this is for the mornings when the draft is not it. */
+  function cbuildPitchStep() {
+    CBUILD.step = 'pitch';
+    cbuildPush('Say it the way you would say it on the call.',
+      [{ k: 'keep', label: 'Keep the one AiMY wrote', quiet: true }],
+      'It is what a caller reads in the second before dialling somebody who ' +
+      'has never heard of us.');
   }
 
   /* Read a count and a length out of one sentence. Neither is required —
@@ -25738,6 +25828,7 @@
   function cbuildMake() {
     const b = CBUILD;
     if (!b || !b.sell) return;
+    const parts = cbuildParts();
     const x = SELL[b.sell];
     const ind = INDUSTRY[b.industry];
     const regL = b.region ? regionLabel(b.region) : 'the region';
@@ -25759,15 +25850,23 @@
          one come out the same shape. */
       lists: [],
       target: { n: b.n, noun: b.noun },
-      persona: { who: askFor,
+      /* The titles a switchboard knows, cut to the band the sentence named
+         if it named one. `askFor` is the fallback and it is also what the
+         goal below still says, because "a first meeting with whoever owns
+         quality" is a sentence and a list of titles is not. */
+      persona: { who: sayPersona(parts) || askFor,
         at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
         why: WHY_NOW[b.sell] },
       goal: b.noun === 'meeting'
         ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
         : 'A real conversation with ' + askFor + ' about what this is costing them today',
-      pitch: 'They are in ' + regL + ', and they are running this with people rather than with ' +
-        'a system. ' + x.name + ' is ' + x.blurb + '. Open on what it costs them today, not on ' +
-        'what we do.',
+      /* What the card showed, whether AiMY wrote it or the manager did.
+         One writer, so the sentence on the card and the sentence on the
+         record cannot be two different sentences. */
+      pitch: b.pitch || sayPitch(parts) || '',
+      /* Empty, and it stays empty until somebody who knows something writes
+         it down. Five answers do not include anything only he knows. */
+      notes: '',
       sells: [b.sell],
       objections: objs,
       resources: [
@@ -25815,6 +25914,10 @@
     if (key === 'win-conversation') { cbuildWin('conversation'); return; }
     if (key === 'many-12') { cbuildMany(20, 12); return; }
     if (key === 'many-8') { cbuildMany(12, 8); return; }
+    if (key === 'pitch') { cbuildPitchStep(); return; }
+    /* Back to the card, and the drafted pitch comes back with it: `null`
+       means "whatever AiMY would write", which is what `cbuildPitch` reads. */
+    if (key === 'keep') { CBUILD.pitch = null; cbuildName(); return; }
     if (key === 'make') { cbuildMake(); return; }
   }
 
