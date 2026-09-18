@@ -6542,6 +6542,73 @@
     '</section>';
   }
 
+  /* \u2550\u2550 A WAY IN, WHICH IS THE ONE THING NOBODY WOULD THINK TO ASK FOR \u2550\u2550
+     AiMY has said one of these unprompted since the feature was written:
+     the best company in `DB.net` you have a path to, as a turn in the canvas
+     the moment the morning starts. One message, once a session, chosen for
+     you \u2014 and everything else it found went unsaid.
+
+     That is the right shape for a thing you did not ask about and the wrong
+     shape for a thing you came looking for. Spending a connection is a
+     decision with a shortlist behind it: this company or that one, a
+     colleague you would rather not ask twice, a sector worth the favour.
+     A block is how you read a shortlist; a turn is how you are told
+     something. So both, off the same ranking.
+
+     \u2550\u2550 AND THE FLOW IS THE FLOW \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A row does not write anything. It opens the canvas on the same turn
+     AiMY would have opened with \u2014 the sentence, where it was read, Write the
+     ask and Add them to the board \u2014 because the letter is the thing that
+     leaves the building and the read-back before it is not a formality. The
+     row's verb names where it leads; the canvas is where it happens.
+
+     THE SAME TWO DESKS THE TURN GREETS. `reachGreet` refuses a caller and a
+     client and says why for each: choosing which companies to go after is
+     sourcing, which is not a caller's job and is the half a client buys
+     rather than does. A block that offered it to either would be the same
+     claim in a louder place. */
+  function connBlock() {
+    if (!onBook() || isBuyer()) return '';
+    /* Four. It is a shortlist to choose from, not a directory: the index
+       holds a hundred and seventy-odd people there is some path to, and a
+       briefing that lists them is a page you scroll rather than read. The
+       caption says they are the biggest, so the number is a selection said
+       out loud rather than a total quietly cut. */
+    const hits = reachAll().slice(0, 4);
+    if (!hits.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="Connections">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Connections</h2>' +
+        /* The shape every other block on this page uses for its caption:
+           how many, then the order they are in. "what was missed first" on
+           the one above, "longest waiting first" on Requests. */
+        '<span class="s-block-say">' + esc(plural(hits.length, 'company', 'companies')) +
+          ' you have a way into \u00b7 worth the most first</span>' +
+      '</div>' +
+      '<div class="b-owed">' + hits.map((h, i) =>
+        '<button class="b-owed-row" type="button" data-reachopen="' + esc(h.c.id) + '" ' +
+        'style="--i:' + Math.min(i, 8) + '">' +
+          /* The quiet dot. Nothing here went wrong and nothing is late \u2014
+             which is what this build's second pole means. */
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              /* The person, because they are who you would be writing to.
+                 The company and its size are the quiet half: they decide
+                 the ORDER of these rows and the caption has already said
+                 so, so saying it loudly on each row says it twice. */
+              '<span class="b-owed-type">' + esc(h.c.name) + '</span>' +
+              '<span class="b-owed-when">' + esc(h.c.co) + ' \u00b7 ' +
+                esc(headLabel(h.c)) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(reachLine(h)) + '</span>' +
+          '</span>' +
+          '<span class="b-owed-go">' +
+            (h.r.k === 'first' ? 'Write the message' : 'Write the ask') + '</span>' +
+        '</button>').join('') + '</div>' +
+    '</section>';
+  }
+
   function mgrHome() {
     return '<div class="s-home">' +
       topBrief('today') +
@@ -6552,6 +6619,11 @@
          one press. */
       reqBlock() +
       owedBlock() +
+      /* Last, and the order is what is owed before what is possible. Every
+         row above this is something that has happened and wants answering;
+         every row in here is something that has not happened and might.
+         A morning spends the first list before it reads the second. */
+      connBlock() +
     '</div>';
   }
 
@@ -12844,16 +12916,32 @@
      message a session is about the biggest company you have a way into
      rather than the first row that matched. A sector with no fit is not
      suggested at all: knowing somebody is not a reason to call them. */
-  function reachTop() {
+  /* One person's worth of it, so a row on the briefing and the turn in the
+     canvas are built by the same function off the same record rather than
+     agreeing by hand. Null for somebody there is no way in to, or whose
+     sector nothing we sell fits — the two refusals `reachTop` already made,
+     lifted out so the lookup behind a press makes them too. */
+  function reachHit(n) {
+    const fit = IND_FIT[n.industry];
+    if (!fit) return null;
+    const r = reachOf(n);
+    if (!r) return null;
+    const band = priceBand(n.size);
+    return { c: n, r: r,
+      worth: fit.fits.reduce((s, k) => s + ((PRICE[k] || PRICE.qa)[band] || 0), 0) };
+  }
+  /* ══ ALL OF THEM, AND THE BEST OF THEM ══════════════════════
+     This was `reachTop` with a `[0]` on the end, because one message a
+     session was the whole feature: AiMY noticed something and said it. A
+     block on the briefing asks a different question — not "what is the one
+     thing worth saying" but "which of these do I want to spend a connection
+     on" — and that is a list you choose from. Same ranking, same records,
+     same two refusals; what changes is how many come back. */
+  function reachAll() {
     const out = [];
     (DB.net || []).forEach((n) => {
-      const fit = IND_FIT[n.industry];
-      if (!fit) return;
-      const r = reachOf(n);
-      if (!r) return;
-      const band = priceBand(n.size);
-      out.push({ c: n, r: r,
-        worth: fit.fits.reduce((s, k) => s + ((PRICE[k] || PRICE.qa)[band] || 0), 0) });
+      const h = reachHit(n);
+      if (h) out.push(h);
     });
     /* ══ THE PRIZE RANKS IT, NOT THE DEGREE ═══════════════════════════
        Degree came first and it buried half the feature: every direct
@@ -12870,8 +12958,35 @@
        and the reader decides. */
     out.sort((a, b) => (b.worth - a.worth) ||
       ((a.r.k === 'first' ? 0 : 1) - (b.r.k === 'first' ? 0 : 1)));
-    return out[0] || null;
+    return out;
   }
+  const reachTop = () => reachAll()[0] || null;
+  /* \u2550\u2550 THE SAME FINDING, AT THE LENGTH A ROW HAS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     `reachSay` is a turn: it names the person, their job, their company and
+     its size, then asks whether to write. A row on the briefing has already
+     said the first four in its own head row and must not ask anything \u2014 it
+     is a thing you are choosing between, and a list of four questions is a
+     list nobody answers. So this is what is LEFT: the path in, which is the
+     thing you are actually deciding about \u2014 whether this company is worth
+     asking that person for.
+
+     \u2550\u2550 AND NOT WHAT WE WOULD SELL THEM \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     It was here, and drawn it read "QA and test automation is what fits
+     them" on all four rows \u2014 because the ranking is BY that fit, so the top
+     of it clusters in one sector by construction. A clause repeated on every
+     row of a list is a clause doing no work in any of them, and four rows
+     ending in the same eight words look like one row drawn four times.
+
+     It is not lost: the turn a row opens names the service in its first
+     sentence, which is where it is about to be used. And "nowhere in your
+     book" went the same way \u2014 true of every row, since `reachAll` reads
+     `DB.net`, which is the outside world. The caption carries what is true
+     of all of them; a row carries what is true of it. */
+  const reachLine = (hit) => (hit.r.k === 'first'
+    ? 'A connection of yours.'
+    : plural(hit.r.n, 'connection') + ' in common, the closest ' +
+      hit.r.via.name + '.');
+
   function reachSay(hit) {
     const c = hit.c;
     const r = hit.r;
@@ -22980,6 +23095,26 @@
     const hit = reachTop();
     if (!hit) return;
     REACH_SAID = true;
+    reachTurn(hit);
+    markUnread();
+  }
+
+  /* ══ THE OFFER, WHEREVER IT WAS ASKED FOR ══════════════════
+     AiMY says one of these unprompted when the morning starts, and the
+     briefing lists the rest for somebody who would rather choose. Both end
+     in this turn, because they are the same offer: the reading, where it was
+     read, and the two things you can do about it.
+
+     ONE LIVE OFFER AT A TIME, because `REACH_HIT` is one. An older turn left
+     pressable would draft a letter about whoever was chosen last while the
+     sentence about somebody else is still on screen — the buttons read the
+     global and the words do not. Spending them is what Write the ask already
+     does to this step, for the same reason. */
+  function reachTurn(hit) {
+    TURNS.forEach((x) => { if (x.step === 'reach') x.spent = true; });
+    /* Said once by AiMY unprompted, whichever way it was reached: picking
+       one off the briefing IS being told about it. */
+    REACH_SAID = true;
     REACH_HIT = hit;
     /* ══ AND IT SAYS WHERE IT LOOKED ═══════════════════════════════════
        Every reading on a record signs itself with what it read, and a turn
@@ -23009,7 +23144,6 @@
         { k: 'add', label: 'Add them to the board', quiet: true },
       ] });
     paintThread();
-    markUnread();
   }
   function openCanvas() {
     peekAll();
@@ -27953,6 +28087,24 @@
 
     const oc = t.closest('[data-chat]');
     if (oc) { openChat(oc.getAttribute('data-chat')); return; }
+
+    /* \u2550\u2550 A ROW ON THE BRIEFING HANDS OVER TO THE CANVAS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+       It writes nothing. The record is looked up again rather than carried
+       on the button, because `reachHit` is where the two refusals live and a
+       button that carried a stale hit would be offering a path that is no
+       longer there. Before `[data-reach]` in this file only for reading
+       order \u2014 the attributes do not collide, `closest` matches a name and
+       not a prefix. */
+    const ro = t.closest('[data-reachopen]');
+    if (ro) {
+      const id = ro.getAttribute('data-reachopen');
+      const n = (DB.net || []).filter((x) => x.id === id)[0];
+      const hit = n ? reachHit(n) : null;
+      if (!hit) return;
+      openCanvas();
+      reachTurn(hit);
+      return;
+    }
 
     const rch = t.closest('[data-reach]');
     if (rch) {
