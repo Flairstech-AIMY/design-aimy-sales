@@ -7478,14 +7478,30 @@
          every other `.b-aimy` in the build — and it was set as plain page
          copy. So it asserted without a mark and without a `from`, on the one
          surface where the claim is a derivation rather than a fact off a
-         field, and a reader had no way to know which. */
+         field, and a reader had no way to know which.
+
+         THE MARK STAYS AND THE SIGNATURE GOES, which is the half of that
+         this block got wrong. The mark says a reading was made and costs a
+         reader nothing to learn. The signature said "the diary against the
+         record" directly above the diary, drawn against the record. */
+      /* ══ AND HERE THE BASIS IS THE BLOCK IT IS STANDING IN ══════════
+         `bare`, for the reason `aimyBlock`'s own note gives about the board
+         card and names this very phrase in: provenance stops being
+         provenance and becomes jargon when the reader cannot use it.
+
+         It is worse here than on the card. The line sat under a heading
+         reading Missing details, over a list of meetings with their dates
+         and a verb saying write this one up — which IS the diary against the
+         record, drawn out in full, immediately below. The sentence signed
+         itself by naming the thing the next forty pixels already are.
+
+         The two claims that keep their signature on this page are elsewhere
+         and unchanged. Nothing is hidden that a reader could dispute. */
       (!un.length
-        ? aimyBlock({ text: 'Every meeting that has been and gone has been written up.',
-          from: 'the diary against the record' })
+        ? aimyBlock({ text: 'Every meeting that has been and gone has been written up.' }, true)
         : aimyBlock({ text: '<b>' + esc(plural(un.length, 'meeting')) + '</b>' +
           (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
-          'Say how it went in a sentence and AiMY moves the deal.',
-          from: 'the diary against the record' }) +
+          'Say how it went in a sentence and AiMY moves the deal.' }, true) +
       un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
         'data-fill="' + esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '" ' +
         'style="--i:' + Math.min(i, 8) + '">' +
