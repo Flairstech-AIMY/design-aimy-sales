@@ -742,6 +742,35 @@
     ops: 'Operations Director, Head of Shared Services, Head of Back Office',
   };
 
+  /* ══ HOW BIG THEY HAVE TO BE FOR THE PROBLEM TO BE REAL ════════════════
+     The third axis the list finder narrows on, and the campaign had no
+     opinion about it \u2014 so a campaign could be aimed at "software companies
+     in Benelux" and mean either a forty-person studio or a bank, which is
+     two different calls, two different openers and two different people
+     answering the phone.
+
+     Read off each offering's own `WHY_NOW` rather than assigned by feel,
+     because the reason to buy IS the size test. A queue longer than the team
+     answering it needs a queue; quality on a sample rather than on every
+     call needs enough calls for a sample to be a compromise; three different
+     answers from three people needs enough people for that to happen at all;
+     and month-end taking a week with nobody able to say why is a small
+     finance team, not a large one.
+
+     A default, not an assertion \u2014 `campFill` writes it into an empty field
+     and never over one somebody set. Keys are `SIZE_BANDS`, so the value
+     means the same thing here and in the finder. */
+  const SIZE_OF = {
+    voice: 'large',   /* a contact centre with a queue behind it */
+    qa: 'large',      /* enough conversations that a sample is the compromise */
+    know: 'huge',     /* the same question answered three ways is an estate */
+    support: 'mid',   /* support covered by people whose job is something else */
+    test: 'mid',      /* shipping on a cadence they cannot staff */
+    eng: 'mid',       /* hiring engineers faster than they can onboard them */
+    data: 'large',    /* labelling at volume */
+    back: 'small',    /* month-end takes a week and one team owns all of it */
+  };
+
   /* ══ WHAT THE MANAGER KNOWS AND THE BOOK DOES NOT ═════════════════
      A campaign's notes are the half of a brief no derivation can reach — who
      we already know there, what went wrong last time, when their procurement
@@ -1650,6 +1679,17 @@
          which is the only moment anybody needs it. */
       const askFor = ASK_OF[sells[0].k];
       const target = { n: between(r, 8, 30), noun: chance(r, 0.72) ? 'meeting' : 'conversation' };
+      /* ══ THE SAME DRAW, READ TWICE ══════════════════════════════════
+         This number was already being picked inside the object below, for a
+         `persona.at` string nothing has ever read. Hoisting it to here costs
+         nothing and moves nothing: the literal's first call into `r` was this
+         `pick` and there is no other between `target` and it, so the seed
+         cursor lands exactly where it did. Now it says the size as well,
+         which is a fact the record can use.
+
+         `floor + 1` because the sentence says "more than": more than 1,000
+         staff is the 1,000-to-5,000 band, not the one that ends at 1,000. */
+      const floor = pick(r, [200, 500, 1000, 2000]);
       camp.push({
         id: 'c' + i,
         name: name,
@@ -1661,9 +1701,10 @@
              say it; this line is what a caller asks reception for. */
           who: PERSONA_OF[sells[0].k] || askFor,
           at: ind.label.toLowerCase() + ' companies with more than ' +
-            commas(pick(r, [200, 500, 1000, 2000])) + ' staff in ' + reg.label,
+            commas(floor) + ' staff in ' + reg.label,
           why: WHY_NOW[sells[0].k],
         },
+        size: sizeBand(floor + 1),
         notes: campNote('c' + i),
         /* Three ways to ask for each, or every campaign selling the same
            thing prints the same goal and the surface reads as a template. */
@@ -2354,6 +2395,7 @@
           why: WHY_NOW.qa,
         },
         notes: 'Handed over rather than called. Everything on it is somebody else\u2019s conversation now.',
+        size: 'mid',
         goal: 'A scoping call with ' + ASK_OF.qa + ', with somebody in the room who can sign',
         pitch: 'They are in Benelux, and they are running this with people rather than with '
           + 'a system. ' + SELL.qa.name + ' is ' + SELL.qa.blurb + '. Open on what it costs '
@@ -13384,8 +13426,24 @@
     const nums = (s.match(/([\d][\d,.]*)\s*(?:k\b)?/g) || [])
       .map((x) => Number(x.replace(/[^\d]/g, ''))).filter((n) => n >= 10);
     if (nums.length) {
-      const lo = Math.min.apply(null, nums);
-      const hi = nums.length > 1 ? Math.max.apply(null, nums) : lo;
+      let lo = Math.min.apply(null, nums);
+      let hi = nums.length > 1 ? Math.max.apply(null, nums) : lo;
+      /* ══ ONE NUMBER IS NOT A RANGE, AND THE WORD BESIDE IT SAYS WHICH ══
+         A lone number was read as both ends of the range, so "over 1,000
+         staff" came back as the band that ENDS at 1,000 — the reader said
+         one thing and the builder wrote down its opposite. It has been doing
+         that in the list finder since the finder was written; it only became
+         visible when the campaign builder started saying the size back on
+         the turn that heard it, which is the whole argument for saying
+         things back.
+
+         Only for a lone number. "200 to 1,000" already carries both ends,
+         and a sentence with two numbers in it has said what it means. */
+      const more = /\b(over|above|more than|at least|bigger than|larger than)\b/.test(s) ||
+        /\d\s*\+/.test(s);
+      const less = /\b(under|below|fewer than|less than|up to|smaller than)\b/.test(s);
+      if (nums.length === 1 && more && !less) { lo = hi + 1; hi = 1e9; }
+      else if (nums.length === 1 && less && !more) { hi = lo - 1; lo = 0; }
       SIZE_BANDS.forEach((b) => { if (hi >= b.lo && lo <= b.hi) add.push(['size', b.k]); });
     }
     if (/not already|new only|exclude (mine|ours)|leave out/.test(s)) add.push(['only', 'new']);
@@ -15038,6 +15096,18 @@
           draftField('Region', draftMenu('dReg',
             k.region ? esc(REGION[k.region].label) : '', 'Where it is aimed',
             REGIONS.map((x) => draftItem('reg', x.k, x.label, k.region === x.k)).join(''))) +
+          /* The third market fact, in the same control as the two above it.
+             A menu, and the doctrine is against menus \u2014 but this is one of a
+             fixed four, exactly like the sector and the region it now stands
+             beside, and a free-text box here would be the one market fact the
+             finder could not read back. Consistency with its two siblings on
+             this page beats the general rule about new controls; the rule is
+             about decisions a page invents, and this decision was already
+             being made silently by nobody. */
+          draftField('Company size', draftMenu('dSize',
+            k.size ? esc(sizeLabel(k.size) + ' staff') : '', 'How big they have to be',
+            SIZE_BANDS.map((b) => draftItem('size', b.k, b.label + ' staff',
+              k.size === b.k)).join(''))) +
           draftField('The team', draftMenu('dCrew',
             crew.length ? crew.map((r) => esc(r.name)).join(', ') : '', 'Who works it',
             BDRS.map((r) => draftItem('crew', r.id, r.name,
@@ -15156,6 +15226,10 @@
           fact('campaign', 'Campaign') +
           fact('industry', esc(INDUSTRY[k.industry].label)) +
           fact('where', esc(REGION[k.region].label)) +
+          /* Only when it has one. A campaign from before this field existed,
+             or one somebody has not answered, says nothing rather than
+             claiming every company in the sector. */
+          (k.size ? fact('staff', esc(sizeLabel(k.size)) + ' staff') : '') +
           fact('calendar', esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to))) +
         '</span>' +
         '<div class="s-rec-title">' +
@@ -25392,7 +25466,7 @@
       /* The job titles heard in the sentence about who we are after, and a
          pitch if somebody went and wrote one. Both are null rather than a
          default, so the card can tell what was said from what was derived. */
-      band: null, pitch: null };
+      band: null, pitch: null, size: null };
     TURNS.length = 0;
     openCanvas();
     /* ══ WHICH WAY, BEFORE WHAT ARE WE SELLING ════════════════════════
@@ -25444,6 +25518,7 @@
   const cbuildParts = () => ({ sell: CBUILD.sell, industry: CBUILD.industry,
     region: CBUILD.region, band: CBUILD.band });
   const cbuildPitch = () => CBUILD.pitch || sayPitch(cbuildParts()) || '';
+  const cbuildSize = () => CBUILD.size || SIZE_OF[CBUILD.sell] || '';
 
   function cbuildWho(text) {
     /* 'con' rather than 'acc': the same reader, asked to hear job titles as
@@ -25455,10 +25530,16 @@
     const ind = pairs.filter((p) => p[0] === 'industry')[0];
     const cc = pairs.filter((p) => p[0] === 'where')[0];
     const job = pairs.filter((p) => p[0] === 'title')[0];
+    /* `readSaid` has read headcount out of a sentence since the list builder
+       was written \u2014 "software companies over 1,000 staff" is one band, "200
+       to 1,000" is one band \u2014 and the campaign builder was throwing the
+       answer away because its record had nowhere to put it. */
+    const big = pairs.filter((p) => p[0] === 'size')[0];
     TURNS.push({ who: 'you', html: esc(text) });
     if (ind) CBUILD.industry = ind[1];
     if (cc) CBUILD.region = regionOfCC(cc[1]);
     if (job) CBUILD.band = job[1];
+    if (big) CBUILD.size = big[1];
     if (!CBUILD.industry && !CBUILD.region) {
       cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
         '\u201chealthcare in Belgium\u201d — or pick from these.',
@@ -25507,7 +25588,8 @@
 
   function cbuildGoalStep() {
     CBUILD.step = 'goal';
-    const said = INDUSTRY[CBUILD.industry].label + ' in ' + regionLabel(CBUILD.region);
+    const said = INDUSTRY[CBUILD.industry].label + ' in ' + regionLabel(CBUILD.region) +
+      (CBUILD.size ? ', ' + sizeLabel(CBUILD.size) + ' staff' : '');
     /* A narrowing whose effect is invisible is a narrowing you have to take
        on faith, and the titles heard in that sentence change who every
        caller on this campaign asks reception for. Said back on the turn that
@@ -25554,6 +25636,11 @@
       draftField('Client', 'FlairsTech') +
       draftField('Industry', esc(INDUSTRY[CBUILD.industry].label)) +
       draftField('Region', esc(regionLabel(CBUILD.region))) +
+      /* Said if it was heard, and the offering's own default if it was not \u2014
+         the same value `cbuildMake` is about to write, so the card is not
+         quieter than the record it is a preview of. */
+      draftField('Company size', esc(cbuildSize()
+        ? sizeLabel(cbuildSize()) + ' staff' : '\u2014')) +
       /* Who a caller asks reception for, and the sentence they open on.
          Sixteen fields were being written unseen and the two that anybody
          reads out loud were among them \u2014 so the read-back showed a count
@@ -25663,6 +25750,9 @@
          empty until somebody \u2014 him or AiMY \u2014 writes them. */
       goal: '', pitch: '', notes: '',
       sells: [], objections: [], resources: [],
+      /* Empty means unsaid, not "any size". A campaign that asserts a size
+         nobody chose aims the whole floor at the wrong switchboard. */
+      size: '',
       from: TODAY_ISO, to: dayAdd(42),
       owner: campOwner(), crew: [], state: 'draft',
       industry: '', region: '', lists: [],
@@ -25743,8 +25833,8 @@
      the manager knows and nobody else does, and a product that writes one
      has put words in his mouth and printed them under his name. */
   const FILL_SAY = { name: 'the name', aim: 'the goal', persona: 'the persona',
-    pitch: 'the pitch', goal: 'the ask', objections: 'the objections',
-    resources: 'the one-pagers', target: 'the quota' };
+    size: 'the company size', pitch: 'the pitch', goal: 'the ask',
+    objections: 'the objections', resources: 'the one-pagers', target: 'the quota' };
 
   function campFill(k) {
     const p = campParts(k);
@@ -25770,6 +25860,9 @@
           why: WHY_NOW[p.sell] || '' };
       }
     }
+    /* Who they are and how big they are are one answer, so it is written
+       beside the persona rather than at the end of the sweep. */
+    if (!k.size && SIZE_OF[p.sell]) patch.size = SIZE_OF[p.sell];
     if (!k.pitch) {
       const said = sayPitch(p);
       if (said) patch.pitch = said;
@@ -25882,6 +25975,9 @@
          and asserts a market nobody named. */
       industry: b.industry,
       region: b.region,
+      /* Heard in the sentence about who we are after, or the offering's own
+         default. Either way it is what the card showed. */
+      size: cbuildSize(),
     };
     CBUILD = null;
     DB.camp.push(k);
@@ -26430,6 +26526,7 @@
       } else if (f === 'client') campSet(k, { client: v || null });
       else if (f === 'ind') campSet(k, { industry: v });
       else if (f === 'reg') campSet(k, { region: v });
+      else if (f === 'size') campSet(k, { size: v });
       else if (f === 'list') { listOnCamp(v, k); stay = 'dList'; }
       paint();
       if (stay) {
