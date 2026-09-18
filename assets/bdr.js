@@ -12224,7 +12224,17 @@
       : paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
     /* A run down the cards is a run of calls, and the book is companies.
        Nothing to run, so the row that offers it does not draw. */
-    const call = book ? [] : pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
+    /* ══ AND IT ASKED THE CALLER'S QUESTION ON THE MANAGER'S DESK ════════
+       `callable` means the CALLER has not finished with them \u2014 it stops at
+       rank 3 and excludes a hand-over \u2014 and on the book desk every lead is
+       handed over by definition, so it answered false for every row and
+       Call them never drew. A manager looking at five people handed to him
+       on this campaign had no way to ring one from the page listing them.
+
+       `canRing` is the desk-aware form of the same question and has been
+       here since the account masthead hit this exact wall: a number and no
+       do-not-call is the whole of the test once the lead is yours. */
+    const call = book ? [] : pg.rows.filter((c) => canRing(c) && rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="Your accounts">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
@@ -12239,8 +12249,15 @@
          nothing above them. */
       '<div class="s-camp-list-head">' +
         (S.camp
+          /* ══ THE ROWS ARE CONTACTS ON BOTH DESKS ════════════════════
+             `dealQueue` maps `DB.byCon` \u2014 every row here is a person, ranked
+             by the stage their deal is at. "The deals on it" named the LENS
+             and not the set, over a grid of faces and phone numbers, beside
+             a search box offering to find someone on this campaign. Three
+             nouns for one thing again, and the one on the heading was the
+             only one that was not a person. */
           ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting'
-            : onBook() ? 'The deals on it' : 'To call') + '</h2>'
+            : onBook() ? 'The contacts on it' : 'To call') + '</h2>'
           : switcher(here || (onBook() ? 'today' : 'calls'))) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
