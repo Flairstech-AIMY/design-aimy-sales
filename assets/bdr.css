@@ -4994,10 +4994,11 @@
 .rail-console:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .rail-console:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .rail-console > svg { width: 15px; height: 15px; flex: none; opacity: 0.75; }
-.rail-console-lines { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.rail-console-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); }
-.rail-console-sub {
-  font-size: var(--t-micro); color: var(--ink-faint); line-height: var(--lh-snug);
+/* One line, not two — the subline and its wrapper are gone. The truncation
+   moves onto the name, which is what is left to truncate. */
+.rail-console-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold);
 }
 
 /* The read-back's card. The record's own metadata grid, at two columns

@@ -5579,10 +5579,11 @@
         '<a class="rail-console" href="https://aimy-knowledge.nour-ali.workers.dev/console" ' +
           'target="_blank" rel="noopener">' +
           chIcon('grid') +
-          '<span class="rail-console-lines">' +
-            '<span class="rail-console-name">Console</span>' +
-            '<span class="rail-console-sub">Documents &amp; Corpus</span>' +
-          '</span>' +
+          /* One line, not two. The button named the destination and then
+             described it, and the description is the page you are about to be
+             standing on. The wrapper went with the subline: a column of one
+             is a row. Same edit as Knowledge's gate and rail buttons. */
+          '<span class="rail-console-name">Console</span>' +
         '</a>' +
       '</div>';
   }
@@ -12504,33 +12505,49 @@
       ? { label: 'On ' + listSay(camp.map(campName)), tone: 'ok' }
       : { label: 'Not on a campaign yet', tone: 'warn' };
     const first = call[0];
-    const callFirst = first
-      ? '<button class="s-inline-btn" type="button" data-call="' + esc(first.id) + '">Call ' +
-        esc(first.name.split(' ')[0]) + '</button>'
-      : '';
 
-    /* [2] ONE ROW, DECIDED BY STATE. Off a campaign the list has one job —
-       getting onto one — so the chips are the row. On one, the phone. */
-    /* `camp` is a set now, and an empty array is truthy — so this branched
-       on "is there a campaign" and got yes for a list on none, then drew
-       "Open undefined" where the way onto a campaign should have been. One
-       door per campaign, because with two of them there is no first. */
-    const actions = camp.length
-      ? (first
-          ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
-              '">Call the next one on this list</button>' +
-            /* The same verb as the queue's, so the same control: one label
-               drawn two ways on two surfaces is two controls to learn. */
-            (call.length > 1
-              ? '<button class="b-ghost" type="button" data-callall="' +
-                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-                'Call them</button>'
-              : '')
-          : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
-        camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
+    /* [2] ONE ROW, IN TWO HALVES: THE PHONE, THEN WHERE THE CAMPAIGN IS.
+       This was one row DECIDED BY state — off a campaign the list had one
+       job, getting onto one, so the chips were the whole row and there was
+       no way to call anybody from it. That is a rule about the QUEUE being
+       enforced on the TELEPHONE: a campaign decides whether these people
+       come round to you, and it has never decided whether you may dial a
+       number you are already looking at. Thirty-two callable people and
+       nowhere to press was the defect this page was rewritten to fix, and
+       it survived in the one state where a list spends most of its life.
+
+       So the phone is unconditional and the second half is what changes:
+       on a campaign, a door per campaign; off one, the way onto one. The
+       row keeps its shape across both states, which is the other half of
+       the argument — a reader who has learnt this row on a working list
+       should not meet a different one on a loose list.
+
+       `camp` is a set, and an empty array is truthy — which is why this
+       asks `camp.length` and not `camp`. Getting that wrong once drew
+       "Open undefined" where the way onto a campaign should have been. */
+    const phone = first
+      ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
+          '">Call the next one on this list</button>' +
+        /* The same verb as the queue's, so the same control: one label
+           drawn two ways on two surfaces is two controls to learn. */
+        (call.length > 1
+          ? '<button class="b-ghost" type="button" data-callall="' +
+            esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+            'Call them</button>'
+          : '')
+      : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>';
+    /* THE PRIMARY IS WHATEVER THE ROW IS FOR. With somebody to call, the
+       phone leads and the campaign is the quiet chip beside it, in the
+       same slot a working list puts its campaign doors. With nobody to
+       call, getting onto a campaign is the only thing left to do here and
+       it takes the loud button back. */
+    const onward = camp.length
+      ? camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
           '">Open ' + esc(campName(x)) + '</button>').join('')
-      : campMenu({ id: 'listCampPick', opts: campOpts(), cls: 's-insight-lnk primary',
+      : campMenu({ id: 'listCampPick', opts: campOpts(),
+          cls: first ? 's-inline-btn' : 's-insight-lnk primary',
           label: 'Put it on a campaign', cap: 'Put it on', go: 'list:' + l.id });
+    const actions = phone + onward;
 
     return '<div class="s-home">' +
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
@@ -12690,16 +12707,17 @@
   function listLead(l, people, call, onCamp) {
     const said = listSays(l, people, call.length, onCamp);
     if (!said || said.from === 'their own records') return '';
-    const first = call[0];
-    /* The missing-number reading gets V3's verb; the no-campaign reading
-       gets the phone anyway. */
+    /* The missing-number reading gets V3's verb. The no-campaign reading
+       used to get the phone too — "Call Omar anyway" — because the action
+       row above it had none off a campaign. It has one now, saying the same
+       thing in the louder place forty pixels higher, so this is one control
+       drawn twice on one screen. The sentence is what this block is for:
+       it says they are not in your queue, and the row says you may call
+       them regardless. */
     const door = /without a number/.test(said.text)
       ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
         'Fill in what is missing</button>'
-      : first
-        ? '<button class="s-insight-lnk" type="button" data-call="' + esc(first.id) + '">Call ' +
-          esc(first.name.split(' ')[0]) + (onCamp ? '' : ' anyway') + '</button>'
-        : '';
+      : '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this list">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
