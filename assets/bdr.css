@@ -107,7 +107,15 @@
    reach a chip that was appended to the sentence as a word. */
 .b-cuts:not(.b-cuts-row) { margin-top: 10px; }
 .b-cuts:not(.b-cuts-row):last-child { margin-bottom: 0; }
-.b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }
+/* The 0.65 here was how this number was "set quiet on purpose", and it put
+   it at 3.26:1 against its ground where AA asks 4.5. Opacity is the same
+   fault as a dim ink token, just spelled differently — it moves the
+   composited colour without anything in the palette recording that it did.
+   Quiet is --ink-secondary, which IS the quiet floor and passes. */
+.b-cut-n {
+  font-variant-numeric: tabular-nums; margin-left: 4px;
+  color: var(--ink-secondary);
+}
 
 /* §4 held a campaign row. Campaigns are cards in the same grid as people
    now, so the row and its five rules are gone with it. */
@@ -196,12 +204,34 @@
   transition: color var(--t-fast), font-weight var(--t-fast);
 }
 .b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
-.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-extrabold); }
+/* ══ ONE STEP IS ENOUGH, AND THE COUNT COMES WITH IT ═════════════
+   The note above says a rank differs from its neighbour in at least two of
+   {size, weight, ink}, and reads the on-state as differing in two. It
+   differs in three: the ink moves --ink-muted to --d50, the weight moves,
+   and .b-switch-bar slides under it. Two of those were already enough, so
+   the weight did not need to jump 500 to 700 — two whole steps, landing on
+   --fw-extrabold, which is the top of the ladder.
+
+   That register should be rare or it stops meaning anything, and a tab is
+   not the loudest thing on a page that also has a page title. One step to
+   --fw-bold keeps the rank and gives the top back to what it is for.
+
+   THE COUNT. There was a rule here whose whole job was to hold the count at
+   --ink-muted while its tab lit up, so the one number on the active tab was
+   the one part of it that did not respond. The intent was right — the count
+   must not compete with the name — but muted is not the only way to be
+   subordinate: it is already four points smaller and a weight lighter.
+
+   So it takes the accent instead, which is the same language the filter
+   chips underneath already use for "this is the one selected". --accent-text
+   rather than --accent, because the raw hue is 3.26:1 against this ground
+   and the text-safe one is documented at 5.04. */
+.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-bold); }
 .b-switch-n {
-  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums; color: var(--ink-muted);
 }
-.b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); }
+.b-switch-btn.is-on .b-switch-n { color: var(--accent-text); }
 
 /* ══ 11. THE QUEUE, AS CARDS IN THREE COLUMNS ══════════════════════════════
    A row had space for a name, a line and a button — enough to be ranked by
@@ -278,7 +308,7 @@
   font-size: var(--fs-base); font-weight: var(--fw-semibold);
   line-height: var(--lh-snug); color: var(--ink-primary);
 }
-.b-qcard-why b { font-weight: var(--fw-extrabold); }
+.b-qcard-why b { font-weight: var(--fw-semibold); }
 
 /* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
    The fix above moved the note's TEXT off the edge and left its rule behind.
@@ -336,19 +366,41 @@
 
    Scoped to `.b-qcard`, so no other card in the product moves. */
 .b-qcard .tc-type {
-  font-size: var(--t-small); font-weight: var(--fw-bold); color: var(--ink-muted);
+  font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--ink-muted);
 }
 .b-qcard .tc-title {
-  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  font-size: var(--fs-lg); font-weight: var(--fw-bold);
   line-height: var(--lh-tight); color: var(--d50);
 }
 .b-qcard .b-qcard-role {
   padding: 6px 14px 0; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
   line-height: var(--lh-snug); color: var(--ink-secondary);
 }
+/* ══ THE FACTS ROW IS A MINIMAL COMPONENT, NOT A SENTENCE ══════════
+   "Wenside Works · Manufacturing · Antwerp · 40 staff" is four chips of one
+   or two words. The scale calls 12 the minimal size — "a tag, a work state,
+   a timestamp — recognised, not read" — and this is exactly that; it sat at
+   14 only because --fs-xs was the reflex token for anything small.
+
+   The cost of that reflex, counted on the desk: 188 of 260 text runs came
+   out at 14px, against 29 at body and 15 at heading. But only ELEVEN of
+   those 188 were prose. The rest were labels, so the answer was never to
+   push them up to body — it was to let the minimal ones sit at minimal, and
+   give the 14px step back to its actual job: the supporting line under a
+   name, which here is .tc-summary carrying the role.
+
+   That also buys the card a second axis where it had one. Role against
+   facts was 14/500 against 14/400 — one weight step, same ink, which the
+   type doctrine does not count as a rank. It is now 14/500 against 12/400:
+   size and weight, two axes, visible at a glance.
+
+   Poppins is what makes 12 safe here. Its x-height runs 7.8% above
+   Urbanist's, so this line has the x-height Urbanist would have needed
+   12.9px to reach — the step down costs less legibility than it would
+   have under the old face. */
 .b-qcard-where {
   margin: 0; padding: 2px 14px 0;
-  font-size: var(--fs-xs); font-weight: var(--fw-medium);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   line-height: var(--lh-snug); color: var(--ink-muted);
 }
 /* EMPHASIS INSIDE A LINE NEEDS THE LINE NOT TO BE BOLD ALREADY. This ran at
@@ -456,10 +508,10 @@
   min-width: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium);
   line-height: var(--lh-snug); color: var(--ink-secondary);
 }
-.b-aimy-say b { font-weight: var(--fw-bold); }
+.b-aimy-say b { font-weight: var(--fw-semibold); }
 .b-aimy-from {
   display: block; margin-top: 4px;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 
@@ -638,10 +690,54 @@
 /* What comes back at you and the answer agreed to it. It was a section on
    the campaign page and it is a part of the brief now — the caption is the
    brief's, the pair underneath is the one this build already drew. */
+/* ══ PROXIMITY IS THE AXIS NOBODY SPENT ═══════════════════════
+   Hierarchy is size, weight, tone AND space. The first three were tuned
+   over several passes and the fourth was never touched, which is why the
+   call-prep panel still read as one undifferentiated column of text.
+
+   Measured, top-level gaps down that panel against the gaps INSIDE its
+   groups:
+
+     between sections   14  12  15  15   9  10  36
+     inside a group     10 (answer rows)   6 (shelf lines)
+
+   A section boundary and a row boundary were the same distance apart, so
+   nothing grouped and everything read as one list. This heading was the
+   clearest case: 15px above it and 9px below, very nearly equidistant
+   between the block it ENDS and the block it INTRODUCES. And the largest
+   gap on the panel, 36px, sat in front of the shelf — the least important
+   thing there.
+
+   Three tiers now, at roughly 3:1, which is the point where proximity
+   starts doing work: 26px between sections, 12-14px inside a section, and
+   6px from a heading to the thing it introduces. A heading belongs to what
+   follows it, so it sits close to that and far from what it ends. */
+/* RANK A. The chip is declared once beside .b-back-k; this adds the two
+   things that lift a section head above the rows it contains — a wash
+   behind it, and capitals. It keeps the tracking capitals need.
+
+   TWO TRAPS SPRUNG HERE, BOTH MEASURED IN PLACE, BOTH RECORDED SO THE NEXT
+   PERSON DOES NOT PAY THEM AGAIN.
+
+   The wash was var(--wash-7) and it rendered transparent. --wash-3/6/7 are
+   declared on .ntf-anchor, not on :root, so outside the notification anchor
+   they do not resolve and background silently falls back. Nothing warns.
+   --card-bg-raised is no good either: it is #1c2630, which is exactly the
+   message bubble this panel sits in, so the chip would be invisible. What a
+   chip needs is not a colour but a LIFT off whatever is behind it, so it
+   mixes 8% of the primary ink into transparent — white-ish on the dark
+   theme, near-black on the light one, correct in both without a fork.
+   color-mix is already the idiom here; .b-prep-due.is-late uses it.
+
+   And it stretched the full 492px instead of hugging its words. .b-prep is
+   a flex column, which blockifies inline-block on its children and then
+   stretches them. align-self is what stops that; the other two chips are
+   not direct flex children and were already hugging. */
 .b-brief-cap {
-  margin: 18px 0 10px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold);
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
+  margin: 26px 0 6px;
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--ink-primary) 8%, transparent);
+  letter-spacing: 0.08em; text-transform: uppercase;
 }
 /* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
    `--d500` is #637280 and `--d600` is #4a5b6e. Against this ground they are
@@ -685,9 +781,15 @@
    weight and case — 24px figures over 18px names over 14px meta over 12px
    caps — which is where a rank belongs. Dimness was doing the job a second
    time, badly, and it is the axis that costs the reader their eyes. */
+/* `.s-pan-restitle` was missed when this list was written, and it is the
+   only sublabel on the page still at `--d400` — the same 12px, 600, uppercase
+   and 1.2px tracking as `.s-exec-eyebrow`, `.s-odds-cap` and `.s-pan-unit`
+   three lines up, two steps dimmer for no reason anybody recorded. It labels
+   the two halves of a client's promise ledger, either side of the handover,
+   which makes it the most load-bearing sublabel here and was the quietest. */
 .s-pan-facts span, .s-pan-meta, .s-pan-unit, .s-pan-state,
 .s-exec-eyebrow, .s-exec-note, .s-af-cap, .s-af-sub,
-.s-cost-note, .s-odds-cap, .s-odds-n, .s-odds-note,
+.s-cost-note, .s-odds-cap, .s-odds-n, .s-odds-note, .s-pan-restitle,
 .s-att-of, .s-att-key, .s-asks-cap { color: var(--d200); }
 /* "Nothing" is a state a campaign is IN, not a value that failed to arrive.
    Dimming it said the second. The word carries the meaning, which is also
@@ -902,7 +1004,11 @@
 .s-callsum-cap { font-size: var(--fs-xs); }
 .s-callp b { font-size: var(--fs-xs); color: var(--ink-muted); }
 .b-aimy-from { font-size: var(--fs-2xs); }
-.tc-type { font-size: var(--t-small); color: var(--ink-muted); }
+/* Shares .tc-head with the state tag, which is 12px. At 14 it outranked the
+   tag beside it while saying less, and collided with .tc-summary below at
+   the same size. At 12 the strip reads as one row and the role line under
+   the name gets the 14px step to itself. */
+.tc-type { font-size: var(--t-micro); color: var(--ink-muted); }
 
 /* [5] COUNTS DO NOT JITTER. Proportional digits change width as the value
    changes, so the switcher shifted sideways every time a search narrowed it.
@@ -967,7 +1073,7 @@
 /* The month over a run of touchpoints. Small, at full ink, with the space
    above it doing the separating — a rule would compete with the cards. */
 .b-month {
-  margin: 14px 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  margin: 14px 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-calls > .b-month:first-child { margin-top: 0; }
@@ -1012,7 +1118,7 @@
   margin: -8px 0 16px; font-size: var(--fs-xs); color: var(--d200);
   font-variant-numeric: tabular-nums;
 }
-.b-lead-today b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-lead-today b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* THE FIGURE STRIP, TIGHTER, WITH THE FUNNEL BREATHING UNDER IT. The four
    figures had 24px between columns and 32 below, then the bars started 4px
@@ -1060,7 +1166,7 @@
   font-size: var(--fs-base); line-height: var(--lh-base); color: var(--d100);
   max-width: 70ch; text-wrap: pretty;
 }
-.b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-reading b { color: var(--d50); font-weight: var(--fw-semibold); }
 /* The one reading here that has something you can do about it: the sentence,
    then the door under it — the shell's own order for an insight.
 
@@ -1141,7 +1247,7 @@
 .s-home .s-lead-n { font-size: var(--t-figure); line-height: 1; }
 /* The weight moved to §87, where the argument for it is. */
 .s-home .s-lead-deck, .b-lead-slim .s-lead-deck {
-  font-size: var(--t-deck); font-weight: var(--fw-regular); line-height: 1.3;
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base);
   margin-bottom: 16px;
 }
 .s-home .s-lead-say { font-size: var(--t-lead); }
@@ -1210,8 +1316,19 @@
 .b-acts { margin: 0 0 12px; }
 .b-cuts + .b-grid { margin-top: 4px; }
 
-/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not. */
-.b-switch-n, .b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
+/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not — this lifted
+   the count UP onto the --d200 floor rather than flattening it, which is why
+   it lives here and not beside the component.
+
+   It used to name `.b-switch-btn.is-on .b-switch-n` in the same group, at
+   the same specificity as the on-state rule beside the component and later
+   in the file — so it won every time and the active tab’s count could never
+   respond to being active. A floor belongs on the base selector. The
+   on-state sets its own ink and is allowed to.
+
+   It also carried the weight, which is why the count computed 500 while the
+   rule beside the component declared 600. Same value now, stated once. */
+.b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 .s-starts-cap { color: var(--ink-muted); }
 
 /* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
@@ -1323,7 +1440,10 @@
   border-radius: 14px;
   padding: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.2);
-  font-family: "Urbanist", sans-serif;
+  /* Was hardcoded "Urbanist" and so survived two font changes without
+     moving; when the document stopped requesting that family the panel
+     quietly fell to a system fallback. Name the token, not the face. */
+  font-family: var(--font-sans);
   text-align: left;
 }
 .ntf-panel[hidden] { display: none; }
@@ -1384,16 +1504,16 @@
 .ntf-panel::-webkit-scrollbar-thumb:hover { background: var(--card-border); }
 
 .ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
-.ntf-head b { font-size: var(--t-ui); font-weight: 800; color: var(--d50); letter-spacing: 0.01em; }
+.ntf-head b { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); letter-spacing: 0.01em; }
 .ntf-count {
-  font-size: var(--t-micro); font-weight: 700; padding: 1px 7px; border-radius: 9999px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); padding: 1px 7px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.16); color: var(--qa-accent);
   font-variant-numeric: tabular-nums;
 }
 .ntf-count[hidden] { display: none; }
 .ntf-clear {
   margin-left: auto; background: none; border: 0; cursor: pointer;
-  font-family: inherit; font-size: var(--t-small); font-weight: 600; color: var(--ink-muted);
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--ink-muted);
   padding: 2px 4px; border-radius: 6px;
   transition: color var(--transition-fast);
 }
@@ -1415,13 +1535,13 @@
 .ntf-sev.p2, .ntf-sev.p3 { background: var(--d500); }
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
-.ntf-row-type { font-size: var(--t-ui); font-weight: 800; color: var(--d50); }
+.ntf-row-type { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); }
 .ntf-row-when { margin-left: auto; font-size: var(--t-small); color: var(--ink-muted); flex-shrink: 0; }
 /* The sentence the row is for. It was the smallest and faintest thing in the
    panel, under a label that was neither. */
 .ntf-row-body { margin: 0 0 7px; font-size: var(--t-ui); line-height: 1.5; color: var(--d200); }
 .ntf-row-cta {
-  font-family: inherit; font-size: var(--t-small); font-weight: 700; cursor: pointer;
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-bold); cursor: pointer;
   padding: 4px 10px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent-text);
   border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
@@ -1432,7 +1552,7 @@
 
 .ntf-foot { padding: 8px 4px 4px; border-top: 1px solid var(--wash-6); margin-top: 6px; }
 .ntf-foot-btn {
-  width: 100%; font-family: inherit; font-size: var(--t-ui); font-weight: 700; cursor: pointer;
+  width: 100%; font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-bold); cursor: pointer;
   padding: 8px; border-radius: 9px; background: var(--wash-3);
   border: 1px solid var(--wash-6); color: var(--ink-muted);
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -1886,7 +2006,7 @@
 .b-nmo-sum::-webkit-details-marker { display: none; }
 .b-nmo-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-nmo-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-primary);
 }
 /* Its own month's, right where the eye already stops. */
 .b-nmo-n { margin-left: auto; font-size: var(--fs-2xs); color: var(--ink-quiet); }
@@ -2121,7 +2241,7 @@
 }
 
 /* Who has it now — a fact about the record, not a thing to press. */
-.b-managed b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-managed b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 
 /* ══ 39. THE STORY, AS A STORY ═════════════════════════════════════════════
@@ -2131,11 +2251,16 @@
    than scrolls: a horizontal scroller inside a page that scrolls is two
    scrollbars arguing. */
 .b-story { padding-top: 4px; }
+/* IT WAS SET AT ITS OWN HEADING’S SIZE. --t-deck is 18 and .s-block-h above
+   it is 18, so the section title and the sentence under it were the same
+   step, with the <b> inside the sentence matching the title’s weight as
+   well. A heading that shares both axes with its body is not a heading.
+   --t-body puts the sentence one step under the thing that introduces it. */
 .b-story-now {
   margin: 0 0 16px; max-width: 62ch; text-wrap: pretty;
-  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-tight); color: var(--d100);
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d100);
 }
-.b-story-now b { font-weight: var(--fw-extrabold); color: var(--d50); }
+.b-story-now b { font-weight: var(--fw-semibold); color: var(--d50); }
 .b-story-now b.tone-ok { color: var(--ok-text); }
 .b-story-now b.tone-warn { color: var(--warn-text); }
 .b-story-now b.tone-err { color: var(--err-text); }
@@ -2231,18 +2356,110 @@
    the stripe is the oldest tell in the book. What comes back is a pair — their words tagged in the warning
    tone, your answer in full ink under it. What we sell and what you can
    send are the quiet ends. */
-.b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.b-back { display: flex; flex-direction: column; gap: 14px; margin-bottom: 26px; }
 .b-back:last-child { margin-bottom: 0; }
+/* ══ THE LABEL SITS ABOVE ITS ANSWER, AND STOPS SHOUTING ═══════════
+   Two faults, one row.
+
+   It wore `tag tag-warn`, deliberately — the note below still describes
+   that as tagging their words in the warning tone. But the panel put four
+   amber pills on screen at once: Callback, Services, Pricing, Features. Only
+   ONE thing in that panel is actually urgent, .b-prep-due.is-late, and it is
+   amber too, so the colour that means "late" was being outvoted three to one
+   by colour that means "category". The loudest treatment in the build was
+   being spent on the word Pricing. These are neutral now and amber means
+   late again.
+
+   It cannot simply borrow .b-brief-cap's eyebrow either. That is 12px bold
+   uppercase and tracked, and so is .b-prep-line b — the panel already sets
+   two different levels in one treatment, and a third would make the section
+   heading "If they push back" identical to the three labels under it. So
+   this one separates on case and tracking instead: same 12px step, bold,
+   but sentence case and untracked. Against the heading that is three axes;
+   against its own answer at 16/400/--d50 it is size, weight and ink.
+
+   ── and the measure, which is why the row moved in the first place ──
+
+   It was two columns, `minmax(96px, max-content) 1fr`, stacking at a
+   VIEWPORT breakpoint of 720px. It lives in the canvas answer body, about
+   330px wide on a 1250px screen, so the breakpoint never fired and the wide
+   layout ran inside a narrow box. Measured there, reproducing it at 329px:
+
+     grid resolved to   95.99px + 227.86px, for a tag needing 68px
+     .b-back-v got      26 characters per line
+     same panel, rest   35 to 44
+     its max-width      62ch, resolving to 622px against a 221px column
+
+   26 characters is under half a comfortable measure, and it is why the
+   block read as a wall rather than as three answers. Stacking settles it at
+   every width without a media query or a container query: the answer always
+   has the full column, 62ch caps it on a wide surface, and nothing depends
+   on the window's width to describe a box the window knows nothing about. */
+/* ══ THE ROW LABEL BECOMES A CHIP, BECAUSE FORM IS WHAT IS LEFT ═════
+   Three ranks in this panel were wearing one treatment: .b-brief-cap heads
+   a section, .b-back-k names a row inside that section, and .b-prep-line b
+   and .b-prep-refp b label a value. All three sat at 12px bold, separated
+   only by case and tracking, which is not enough to carry three levels.
+
+   Size and weight are both spent at this end of the scale — 12px is the
+   floor and 400 is the weight floor below 18px — so the axis left is FORM.
+   A chip has an outline and a shape that a run of text does not, and that
+   reads as a different KIND of thing rather than a louder one. Three
+   devices for three ranks now:
+
+     section   IF THEY PUSH BACK   uppercase, tracked, weight 400
+     row       [ Services ]        a chip, outlined, 12px
+     field     Last time           plain bold, sentence case
+
+   It borrows the neutral treatment from .b-prep-state .tag-warn a few
+   sections down, so the panel has one idea of what a quiet chip looks like
+   rather than two. Amber stays reserved for late. The gap under it goes to
+   6px: a chip carries its own padding, so 2px read as collision. */
 .b-back-row {
-  display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 4px 16px; align-items: baseline;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
 }
-.b-back-k { justify-self: start; }
+/* ══ THE LABELS ARE ONE FAMILY IN THREE RANKS ══════════════════
+   Four labels arrived as four unrelated treatments, and the first attempt
+   at fixing that made them one — which was worse, because they are not
+   peers and flattening them said they were. Worse in a specific direction:
+   an outlined chip is visually STRONGER than plain text, so making the row
+   labels chips while the section head stayed a plain eyebrow left the rows
+   outranking the section that contains them.
+
+   What they actually are, by how much each one introduces:
+
+     A  .b-brief-cap     heads a group: a paragraph AND three rows
+     B  .b-back-k        labels one row
+        .b-prep-line b   labels one value
+     C  .b-prep-refp b   the shelf — reference, read last if at all
+
+   Ranked on FORM, because size, weight and ink are all spent down here:
+   12px is the size floor, 400 is the weight floor below 18px, and --d200 is
+   the ink floor. Form still has room, and it has three clear steps:
+
+     filled chip   >   outlined chip   >   plain text
+
+   So A takes a wash behind the same border, B keeps the outline, and C
+   drops the chrome entirely. That last one is not a demotion invented here:
+   .b-prep-ref a few rules down already says the shelf earns its step down
+   "without a rule above it or a box around it", and a chip is a box around
+   it. The rule and the comment agree again. */
+.b-back-k,
+.b-brief-cap,
+.b-prep-line b {
+  display: inline-block;
+  padding: 2px 9px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border);
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  line-height: var(--lh-snug); color: var(--ink-muted);
+}
 .b-back-v {
   margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
 @media (max-width: 719.98px) { /* 720 layout px */
-  .b-back-row { grid-template-columns: 1fr; }
+  /* .b-back-row used to stack here. It stacks on its own width now, at any
+     viewport, so the override is gone rather than left to look load-bearing. */
   /* ══ THE LABEL IS NOT A SHARE OF THE ROW, IT IS THE ROW'S SUBJECT ══════
      This was `minmax(80px, 1fr) 2fr`, which gave the BAR twice what it gave
      the step it belongs to: measured at a 620px layout, the label got 114 and
@@ -2367,7 +2584,7 @@
 @keyframes b-menu-up-out { to { opacity: 0; transform: scale(0.99) translateY(2px); } }
 .b-menu-cap {
   padding: 4px 10px 6px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-menu-item {
@@ -2427,10 +2644,22 @@
 .b-nm-do { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
 .b-nm-do.is-done { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 28%, transparent); }
 .b-nm-note { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+/* THE TILE IS 28px AND THE GLYPH IS NOT. The svg inside carried no width or
+   height, so it filled the tile edge to edge — a 28px checkmark beside a 12px
+   pill and a 16px sentence, which is the loudest thing in the block and says
+   the least. §76 of this file already states the rule for marks on a card: a
+   mark that outsizes the line it sits on is the wrong way round. 16px matches
+   the sentence it marks and leaves the tile its padding. */
 .b-nm-mark {
-  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; margin-top: 1px;
+  /* The FALLBACK mark, drawn only when there is no due chip to carry it.
+     Shrinking the glyph alone left a 28px tile holding 16px of icon beside a
+     16px sentence — the box was still the largest thing in the row. Tile and
+     glyph come down together: 22px around 14px keeps the same padding ratio
+     and stops the mark outsizing the line it marks. */
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; margin-top: 1px;
   color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18);
 }
+.b-nm-mark > svg { width: 14px; height: 14px; }
 .b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
 .b-nm-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .b-nm-say {
@@ -2440,12 +2669,34 @@
 .b-nm-due {
   align-self: flex-start; margin-bottom: 5px; white-space: nowrap;
   padding: 2px 9px; border-radius: 99px;
-  font-size: var(--t-small); font-weight: var(--fw-bold); letter-spacing: 0.01em;
-  color: var(--d100); background: var(--card-bg); border: 1px solid var(--card-border);
+  /* A pill on the product surface, so it takes the tag step. It was
+     --t-small at 14 and the sweep that found the others missed it: that
+     one walked five list routes and no detail page, and this lives on a
+     customer record.
+
+     IT CARRIES THE MARK NOW, and the mark’s colours with it — the accent
+     tint the tile used to wear, one step deeper than the block behind it so
+     the same hue still separates them. The glyph sits at 12px, the size of
+     the words beside it: §76 of this file says a 13px mark beside 12px type
+     is the loudest thing in the corner, and a leading glyph in a chip has
+     even less licence than that. */
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.01em;
+  /* --accent-label, not --accent-text. The tile this replaced held an ICON,
+     which AA judges at 3:1; the chip holds WORDS, judged at 4.5, and putting
+     --accent-text on an 0.18 tint of its own hue measured 3.94 — the tint
+     lifts the ground toward the ink, which aimy-ds.css already records for
+     --qa-accent a few hundred lines away. --accent-label is the lighter
+     violet kept for exactly this, and .tag-qa already pairs it with an accent
+     ground. 4.61 against the composited ground. */
+  color: var(--accent-label); background: rgba(var(--accent-rgb), 0.18);
+  border: 1px solid transparent;
 }
+.b-nm-due > svg { width: 12px; height: 12px; flex: none; }
+.b-nm-do.is-done .b-nm-due { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
 .b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
 .b-nm-then { font-size: var(--t-ui); color: var(--d200); max-width: 66ch; text-wrap: pretty; }
-.b-nm-then b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-nm-then b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-nm-said {
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base);
   color: var(--d50); max-width: 62ch; text-wrap: pretty;
@@ -2495,7 +2746,7 @@
   margin: 0; font-size: var(--t-lead); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d50); max-width: 62ch; text-wrap: pretty;
 }
-.b-state-say b { font-weight: var(--fw-extrabold); }
+.b-state-say b { font-weight: var(--fw-semibold); }
 .b-state-moves { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .b-state.is-ask { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
@@ -2807,7 +3058,7 @@
   font-size: var(--t-body); line-height: var(--lh-base);
   color: var(--d100); text-wrap: pretty;
 }
-.b-peek-body b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-peek-body b { color: var(--d50); font-weight: var(--fw-semibold); }
 /* Outside the cap and outside the press, so it is never cut and never
    opens the canvas; gone entirely when the answer carries no chips, so it
    costs no space of its own. The padding is the button's own, minus the
@@ -2971,7 +3222,7 @@
 /* The one figure the chips add up to, under the heading rather than at the
    far end of its row, where a section's actions live. */
 .b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
-.b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-tocall b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* A menu row that names a person: the step as a dot, the name, what they do. */
 .b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -3121,13 +3372,13 @@
 .b-cmeta-part { min-width: 0; }
 .b-cmeta-cap {
   display: block; margin: 0 0 8px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-cmeta-say { font-size: var(--t-body); color: var(--d100); }
 .b-cmeta-p { margin: 0 0 10px; line-height: var(--lh-base); max-width: 44ch; text-wrap: pretty; }
 .b-cmeta-p:last-child { margin-bottom: 0; }
-.b-cmeta-p b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-cmeta-p b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
 
 /* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
@@ -3171,7 +3422,7 @@
   margin: 0 0 22px; font-size: var(--fs-lg); color: var(--d100);
   line-height: var(--lh-snug, 1.35); max-width: 62ch; text-wrap: pretty;
 }
-.b-way-lead b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-way-lead b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* Two populations, two groups. The caption carries the ground its figures
    are counted against, so "of 8 reasons" under a number has been explained
@@ -3187,7 +3438,7 @@
 .b-way-group + .b-way-group { margin-top: 26px; }
 .b-way-cap {
   margin: 0 0 2px; font-family: var(--font-sans); font-size: var(--fs-2xs);
-  font-weight: var(--fw-bold); text-transform: uppercase;
+  font-weight: var(--fw-medium); text-transform: uppercase;
   letter-spacing: var(--ls-wide); color: var(--d200);
 }
 
@@ -3285,13 +3536,23 @@
    none. */
 .b-prep { display: flex; flex-direction: column; }
 .b-prep-id {
-  margin: -2px 0 16px; font-size: var(--t-ui); color: var(--d200);
+  margin: -2px 0 10px; font-size: var(--t-ui); color: var(--d200);
   line-height: var(--lh-base); text-wrap: pretty;
 }
 
 /* 1. Where they stand and what is owed — the fact that decides what this
    call is for, on one line, at the top, where it is looked for. */
-.b-prep-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+.b-prep-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 26px; }
+/* TWO PILLS, ONE COLOUR, SIDE BY SIDE. .tag-warn and .b-prep-due.is-late
+   render identically — both rgb(247,201,92) on a 13% wash inside a 32%
+   border, same radius, 12px/700 against 14px/600. So the state chip and
+   the overdue warning were the same object twice, and the one that is
+   actually urgent had nothing to stand out from. Amber belongs to late.
+   Scoped here rather than on .tag-warn itself, because on a queue card
+   the state chip is the only amber thing and it works there. */
+.b-prep-state .tag-warn {
+  color: var(--ink-muted); background: transparent; border-color: var(--card-border);
+}
 .b-prep-owed { font-size: var(--t-ui); color: var(--d100); }
 .b-prep-due {
   padding: 2px 9px; border-radius: var(--r-pill); white-space: nowrap;
@@ -3302,13 +3563,13 @@
 
 /* 2. The one line here anybody says out loud, so it is set as speech. */
 .b-open {
-  margin: 0 0 18px; padding: 14px 16px;
+  margin: 0 0 26px; padding: 14px 16px;
   background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
   border-radius: 14px;
 }
 .b-open-cap {
   display: block; margin-bottom: 6px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--accent-text);
 }
 .b-open-say {
@@ -3319,16 +3580,17 @@
 
 /* 3. What shapes those words. Body ink, because it is read; the label is the
    only bold thing on the line, as it is everywhere else in this build. */
-.b-prep-know { display: flex; flex-direction: column; gap: 9px; }
+.b-prep-know { display: flex; flex-direction: column; gap: 8px; }
 .b-prep-line {
   margin: 0; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
 }
-.b-prep-line b {
-  display: block; margin-bottom: 1px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--ink-muted);
-}
+/* RANK B, and it has to sit ABOVE its value rather than beside it. The
+   shared chip sets inline-block, which put this one on the same line as the
+   sentence it labels. `display: table` is the one value that does both
+   things at once: it shrink-wraps to the words like inline-block, and it
+   forms a block box, so the value starts on the next line. */
+.b-prep-line b { display: table; margin: 0 0 6px; }
 
 /* 4. What arrives mid-call: which one they actually raise, then the script. */
 .b-prep-most {
@@ -3337,15 +3599,57 @@
 }
 
 /* 5. The shelf. A step down in size and ink says reference without a rule
-   above it or a box around it. */
-.b-prep-ref { display: flex; flex-direction: column; gap: 7px; margin-top: 20px; }
+   above it. It does now carry a box around its LABELS — see rank C above —
+   because a rank that opts out of the family stops reading as the bottom of
+   it and starts reading as unstyled. The block itself still takes no rule,
+   no border and no heading, which is the part this note was really about. */
+/* Each entry is a label over a value now rather than one line, so the gap
+   BETWEEN entries has to beat the 4px gap inside one or the six lines read
+   as one list. 12 against 4 is the same 3:1 the rest of the panel uses. */
+.b-prep-ref { display: flex; flex-direction: column; gap: 12px; margin-top: 26px; }
+/* .b-prep is a flex column, so adjacent margins do NOT collapse. .b-back
+   already carries 26px below it and this adds 26 above, which measured 50px
+   in place — making the shelf, the least important block on the panel, the
+   most separated thing on it. The pair is spaced once. */
+.b-back + .b-prep-ref { margin-top: 0; }
 .b-prep-refp {
   margin: 0; font-size: var(--t-small); color: var(--ink-muted);
   line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
 }
+/* RANK C, AND IT IS IN THE FAMILY AFTER ALL ════════════════════
+   This was left as plain bold on the argument below that the shelf earns
+   its step down without a box around it. Two things were wrong with that.
+
+   It made the QUIETEST rank the largest label on the panel: 14px, inherited
+   from .b-prep-refp, against 12px for the two ranks above it. A ladder that
+   runs 12 / 12 / 14 downward is not a ladder.
+
+   And "no treatment" is not the bottom of a scale, it is the absence of
+   one. A rank reads as ranked when it is the same KIND of thing as its
+   neighbours, held quieter — not when it opts out. So the shelf takes the
+   softest member of the chip family instead of leaving it:
+
+     A  filled + bordered + CAPS   the loudest edge there is here
+     B  bordered, no fill          a crisp edge, no weight behind it
+     C  filled, no border          weight without an edge: the quietest
+                                   thing that is still an object
+
+   A border is a hard boundary and reads stronger than a diffuse wash, which
+   is what puts C under B while keeping both in the same family. The fill is
+   5% against A's 8%, and the padding is 1px against 2px, so it sits inside
+   the line rather than interrupting it. */
 .b-prep-refp b {
-  color: var(--d200); font-weight: var(--fw-bold);
-  margin-right: 4px;
+  /* Above its value, not beside it — the same as every other label on this
+     panel. `display: table` is what does both jobs at once: it shrink-wraps
+     to the words the way inline-block does, and it forms a block box, so
+     the value starts on the next line. inline-block alone would keep the
+     chip in the flow and the sentence would run on beside it. */
+  display: table;
+  padding: 1px 8px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink-primary) 5%, transparent);
+  font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--ink-muted);
+  margin: 0 0 4px;
 }
 .b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
 
@@ -3364,7 +3668,7 @@
 .b-srcs { display: flex; flex-direction: column; gap: 8px; }
 .b-srcs-cap {
   margin-bottom: 4px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--d200);
 }
 .b-src { display: flex; align-items: baseline; gap: 10px; font-size: var(--t-body); }
@@ -3395,7 +3699,7 @@
   margin: 0; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); max-width: 68ch; text-wrap: pretty;
 }
-.b-exp-say b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-exp-say b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* A rule above the foot is the section separator this build took out
    everywhere else; the space under the block above it says the same thing. */
@@ -3695,10 +3999,16 @@
   .b-skel { transition: none; }
 }
 
-/* OPTICAL. The clock centred on the sentence when the sentence was the first
-   line; the chip is the first line now, and the mark sat three pixels below
-   its middle. Measured, not guessed. */
-.b-nm-mark { margin-top: -2px; }
+/* OPTICAL, AND THE OPTICS CHANGED UNDER IT. This pulled the mark up 2px
+   because the chip was the first line and the mark sat three pixels below
+   its middle. The mark lives INSIDE the chip now, so the tile only ever
+   renders when there is no chip at all — and then the sentence is the first
+   line again, which is the case this correction was written to undo.
+
+   Measured with it still on: the tile centred 3.28px ABOVE the first line.
+   Without it the base margin of 1px lands within 0.3px of that line’s middle,
+   which is where an icon labelling a paragraph belongs — on the first line,
+   not floating between two of them. */
 
 /* The two lines in the call panel set in chrome-grey — "Not recording" and
    the THEM/YOU label over each line — are read, not decoration, and read
@@ -3716,7 +4026,12 @@
 /* CENTRED ON THE LETTERS, WHICH HERE IS THE SAME AS CENTRED ON THE BOX.
    Measured rather than nudged: in Urbanist at this size and weight the cap
    band centre and the em box centre both sit 4.5px above the baseline, so
-   they coincide and a hand correction would only move it off. What the box
+   they coincide and a hand correction would only move it off.
+
+   That measurement was taken in Urbanist, which this build no longer sets.
+   It has NOT been re-taken in Poppins, so treat the coincidence as unproven
+   rather than as a reason not to correct by hand. The rest of this note is
+   face-independent and still holds. What the box
    does need is its leading taken away — the line box is fifteen pixels of
    font metrics around thirteen of type, and centring the mark against that
    is centring it against air. */
@@ -3734,7 +4049,7 @@
   margin-top: 12px;
 }
 .b-ask-cap {
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted); margin-right: 2px;
 }
 
@@ -3890,7 +4205,7 @@
 
 .b-cal-cap {
   margin: 0; padding: 16px 8px 8px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-cal-agenda { display: flex; flex-direction: column; }
@@ -4109,7 +4424,7 @@
   padding-right: 10px;
 }
 .b-loop-cap {
-  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-medium);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
 /* The sentence under the caption is an `.b-aimy` now, so the measure it was
@@ -4144,7 +4459,7 @@
 .b-owed-main { flex: 1; min-width: 0; }
 .b-owed-head { display: flex; align-items: baseline; gap: 8px; }
 .b-owed-type {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 .b-owed-when { font-size: var(--fs-2xs); color: var(--ink-quiet); }
 .b-owed-body {
@@ -4313,7 +4628,7 @@
 .b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 /* On a card the mark is smaller again: the line it sits on is 11px, and a
    13px mark beside it reads as the loudest thing in the corner. */
-.tc-type.b-fact > svg { --mark: 11px; }
+.tc-type.b-fact > svg { --mark: 10px; }
 .b-node-name.b-fact > svg { --mark: 12px; }
 
 /* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
@@ -4322,7 +4637,7 @@
    which is the opposite of what a mark is for. The facts line becomes a
    wrapping row so a long company name takes its mark with it. */
 .b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
-.b-qcard-where .b-fact > svg { --mark: 12px; }
+.b-qcard-where .b-fact > svg { --mark: 10px; }
 .b-qcard-num.b-fact > svg { --mark: 12px; }
 
 /* The campaign's team block carries its own caption and the top margin that
@@ -4679,10 +4994,11 @@
 .rail-console:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .rail-console:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .rail-console > svg { width: 15px; height: 15px; flex: none; opacity: 0.75; }
-.rail-console-lines { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.rail-console-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); }
-.rail-console-sub {
-  font-size: var(--t-micro); color: var(--ink-faint); line-height: var(--lh-snug);
+/* One line, not two — the subline and its wrapper are gone. The truncation
+   moves onto the name, which is what is left to truncate. */
+.rail-console-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold);
 }
 
 /* The read-back's card. The record's own metadata grid, at two columns
@@ -4782,7 +5098,7 @@
    that looks exactly like one that worked. */
 .b-cut-new {
   margin-left: 6px; padding: 1px 6px; border-radius: 9999px;
-  font-size: var(--t-micro); font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
   /* ══ FILLED, IN BOTH STATES ═════════════════════════════════════════
      The first cut of this gave the badge a tinted ground and took the
      ground away on the active chip, reasoning that an accent pill inside
@@ -4864,12 +5180,12 @@
    400 rather than 500: measured at 18px, a 500-to-700 step reads as a
    slightly firmer word, and the point of these marks is that somebody
    glancing at the block sees the numbers without reading the sentence. */
-.s-lead-deck { font-weight: var(--fw-regular); }
+.s-lead-deck { font-weight: var(--fw-medium); }
 /* Reaching the child directly, so §26b and the shell's own rule on the
    paragraph cannot inherit over it. No colour: the ink is already at the
    top of the ramp, and a mark that changes two things at once is a second
    rank nobody asked for. */
-.s-lead-deck b, .s-lead-deck strong { font-weight: var(--fw-bold); }
+.s-lead-deck b, .s-lead-deck strong { font-weight: var(--fw-semibold); }
 
 /* ══ 88. THE DECK WAS BALANCING ITSELF INTO A COLUMN ═══════════════════════
    `text-wrap: balance` on the deck, from the shell. It is a HEADING rule:
@@ -4931,14 +5247,14 @@
 .b-lead-then {
   display: flex; align-items: flex-start; gap: 9px;
   max-width: 74ch; margin: 0;
-  font-size: var(--t-ui); font-weight: var(--fw-regular);
+  font-size: var(--t-ui); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--d200); text-wrap: pretty;
 }
 /* 74ch rather than the deck's 58: a measure is a count of characters and
    these are four points smaller, so the same 58 would have set them in a
    column two thirds the width of the paragraph above and reintroduced the
    ragged gutter §88 exists to remove. */
-.b-lead-then b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-lead-then b { font-weight: var(--fw-semibold); color: var(--d50); }
 /* The glyph is drawn on a 24 grid and has no size of its own; without this
    it fills the flex item, which is the width of the line. It follows the
    text down a size, and `margin-top` optically centres it on the first line
@@ -5386,7 +5702,7 @@
 /* The step, the obstacle or the offering the sentence is about. It is the
    one word a caller scans this strip for, and the rest of the build already
    sets a next step in bold inside its own sentence. */
-.b-ring-said b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-ring-said b { font-weight: var(--fw-semibold); color: var(--d50); }
 
 /* ── Answered, on the way out ──
    The card does not vanish the instant it is pressed. It becomes the thing
@@ -5528,7 +5844,10 @@
 .b-missed-n {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 17px; height: 17px; padding: 0 5px;
-  border-radius: var(--r-pill); background: var(--err); color: var(--body-bg);
+  /* --badge-ground, not --err: --err is #ff7282 on this theme and white on
+     it is 2.64:1. The ground has to come down for the ink to come up, and
+     the reasoning and the two bounds are at --badge-ground in sales.css. */
+  border-radius: var(--r-pill); background: var(--badge-ground); color: #ffffff;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; line-height: 1;
 }
@@ -5587,7 +5906,7 @@
 
 .b-log-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .b-log-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 /* The number, the direction and the hour, at the floor for type and no lower.
    Tabular figures because a column of phone numbers and clock times that do
@@ -5774,3 +6093,47 @@
    card and its thumb at 6% white reads against it, where the canvas ground is
    a dark glass and the same value all but disappears. The ask was to move the
    bar, not to restyle it, and moving it is the whole of what this does. */
+
+/* ══ INSIDE A CARD, NOTHING OUTRANKS THE CARD’S OWN TITLE ════════════
+   The queue card sets its title at 18/600 and then set three things beneath
+   it at 600 as well: the phone at 16, the action at 14, the state chip at
+   12. Size held them apart from each other and nothing held them under the
+   name at the top — four things at the same weight in a box the size of a
+   postcard.
+
+   The phone is the worst of the three because it is the closest: 16 against
+   18 is one step, so weight was the only axis left and it was spent. It is
+   also plain data rather than a control, which is the case where a tie
+   reads as a mistake rather than as emphasis.
+
+   All three drop to --fw-semibold. The ladder inside a card is then 600 for
+   the name, 500 for anything that acts or states, 400 for the sentences —
+   which is the same three-rank ladder the rest of the build now uses, and
+   leaves --fw-extrabold for the page name outside the card entirely.
+
+   Declared here, at the end, because bdr.css is the last stylesheet and all
+   three of these are set earlier: .b-qcard-num above in this file, .tag and
+   .s-insight-lnk in sales.css. Equal specificity, so the last one wins. */
+.tag, .s-insight-lnk, .b-qcard-num, .tc-type { font-weight: var(--fw-semibold); }
+
+/* ══ THE NOTES ROW ═════════════════════════════════════
+   Two ranks, and the note is the loud one: body step against minimal, 400
+   against 500, --d100 against --ink-muted. The gap inside a row is 2px and
+   .b-feed puts 10 between rows, so a note and its provenance read as one
+   thing and the next note reads as another. */
+.b-note-say {
+  margin: 0 0 2px; max-width: 70ch; text-wrap: pretty;
+  font-size: var(--t-body); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d100);
+}
+.b-note-who {
+  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--ink-muted);
+}
+.b-note-name {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-weight: var(--fw-semibold); color: var(--ink-secondary);
+  transition: color var(--t-fast);
+}
+.b-note-name:hover { color: var(--d50); }
+.b-note-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }

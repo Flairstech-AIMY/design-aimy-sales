@@ -211,16 +211,20 @@
        word says which one it is. The only one that keeps a colour is the
        last, because reaching the end of the caller's job is the one thing
        on this list that has actually been decided. */
-    { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
-    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
+    { k: 'not-called',  label: 'Not called',   tone: 'neutral', echo: true, say: 'nobody has called them yet' },
+    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', echo: true, say: 'called, nobody picked up' },
     /* The one step that is not only a position: somebody named a time and
        is expecting a call. It is also the cut this desk works
        first, so it earns the one hue on the ladder. */
-    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
-    { k: 'answered',    label: 'Answered',     tone: 'neutral', say: 'you got them on the phone' },
-    { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', say: 'time in a diary' },
-    { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', say: 'they came to the meeting' },
-    { k: 'interested',  label: 'Interested',   tone: 'neutral', say: 'they want to go further' },
+    { k: 'callback',    label: 'Callback',     tone: 'warn',    echo: true, say: 'they asked to be called back' },
+    { k: 'answered',    label: 'Answered',     tone: 'neutral', echo: true, say: 'you got them on the phone' },
+    { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', echo: true, say: 'time in a diary' },
+    { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', echo: true, say: 'they came to the meeting' },
+    { k: 'interested',  label: 'Interested',   tone: 'neutral', echo: true, say: 'they want to go further' },
+    /* No `echo` here, and that is the test the flag encodes: this gloss
+       names the DIRECTOR, which 'Handed over' does not. A sentence that
+       adds a noun earns its line; one that re-words the chip beside it
+       does not. */
     { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'with the director' },
   ];
   /* The ways out. Not steps: a lead does not climb to "declined", it leaves. */
@@ -483,18 +487,203 @@
      speaking for AiMY, which changes the first sentence out of their mouth
      and everything they can promise. The page never said which was which.
      A client brings its own offer; the AiMY-branded products are our book. */
+  /* ══ WHAT THE FEE BOUGHT, SAID BEFORE THE YEAR STARTED ══════════════════
+     A client does not read a cost breakdown; they read whether the thing
+     they were promised happened. So a deal is one number and a list of
+     commitments, and nothing on their page divides one by the other.
+
+     SET, NOT DERIVED, in `TARGET_LINE`'s words and for its reason: a target
+     is a commitment and a commitment is not a consequence of the work. The
+     day the fee moves, it moves alone.
+
+     `read` names the derivation each promise is scored off, so a reader who
+     doubts a figure knows which surface to go and check it against — the
+     same duty every AiMY sentence in this build carries as `from`.
+
+     `was` IS THE BASELINE, WHERE THERE IS ONE. A promise to MOVE a number
+     has to say where it stood before us, and where it stood before us is a
+     fact of the contract rather than something the work can be asked to
+     produce. Null means the promise is to reach a number, not to move one.
+
+     `ours` IS THE HANDOVER LINE, MACHINE-READABLE. We answer for finding
+     them, qualifying them and putting them in a room. What happens in the
+     room is theirs. The ledger draws a rule between the two and claims
+     nothing below it.
+
+     ONLY `peregrin` IS ENTERABLE TODAY. The other three carry a deal anyway,
+     because a half-populated constant rots and `CLIENT[k].deal` being
+     sometimes undefined is a crash waiting for whoever adds the second desk.
+     `harlow` and `ostend` hold no campaigns in this corpus, so their
+     promises have nothing to score against until the readings that could
+     score them exist. */
   const CLIENTS = [
     { k: 'norvant', name: 'Redlake Data', sells: ['data'],
-      what: 'training-data operations. We find the teams still labelling by hand' },
+      what: 'training-data operations. We find the teams still labelling by hand',
+      deal: { kind: 'outbound', fee: 120000, since: '2025-07-01', term: 12,
+        line: 'We find them and qualify them. The conversation about the work is yours.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 40, was: null, ours: true,
+            say: 'Forty qualified meetings with teams still labelling by hand' },
+          { k: 'found', read: 'funnel.reachable', unit: 'count', to: 150, was: null, ours: true,
+            say: 'A hundred and fifty people we could actually reach' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 150000, was: null, ours: false,
+            say: 'A hundred and fifty thousand signed off the meetings we booked' },
+        ] } },
     { k: 'harlow', name: 'Harlow Delivery', sells: ['back'],
-      what: 'back-office delivery. Their offer, our callers, their diary' },
+      what: 'back-office delivery. Their offer, our callers, their diary',
+      deal: { kind: 'outbound', fee: 95000, since: '2026-01-01', term: 12,
+        line: 'Our callers, their offer. The diary is theirs and so is the room.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 25, was: null, ours: true,
+            say: 'Twenty-five qualified meetings in the diary' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 90000, was: null, ours: false,
+            say: 'Ninety thousand signed off them' },
+        ] } },
     { k: 'peregrin', name: 'Kestrel Labs', sells: ['test', 'eng'],
-      what: 'engineering and test capacity. We source and qualify; they take it from the meeting' },
+      what: 'engineering and test capacity. We source and qualify; they take it from the meeting',
+      /* ══ ONE CLIENT, THREE THINGS BOUGHT ═══════════════════════════════
+         Three client desks stood here for a while — one company buying
+         reach, one buying the tool, one handing us the desk — and that is
+         not how a client this size arrives. Kestrel buys all three, which is
+         the ordinary case and the one the report was hardest to write for.
+
+         It is also what the margin on `DESKS` already refuses. Three client
+         desks are three FACES of one reading — what did I buy, what did it
+         produce, was it worth it — and a desk has to add a reading rather
+         than a face. One desk, three books, and a row of chips to say which
+         book is open.
+
+         `engagements` carries what differs between them: the kind, the fee,
+         the sentence that draws the line, the floor where there is one, and
+         the promises. What stays on the deal is what is true of the
+         RELATIONSHIP rather than of one thing inside it — when it started
+         and how long it runs. A client does not sign three different years.
+
+         And a deal with no `engagements` is still a deal: `engsOf` reads it
+         as one engagement that never needed naming, so the other three
+         clients here are untouched. */
+      /* `notice` is how long before the end they have to say something. It
+         is on the deal rather than an engagement because it is a fact about
+         the contract, and it is here at all because thirteen days from the
+         end of a year it is the only question a C-level is actually
+         asking. */
+      deal: { since: '2025-10-01', term: 12, notice: 60,
+        engagements: [
+          { k: 'reach', kind: 'outbound', name: 'Outbound', fee: 180000,
+            line: 'We find them, qualify them and put them in a room with you. ' +
+              'What happens in the room is yours.',
+            promises: [
+              { k: 'met', read: 'funnel.met', unit: 'count', to: 30, was: null, ours: true,
+                say: 'Thirty qualified meetings across test and engineering' },
+              { k: 'found', read: 'funnel.reachable', unit: 'count', to: 100, was: null, ours: true,
+                say: 'A hundred people we could actually reach' },
+              { k: 'lines', read: 'lines.live', unit: 'count', to: 2, was: null, ours: true,
+                say: 'Both services in the market, neither left cold' },
+              { k: 'reach', read: 'camps.regions', unit: 'count', to: 3, was: null, ours: true,
+                say: 'Three regions opened, not one' },
+              { k: 'arr', read: 'arr', unit: 'money', to: 200000, was: null, ours: false,
+                say: 'Two hundred thousand signed off the meetings we booked' },
+              { k: 'live', read: 'pipe.open', unit: 'count', to: 6, was: null, ours: false,
+                say: 'Six deals still live when the year closes' },
+            ] },
+          /* Their own reviewers, our scoring, eight hundred seats. A promise
+             to MOVE a number rather than reach one, so every one carries
+             `was` — where their floor stood before us, set at signing. */
+          { k: 'tool', kind: 'software', name: 'Quality tool', fee: 96000, seats: 800,
+            line: 'We score every conversation and say why. ' +
+              'What you do about a bad one is yours.',
+            /* ══ THE TERM, NOT A QUARTER OF IT ═══════════════════════════
+               Twelve weeks of a fifty-week contract left thirty-eight
+               unevidenced and put the go-live ten weeks ago on a
+               relationship approaching renewal. `weeks` is the term now,
+               `ramp` is how long the change took rather than how long the
+               chart is, and `sample` is how many scored conversations a
+               week are kept as records — the counts stay true, the drill
+               reads a sample of them, and the page says which is which. */
+            team: { deployedAt: 2, weeks: 48, ramp: 9, sample: 55,
+              agents: 24, whose: 'yours',
+              metrics: [
+                { k: 'cover', from: 'cover', label: 'Conversations reviewed', unit: 'pc' },
+                { k: 'latency', from: 'lag', label: 'Days to first look', unit: 'days' },
+                { k: 'quality', from: 'score', label: 'Average quality score', unit: 'pc' },
+                { k: 'resolve', from: 'mins', label: 'Time to first resolution', unit: 'mins' },
+              ] },
+            promises: [
+              { k: 'cover', read: 'team.cover', unit: 'pc', was: 2, to: 100, ours: true,
+                say: 'Every conversation scored, not two in every hundred' },
+              { k: 'latency', read: 'team.latency', unit: 'days', was: 11, to: 2, ours: true,
+                say: 'Scored within two days of the conversation, not eleven' },
+              { k: 'quality', read: 'team.quality', unit: 'pc', was: 64, to: 85, ours: false,
+                say: 'Eighty-five per cent average quality across the floor' },
+              { k: 'resolve', read: 'team.resolve', unit: 'mins', was: 48, to: 34, ours: false,
+                say: 'First resolution thirty per cent faster than the day we started' },
+            ] },
+          /* The overflow desk, ours to run. The claim is capacity at a cost
+             that did not move — `spend.was` is what it cost them to run it
+             themselves, and the two numbers sit side by side because
+             neither is derived from the other and nothing divides them. */
+          { k: 'desk', kind: 'service', name: 'Support desk', fee: 140000,
+            spend: { was: 138000 },
+            line: 'We answer every contact, at every hour, and score every one. ' +
+              'Anything that needs your own systems comes back to you.',
+            team: { deployedAt: 3, weeks: 48, ramp: 11, sample: 55,
+              agents: 18, whose: 'ours',
+              metrics: [
+                { k: 'volume', from: 'held', label: 'Contacts answered a week', unit: 'count' },
+                { k: 'reply', from: 'lag', label: 'Time to a first reply', unit: 'mins' },
+                { k: 'quality', from: 'score', label: 'Quality on the desk', unit: 'pc' },
+                { k: 'resolve', from: 'mins', label: 'Time to resolve', unit: 'mins' },
+              ] },
+            promises: [
+              { k: 'volume', read: 'team.volume', unit: 'count', was: 640, to: 1600, ours: true,
+                say: 'Sixteen hundred contacts a week answered, ' +
+                  'including the hours you could not cover' },
+              { k: 'reply', read: 'team.reply', unit: 'mins', was: 340, to: 30, ours: true,
+                say: 'A first reply inside half an hour rather than most of a day' },
+              { k: 'quality', read: 'team.quality', unit: 'pc', was: 71, to: 85, ours: true,
+                say: 'Eighty-five per cent quality on every contact, scored not sampled' },
+              { k: 'resolve', read: 'team.resolve', unit: 'mins', was: 420, to: 90, ours: false,
+                say: 'Resolved inside ninety minutes, ' +
+                  'which needs your systems as well as our desk' },
+            ] },
+        ] } },
     { k: 'ostend', name: 'Lambourne Care', sells: ['support'],
-      what: 'outsourced customer support. We open the market and hand every meeting over' },
+      what: 'outsourced customer support. We open the market and hand every meeting over',
+      deal: { kind: 'outbound', fee: 140000, since: '2026-02-01', term: 12,
+        line: 'We open the market and hand every meeting over.',
+        promises: [
+          { k: 'met', read: 'funnel.met', unit: 'count', to: 35, was: null, ours: true,
+            say: 'Thirty-five qualified meetings handed over' },
+          { k: 'arr', read: 'arr', unit: 'money', to: 160000, was: null, ours: false,
+            say: 'A hundred and sixty thousand signed off them' },
+        ] } },
   ];
   const CLIENT = Object.create(null);
   CLIENTS.forEach((c) => (CLIENT[c.k] = c));
+  /* ══ AND ONLY SOME OF THEM CAN BE ON A CAMPAIGN ════════════════════════
+     The seed deals a client onto four campaigns in ten by picking out of
+     this list, so the list's LENGTH is load bearing: appending a fifth row
+     re-deals every campaign and moves every figure on every client's desk.
+     Nordwind bought a tool and has no campaigns by definition, so the draw
+     reads the ones we actually run campaigns for and appending another of
+     those is still the one change that has to be checked in the console.
+     Same guard on the draft editor, which offered the whole list as owners
+     for a campaign being built.
+
+     ══ AND THE KEYS ARE WRITTEN OUT RATHER THAN FILTERED ═══════════════
+     This was `CLIENTS.filter(c => c.deal.kind === 'outbound')` for one
+     commit, which is the same four rows and a far worse way to say it. The
+     length is what every campaign's client depends on, and a filter makes
+     that length a consequence of a field on every row — so changing
+     Lambourne's deal from an outbound one to a service one, which is a
+     statement about Lambourne and nothing else, re-dealt every campaign in
+     the build: Kestrel went from three campaigns to two and its book from
+     ten deals to two, silently, with the audit green.
+
+     Four keys, written down. The only way this list changes is somebody
+     editing this line, which is the only way it should ever have been. */
+  const CAMP_CLIENT_KEYS = ['norvant', 'harlow', 'peregrin', 'ostend'];
+  const CAMP_CLIENTS = CAMP_CLIENT_KEYS.map((k) => CLIENT[k]);
 
   /* ══ WHO WE ASK FOR, AND WHY THEY WOULD TAKE THE CALL ═══════════════════
      The one thing every caller has to know before dialling and the one thing
@@ -680,6 +869,26 @@
        function none of them names is a row none of them draw. The seed cursor
        does not move and no count in the corpus changes. */
     { id: 'sherif', name: 'Sherif Amin',   initials: 'SA', fn: 'stakeholder', sell: 'qa' },
+    /* ══ AND ONE WHO DOES NOT WORK FOR US ═══════════════════════════════
+       The three above read this book from our side and differ only in what
+       bounds them. This one reads it from the other side of the invoice: a
+       client pays for a market it cannot reach, and the question its desk
+       asks is not what did we produce, it is what did I buy.
+
+       `client` is the key the campaigns already carry — `camp.client`,
+       seeded since the book had partners — so the desk is bounded by a field
+       that exists rather than one invented for a persona, for the same
+       reason `sell` above is not a second spelling of something.
+
+       APPENDED FOR THE REASON THE TWO ABOVE ARE. No reader of this array
+       names `client`: the seed cursor does not move and no count in the
+       corpus changes. */
+    { id: 'kestrel', name: 'Marit Okonjo', initials: 'MO', fn: 'client', client: 'peregrin' },
+    /* There were three of these for a while, one per thing bought, and the
+       margin on `DESKS` is why there is one now: three client desks are
+       three faces of one reading. What differs between them was never the
+       reading, it was the book — so it is a row of chips on the report and
+       not a row of people in the switcher. */
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -729,7 +938,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina', 'sherif'];
+  const DESKS = ['engy', 'lina', 'sherif', 'kestrel'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -751,6 +960,25 @@
   /* Which of the two book desks this is. A manager's book is who was handed
      the lead; a stakeholder's is what the campaign was selling. */
   const isLine = () => me().fn === 'stakeholder';
+  /* ══ AND THE THIRD READING ═════════════════════════════════════════════
+     Named for the READING, the way `onBook` is, because that is what it is:
+     this book read from the buying side. What it is BOUNDED by is a client,
+     and `myClient` two hundred lines down is where that word lives.
+
+     NOT `isClient`, and the near miss is the point. `CLIENTS` already means
+     the white-label partner, `isCust` already means an account that buys
+     from us, and `custState` returns the literal label 'Client' for a third
+     thing again. A fourth meaning of one word in one file is the same silent
+     lie `parse()` refuses when it says `as` names a desk and not a person. */
+  const isBuyer = () => me().fn === 'client';
+  /* ══ THE TWO REFUSALS, NAMED SEPARATELY ════════════════════════════════
+     A client is invoiced, not shown a ledger, and is never told how we rank
+     one of their own prospects. Two predicates rather than one, and neither
+     is spelled `!isBuyer()` at the call site: they are two different
+     refusals, the next reader needs to know which rule a guard is keeping,
+     and a figure that forgets one is then a grep rather than a reading. */
+  const seesCost = () => !isBuyer();
+  const seesGrade = () => !isBuyer();
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -1253,7 +1481,18 @@
      to say, written down once so the campaign page and the pre-call brief
      quote the same words. */
   const ANSWERS = {
-    pricing: 'Price it against the headcount it replaces, not against a licence. Ask what one unfilled seat costs them a month.',
+    /* ══ NOT "THE HEADCOUNT IT REPLACES" ═══════════════════════════════
+       That was the line for a while, and it fails a standard this company
+       already holds itself to in writing: Knowledge's own account of the
+       Nordwind rollout says reviewer headcount was unchanged, nobody was
+       replaced, and the story should never be told as though anybody was.
+       A caller's script is where that standard is actually kept or lost.
+
+       The selling logic is untouched — price against the work, not against
+       a licence — and an unfilled seat is a vacancy they already have
+       rather than a person who stopped being there. It also reads on a
+       client's own campaign record now, which is where this was found. */
+    pricing: 'Price it against what the work costs them today, not against a licence. Ask what one unfilled seat costs them a month.',
     timing: 'Agree the quarter, book the meeting inside it. A date in the diary survives a budget freeze; a promise to call back does not.',
     feature: 'Ask which one thing is missing, then say plainly whether we do it. A maybe here costs the meeting two calls later.',
     service: 'Name what we do not do before they find it. The list of what we do run is longer than they expect.',
@@ -1288,7 +1527,7 @@
       /* Two in five are run for a client, and those sell the client's offer
          rather than ours — a campaign cannot be for Redlake and pitch AiMY
          Voice, which is what a free draw from the whole catalogue produced. */
-      const forClient = chance(r, 0.4) ? pick(r, CLIENTS) : null;
+      const forClient = chance(r, 0.4) ? pick(r, CAMP_CLIENTS) : null;
       const sells = [forClient ? SELL[pick(r, forClient.sells)] : pick(r, SELLS)];
       if (forClient) {
         const other = forClient.sells.filter((x) => x !== sells[0].k);
@@ -2592,6 +2831,12 @@
        because a lead nobody has handed over yet is not on anybody's book by
        either reading. Rebuilt by `reindex`. */
     byLine: Object.create(null),
+    /* And the same index read a third way: who the campaign was run FOR.
+       Built beside the two above under the same guard, and off every
+       campaign a lead is on rather than the first — see `myClient` for why
+       this one cannot take `camps[0]` when the other two can. Rebuilt by
+       `reindex`. */
+    byClient: Object.create(null),
     /* digits -> contact id. The only index that goes from a NUMBER to a
        person, and the only one an inbound call can use. Rebuilt by
        `reindex`. */
@@ -2715,6 +2960,7 @@
     DB.consOf = Object.create(null);
     DB.byMgr = Object.create(null);
     DB.byLine = Object.create(null);
+    DB.byClient = Object.create(null);
     DB.byPhone = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
@@ -2753,8 +2999,20 @@
       if (c.checkpoint === 'handed-over') {
         const m = mgrOf(c);
         (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
-        const ln = lineOf(dealCamp(c));
+        /* `firstCamp`, not `dealCamp`: this index is global and must
+           read the same for every desk. */
+        const ln = lineOf(firstCamp(c));
         if (ln) (DB.byLine[ln] || (DB.byLine[ln] = [])).push(c.id);
+        /* Deduped as it goes: a person on two of one client's campaigns is
+           one lead on their book, and pushing twice would have every figure
+           that reads the book count them twice. */
+        const seen = Object.create(null);
+        c.camps.forEach((id) => {
+          const cl = clientOf(DB.byCamp[id]);
+          if (!cl || seen[cl]) return;
+          seen[cl] = 1;
+          (DB.byClient[cl] || (DB.byClient[cl] = [])).push(c.id);
+        });
       }
     });
     DB.touch.forEach((t) => {
@@ -2951,18 +3209,76 @@
   const myLine = () => me().sell || null;
   const lineOf = (k) => (k && k.sells && k.sells.length ? k.sells[0] : null);
   const onLine = (k) => !!myLine() && lineOf(k) === myLine();
+  /* ══ AND WHAT A CLIENT'S DESK IS BOUNDED BY ════════════════════════════
+     Who the campaign was run FOR. A stored field rather than a derivation,
+     which is the one difference between this bound and the two above it.
+
+     EVERY CAMPAIGN THE PERSON IS ON, NOT THE FIRST, and that is a departure
+     worth its own paragraph. `lineOf` and `mgrOf` are single-valued by
+     construction — a campaign sells one thing first, a lead is handed to one
+     manager — so `dealCamp`, which reads `camps[0]`, serves them honestly.
+     A person is on every campaign that reached them, and in this corpus
+     thirty-two are on two different clients' campaigns at once. Reading only
+     the first hides three of Kestrel's ten handed-over leads from Kestrel
+     and shows them to somebody who did not pay for them, which is the one
+     mistake this desk cannot make. `camps[0]` is an artefact of the order
+     the seed dealt them in and says nothing about who paid; both clients
+     did, and both see the person. */
+  /* ══ ONE READING, TWO BOOKS ════════════════════════════════════════════
+     The question a client's desk asks does not change with what they bought
+     — what did I buy, what did it produce, was it worth it — but the book it
+     reads to answer changes completely. A client who bought reach has a
+     pipeline: campaigns, leads, deals, and every surface the manager works.
+     One who bought the tool has a floor: their own people, their own
+     conversations, and not one campaign of ours.
+
+     So the promises, the evidence under them and half the report read off a
+     different book, and everything built on a pipeline — the attainment bar,
+     three of the four tiles, both cuts, the losses — is drawn only where
+     there IS one. Every desk that is not a client is `outbound`, because the
+     pipeline is the thing they work. */
+  /* ══ AND THE ACCESSOR KEEPS THE CONTRACT IT ALWAYS HAD ════════════════
+     Twenty call sites read `myDeal()` for a fee, a term, a team, a line or
+     a list of promises, and not one of them should have to know that a
+     client can buy three things. So it answers with the engagement folded
+     over the deal: the relationship's dates underneath, the engagement's
+     own everything on top.
+
+     With no engagement chosen — the overview — it answers for all of them
+     at once: every promise, each carrying the engagement it came from, and
+     the fees added up. `kind: 'all'` is what stops the pipeline apparatus
+     drawing over a summary of three books. */
+  const myDeal = () => {
+    if (!isBuyer()) return null;
+    const d = dealOf(myClient());
+    if (!d) return null;
+    const e = myEng();
+    if (e) return Object.assign({}, d, e);
+    const es = engsOf(d);
+    const all = [];
+    es.forEach((x) => (x.promises || []).forEach((p) => all.push(Object.assign({}, p, { eng: x }))));
+    return Object.assign({}, d, { kind: 'all', name: 'Everything', team: null,
+      promises: all, fee: es.reduce((n, x) => n + (x.fee || 0), 0) });
+  };
+  const bookKind = () => (isBuyer() && myDeal() ? (myDeal().kind || 'outbound') : 'outbound');
+  const onPipeline = () => bookKind() === 'outbound';
+  const myClient = () => me().client || null;
+  const clientOf = (k) => (k && k.client) || null;
+  const onClient = (k) => !!myClient() && clientOf(k) === myClient();
   /* Whose these are, in the desk's own terms. A manager runs them; a
      stakeholder is answering for what they sell, and "you are running" on
      his desk is a claim about somebody else's work. Written once, because
      three surfaces say it and three spellings would drift. */
-  const bookWhose = () => (isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
+  const bookWhose = () => (isBuyer() ? 'we are running for you'
+    : isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
   /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
      what it sells. The same word for all three, because it is the same
      question — is this mine to work — and every surface that asks it (the
      switcher's count, the campaign list, the guard on a campaign page, the
      tag a queue card carries) gets the right answer without knowing who is
      asking. */
-  const mine = (c) => (isLine() ? onLine(c)
+  const mine = (c) => (isBuyer() ? onClient(c)
+    : isLine() ? onLine(c)
     : onBook() ? c.owner === me().id
     : c.crew.indexOf(me().id) >= 0);
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
@@ -3065,7 +3381,10 @@
      campaigns that spent it or the services that earned it. In the URL for
      the reason every other narrowing on this build is: a cut somebody is
      reading is a cut somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by'];
+  /* `ag` and `ev` are the floor's two records — a person on it and one
+     scored conversation. Scalars like every other record key here, so a
+     drill is a link somebody can send. */
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'ag', 'ev', 'eng'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -3097,9 +3416,47 @@
        the thing this whole scheme exists to avoid. */
     if (S.as && DESKS.indexOf(S.as) < 0) {
       const fn = (REP[S.as] || {}).fn;
-      S.as = fn === 'sales-manager' ? 'lina' : fn === 'stakeholder' ? 'sherif' : '';
+      S.as = fn === 'sales-manager' ? 'lina' : fn === 'stakeholder' ? 'sherif'
+        : fn === 'client' ? 'kestrel' : '';
     }
     if (S.on === 'deals' && !onBook()) S.on = 'calls';
+    /* Same refusal as `as` two branches up: a key that silently means a
+       window this desk cannot read is worse than one that resolves. */
+    if (isBuyer()) S.period = 'deal';
+    /* Two surfaces a buyer has no reading of, refused the way `as` is
+       refused above rather than left to resolve into something else. The
+       lists are our suppliers'; the notes are `t.by === me().id`, so a
+       client who has authored nothing would be shown a page that is
+       permanently empty and looks broken rather than closed. */
+    if (isBuyer() && (S.on === 'lists' || S.on === 'notes')) S.on = '';
+    if (isBuyer() && S.q === 'won') S.q = 'all';
+    if (isBuyer()) { S.build = ''; S.list = ''; }
+    /* ══ AND A FLOOR HAS ONE SURFACE, NOT FIVE EMPTY ONES ═══════════════
+       Today, Accounts, the Diary and Campaigns are all readings of a
+       pipeline. Nordwind has none, and the desk drew them anyway: four tabs
+       reading zero, a strip offering to warm-call somebody who does not
+       exist, and a briefing saying nothing has been handed over yet — which
+       is true and is not a thing that was ever going to happen.
+
+       So the report IS the desk. It is not a tab among tabs because there
+       is nothing to switch between, and `on` resolving to anything else is
+       the same silent lie `as` refuses at the top of this function. */
+    /* The floor's three surfaces are the only other place this desk goes,
+       and they belong to it alone — a pipeline client has no floor, and
+       nobody else has this client's. */
+    /* Normalised before anything reads `onPipeline`, which is an answer
+       about the engagement and not about the desk. */
+    if (!isBuyer()) S.eng = '';
+    else if (S.eng && !engsOf(dealOf(myClient())).filter((e) => e.k === S.eng)[0]) S.eng = '';
+    if (!isBuyer() || onPipeline()) {
+      S.ag = ''; S.ev = '';
+      /* And the surface itself, or `paint` reaches `floorPage` on a desk
+         with no floor and draws an empty page — which is the dead branch
+         this file refuses two guards up, arriving by a key instead of a
+         desk. */
+      if (S.on === 'floor') S.on = '';
+    }
+    if (isBuyer() && !onPipeline() && !S.ag && !S.ev && S.on !== 'floor') S.on = 'money';
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -3110,10 +3467,22 @@
     });
     return parts.length ? '?' + parts.join('&') : location.pathname;
   }
-  /* Every key back to its default. Home is this and nothing laid over it. */
+  /* Every key back to its default. Home is this and nothing laid over it.
+     ══ EXCEPT THE TWO THAT SAY WHERE YOU ARE STANDING ═══════════════════
+     `as` survives because it names a desk and clearing it would walk
+     somebody back to somebody else's. `eng` is the same fact one level in:
+     it names which of the three books a client is reading, and every
+     surface inside that desk is a surface of that book.
+
+     Cleared along with the rest, it broke the drill silently — pressing a
+     person on the support desk's floor dropped the engagement, `myEng` went
+     back to null over three of them, and `floorOf` was asked for a floor
+     with no engagement and answered with an empty page. The chips still set
+     it explicitly, including back to '' for Everything, so nothing is
+     trapped in a book. */
   function cleared() {
     const over = Object.create(null);
-    SCALAR.forEach((k) => { if (k !== 'as') over[k] = ''; });
+    SCALAR.forEach((k) => { if (k !== 'as' && k !== 'eng') over[k] = ''; });
     return over;
   }
   /* ══ THE GATE ON LEAVING AN UNSAVED RESULT ═════════════════════════════
@@ -3418,7 +3787,10 @@
     byId('chipBar').innerHTML = '';
     paintWho();
     paintMicIcons();
-    byId('wbStage').innerHTML = S.con ? contactPage()
+    byId('wbStage').innerHTML = S.ev ? evalPage()
+      : S.ag ? agentPage()
+      : S.on === 'floor' ? floorPage()
+      : S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
       /* A LIST URL IS A LIST, WHICHEVER DOOR IT CAME THROUGH. Save and the old
@@ -3471,7 +3843,13 @@
      screen. */
   function qcard(c, i) {
     const a = accOf(c);
-    const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
+    /* ══ AND THE FALLBACK NAMES SOMEBODY ELSE'S CAMPAIGN ═══════════════
+       Prefer one of mine, then take the first — which is right inside the
+       building, where any campaign is a campaign we are running. On a
+       client's desk the first is ours or another client's, printed as a tag
+       on a card at a company they are selling to. Theirs or no tag. */
+    const own = c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0];
+    const camp = DB.byCamp[own || (isBuyer() ? '' : c.camps[0])];
     /* At the caller's desk the tag is the step; at the manager's it is the
        stage, because the step stopped moving at the hand-over. */
     const r = onBook() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
@@ -3615,7 +3993,7 @@
               '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>'
             /* NO CALL ON SOMEBODY YOU CANNOT call. A do-not-call, a hand-over, a
                person with no number — the card offered Call on all of them. */
-            : !c.phone && !c.dnc && !isExit(c.checkpoint)
+            : seesCost() && !c.phone && !c.dnc && !isExit(c.checkpoint)
               ? '<button class="s-inline-btn" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
               : '<button class="s-inline-btn" type="button" data-con="' + esc(c.id) + '">Open</button>') +
       '</div>' +
@@ -3758,7 +4136,9 @@
     if (o) {
       const n = o.news;
       const said = ' ' + esc(n.say) + ' — ' + esc(n.means) + '.';
-      const from = n.src + ', against what they hold';
+      /* What they hold is what they buy from US, so the provenance says
+         out loud that we checked our own order book against their news. */
+      const from = n.src + (seesGrade() ? ', against what they hold' : '');
       if (o.kind === 'open') {
         return pack(esc(a.name) + said, '<b>' + esc(a.name) + '</b>' + said,
           [line('They already run <b>' + esc(joinAnd(hold)) + '</b>, and <b>' +
@@ -4647,6 +5027,34 @@
     }
     const q = queue();
     const camps = myCampaigns();
+    /* ══ WHAT A FLOOR'S RAIL HAS TO SAY ═══════════════════════════════
+       The branch below counts deals wanting something today, which is the
+       right first sentence for every desk that works a pipeline and an
+       empty one for a desk that does not have one. The promises are what
+       this reader came for, so the rail says how they stand. */
+    if (isBuyer() && !onPipeline()) {
+      const dl = myDeal();
+      const scored = (dl ? dl.promises : [])
+        .map((r) => ({ r: r, got: promiseGot(r, { funnel: [], byLine: [] }, null) }))
+        .filter((x) => x.got != null);
+      const kept = scored.filter((x) => promKept(x.r, x.got));
+      const short = scored.filter((x) => !promKept(x.r, x.got));
+      const pd = periodOf('deal');
+      const leftD = pd.end ? Math.max(0, daysBetween(TODAY_ISO, pd.end)) : 0;
+      return {
+        card: {
+          state: short.length ? 'staged' : 'detected',
+          text: short.length
+            ? '<b>' + plural(short.length, 'promise') + '</b> ' +
+              (short.length === 1 ? 'is' : 'are') + ' behind, out of the <b>' +
+              commas(scored.length) + '</b> on your year.'
+            : 'All <b>' + commas(scored.length) + '</b> promises on your year are being kept.',
+          evidence: [{ val: commas(kept.length), cap: 'kept' },
+            { val: commas(leftD), cap: 'days of the year left' }],
+          act: null, q: null,
+        },
+      };
+    }
     if (onBook()) {
       const live = q.filter(dealLive);
       const now = live.filter((c) => dealRank(c) <= 2);
@@ -5062,7 +5470,13 @@
            migration for a word. */
         : one('calls', 'Accounts', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
-      one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
+      /* A list is what a supplier returned, and its rows carry which one
+         and what it filled. `DB.list` is the whole build's, unscoped, and
+         the find box matches lists on `via` — the supplier's name. Nothing
+         survives rewording it, so the tab is not drawn. */
+      (seesCost()
+        ? one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' }))
+        : '') +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
     '</h2>';
   }
@@ -5134,7 +5548,9 @@
         '</div>' +
       '</div>' +
       /* Only this desk has a day and a book to stand here. */
-      (onBook() ? railDoors() : '') +
+      /* Both doors open a pipeline surface — the diary and the report.
+         A floor is already standing on the report and has no diary. */
+      (onBook() && onPipeline() ? railDoors() : '') +
       /* ══ THE QUIETER OF THE TWO WAYS INTO THE CONSOLE ══════════════════
          Knowledge's own note on the same control: the corner button is the
          one that gets found, this is the one that gets used, because it sits
@@ -5163,10 +5579,11 @@
         '<a class="rail-console" href="https://aimy-knowledge.nour-ali.workers.dev/console" ' +
           'target="_blank" rel="noopener">' +
           chIcon('grid') +
-          '<span class="rail-console-lines">' +
-            '<span class="rail-console-name">Console</span>' +
-            '<span class="rail-console-sub">Documents &amp; Corpus</span>' +
-          '</span>' +
+          /* One line, not two. The button named the destination and then
+             described it, and the description is the page you are about to be
+             standing on. The wrapper went with the subline: a column of one
+             is a row. Same edit as Knowledge's gate and rail buttons. */
+          '<span class="rail-console-name">Console</span>' +
         '</a>' +
       '</div>';
   }
@@ -5266,7 +5683,14 @@
      block with a different name. */
   function notesOf() {
     const meId = me().id;
-    return DB.touch.filter((t) => t.by === meId && t.note)
+    /* AND NOT THE MISSED CALLS. The seeded inbound no-answers carry a note
+       — "They called. Nobody picked up." — because the record timeline and
+       this feed share one row builder and that builder reads t.note for its
+       second line. On a timeline that sentence is the event described. On a
+       page called Notes it is not a note: nobody wrote it, nobody spoke, and
+       872 of them buried the notes somebody did write. The call log is where
+       they belong and where they already are. */
+    return DB.touch.filter((t) => t.by === meId && t.note && !wasMissed(t))
       .sort((a, b) => (a.at < b.at ? 1 : -1));
   }
 
@@ -5300,13 +5724,43 @@
   /* The day headings inside a month, the same ones `feedBlock` draws. Not
      `feedBlock` itself: that pages what it is given, and the months are the
      paging now. */
+  /* ══ A NOTE LEADS WITH THE NOTE ═══════════════════════════
+     This page drew campTouchRow, which is the record timeline’s row, and so
+     it read as a touchpoint log: the name first, then the OUTCOME, then who
+     logged it and when, and the note last and quietest. On a timeline that
+     order is right — you are reading what happened. On a page called Notes
+     it puts the content at the bottom in the smallest type on the row.
+
+     Inverted here. The note is the body step and comes first; the person,
+     the outcome and the time are one meta line under it at the minimal
+     step. Same facts, ranked the way the page is named.
+
+     AND THE OUTCOME DROPS OUT WHEN THE NOTE ALREADY IS IT. NOTE['no-answer']
+     opens with the string "No answer.", so the row read "No answer" in the
+     meta and "No answer." above it — the same words twice, which is the
+     fault the prep panel had. Compared on letters alone, so "No answer."
+     against the label "No answer" collapses and drops, while "Straight to
+     answerphone." keeps it because it says something else. */
+  function noteRow(t) {
+    const c = DB.byCon[t.con];
+    const kind = kindLabel(t);
+    const letters = (x) => String(x || '').toLowerCase().replace(/[^a-z]/g, '');
+    const echoes = kind && letters(t.note).indexOf(letters(kind)) >= 0;
+    return '<p class="b-note-say">' + esc(t.note) + '</p>' +
+      '<p class="b-note-who">' +
+        '<button class="b-note-name" type="button" data-con="' + esc(t.con) + '">' +
+          esc(c ? c.name : 'Somebody') + '</button>' +
+        (echoes ? '' : '<span> · ' + esc(kind) + '</span>') +
+        '<span> · ' + esc(timeOf(t.at)) + '</span>' +
+      '</p>';
+  }
   function notesRows(rows) {
     let day = '';
     return '<div class="b-feed">' + rows.map((t) => {
       const d = t.at.slice(0, 10);
       const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(t.at)) + '</h3>' : '';
       day = d;
-      return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
+      return head + '<div class="b-feed-row">' + noteRow(t) + '</div>';
     }).join('') + '</div>';
   }
 
@@ -6632,6 +7086,20 @@
     { k: 'y',   label: 'This year' },
     { k: 'r12', label: 'Rolling 12 months' },
   ];
+  /* ══ A CLIENT HAS ONE WINDOW, SO IT IS NOT A CHOICE ════════════════════
+     Every chip here asks a question a client's deal cannot answer. It was
+     signed for a term, the promises were made for that term, and a quarter
+     of it is not a commitment anybody made — see `targetFor`. Nor is the
+     calendar year: Kestrel's term runs October to September, and scoring an
+     October promise over January to December measures a commitment against a
+     clock nobody agreed to. That one reads MILD rather than wrong, which is
+     worse. At thirteen days left the calendar said three thousand behind and
+     the term says fifty-three.
+
+     So the control is not narrowed, it is gone, and what replaces it is the
+     term said in words beside the heading. A switcher offering one option is
+     a control that cannot be worked. */
+  const periodsFor = () => (isBuyer() ? [] : PERIODS);
   const inPeriod = (at, p) => !!at && at >= p.from && at <= p.to;
 
   /* ══ A PART-FINISHED PERIOD COMPARES AGAINST A PART OF THE LAST ONE ════
@@ -6644,7 +7112,23 @@
     const q = Math.floor(TODAY.getMonth() / 3);
     const qStart = (yy, qq) => isoDay(new Date(yy, qq * 3, 1));
     const dayBefore = (d) => isoAdd(d, -1);
-    const row = PERIODS.some((p) => p.k === k) ? k : 'q';
+    /* `deal` is not a chip, so it is not in `PERIODS` and has to be named
+       here or the guard would quietly resolve a client's whole window to a
+       quarter. */
+    const row = (k === 'deal' || PERIODS.some((p) => p.k === k)) ? k : 'q';
+    if (row === 'deal') {
+      const d = myDeal();
+      const from = d ? d.since : isoDay(new Date(y, 0, 1));
+      const end = d ? isoAdd(monthStep(from, d.term), -1) : TODAY_ISO;
+      const to = TODAY_ISO < end ? TODAY_ISO : end;
+      const span = daysBetween(from, end) + 1;
+      /* The term before this one, whole, so a trend compares a year of the
+         contract to a year of the contract. */
+      return { k: row, from: from, to: to, whole: TODAY_ISO >= end,
+        days: daysBetween(from, to), span: span, end: end,
+        elapsed: Math.min(1, (daysBetween(from, to) + 1) / span),
+        prior: { from: d ? monthStep(from, -d.term) : from, to: dayBefore(from) } };
+    }
 
     if (row === 'lq') {
       const pq = q === 0 ? { y: y - 1, q: 3 } : { y: y, q: q - 1 };
@@ -6655,7 +7139,12 @@
     }
     if (row === 'y') {
       const from = isoDay(new Date(y, 0, 1));
+      /* `span` is the whole window, and every other branch that can be part
+         finished carries one. This did not, so the one reader of it —
+         the day count under Still needed — fell to a hard-coded 92 and
+         counted a year's remaining days as a quarter's. */
       return { k: row, from: from, to: TODAY_ISO, whole: false,
+        span: daysBetween(from, isoDay(new Date(y, 11, 31))) + 1,
         elapsed: (daysBetween(from, TODAY_ISO) + 1) / 365,
         prior: { from: isoDay(new Date(y - 1, 0, 1)),
           to: isoDay(new Date(y - 1, TODAY.getMonth(), TODAY.getDate())) } };
@@ -7076,6 +7565,19 @@
        card is what the company pays us in total rather than what it pays
        for this line. That is a fact about the company, said on a shelf of
        companies that all run his product. */
+    /* ══ AND A BUYER HAS NO BOOK HERE AT ALL ══════════════════════
+       For the two desks above, these are OUR customers and the only
+       question is which of them. On a client's desk the word changes
+       meaning underneath the function: the companies they care about are
+       the ones THEY are selling to, whose relationship is with them and
+       not with us, and `isCust` answers a question about our contracts.
+
+       So this is not a scope that needs narrowing, it is a reading this
+       desk does not have. Empty at the root rather than filtered at seven
+       call sites — which is also what takes another company's renewal date
+       and another company's contract value out of a client's bell, since
+       `openings` and the renewals row are both built from this list. */
+    if (isBuyer()) { CUST_CACHE = []; return CUST_CACHE; }
     const inBook = isLine()
       ? (a) => subsAt(a).some((s) => s.sell === myLine())
       : isCust;
@@ -7257,6 +7759,21 @@
   function openingAt(a) {
     const n = newsAt(a);
     if (!n) return null;
+    /* ══ THE NEWS IS THEIRS, THE CONCLUSION DRAWN FROM IT IS OURS ══════
+       What happened at the company is intelligence about a prospect a
+       client is chasing, and handing it to them is one of the better
+       things this product does. Which of OUR eight services it makes a
+       case for is a different sentence: `offer` is our next sale into an
+       account they found, `hold` names everything they already buy from
+       us, and the verb underneath says "Offer Managed customer support" —
+       a product the client does not sell, in a conversation they are not
+       in.
+
+       So a buyer gets the signal with no conclusion attached. `none` is
+       already the shape for "something happened and it argues for
+       nothing", so every reader of this handles it without being told
+       about a fourth desk. */
+    if (isBuyer()) return { news: n, kind: 'none', offer: null };
     const have = Object.create(null);
     subsAt(a).forEach((s) => (have[s.sell] = 1));
     const fit = (IND_FIT[a.industry] || { fits: [] }).fits;
@@ -7534,7 +8051,9 @@
   /* The ids this desk's book is made of. Two surfaces read it — the money
      and the board — and a second spelling of the same ternary is how they
      would come to disagree about what the book is. */
-  const bookIds = () => (isLine() ? DB.byLine[myLine()] : DB.byMgr[me().id]) || [];
+  const bookIds = () => (isBuyer() ? DB.byClient[myClient()]
+    : isLine() ? DB.byLine[myLine()]
+    : DB.byMgr[me().id]) || [];
   const dealBook = () => bookIds().map((id) => DB.byCon[id]).filter(Boolean);
   /* Before the hand-over a lead is the caller's and has no stage, so asking
      `stageOf` about one answers Not met for six hundred people who are
@@ -8004,8 +8523,43 @@
     test: 115e3, eng: 195e3, data: 90e3, back: 105e3,
   };
   const PERIOD_QUARTERS = { q: 1, lq: 1, y: 4, r12: 4 };
-  const targetFor = (p) => (isLine() && TARGET_LINE[myLine()] != null
-    ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
+  /* A client's target is the number on their own deal, and it is ANNUAL, so
+     nothing multiplies it. `PERIOD_QUARTERS` exists to scale a quarterly
+     commitment up to a year; there is no quarterly commitment here to scale,
+     and dividing a year's promise by four to fit a quarter chip is the same
+     arithmetic this page threw a year's ACV over a quarter's spend out for.
+     `periodsFor` removes the chips that would ask for it. */
+  const dealOf = (k) => (CLIENT[k] && CLIENT[k].deal) || null;
+  /* ══ WHAT A CLIENT BOUGHT, WHICH IS OFTEN MORE THAN ONE THING ══════════
+     A deal written before this existed is one engagement that never needed
+     naming, so the three clients with a single line of business are read
+     without being rewritten. */
+  const engsOf = (d) => (d && d.engagements) ||
+    (d ? [Object.assign({ k: 'only', name: 'Outbound' }, d)] : []);
+  const myEng = () => {
+    const d = isBuyer() ? dealOf(myClient()) : null;
+    if (!d) return null;
+    const es = engsOf(d);
+    return es.filter((e) => e.k === S.eng)[0] || (es.length === 1 ? es[0] : null);
+  };
+  const promiseOf = (k) => {
+    const d = myDeal();
+    if (!d) return null;
+    return d.promises.filter((r) => r.k === k)[0] || null;
+  };
+  const targetFor = (p) => {
+    const arr = promiseOf('arr');
+    if (arr) return arr.to;
+    /* ══ AND A FLOOR HAS NO MONEY TARGET AT ALL ══════════════════════════
+       Falling through here put the sales desk's €300k on Nordwind's rail
+       door, which is the same leak the client desk was built to close
+       arriving through a different opening. A client who bought a tool
+       promised us nothing in euros and we promised them nothing in euros;
+       zero is the honest answer and `bookSay` draws the promises instead. */
+    if (isBuyer()) return 0;
+    return (isLine() && TARGET_LINE[myLine()] != null
+      ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
+  };
 
   /* Attainment is measured against the WHOLE period's target even when the
      period is part-finished — you are judged on the quarter, not on the
@@ -8101,8 +8655,10 @@
   }
 
   function periodChips() {
+    const rows = periodsFor();
+    if (!rows.length) return '';
     return '<div class="s-tabcuts" role="group" aria-label="Period">' +
-      PERIODS.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
+      rows.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
         '" type="button" data-period="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
     '</div>';
   }
@@ -8304,6 +8860,1253 @@
     return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
   }
 
+  /* ══ WHAT IS SCORED ON EVERY CONVERSATION ══════════════════════════════
+     Seven goals, weighted to a hundred, lifted from AiMY QA's own audit
+     record — code, title, the question an evaluator answers, and what it is
+     worth. They are judgements and they sit with the other lists of
+     judgements in this file rather than being derived from anything.
+
+     `bias` is what makes a floor a floor rather than noise: follow-up
+     confirmation and survey promotion are the two that fail, which is the
+     same pair AiMY QA's goal heatmap marks as the ones needing coaching.
+     Without it every goal fails at the same rate and there is nothing on the
+     page worth a manager's afternoon. */
+  const QA_GOALS = [
+    { k: 'follow',  code: 'CR-041', weight: 18, bias: -0.20, short: 'Follow-up',
+      title: 'Follow-up confirmation',
+      q: 'Did the agent set clear next steps and a time to come back?' },
+    { k: 'survey',  code: 'CR-043', weight: 16, bias: -0.24, short: 'Survey',
+      title: 'Survey promotion',
+      q: 'Was the post-interaction survey offered before the end?' },
+    { k: 'empathy', code: 'CR-038', weight: 16, bias: -0.04, short: 'Empathy',
+      title: 'Empathy and acknowledgment',
+      q: 'Did the agent acknowledge how the customer felt about it?' },
+    { k: 'ident',   code: 'CR-044', weight: 14, bias: 0.16, short: 'Identity',
+      title: 'Identity verification',
+      q: 'Was the customer verified before any account detail was shared?' },
+    { k: 'tags',    code: 'CR-042', weight: 14, bias: 0.13, short: 'Category',
+      title: 'Category and tags',
+      q: 'Was the interaction logged under the right category?' },
+    { k: 'own',     code: 'CR-046', weight: 12, bias: 0.02, short: 'Ownership',
+      title: 'Resolution ownership',
+      q: 'Did the agent take the next operational step themselves?' },
+    { k: 'clear',   code: 'CR-033', weight: 10, bias: 0.09, short: 'Clarity',
+      title: 'Clear and accurate language',
+      q: 'Was the explanation short, accurate and possible to act on?' },
+  ];
+  const QA_GOAL = Object.create(null);
+  QA_GOALS.forEach((g) => (QA_GOAL[g.k] = g));
+  /* ══ AND WHY IT WENT THE WAY IT DID ════════════════════════════════════
+     A verdict with no reason is a score somebody is asked to take on faith,
+     and the whole argument for scoring every conversation rather than a
+     sample is that each one can be gone back to. One sentence per goal per
+     outcome: the same duty `from` carries on every AiMY sentence in this
+     build, and the reason AiMY QA's own audit record carries `reason` beside
+     every verdict. */
+  const QA_WHY = {
+    follow: { ok: 'Next steps and a time to come back were both named before the end.',
+      no: 'It ended without a named next step or a time, after the customer asked what happens now.' },
+    survey: { ok: 'The survey was offered once, at the end, without pressing it.',
+      no: 'No survey was offered before the conversation closed.' },
+    empathy: { ok: 'The agent said back what the customer was annoyed about before going to fix it.',
+      no: 'The agent went straight to the fix without acknowledging what it had cost the customer.' },
+    ident: { ok: 'Identity was confirmed before any account detail was read out.',
+      no: 'Account detail was given before the customer had been confirmed.' },
+    tags: { ok: 'Logged under the category the conversation was actually about.',
+      no: 'Logged under a category that does not match what was discussed.' },
+    own: { ok: 'The agent took the next step themselves rather than handing it back.',
+      no: 'The customer was left holding the next step.' },
+    clear: { ok: 'The explanation was short and possible to act on.',
+      no: 'The explanation ran long and left the customer restating the question.' },
+  };
+
+  const FLOOR_SUBJ = ['Refund still not received', 'Locked out after a domain change',
+    'Charged twice on renewal', 'Delivery window missed', 'Account merge went wrong',
+    'Password reset loop', 'Invoice does not match the order', 'Cancelled and still billed',
+    'Broken since the update', 'Escalated off a survey', 'Wrong item shipped',
+    'Cannot add a second user'];
+  const FLOOR_CHAN = ['call', 'email', 'chat'];
+
+  /* ══ A FLOOR, ON A STREAM OF ITS OWN ═══════════════════════════════════
+     Everything else in this corpus comes off one RNG walked once in order,
+     and the campaign loop's margin is the standing warning about it: a draw
+     added in the middle re-deals everything after it. This is a second
+     corpus for one desk, so it takes its own stream keyed off the client and
+     cannot move a campaign, a lead, or a figure on anybody else's desk.
+
+     Built on demand and cached, like the customer book, because four desks
+     out of five never ask for it — and a client who bought reach has no
+     floor to ask about.
+
+     THE RAMP IS THE WHOLE POINT. Nothing moves until `deployedAt`, because
+     for those weeks the tool was not there; after it, each measure walks
+     towards the number the contract promised, fastest at the start. That is
+     the shape the promise is making a claim about, and generating it any
+     other way would be drawing the conclusion first. */
+  let FLOOR_CACHE = Object.create(null);
+  function floorOf(ckey, ekey) {
+    /* Keyed by both, because one client can run two of these — a quality
+       tool over their own people and a support desk staffed by ours — and
+       they are different floors with different people on them. */
+    const key = ckey + ':' + (ekey || '');
+    if (FLOOR_CACHE[key]) return FLOOR_CACHE[key];
+    const d = dealOf(ckey);
+    const e = engsOf(d).filter((x) => x.k === ekey)[0];
+    const t = e && e.team;
+    if (!t) return null;
+    const r = rng(Math.abs(hash('floor:' + key)) || 1);
+    const weeks = t.weeks || 12;
+    const dep = t.deployedAt || 0;
+    /* ══ KEYED BY THE FIELD, NOT BY THE METRIC'S NAME ══════════════════
+       `from` already says which field on a conversation a metric is read
+       out of, so it is also the only sane thing to ramp by. Keyed on the
+       metric's own name instead, this walked `latency` towards its promise
+       and left Lambourne — who call the same field `reply` — with no ramp
+       at all: a first reply promised inside half an hour, generated at one
+       minute, and nothing in the page to say it was nonsense. A second
+       client is where a name used as a key stops being a name. */
+    const byFrom = Object.create(null);
+    (t.metrics || []).forEach((m) => {
+      const p = (e.promises || []).filter((x) => x.read === 'team.' + m.k)[0];
+      if (p && m.from) byFrom[m.from] = p;
+    });
+    const at = (from, frac) => {
+      const p = byFrom[from];
+      return p ? p.was + (p.to - p.was) * frac : null;
+    };
+    /* Fast then settling: most of a deployment's effect lands in the first
+       weeks after it, and a straight line would say the opposite. */
+    const ease = (x) => 1 - Math.pow(1 - x, 2);
+    /* How long the change took, which is not how long the chart is. Spanning
+       the ramp across the whole term made a rollout that finished in ten
+       weeks look like one that crawled for a year. */
+    const span = Math.max(1, t.ramp || (weeks - 1 - dep));
+
+    const agents = [];
+    for (let i = 0; i < (t.agents || 24); i++) {
+      agents.push({ id: 'g' + i, name: pick(r, FIRST) + ' ' + pick(r, LAST),
+        /* How much better or worse than the floor this person is, held
+           steady across the year — a floor where everybody is average has
+           no one to coach and nothing to read. */
+        edge: (r() - 0.5) * 0.34, months: 3 + Math.floor(r() * 60) });
+    }
+    agents.forEach((a) => (a.initials = a.name.split(' ').map((x) => x[0]).join('')));
+
+    const evals = [];
+    const byWeek = [];
+    for (let w = 0; w < weeks; w++) {
+      const frac = w < dep ? 0 : ease(Math.min(1, (w - dep) / span));
+      /* ══ AND NO COVERAGE PROMISE MEANS ALL OF IT ══════════════════════
+         A client who bought the tool is promised a rising share of a steady
+         load, so `cover` ramps. A client who handed us the desk is promised
+         that every contact is scored rather than sampled — there is no
+         coverage promise because there is nothing to ramp, and reading a
+         missing one as zero scored nothing at all and left three of their
+         four metrics with no conversations to average. */
+      const cover = byFrom.cover ? at('cover', frac) / 100 : 1;
+      /* A floor with no promise about one of these still produces it, so
+         the drill has something to show — it just is not the thing anybody
+         committed to. */
+      const lag = at('lag', frac) == null ? 3 : at('lag', frac);
+      const qual = at('score', frac) == null ? 80 : at('score', frac);
+      const mins = at('mins', frac) == null ? 40 : at('mins', frac);
+      /* ══ AND SOMETIMES CAPACITY IS THE THING THAT MOVES ═══════════════
+         A floor running our tool reviews a rising share of a steady load.
+         A desk we run for somebody answers a load that RISES, because the
+         hours they could not cover before are hours somebody is now
+         picking up. So a `volume` promise, where there is one, sets how
+         many conversations a week there are rather than how many of them
+         get looked at. */
+      const vol = byFrom.held ? at('held', frac) : null;
+      const per = vol ? Math.max(1, vol / agents.length) : 6.5;
+      /* ══ COUNTED IN FULL, KEPT IN PART ════════════════════════════════
+         A support desk answering sixteen hundred contacts a week across a
+         year is sixty thousand conversations, and holding a record for each
+         one to draw four averages and a drill is a corpus built for its own
+         sake. The WEEKLY COUNTS are true — they are what the volume and
+         coverage promises are read off — and the records behind them are a
+         sample, spread across the floor rather than taken off the front of
+         it so every person still has a history to open.
+
+         The page says so. A number a reader cannot check is the thing this
+         desk exists to avoid, and a sampled average presented as a census
+         is the same fault wearing better clothes. */
+      const cap = t.sample || 0;
+      const keep = cap ? Math.min(1, cap / Math.max(1, per * agents.length * cover)) : 1;
+      let held = 0, seen = 0;
+      agents.forEach((a) => {
+        const n = Math.max(1, Math.round(per + (r() - 0.5) * per * 0.5));
+        held += n;
+        for (let c = 0; c < n; c++) {
+          if (!chance(r, cover)) continue;
+          seen += 1;
+          if (keep < 1 && !chance(r, keep)) continue;
+          const goals = QA_GOALS.map((g) => {
+            const p = Math.max(0.04, Math.min(0.99, (qual / 100) + g.bias + a.edge));
+            return { k: g.k, pass: chance(r, p) };
+          });
+          const score = goals.reduce((n2, g) => n2 + (g.pass ? QA_GOAL[g.k].weight : 0), 0);
+          evals.push({
+            id: 'e' + evals.length, w: w, agent: a.id, score: score, goals: goals,
+            chan: pick(r, FLOOR_CHAN), subj: pick(r, FLOOR_SUBJ),
+            /* Jitter in proportion, not in units. A flat plus-or-minus one
+               is most of the spread on eleven days and none at all on three
+               hundred and forty minutes, so the same line produced a
+               believable floor and a suspiciously smooth desk. */
+            lag: Math.max(1, Math.round(lag + (r() - 0.5) * Math.max(2, lag * 0.3))),
+            mins: Math.max(4, Math.round(mins + (r() - 0.5) * 16)),
+          });
+        }
+      });
+      byWeek.push({ w: w, held: held, seen: seen });
+    }
+    FLOOR_CACHE[key] = { agents: agents, evals: evals, byWeek: byWeek,
+      weeks: weeks, deployedAt: dep,
+      /* The true totals, which are not `evals.length` once a cap is on. */
+      held: byWeek.reduce((n, w) => n + w.held, 0),
+      seen: byWeek.reduce((n, w) => n + w.seen, 0) };
+    return FLOOR_CACHE[key];
+  }
+
+  /* The four figures the report reads, each one a pass over the records
+     above rather than a number written beside them. Same derivation every
+     week, so the series and the headline cannot disagree. */
+  function floorSeries(ckey, ekey) {
+    const f = floorOf(ckey, ekey);
+    const e = engsOf(dealOf(ckey)).filter((x) => x.k === ekey)[0];
+    if (!f || !e || !e.team) return [];
+    const mean = (xs) => (xs.length ? xs.reduce((n, x) => n + x, 0) / xs.length : 0);
+    return (e.team.metrics || []).map((m) => ({ k: m.k, label: m.label, unit: m.unit,
+      w: f.byWeek.map((wk) => {
+        /* Two of these are facts about the WEEK and the rest are averages
+           over the conversations in it, which is why `from` names a field
+           rather than the list being positional. */
+        if (m.from === 'cover') return Math.round((wk.seen / (wk.held || 1)) * 100);
+        if (m.from === 'held') return wk.held;
+        if (m.from === 'seen') return wk.seen;
+        const es = f.evals.filter((e) => e.w === wk.w);
+        if (!es.length) return null;
+        return Math.round(mean(es.map((e) => e[m.from])));
+      }) }));
+  }
+  /* ══ "NOW" IS FOUR WEEKS, NOT WHICHEVER ONE HAPPENED TO BE LAST ═══════
+     This returned the last week that produced anything, and on a noisy
+     measure that is a verdict decided by the calendar. The support desk's
+     volume ran 1,554 · 1,660 · 1,470 · 1,598 · 1,518 · 1,557 against a
+     promise of sixteen hundred — so a year-long commitment read KEPT in one
+     of those weeks and BEHIND in the other five, and a client who looked
+     last week and looked again today would watch the verdict change with
+     nothing on the page to explain it. That costs more than being behind
+     does.
+
+     Four weeks, meaned: long enough that one quiet week cannot flip a
+     verdict, short enough to still be now. A week nobody reviewed still
+     contributes nothing rather than a zero, which would read as a floor
+     that scored badly rather than one nobody looked at.
+
+     Said on the page, because a figure whose method is not stated is a
+     figure somebody has to take on trust, and this desk exists to not ask
+     that. */
+  const FLOOR_NOW_WEEKS = 4;
+  const floorNow = (rows) => {
+    const got = [];
+    for (let i = rows.length - 1; i >= 0 && got.length < FLOOR_NOW_WEEKS; i--) {
+      if (rows[i] != null) got.push(rows[i]);
+    }
+    if (!got.length) return null;
+    return Math.round(got.reduce((n, x) => n + x, 0) / got.length);
+  };
+
+  /* ══ WHAT DID NOT WORK, WHEN NO DEAL HAS DIED YET ═════════════════════
+     "How deals collapse" is the strongest thing on this page — a report that
+     only ever shows what worked is not believed — and on a client with ten
+     deals, two signed and none lost it rendered as "Nothing has been lost."
+     True, and the one block built to be uncomfortable said nothing at all.
+
+     Nobody has lost a DEAL. Plenty of people left before becoming one, and
+     that is the same question asked a stage earlier: of everybody we found
+     for you, here is who is not going to be a conversation and why. It is
+     read off the ladder rather than off `LOST_WHY`, so it needs no seeded
+     reason and cannot be empty while the funnel above it has a top. */
+  const EXIT_SAY = [
+    { k: 'declined', say: 'said no once we got to them' },
+    { k: 'wrong-number', say: 'the number on the record was not theirs' },
+    { k: 'do-not-call', say: 'asked not to be called again' },
+    { k: 'not-called', say: 'have not been reached yet' },
+  ];
+  function buyerExits(scope) {
+    const n = Object.create(null);
+    (scope || []).forEach((c) => (n[c.checkpoint] = (n[c.checkpoint] || 0) + 1));
+    const rows = EXIT_SAY.map((r) => ({ r: r, n: n[r.k] || 0 }))
+      .filter((x) => x.n).sort((x, y) => y.n - x.n);
+    if (!rows.length) return '<p class="s-odds-note">Nobody has left the ladder.</p>';
+    /* ══ AND NOT REACHED IS NOT THE SAME AS GONE ══════════════════════
+       The first draft of this line added the four rows together and called
+       the total "people who are not going to be a deal". Three of the four
+       are gone; the fourth is seventy-four people nobody has rung yet, and
+       with thirteen days left that is not attrition, it is the most
+       actionable number on the page. It also said "the four reasons" over
+       three rows, because a reason with nobody behind it is not drawn. */
+    const left = rows.filter((x) => x.r.k !== 'not-called')
+      .reduce((t2, x) => t2 + x.n, 0);
+    const cold = (n['not-called'] || 0);
+    return '<div class="s-odds-rows">' + rows.map((x) =>
+      '<span class="s-pan-p">' +
+        '<span class="s-pan-who">' +
+          '<b>' + esc(EXIT_LABEL[x.r.k] || x.r.k) + '</b>' +
+          '<span class="s-pan-meta">' + esc(x.r.say) + '</span>' +
+        '</span>' +
+        '<span class="s-pan-cost">' + esc(commas(x.n)) + '</span>' +
+      '</span>').join('') + '</div>' +
+      '<p class="s-odds-note">No deal has been lost yet' +
+        (left ? ', and ' + esc(plural(left, 'person')) + ' left the ladder for the reasons above'
+          : '') + '.' +
+        (cold ? ' ' + esc(commas(cold)) + ' of the people we found have not been reached at all.'
+          : '') + '</p>';
+  }
+  const EXIT_LABEL = { 'declined': 'Said no', 'wrong-number': 'Wrong number',
+    'do-not-call': 'Asked us to stop', 'not-called': 'Not reached yet' };
+
+  /* ══ THE FLOOR, RANKED BY WHO NEEDS AN AFTERNOON ══════════════════════
+     Worst first, which is the one ordering that makes this a surface rather
+     than a roster. A list of twenty-four people alphabetically is a fact; the
+     three at the top of this one are a Monday. */
+  const floorBand = (n) => (n >= 80 ? 'ok' : n >= 65 ? 'warn' : 'err');
+  const floorSay = (n) => (n >= 80 ? 'On track' : n >= 65 ? 'Watch' : 'At risk');
+  function floorRanked(f) {
+    return f.agents.map((a) => {
+      const es = f.evals.filter((e) => e.agent === a.id);
+      return { a: a, n: es.length,
+        avg: es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : null };
+    }).filter((x) => x.avg != null).sort((x, y) => x.avg - y.avg);
+  }
+  function floorPage() {
+    const f = floorOf(myClient(), (myEng() || {}).k);
+    if (!f) return '<div class="s-home"></div>';
+    const rows = floorRanked(f);
+    const rule = (title, list) => (list.length
+      ? '<div class="s-pan-restitle">' + title + '</div>' +
+        '<div class="s-odds-rows">' + list.map((x) =>
+          '<button class="s-pan-p s-pan-go" type="button" data-ag="' + esc(x.a.id) + '">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(x.a.name) +
+                '<span class="s-pan-state tone-' + floorBand(x.avg) + '">' +
+                  esc(floorSay(x.avg)) + '</span></b>' +
+              '<span class="s-pan-meta">' + esc(plural(x.n, 'conversation')) + ' scored &middot; ' +
+                esc(plural(Math.round(x.a.months / 12 * 10) / 10 >= 1
+                  ? Math.round(x.a.months / 12) : 1, 'year')) + ' on the floor</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(commas(x.avg) + '%') + '</span>' +
+          '</button>').join('') + '</div>'
+      : '');
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the year') + '</div>' +
+      '<section class="s-exec-sec s-block-wide">' +
+        '<div class="s-sec-head">' +
+          '<h1 class="s-exec-h">' +
+            ((myDeal().team || {}).whose === 'ours' ? 'The desk we run' : 'Your floor') + '</h1>' +
+        '</div>' +
+        /* "69,399 of 69,399 conversations scored" is a ratio nobody asked
+           for. Where every one is scored it says so; where a share is, the
+           share is the fact. */
+        '<p class="s-exec-scope">' + esc(plural(rows.length, 'person')) + ' &middot; ' +
+          (f.seen >= f.held
+            ? 'all ' + esc(commas(f.held)) + ' conversations scored'
+            : esc(commas(f.seen)) + ' of ' + esc(commas(f.held)) + ' conversations scored') +
+          ' &middot; worst first</p>' +
+        /* Said where the records are, not in a footnote somewhere else. */
+        (f.seen > f.evals.length
+          ? '<p class="s-exec-note">The averages are over all ' + esc(commas(f.seen)) +
+            '. The conversations you can open are ' + esc(commas(f.evals.length)) +
+            ' of them, spread across the year and the floor.</p>'
+          : '') +
+        rule('Wants an afternoon', rows.filter((x) => x.avg < 65)) +
+        rule('Worth watching', rows.filter((x) => x.avg >= 65 && x.avg < 80)) +
+        rule('On track', rows.filter((x) => x.avg >= 80)) +
+      '</section>' +
+    '</div>';
+  }
+
+  /* One person, and the goal that is costing them. The breakdown is the
+     reason this page exists: an average tells a manager somebody is behind
+     and nothing about what to say to them. */
+  function agentPage() {
+    const f = floorOf(myClient(), (myEng() || {}).k);
+    const a = f ? f.agents.filter((x) => x.id === S.ag)[0] : null;
+    if (!a) return '<div class="s-home"></div>';
+    const es = f.evals.filter((e) => e.agent === a.id).sort((x, y) => y.w - x.w);
+    const avg = es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : 0;
+    const per = QA_GOALS.map((g) => {
+      const n = es.filter((e) => e.goals.filter((x) => x.k === g.k && x.pass).length).length;
+      return { g: g, pc: es.length ? Math.round((n / es.length) * 100) : 0 };
+    }).sort((x, y) => x.pc - y.pc);
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the floor') + '</div>' +
+      '<section class="s-exec-sec s-block-wide">' +
+        '<div class="s-sec-head">' +
+          '<h1 class="s-exec-h">' + esc(a.name) + '</h1>' +
+        '</div>' +
+        '<p class="s-exec-scope">' + esc(commas(avg) + '% average') + ' &middot; ' +
+          esc(plural(es.length, 'conversation')) + ' scored &middot; ' +
+          esc(floorSay(avg)) + '</p>' +
+        '<div class="b-funnel">' +
+          '<div class="b-fn-head"><span class="b-fn-name">Goal</span><span></span>' +
+            '<span class="b-fn-n">passed</span><span class="b-fn-conv">worth</span></div>' +
+          per.map((x) => '<div class="b-fn-row">' +
+            /* ══ THE SHORT FORM, BECAUSE THE COLUMN IS `max-content` ═══
+               `.b-funnel`'s first column sizes to its widest label and the
+               other three take what is left, so one long title does not
+               wrap — it pushes the weights off the right edge, and at 375px
+               "Empathy and acknowledgment" is enough on its own. The full
+               title and the question it answers are both one level down, on
+               the conversation where the verdict was actually reached. */
+            '<span class="b-fn-name">' + esc(x.g.short || x.g.title) + '</span>' +
+            /* `FN_TONE` rather than the class name, because a funnel bar in
+               this build does not go red — it maps `err` onto amber, and a
+               fill asking for `tone-err` gets no rule at all and renders as
+               the neutral grey, which is how a thirty per cent came to look
+               the same as a seventy-five. */
+            '<span class="b-fn-bar"><span class="b-fn-fill ' +
+              (x.pc >= 80 ? FN_TONE.ok : x.pc >= 65 ? FN_TONE.neutral : FN_TONE.err) +
+              '" style="width:' + Math.max(2, x.pc) + '%"></span></span>' +
+            '<span class="b-fn-n">' + esc(commas(x.pc) + '%') + '</span>' +
+            '<span class="b-fn-conv">' + esc(commas(x.g.weight)) + '</span>' +
+          '</div>').join('') +
+        '</div>' +
+        '<div class="s-pan-restitle">The conversations</div>' +
+        '<div class="s-odds-rows">' + es.slice(0, 12).map((e) =>
+          '<button class="s-pan-p s-pan-go" type="button" data-ev="' + esc(e.id) + '">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(e.subj) +
+                '<span class="s-pan-state tone-' + floorBand(e.score) + '">' +
+                  esc(CHAN_SAY[e.chan] || e.chan) + '</span></b>' +
+              '<span class="s-pan-meta">Week ' + esc(commas(e.w + 1)) + ' &middot; ' +
+                esc(lagOf(e).fig + ' ' + lagOf(e).say) + ' &middot; ' +
+                esc(commas(e.mins)) + ' min to resolve</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(commas(e.score) + '%') + '</span>' +
+          '</button>').join('') + '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  const CHAN_SAY = { call: 'Call', email: 'Email', chat: 'Chat' };
+
+  /* ══ HOW LONG BEFORE SOMEBODY LOOKED, IN THIS BOOK'S UNIT ══════════════
+     `lag` is the same field on every scored conversation and it is not the
+     same measurement: on a floor running our tool it is days before a
+     reviewer got to it, on a desk we staff it is minutes before a customer
+     got a reply. The record page had the quality tool's unit and the
+     quality tool's target written into it, so a support desk conversation
+     answered in twenty-eight minutes was reported as "28 days later,
+     outside the two promised" — wrong unit, wrong promise, and it read as
+     a catastrophe on a conversation that beat its commitment.
+
+     Read off the metric whose `from` is `lag`, which is the same link the
+     generator and the series already use, so there is one answer to what
+     that field means rather than three. */
+  function lagOf(e) {
+    const d = myDeal();
+    const m = ((d && d.team && d.team.metrics) || []).filter((x) => x.from === 'lag')[0];
+    const p = m ? (d.promises || []).filter((r) => r.read === 'team.' + m.k)[0] : null;
+    return { p: p,
+      fig: p ? promFig(p, e.lag) : plural(e.lag, 'day'),
+      kept: p ? promKept(p, e.lag) : e.lag <= 2,
+      target: p ? promFig(p, p.to) : null,
+      say: p ? (PROM_SAY[p.k] || '').replace(/^time /, '') : 'to a first look' };
+  }
+
+  /* One conversation, every goal on it, and why each went the way it did.
+     This is the bottom of the drill and the thing the coverage promise is
+     a promise ABOUT — two in a hundred of these used to be read. */
+  function evalPage() {
+    const f = floorOf(myClient(), (myEng() || {}).k);
+    const e = f ? f.evals.filter((x) => x.id === S.ev)[0] : null;
+    if (!e) return '<div class="s-home"></div>';
+    const a = f.agents.filter((x) => x.id === e.agent)[0] || { name: 'Unknown' };
+    const rows = e.goals.map((g) => ({ g: QA_GOAL[g.k], pass: g.pass }))
+      .sort((x, y) => (x.pass === y.pass ? y.g.weight - x.g.weight : (x.pass ? 1 : -1)));
+    const lost = rows.filter((x) => !x.pass).reduce((n, x) => n + x.g.weight, 0);
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the person') + '</div>' +
+      '<section class="s-exec-sec s-block-wide">' +
+        '<div class="s-sec-head">' +
+          '<h1 class="s-exec-h">' + esc(e.subj) + '</h1>' +
+        '</div>' +
+        '<p class="s-exec-scope">' + esc(CHAN_SAY[e.chan] || e.chan) + ' &middot; ' +
+          esc(a.name) + ' &middot; week ' + esc(commas(e.w + 1)) + ' &middot; ' +
+          esc(plural(e.mins, 'minute')) + ' to resolve</p>' +
+        '<div class="s-afs">' +
+          attFig('Scored', commas(e.score) + '%', floorSay(e.score).toLowerCase(),
+            e.score >= 80 ? 'ok' : null) +
+          attFig('Points lost', commas(lost), lost ? 'across ' +
+            plural(rows.filter((x) => !x.pass).length, 'goal') : 'nothing missed', null) +
+          (function () {
+            const l = lagOf(e);
+            return attFig('Looked at', l.fig + ' later',
+              l.target ? (l.kept ? 'inside the ' + l.target + ' promised'
+                : 'outside the ' + l.target + ' promised') : '',
+              l.kept ? 'ok' : null);
+          }()) +
+        '</div>' +
+        '<div class="s-pan-restitle">What was scored</div>' +
+        '<div class="s-odds-rows">' + rows.map((x) =>
+          '<span class="s-pan-p">' +
+            '<span class="s-pan-who">' +
+              '<b>' + esc(x.g.title) +
+                '<span class="s-pan-state tone-' + (x.pass ? 'ok' : 'err') + '">' +
+                  (x.pass ? 'passed' : 'failed') + '</span></b>' +
+              '<span class="s-pan-meta">' + esc(x.g.q) + ' &mdash; ' +
+                esc(QA_WHY[x.g.k][x.pass ? 'ok' : 'no']) + '</span>' +
+            '</span>' +
+            '<span class="s-pan-cost">' + esc(commas(x.g.weight)) + '</span>' +
+          '</span>').join('') + '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  /* ══ WHAT A PROMISE IS SCORED OFF ══════════════════════════════════════
+     `read` on a promise names a derivation; this is the one place that turns
+     the name into a number. One switch rather than three, so the ledger, the
+     paragraph above it and the bell cannot come to different answers about
+     whether the same promise was kept. Null means this build cannot evidence
+     it yet, and a promise that cannot be scored is not drawn — a row reading
+     "— of 30" is worse than no row. */
+  function promiseGot(r, now, pipe) {
+    const fn = Object.create(null);
+    (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
+    if (r.read === 'funnel.met') return fn.met || 0;
+    if (r.read === 'funnel.reachable') return fn.reachable || 0;
+    if (r.read === 'arr') return now.arr || 0;
+    if (r.read === 'pipe.open') return pipe ? pipe.open : 0;
+    if (r.read === 'lines.live') return (now.byLine || []).filter((x) => x.meetings > 0).length;
+    /* A promise on a floor reads the last week of its own series. `w[0]`
+       is where we found them and agrees with `was` on the contract; the tail
+       is where they are now. */
+    /* A promise on a floor reads the last week its own series produced —
+       a pass over the scored conversations, not a number written down
+       beside the promise it is meant to be evidence for. */
+    /* `eng` rides on the promise in the overview, where four promises off
+       two different floors are read in one pass and neither of them is the
+       one the desk is standing on. */
+    if (r.read.indexOf('team.') === 0) {
+      if (!isBuyer()) return null;
+      const ek = r.eng ? r.eng.k : (myEng() || {}).k;
+      if (!ek) return null;
+      const m = floorSeries(myClient(), ek).filter((x) => x.k === r.read.slice(5))[0];
+      return m ? floorNow(m.w) : null;
+    }
+    if (r.read === 'camps.regions') {
+      const seen = Object.create(null);
+      myCamps().forEach((k) => { if (k.region) seen[k.region] = 1; });
+      return Object.keys(seen).length;
+    }
+    return null;
+  }
+  const promFig = (r, n) => (r.unit === 'money' ? fmtMoney(n)
+    : r.unit === 'pc' ? commas(n) + '%'
+    : r.unit === 'days' ? plural(n, 'day')
+    : r.unit === 'mins' ? commas(n) + ' min'
+    : commas(n));
+  /* ══ AND NOT EVERY PROMISE IS A PROMISE TO GO UP ═══════════════════════
+     A client who bought reach is promised numbers to arrive at, and more is
+     always better. A client who bought a tool is promised numbers to MOVE,
+     and half of them move down: eleven days to two, forty-eight minutes to
+     thirty-four. Read off `was` rather than off a field, because a promise
+     that says where it started has already said which way it is going. */
+  const promDown = (r) => r.was != null && r.to < r.was;
+  const promKept = (r, n) => (promDown(r) ? n <= r.to : n >= r.to);
+  /* ══ A PROMISE NEEDS A NAME AS WELL AS A SENTENCE ══════════════════════
+     `say` is how a promise reads in a ledger, where it has a row to itself
+     and a figure beside it: "Two hundred thousand signed off the meetings we
+     booked." Dropped into a paragraph it becomes "furthest behind is two
+     hundred thousand signed off the meetings we booked, at €139k of €200k",
+     which says the number three times and parses as a garden path.
+
+     A map rather than a field on each row, because the short form is the
+     same wherever that KIND of promise appears and a per-client spelling of
+     it is a per-client way to drift. */
+  const PROM_SAY = { met: 'qualified meetings', found: 'people we could reach',
+    lines: 'both services in the market', reach: 'regions opened',
+    arr: 'signed revenue', live: 'deals live at the year end',
+    cover: 'coverage', latency: 'time to a first look',
+    quality: 'average quality', resolve: 'time to first resolution',
+    volume: 'contacts answered', reply: 'time to a first reply' };
+
+  /* ══ THE FUNNEL, AND IT IS WHERE THE LINE ALREADY FALLS ════════════════
+     `now.funnel` has been computed since the aggregate was written and has
+     rendered nowhere in this file. Counts only: `cost` on each row is our
+     spend over the stage, which is the one figure this desk must not carry,
+     and dropping it costs nothing because the counts were always the story.
+     Six numbers say what a year bought without asking anybody to divide.
+
+     AND THE HANDOVER SITS BETWEEN THE LAST TWO. Found, reachable, called,
+     answered, met — ours to deliver, and the deal says so in the sentence
+     between the blocks. Signed is theirs. The split is not a decoration laid
+     over the page; it is where this funnel already breaks.
+
+     Both blocks scale off the same top, so the bars stay comparable across
+     the break rather than restarting under the second heading.
+
+     The conversion column stays. It is a count over a count with its
+     denominator named in the header — not the ratio of money to money this
+     page has thrown out twice. */
+  const BUYER_FN = { sourced: 'Found', reachable: 'Reachable', contacted: 'Called',
+    replied: 'Answered', met: 'Met', handed: 'Handed to you', won: 'Signed' };
+  function buyerFunnel(now) {
+    const base = (now.funnel || []).filter((r) => r.n != null);
+    if (!base.length) return '';
+    /* ══ AND THE STAGE THE WHOLE DESK TURNS ON WAS NOT IN IT ═════════════
+       `FUNNEL` runs met straight into won, which on this desk read "Met 24,
+       Signed 2" — a ninety-two per cent collapse, and not what happened.
+       Fourteen of those twenty-four had not been handed over yet: still
+       being worked, still ours. Of the ten that reached Kestrel, eight are
+       live and two are signed.
+
+       The handover is the line this entire desk is drawn on — `reindex`
+       will not put a lead on a client's book without it — and leaving it
+       out of the one picture that is supposed to SHOW the line made the
+       client's own conversion look catastrophic and the omission invisible.
+
+       Read off `dealBook`, which is the same count the board shows, so the
+       two surfaces cannot disagree about how many reached them. */
+    const rows = [];
+    base.forEach((r) => {
+      rows.push(r);
+      if (r.k === 'met') rows.push({ k: 'handed', label: 'Handed to you', n: dealBook().length });
+    });
+    const top = rows[0].n || 1;
+    let prev = null;
+    const draw = (r) => {
+      const pct = Math.max(1, Math.round((r.n / top) * 100));
+      const conv = prev == null ? null : (prev ? Math.round((r.n / prev) * 100) : 0);
+      prev = r.n;
+      return '<div class="b-fn-row">' +
+        '<span class="b-fn-name">' + esc(BUYER_FN[r.k] || r.label) + '</span>' +
+        '<span class="b-fn-bar"><span class="b-fn-fill ' +
+          (r.k === 'won' ? 'tone-ok' : 'tone-neutral') +
+          '" style="width:' + pct + '%"></span></span>' +
+        '<span class="b-fn-n">' + commas(r.n) + '</span>' +
+        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
+      '</div>';
+    };
+    const head = '<div class="b-fn-head"><span class="b-fn-name">Got this far</span>' +
+      '<span></span><span class="b-fn-n">people</span>' +
+      '<span class="b-fn-conv">of the one above</span></div>';
+    /* Handing over is the last thing we do, so it belongs above the line
+       with everything else that is ours. */
+    const ours = rows.filter((r) => r.k !== 'won');
+    const theirs = rows.filter((r) => r.k === 'won');
+    const d = myDeal();
+    return '<div class="b-funnel">' + head + ours.map(draw).join('') + '</div>' +
+      (d && d.line ? '<p class="s-exec-note">' + esc(d.line) + '</p>' : '') +
+      (theirs.length ? '<div class="b-funnel">' + theirs.map(draw).join('') + '</div>' : '');
+  }
+
+  /* ══ WHAT A PROMISE IS COMPARED AGAINST, AND WHY IT IS NOT LAST YEAR ═══
+     This drew a trend off `p.prior` first, and every row of it read "24 more
+     than the year before". Kestrel signed in October: the twelve months
+     before this term are twelve months in which we did nothing for them at
+     all, so each promise was manufacturing a growth claim out of the
+     relationship not existing. Off a denominator of zero, every figure is
+     its own increase.
+
+     A term has no term before it until the second one, and this build has no
+     client in a second. So the comparison is the one the window really
+     carries — where the promise should have got to by now. `elapsed` is the
+     fraction of the term gone, the target is a commitment for the whole of
+     it, and the difference is the only honest thing to put beside a figure
+     that is not finished. It is the same reading `attainment` gives the bar
+     above, applied to the five promises the bar does not draw. */
+
+  /* ══ THE LEDGER, AND THE RULE THROUGH THE MIDDLE OF IT ═════════════════
+     One row per commitment: what it was, what it reads now, and whether it
+     was kept. The rule is `ours`, which the deal carries on every promise,
+     so the page does not decide where the line falls — the contract does,
+     and the same flag draws the same break in the funnel above.
+
+     NO RATIO ANYWHERE IN IT. Reached and promised sit side by side and the
+     reader draws their own conclusion, which is what this page decided when
+     it threw out the coverage multiple, the return multiple and "€1.30 back
+     for every €1" — three times, over three rewrites, for one reason.
+
+     The trend is a direction and a count, never a percentage change: "4 more
+     than the year before" is a fact, "+20%" is the arithmetic this desk does
+     not do. */
+  function promiseLedger(now, pipe, p) {
+    const d = myDeal();
+    if (!d || !d.promises) return '';
+    const rows = d.promises.map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      .filter((x) => x.got != null);
+    if (!rows.length) return '';
+    const draw = (x) => {
+      const r = x.r;
+      const kept = promKept(r, x.got);
+      /* Rounded to the unit the promise is counted in — "should be at 28.8
+         meetings by now" is a number no commitment was ever written in. */
+      const due = p.elapsed == null ? null
+        : (r.unit === 'money' ? Math.round(r.to * p.elapsed / 500) * 500
+          : Math.round(r.to * p.elapsed));
+      let trend = '';
+      if (r.was != null) {
+        /* A promise to MOVE a number carries three: where it started, where
+           it was promised, where it is. The figure slot holds the last of
+           them, so the other two go here — and the baseline is the one the
+           value-realisation literature says almost no vendor shows. */
+        trend = ' &middot; ' + esc(promFig(r, r.was)) + ' at signing, ' +
+          esc(promFig(r, r.to)) + ' promised';
+      } else if (due != null && !kept) {
+        trend = ' &middot; ' + esc(promFig(r, due)) + ' by now';
+      }
+      return '<span class="s-pan-p">' +
+        '<span class="s-pan-who">' +
+          /* ══ WHICH BOOK IT CAME OUT OF ══════════════════════════════
+             Over three engagements the overview held two rows called
+             "average quality" — one at 81%, one at 79%, adjacent, with
+             nothing saying that one is the support desk and the other the
+             quality tool. A reader meets that as a contradiction or a bug,
+             and either way stops trusting the column. Same for the two
+             called "time to first resolution". */
+          /* Part of the name, not a span beside it. `.s-pan-unit` is a
+             caption that sits UNDER a figure — block, right-aligned — so
+             the engagement broke onto a centred line of its own and the
+             row read as two things. It is one phrase: which promise, on
+             which of the three. */
+          '<b>' + esc((PROM_SAY[r.k] || r.say) + (r.eng ? ' · ' + r.eng.name : '')) +
+            '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
+              (kept ? 'kept' : 'behind') + '</span></b>' +
+          '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
+        '</span>' +
+        '<span class="s-pan-cost">' +
+          esc(r.was != null ? promFig(r, x.got)
+            : promFig(r, x.got) + ' of ' + promFig(r, r.to)) + '</span>' +
+      '</span>';
+    };
+    const ourRows = rows.filter((x) => x.r.ours);
+    const theirRows = rows.filter((x) => !x.r.ours);
+    const group = (title, list) => (list.length
+      ? '<div class="s-pan-restitle">' + title + '</div>' +
+        '<div class="s-odds-rows">' + list.map(draw).join('') + '</div>'
+      : '');
+    /* ══ AND THE SECOND HEADING WAS WRITTEN FOR ONE BOOK ═══════════════
+       "Yours once we hand over" is exactly right above an outbound
+       promise and means nothing above the other two: nothing is handed
+       over on a floor running their own reviewers, and on a desk we staff
+       the boundary is their systems rather than a handover at all. It sat
+       over all three because each book used to have a page of its own,
+       where the heading only ever met the promises it was written for.
+
+       The line is the same line in every book — this far is ours, past it
+       is theirs — so it is named for where it actually falls in each. */
+    const theirs = { outbound: 'Yours once we hand over',
+      software: 'Yours once we have scored it',
+      service: 'Yours where it needs your systems' }[bookKind()] || 'Yours to carry';
+    const kept = rows.filter((x) => promKept(x.r, x.got)).length;
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">What the year promised</h2>' +
+        secAsk('Which of these will we miss',
+          commas(rows.length - kept) + ' of my ' + plural(rows.length, 'promise') +
+          ' are behind with ' + (p.end ? plural(Math.max(0, daysBetween(TODAY_ISO, p.end)), 'day')
+            : 'weeks') + ' to run. Say which of them can still be caught and what it would take.') +
+      '</div>' +
+      group('Ours to keep', ourRows) +
+      group(theirs, theirRows) +
+    '</section>';
+  }
+
+  /* The slot "What you spent it on" holds on the desks that pay for the
+     work. It is the COST answer to where the money went; this is the same
+     question asked in the only unit a client is owed — what the year
+     produced — in the same section shell, so nothing new is drawn. */
+  /* What each kind of engagement IS, in the words a client would use about
+     it rather than the word the code sorts by. */
+  const ENG_SAY = { outbound: 'we find them and put them in a room with you',
+    software: 'your people, our scoring', service: 'our people, your customers' };
+
+  /* ══ THE SWITCH IS A ROW OF CHIPS, NOT A ROW OF DESKS ══════════════════
+     Everything that differs between the three things Kestrel buys is the
+     BOOK — the promises, the evidence under them, and whether there is a
+     pipeline at all. None of it is a different reading, so none of it earns
+     a desk. It earns the control this page already uses twice, for the
+     period and for the cut.
+
+     Drawn only where there is something to switch between: a client who
+     bought one thing has one book and a switcher with one option is a
+     control that cannot be worked, which is the same argument that took the
+     period chips off this desk. */
+  function engChips() {
+    if (!isBuyer()) return '';
+    const es = engsOf(dealOf(myClient()));
+    if (es.length < 2) return '';
+    const chip = (k, label) => '<button class="chip' +
+      ((S.eng || '') === k ? ' active' : ' default') + '" type="button" ' +
+      'data-eng="' + esc(k) + '">' + esc(label) + '</button>';
+    return '<div class="s-tabcuts" role="group" aria-label="What you bought">' +
+      chip('', 'Everything') + es.map((e) => chip(e.k, e.name)).join('') +
+    '</div>';
+  }
+
+  /* ══ THE OVERVIEW, WHICH IS THE ONE QUESTION THREE BOOKS RAISE ═════════
+     A C-level with three engagements is not asking how the outbound is
+     going. They are asking which of the three is working, and that is a
+     question no single book can answer — so the slot the funnel and the
+     floor take on a single-book view holds the three of them side by side,
+     each with what it costs and how its promises stand.
+
+     Every row is a door, because "which one is behind" is only useful if
+     the next press is that one's report. */
+  function engList(now, pipe) {
+    const d = dealOf(myClient());
+    const es = engsOf(d);
+    if (es.length < 2) return '';
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">What you bought</h2>' +
+      '</div>' +
+      '<div class="s-odds-rows">' + es.map((e) => {
+        const scored = (e.promises || [])
+          .map((p) => { const r = Object.assign({}, p, { eng: e });
+            return { r: r, got: promiseGot(r, now, pipe) }; })
+          .filter((x) => x.got != null);
+        const kept = scored.filter((x) => promKept(x.r, x.got)).length;
+        const behind = scored.length - kept;
+        return '<button class="s-pan-p s-pan-go" type="button" data-eng="' + esc(e.k) + '">' +
+          '<span class="s-pan-who">' +
+            '<b>' + esc(e.name) +
+              '<span class="s-pan-state tone-' + (behind ? 'warn' : 'ok') + '">' +
+                esc(behind ? plural(behind, 'promise') + ' behind' : 'all kept') + '</span></b>' +
+            '<span class="s-pan-meta">' + esc(ENG_SAY[e.kind] || '') + ' &middot; ' +
+              esc(commas(kept)) + ' of ' + esc(plural(scored.length, 'promise')) +
+              ' kept</span>' +
+          '</span>' +
+          '<span class="s-pan-cost">' + esc(fmtMoney(e.fee || 0)) + '</span>' +
+        '</button>';
+      }).join('') + '</div>' +
+      /* ══ AND THE SUM NOBODY SHOULD MAKE ═══════════════════════════════
+         The fee at the top is one number because three fees add up. What
+         they returned does not: one of these produces signed revenue and
+         the other two produce coverage, speed and hours that were not being
+         covered. Adding a euro of new business to a day taken off a
+         response time is the arithmetic every source on this says never to
+         do, and a page that simply declines to do it — and says nothing —
+         leaves the reader to notice the absence and wonder what is being
+         kept from them.
+
+         So it is said. Which engagement answers in money, which do not, and
+         that the total at the top is what the year COST rather than what it
+         was worth. */
+      (function () {
+        const money = es.filter((x) => (x.promises || []).some((p) => p.read === 'arr'));
+        const other = es.filter((x) => !(x.promises || []).some((p) => p.read === 'arr'));
+        if (!money.length || !other.length) return '';
+        return '<p class="s-exec-note">' +
+          esc(money.map((x) => x.name).join(' and ')) +
+          (money.length === 1 ? ' answers' : ' answer') + ' in money. ' +
+          esc(other.map((x) => x.name).join(' and ')) +
+          (other.length === 1 ? ' answers' : ' answer') + ' in coverage, speed and hours that ' +
+          'were not being covered &mdash; which is not money and is not added to it. ' +
+          'The figure above is what the year cost, not what it was worth.</p>';
+      }()) +
+    '</section>';
+  }
+
+  /* ══ AND THEN SOMEBODY HAS TO SAY WHAT SHOULD CHANGE ═══════════════════
+     The page states the year and then offers three questions the reader can
+     ask us. That is a reading, not a position, and a client thirteen days
+     from a renewal they can no longer stop is owed one: what we think
+     should happen to each of these, and where the answer costs us
+     something.
+
+     DERIVED, NOT WRITTEN DOWN. A recommendation somebody typed once is a
+     slide; this reads the same promises the ledger does and turns on one
+     question — when a promise was missed, was it ours or theirs. Ours means
+     we say so and put the fee on the table. Theirs means the honest answer
+     is that the thing works and the movement is at their end, which is a
+     harder sentence to write and the reason it has to be derived rather
+     than composed.
+
+     It sits at the bottom. AiMY reads the year at the top of this page and
+     takes a position at the end of it, because a position before the
+     evidence is an assertion. */
+  function engStand(e, now, pipe, scope) {
+    const scored = (e.promises || [])
+      .map((p) => { const r = Object.assign({}, p, { eng: e });
+        return { r: r, got: promiseGot(r, now, pipe) }; })
+      .filter((x) => x.got != null);
+    const behind = scored.filter((x) => !promKept(x.r, x.got));
+    const ours = behind.filter((x) => x.r.ours);
+    const name = '<b>' + esc(e.name) + '</b>';
+    if (!behind.length) {
+      return name + ' kept every promise on it. Renew it as it stands.';
+    }
+    if (!ours.length) {
+      /* Every miss is on their side of the line. Saying "renew it" here is
+         the uncomfortable version, because the easy sentence would be to
+         take the blame and discount it. */
+      /* "both of those" was written for the two-miss case and drew over a
+         single one. The count is not decoration here — it is the subject of
+         the clause after it. */
+      return name + ' is behind on ' +
+        esc(behind.map((x) => PROM_SAY[x.r.k] || x.r.k).join(' and ')) +
+        ', and ' + (behind.length === 1 ? 'that moves' : 'those move') +
+        ' at your end rather than ours &mdash; we score it, your people act on it. ' +
+        'Renew it as it stands and we will show you where the acting is not happening.';
+    }
+    /* Ours. Name the reason where the corpus can produce one, because "we
+       missed it" without a cause is an apology rather than a proposal. */
+    let why = '';
+    if (e.kind === 'outbound') {
+      const cold = (scope || []).filter((c) => c.checkpoint === 'not-called').length;
+      if (cold) {
+        why = ' The reason is ours: ' + esc(commas(cold)) +
+          ' of the people we found were never called.';
+      }
+    } else {
+      const f = floorOf(myClient(), e.k);
+      if (f && f.evals.length) {
+        const weak = QA_GOALS.map((g) => {
+          const n = f.evals.filter((x) => x.goals.filter((y) => y.k === g.k && y.pass).length).length;
+          return { g: g, pc: Math.round((n / f.evals.length) * 100) };
+        }).sort((a, b) => a.pc - b.pc)[0];
+        if (weak) {
+          why = ' It is one goal doing most of it: ' + esc(weak.g.title.toLowerCase()) +
+            ' passes on ' + esc(commas(weak.pc)) + '% of conversations.';
+        }
+      }
+    }
+    return name + ' missed ' + esc(plural(ours.length, 'promise')) +
+      ' we answer for.' + why +
+      ' We would not ask you to renew this one at the same fee.';
+  }
+
+  function buyerStand(now, pipe, scope) {
+    const d = dealOf(myClient());
+    if (!d) return '';
+    const es = engsOf(d);
+    const here = myEng() ? [myEng()] : es;
+    const lines = here.map((e) => engStand(e, now, pipe, scope))
+      .map((s) => '<p class="slv-line">' + s + '</p>').join('');
+    /* The renewal is one fact about the whole contract, so it is said once
+       and only where all of it is in view. */
+    let close = '';
+    if (!myEng() && d.notice) {
+      const pd = periodOf('deal');
+      const shut = isoAdd(pd.end, -d.notice);
+      close = '<p class="slv-line">' +
+        (TODAY_ISO > shut
+          ? 'All three renew on ' + esc(sayDay(isoAdd(pd.end, 1))) +
+            ', because the notice window closed on ' + esc(sayDay(shut)) +
+            '. If any of that should change, it is a conversation this week rather than a clause.'
+          : 'You have until ' + esc(sayDay(shut)) + ' to change any of it.') +
+        '</p>';
+    }
+    return '<section class="slv" aria-label="What AiMY thinks should change">' +
+      '<div class="slv-head">' +
+        '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+        '<h2 class="slv-title">What we think should change</h2>' +
+      '</div>' +
+      '<div class="slv-body">' + lines + close + '</div>' +
+    '</section>';
+  }
+
+  function buyerWork(now) {
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">What we did with your year</h2>' +
+      '</div>' +
+      buyerFunnel(now) +
+    '</section>';
+  }
+
+  /* ══ THE TWELVE WEEKS, WHICH ARE THE WHOLE ARGUMENT ═══════════════════
+     A funnel is the evidence when what was bought is reach. When what was
+     bought is a tool, the evidence is the client's own floor before and
+     after it arrived — so the row is the same row, and what the bar measures
+     is how far along the promised move has got rather than how many people
+     survived a stage.
+
+     The bar runs `was` to the promised number whichever way the metric goes.
+     Eleven days down to two and two per cent up to a hundred are the same
+     shape of progress and have to read as one, or the reader is asked to
+     work out per row which direction is good.
+
+     `deployedAt` is lifted from AiMY QA's goal heatmap, where the same field
+     is called `coached` and outlines the week an intervention landed. It is
+     the only before-and-after model anywhere in the tree. Here it is said in
+     words rather than drawn, because four rows do not make a heatmap and the
+     sentence carries the thing a chart would only imply. */
+  function buyerFloor() {
+    const d = myDeal();
+    const t = d && d.team;
+    if (!t) return '';
+    const rows = floorSeries(myClient(), (myEng() || {}).k).map((m) => {
+      const prom0 = (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0];
+      /* `was` is the contract's, not the corpus's. Week one is what the
+         generator happened to produce for a floor nobody was reviewing, and
+         on two per cent coverage that is four conversations — a sample too
+         thin to put next to a promise. */
+      const was = prom0 && prom0.was != null ? prom0.was : m.w[0];
+      const now = floorNow(m.w);
+      const prom = prom0;
+      const unit = prom || { unit: m.unit };
+      const to = prom ? prom.to : now;
+      if (now == null) return '';
+      const span = Math.abs(to - was) || 1;
+      const pct = Math.max(2, Math.min(100, Math.round((Math.abs(now - was) / span) * 100)));
+      const done = prom ? promKept(prom, now) : true;
+      return '<div class="b-fn-row">' +
+        '<span class="b-fn-name">' + esc(m.label) + '</span>' +
+        '<span class="b-fn-bar"><span class="b-fn-fill ' +
+          (done ? 'tone-ok' : 'tone-neutral') + '" style="width:' + pct + '%"></span></span>' +
+        '<span class="b-fn-n">' + esc(promFig(unit, now)) + '</span>' +
+        '<span class="b-fn-conv">' + esc(promFig(unit, was)) + '</span>' +
+      '</div>';
+    }).join('');
+    return '<section class="s-exec-sec">' +
+      '<div class="s-sec-head">' +
+        '<h2 class="s-exec-eyebrow">' +
+          (t.whose === 'ours' ? 'What the desk did' : 'What your floor did') + '</h2>' +
+      '</div>' +
+      '<div class="b-funnel">' +
+        /* ══ WHICH TWELVE WEEKS, AND WHEN "BEFORE US" WAS ══════════════
+           This said "Over twelve weeks · now · before us" on a contract
+           fifty weeks old, under a note explaining that nothing moved for
+           the first two weeks because that is how long it took to go live.
+           Read together those say the tool went live ten weeks ago, on a
+           relationship approaching its first renewal. They are the FIRST
+           twelve weeks — the rollout, which is the only stretch where a
+           before-and-after has anything to show — and the baseline beside
+           them is the contract's, not week one's.
+
+           Naming both removes the reading where "before us" means "twelve
+           weeks ago". The figures are unchanged; every one of them was
+           already the thing these words now say it is. */
+        /* "The first twelve weeks" was right while the chart was twelve
+           weeks of fifty. It covers the term now, so the last column is
+           today again and the first is the whole of it. */
+        '<div class="b-fn-head"><span class="b-fn-name">Across ' +
+            esc(plural(t.weeks || 12, 'week')) + '</span>' +
+          '<span></span><span class="b-fn-n">now</span>' +
+          '<span class="b-fn-conv">at signing</span></div>' +
+        rows +
+      '</div>' +
+      '<p class="s-exec-note">Nothing moved for the first ' +
+        esc(plural(t.deployedAt, 'week')) + ' &mdash; ' +
+        esc(t.whose === 'ours' ? 'that is how long the handover took' : 'that is how long it took to go live') +
+        '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
+        esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
+        'swings far enough on its own to turn a promise from kept to behind.</p>' +
+      /* ══ AND THE FIGURES OPEN ═══════════════════════════════════════
+         Four averages over nine hundred and sixty-five conversations. The
+         argument for scoring all of them instead of two in a hundred is
+         that any one can be gone back to, and a report that states the
+         average without a way down to the conversation is making exactly
+         the claim it cannot support. */
+      (function () {
+        const f = floorOf(myClient(), (myEng() || {}).k);
+        if (!f) return '';
+        return '<div class="s-lead-acts"><button class="s-insight-lnk primary" ' +
+          'type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
+          'Show the ' + esc(plural(f.agents.length, 'person')) +
+          (t.whose === 'ours' ? ' on it' : ' behind it') + '</button></div>';
+      }()) +
+    '</section>';
+  }
+
+  /* Three of the four tiles above the fee are attainment, and attainment
+     needs a target in money. A floor has none, so the three become the three
+     promises themselves: where each stands, and where it stood before us. */
+  function floorFigs(now, pipe) {
+    const d = myDeal();
+    /* Over three books there is no single measure to put in a tile, and
+       three metrics off one of them would be the overview quietly becoming
+       one engagement's page. What every book has in common is promises. */
+    if (d.kind === 'all') {
+      const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+        .filter((x) => x.got != null);
+      const kept = scored.filter((x) => promKept(x.r, x.got));
+      const behind = scored.filter((x) => !promKept(x.r, x.got));
+      const worst = behind.slice().sort((x, y) =>
+        (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)))[0];
+      return attFig('Promises kept', commas(kept.length),
+          'of ' + plural(scored.length, 'promise'), behind.length ? null : 'ok') +
+        attFig('Behind', behind.length ? commas(behind.length) : 'None',
+          behind.length && worst ? 'furthest is ' + (PROM_SAY[worst.r.k] || worst.r.k)
+            : 'every promise is being kept',
+          behind.length ? null : 'ok');
+    }
+    return (d.promises || []).slice(0, 3).map((r) => {
+      const got = promiseGot(r, { funnel: [], byLine: [] }, null);
+      if (got == null) return '';
+      return attFig(PROM_SAY[r.k] || r.k, promFig(r, got),
+        'was ' + promFig(r, r.was) + ' at signing',
+        promKept(r, got) ? 'ok' : null);
+    }).join('');
+  }
+
+  /* `execBrief`'s four clauses are money against target, late deals, the
+     best and worst campaign by what they cost, and the share of payroll
+     nobody logged. Two of the four are our cost and a third ranks their
+     campaigns by it. This says the three things their deal is about. */
+  function buyerBrief(now, a, pipe, p) {
+    const d = myDeal();
+    const scored = (d ? d.promises : [])
+      .map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      .filter((x) => x.got != null);
+    const kept = scored.filter((x) => promKept(x.r, x.got));
+    const short = scored.filter((x) => !promKept(x.r, x.got));
+    const left = p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end)) : null;
+    const fn = Object.create(null);
+    (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
+    const bits = [];
+    if (scored.length) {
+      bits.push('<b>' + commas(kept.length) + ' of ' + esc(plural(scored.length, 'promise')) +
+        '</b> kept' +
+        (left == null ? '' : ', with <b>' + esc(plural(left, 'day')) + '</b> of the year to run') +
+        '.');
+    }
+    /* ══ AND THE LINE GOES IN THE PARAGRAPH, NOT IN A FOOTNOTE ═══════════
+       What we answer for and what happens afterwards are one sentence with
+       a dash in it, because that is how the reader meets them: the meetings
+       arrived, and this is what became of them. Said as two sentences in
+       two places it becomes a claim and a disclaimer. */
+    if (onPipeline()) {
+      bits.push('<b>' + commas(fn.met || 0) + '</b> ' +
+        ((fn.met === 1) ? 'meeting reached your team' : 'meetings reached your team') +
+        ' &mdash; <b>' + commas(pipe ? pipe.open : 0) + '</b> still live and <b>' +
+        commas(fn.won || 0) + '</b> signed.');
+    } else if (bookKind() === 'all') {
+      /* Over three books the useful second sentence is which of them is
+         costing the year, not a figure out of one of them. */
+      const byEng = Object.create(null);
+      scored.forEach((x) => {
+        const k = x.r.eng ? x.r.eng.name : 'it';
+        byEng[k] = byEng[k] || { n: 0, bad: 0 };
+        byEng[k].n += 1;
+        if (!promKept(x.r, x.got)) byEng[k].bad += 1;
+      });
+      const worst = Object.keys(byEng).sort((a, b) => byEng[b].bad - byEng[a].bad)[0];
+      if (worst && byEng[worst].bad) {
+        /* `plural` takes a noun and this is a phrase — it made "2 of
+           thems". The count is the whole point of the clause, so it is
+           said plainly. */
+        bits.push('<b>' + esc(worst) + '</b> is carrying ' +
+          esc(commas(byEng[worst].bad)) + ' of them.');
+      }
+    } else {
+      /* The same sentence one book over: what we answer for, and where it
+         stood before we did. */
+      const lead = scored.filter((x) => x.r.ours && x.r.was != null)[0];
+      if (lead) {
+        const nm = PROM_SAY[lead.r.k] || lead.r.k;
+        bits.push(nm.charAt(0).toUpperCase() + nm.slice(1) + ' is at <b>' +
+          esc(promFig(lead.r, lead.got)) + '</b>, from <b>' +
+          esc(promFig(lead.r, lead.r.was)) + '</b> at signing.');
+      }
+    }
+    if (short.length) {
+      const worst = short.slice().sort((x, y) =>
+        (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)))[0];
+      bits.push('Furthest behind is <b>' + esc(PROM_SAY[worst.r.k] || worst.r.say) +
+        '</b>, at ' + esc(promFig(worst.r, worst.got)) + ' of ' +
+        esc(promFig(worst.r, worst.r.to)) + '.');
+    }
+    return bits.join(' ');
+  }
+
+  /* Every one of `execAsks` quotes a cost, a supplier, a payback or the fact
+     that our pipeline is modelled. These are the three a client would ask. */
+  function buyerAsks(now, pipe, loss) {
+    const out = [];
+    /* ══ AND ON THE OVERVIEW THEY WERE ABOUT ONE BOOK ═════════════════
+       Both of these read `byLine` and `pipe`, which are the outbound
+       aggregate — so an overview of three engagements offered "why is QA
+       and test automation not landing", a question about a product line on
+       a page where the reader is looking at three engagements and one of
+       them is called the Quality tool. It read as though it was about that
+       one, and it was not. */
+    if (bookKind() === 'all') {
+      const d = myDeal();
+      const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+        .filter((x) => x.got != null && !promKept(x.r, x.got));
+      const byEng = Object.create(null);
+      scored.forEach((x) => { const k = x.r.eng ? x.r.eng.name : 'it';
+        byEng[k] = (byEng[k] || 0) + 1; });
+      const worst = Object.keys(byEng).sort((a, b) => byEng[b] - byEng[a])[0];
+      if (worst) {
+        out.push({ label: 'Why is ' + worst + ' behind',
+          ask: worst + ' is behind on ' + plural(byEng[worst], 'promise') + '. Take them one ' +
+            'at a time and say what would have to change to catch each one.' });
+      }
+      out.push({ label: 'Which of the three is worth more',
+        ask: 'I pay for three engagements. Compare what each has produced against what it ' +
+          'costs, and say plainly which one I should put more into and which one I should not.' });
+      if (scored.length) {
+        out.push({ label: 'What can still be caught',
+          ask: plural(scored.length, 'promise') + ' are behind with the year nearly gone. ' +
+            'Which of them can still be met, and what would it take?' });
+      }
+      return out.slice(0, 3);
+    }
+    /* ══ AND A FLOOR HAS NO OPEN DEALS TO ASK ABOUT ═══════════════════
+       The three below read `byLine` and `pipe`, which are the outbound
+       aggregate — so the quality tool's page and the support desk's both
+       offered "which of the open ones will land", a question about a
+       pipeline neither of them has. Same fault as the overview's, one
+       branch further down, and it survived because the fix above returned
+       early instead of covering every book. */
+    if (!onPipeline()) {
+      const f = floorOf(myClient(), (myEng() || {}).k);
+      if (f) {
+        const ranked = floorRanked(f);
+        const worst = ranked[0];
+        if (worst) {
+          out.push({ label: 'Who needs an afternoon',
+            ask: worst.a.name + ' is averaging ' + commas(worst.avg) + '% across ' +
+              plural(worst.n, 'scored conversation') + '. Show me which goals they are losing ' +
+              'and what the coaching conversation should be.' });
+        }
+        const per = QA_GOALS.map((g) => {
+          const n = f.evals.filter((e) => e.goals.filter((x) => x.k === g.k && x.pass).length).length;
+          return { g: g, pc: f.evals.length ? Math.round((n / f.evals.length) * 100) : 0 };
+        }).sort((x, y) => x.pc - y.pc)[0];
+        if (per) {
+          out.push({ label: 'Which goal is costing us',
+            ask: per.g.title + ' passes on ' + commas(per.pc) + '% of conversations and is ' +
+              'worth ' + commas(per.g.weight) + ' points. What is going wrong on it?' });
+        }
+      }
+      const d0 = myDeal();
+      const bad = (d0.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+        .filter((x) => x.got != null && !promKept(x.r, x.got));
+      if (bad.length) {
+        out.push({ label: 'What can still be caught',
+          ask: plural(bad.length, 'promise') + ' on this one are behind with the year nearly ' +
+            'gone. Which can still be met, and what would it take?' });
+      }
+      return out.slice(0, 3);
+    }
+    const lo = (now.byLine || []).filter((r) => r.meetings && !r.wins)[0];
+    if (lo) {
+      out.push({ label: 'Why is ' + sellSay(lo.k) + ' not landing',
+        ask: sellSay(lo.k) + ' has taken ' + plural(lo.meetings, 'meeting') +
+          ' and signed nothing. Is it reaching the wrong people, or losing the ones it reaches?' });
+    }
+    if (pipe && pipe.open) {
+      out.push({ label: 'Which of the open ones will land',
+        ask: 'I have ' + plural(pipe.open, 'deal') + ' still live. Which are most likely to ' +
+          'close before the year ends, and what is holding each of them up?' });
+    }
+    if (loss && loss.n) {
+      out.push({ label: 'What happened to the ones we lost',
+        ask: 'We lost ' + plural(loss.n, 'deal') + ' this year. Group them by why, and say ' +
+          'which of those reasons we could do something about.' });
+    }
+    return out.slice(0, 3);
+  }
+
   function moneyPage() {
     /* ══ A SURFACE WITH NO DOOR ON THIS DESK STILL HAS A URL ═══════════════
        Financials is reached from the rail, and the rail draws its doors only
@@ -8346,8 +10149,17 @@
        about a product. */
     const heads = isLine() ? 0 : workingHeads();
     const now = bookMoney(scope, p, heads);
+    /* `bookMoney`'s margin says it is "called twice by the page — now and
+       the window before it". It still is not, and the ledger says why: the
+       window before a first term is a window in which nothing happened, and
+       a second pass over it would buy a comparison against zero. It stays
+       one call until there is a client in a second term to compare. */
     const pipe = pipelineOf(deals);
-    const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
+    /* `deal` is not one of the chips, so this fell through to the first of
+       them and stamped "this quarter" on a page measuring a year. A client's
+       window is not a chip anybody picked; it is the term they signed. */
+    const when = isBuyer() ? 'this year'
+      : (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
 
     const a = attainment(now, pipe, p);
     const camps = campaignCosts(p);
@@ -8382,7 +10194,9 @@
       if (loss.age != null) {
         lossFacts.push('ran <b>' + esc(loss.age.toFixed(1)) + ' months</b> on average');
       }
-      if (loss.spend) lossFacts.push('cost <b>' + esc(fmtMoney(loss.spend)) + '</b> in all');
+      if (loss.spend && seesCost()) {
+        lossFacts.push('cost <b>' + esc(fmtMoney(loss.spend)) + '</b> in all');
+      }
       if (lossFacts.length) lossBits.push('They ' + joinAnd(lossFacts) + '.');
       if (loss.back) {
         lossBits.push('<b>' + loss.back + '</b> ' + verbFor(loss.back, 'is') +
@@ -8591,25 +10405,79 @@
              what it counts is a page whose every figure is wrong by an
              unknown amount. So it stays, under the heading, as a sentence
              rather than as capitals. */
-          '<h1 class="s-exec-h">Financials</h1>' +
-          '<p class="s-exec-scope">Your book &middot; ' +
-            esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
-            esc(plural(deals.length, 'deal')) + '</p>' +
+          '<h1 class="s-exec-h">' + (isBuyer() ? 'Your year with AiMY' : 'Financials') + '</h1>' +
+          /* The scope line is the page saying what it counted, and on this
+             desk the window is not a chip anybody chose — it is the term
+             they signed, so it is named here instead. */
+          '<p class="s-exec-scope">' +
+            (isBuyer() && myDeal()
+              ? esc(CLIENT[myClient()].name) + ' &middot; ' +
+                /* What the fee is counted in: campaigns where we run them,
+                   seats where they run the tool. */
+                /* What the fee is counted in: campaigns where we run them,
+                   seats where they run the tool, people where the desk is
+                   ours. */
+                esc(bookKind() === 'all'
+                    ? plural(engsOf(dealOf(myClient())).length, 'engagement')
+                  : onPipeline() ? plural(myCamps().length, 'campaign')
+                  : myDeal().seats ? plural(myDeal().seats, 'seat')
+                  : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
+                ' &middot; to ' +
+                esc(sayDay(periodOf('deal').end))
+              : 'Your book &middot; ' +
+                esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
+                esc(plural(deals.length, 'deal'))) + '</p>' +
+          /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
+             Thirteen days from the end of a year, the question a C-level
+             came to this page with is not how the quarter went — it is what
+             happens on the first of October and whether they still have a
+             say in it. Every other figure here is a reading; this is a fact
+             off the contract, which is why it is stated flat and not in
+             AiMY's voice.
+
+             It says the uncomfortable half too. A sixty-day notice on a
+             thirtieth-of-September end closed on the first of August, and a
+             report that shows a client five promises behind without telling
+             them the window to act on it has already gone is keeping the
+             most useful thing on the page to itself. */
+          (function () {
+            if (!isBuyer() || !myDeal() || !myDeal().notice) return '';
+            const pd = periodOf('deal');
+            const left = pd.end ? daysBetween(TODAY_ISO, pd.end) : null;
+            if (left == null) return '';
+            const shut = isoAdd(pd.end, -myDeal().notice);
+            const gone = TODAY_ISO > shut;
+            return '<p class="s-exec-note">Your year ends in ' +
+              esc(plural(Math.max(0, left), 'day')) + ', and notice is ' +
+              esc(plural(myDeal().notice, 'day')) + ' &mdash; ' +
+              (gone ? 'that window closed on ' + esc(sayDay(shut)) +
+                ', so it renews unless we agree otherwise.'
+                : 'you have until ' + esc(sayDay(shut)) + ' to say otherwise.') + '</p>' +
+            '';
+          }()) +
         '</div>' +
-        periodChips() +
+        periodChips() + engChips() +
       '</header>' +
 
       '<section class="slv" aria-label="What AiMY makes of it">' +
         '<div class="slv-head">' +
           '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<h2 class="slv-title">How the quarter is going</h2>' +
+          '<h2 class="slv-title">' +
+            (isBuyer() ? 'How the year is going' : 'How the quarter is going') + '</h2>' +
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
-          '<p class="slv-line">' + execBrief(now, a, camps, un, deals) + '</p>' +
+          '<p class="slv-line">' + (isBuyer() ? buyerBrief(now, a, pipe, p)
+            : execBrief(now, a, camps, un, deals)) + '</p>' +
         '</div>' +
       '</section>' +
 
+      /* ══ A BAR WITH NO TARGET IS A BAR WITH NOTHING TO SAY ═══════════
+         Booked against target, the shortfall, the forecast and the pace are
+         four readings of one number, and a client who bought a tool owes us
+         no number. Drawn where there is a pipeline; where there is not, the
+         ledger below is the headline and does not need a bar to repeat. */
+      (!onPipeline() ? '' :
       '<div class="s-att">' +
         '<div class="s-att-head">' +
           '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
@@ -8682,7 +10550,7 @@
           (done || pacePc == null ? ''
             : '<span class="s-att-key is-pace">Where you should be today</span>') +
         '</div>' +
-      '</div>' +
+      '</div>') +
 
       '<div class="s-afs">' +
         /* ══ THE FIRST TILE HAS TO POINT BACK AT THE HEADLINE ═══════════
@@ -8690,6 +10558,7 @@
            two numbers, named the same way twice. It said "Still to sell" for
            a while, which is an action with no object on the one tile whose
            whole job is to say what is left of the figure directly above. */
+        (!onPipeline() ? floorFigs(now, pipe) :
         attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
           a.gap ? (done ? 'the window is closed'
             : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
@@ -8777,7 +10646,7 @@
              Behind takes the negative pole and ahead the positive, so the
              figure, the word and the colour say one thing. It is the only
              coloured figure in the row now, which is what makes it read. */
-          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err') +
+          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err')) +
         /* "PAID OFF" NEVER SAID WHAT WAS BEING PAID OFF. It is the cost of
            winning one customer, and how long that customer takes to earn it
            back — a different sentence from the one the two words were
@@ -8806,15 +10675,51 @@
            written and has never rendered. €42k a deal against an average deal
            of €55k is the finding, and it carries the count of deals signed
            this quarter — which appears nowhere else on this page. */
-        attFig('Spent', fmtMoney(now.spend.total),
+        /* ══ AND ON A CLIENT'S DESK THIS TILE IS THE ONLY MONEY OF OURS ══
+           `spend.total` is what the work cost US, and `cac` divides it by
+           their deals. What they are owed here is the one number they
+           actually parted with: the fee, for the year, undivided. Three
+           tiles left of it are pure attainment and carry no cost at all. */
+        /* ══ AND WHERE THERE IS A BEFORE, THE TILE IS THE ARGUMENT ═══════
+           A client who handed us a desk they used to run has one question
+           about the fee, and it is not what it buys — it is whether it is
+           more than they were already spending. Both numbers, side by side,
+           and nothing on the page divides one by the other: at a hundred
+           and forty against a hundred and thirty-eight the answer is "about
+           the same", which two figures on one tile already say. */
+        (isBuyer()
+          ? attFig('Your fee', myDeal() ? fmtMoney(myDeal().fee) : '—',
+            !myDeal() ? ''
+              : myDeal().spend && myDeal().spend.was != null
+                ? 'was ' + fmtMoney(myDeal().spend.was) + ' to run it yourselves'
+                : 'for the year to ' + sayDay(periodOf('deal').end))
+          : attFig('Spent', fmtMoney(now.spend.total),
           !now.spend.total ? 'nothing spent in this window'
             : now.cac == null ? 'nothing signed against it yet'
               : now.wins.length === 1
                 ? fmtMoney(now.cac) + ' for the one deal signed'
                 : fmtMoney(now.cac) + ' for each of the ' +
-                  plural(now.wins.length, 'deal') + ' signed') +
+                  plural(now.wins.length, 'deal') + ' signed')) +
       '</div>' +
 
+      /* The bar above is one promise — the money one — drawn large because
+         it is the one a fee is argued about. This is all of them, and the
+         funnel underneath is the evidence for the half we answer for. */
+      /* ══ THE THREE, THEN THE FOURTEEN ═══════════════════════════════
+         The overview put fourteen promise rows above the three-line summary
+         that frames them, so a reader met the detail before the thing that
+         says what the detail is of. On one book there is nothing to frame
+         and the ledger leads. */
+      (isBuyer() ? (bookKind() === 'all' ? engList(now, pipe) : '') +
+        promiseLedger(now, pipe, p) : '') +
+
+      /* ══ THE WHOLE SECTION, OR THE OTHER ANSWER TO ITS QUESTION ═══════
+         Salaries by role, AiMY's compute and the lead generators, with a
+         line underneath about how much of the payroll nobody logged. Every
+         figure in it is ours and the section exists to be argued with by
+         whoever pays it. A client pays a fee, not a floor. */
+      (!seesCost() ? (onPipeline() ? buyerWork(now)
+        : bookKind() === 'all' ? '' : buyerFloor()) :
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">What you spent it on</h2>' +
@@ -8881,7 +10786,7 @@
             '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody logged, ' +
             'so you cannot tell what it bought.</span>' +
         '</div>') +
-      '</section>' +
+      '</section>') +
 
       /* ══ ONE SECTION, TWO CUTS ════════════════════════════════
          THE HEADING FOLLOWS THE TAB, and so does the ask beside it. They are
@@ -8893,18 +10798,34 @@
 
          A heading asks the question the section answers; the note says what
          is counted, which is why the note went and the heading stayed. */
+      /* ══ AND BOTH CUTS AND THE LOSSES ARE PIPELINE, ALL THE WAY DOWN ══
+         Which campaigns worked, what sells and what does not, and where
+         deals collapse are three readings of a book made of campaigns and
+         deals. A floor has neither. The ledger and the twelve weeks above
+         are its whole report, which is shorter — and a page that padded
+         itself out with three empty sections would be saying the reading is
+         thinner than it is. */
+      (!onPipeline() ? '' :
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
           '<h2 class="s-exec-eyebrow">' +
-            (cutBy() === 'svc' ? 'What sells and what does not' : 'Which campaigns paid off') +
+            /* "Paid off" is a verdict on cost against return, and the
+               cost column is not on this desk — so on a client's the
+               heading asks the question the panels below actually answer. */
+            (cutBy() === 'svc' ? 'What sells and what does not'
+              : isBuyer() ? 'Which campaigns worked' : 'Which campaigns paid off') +
           '</h2>' +
           (cutBy() === 'svc'
             ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
               'the ones they reach.')
-            : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
-              'against what they have returned, and tell me which one I should stop and what I ' +
-              'would lose by stopping it.')) +
+            : isBuyer()
+              ? secAsk('Which campaign is working', 'Rank my campaigns by what they have ' +
+                'produced — people reached, meetings taken, deals signed — and tell me which ' +
+                'one is worth more of the year and which is not landing.')
+              : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
+                'against what they have returned, and tell me which one I should stop and what I ' +
+                'would lose by stopping it.')) +
         '</div>' +
         /* ══ THE SWITCHER GETS ITS OWN ROW ══════════════════════════
            It sat between the heading and the ask on one baseline row, and
@@ -8993,7 +10914,7 @@
                     esc(c.arr ? fmtMoney(c.arr) : 'Nothing') + '</span>' +
                   '<span class="s-pan-unit">gained</span>' +
                 '</span>' +
-                (c.total ? '<span class="s-pan-fig">' +
+                (c.total && seesCost() ? '<span class="s-pan-fig">' +
                   '<span class="s-pan-spent">' + esc(fmtMoney(c.total)) + '</span>' +
                   '<span class="s-pan-unit">cost</span>' +
                 '</span>' : '') +
@@ -9020,7 +10941,13 @@
               (c.open ? '<span><b>' + c.open + '</b> potential, ' +
                 esc(fmtMoney(c.pipeline)) + ' if they land</span>' : '') +
             '</div>' +
-            (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
+            /* Names, hours and an hourly rate per person, then AiMY's
+               compute and the lead generators. The single worst thing this
+               page could put in front of somebody being invoiced, and the
+               four facts above it already say what the campaign produced —
+               so nothing stands in for it. */
+            (!seesCost() ? '' :
+             c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
                  Five names is a readable list and twenty is a wall. This
                  panel has to survive a campaign with a whole desk on it, so
@@ -9168,7 +11095,7 @@
                       esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
                     '<span class="s-pan-unit">gained</span>' +
                   '</span>' +
-                  (soldCost ? '<span class="s-pan-fig">' +
+                  (soldCost && seesCost() ? '<span class="s-pan-fig">' +
                     '<span class="s-pan-spent">' + esc(fmtMoney(soldCost)) + '</span>' +
                     '<span class="s-pan-unit">cost</span>' +
                   '</span>' : '') +
@@ -9326,8 +11253,17 @@
            sits directly over the figures. One `.s-pan-unit` there is the
            column heading this wanted to be, in the same treatment, once. */
         '<div class="s-odds-top">' +
-          '<span class="s-odds-cap">' + aiMark() + 'How deals collapse</span>' +
-          (loss.rows.length ? '<span class="s-pan-unit">spent</span>' : '') +
+          '<span class="s-odds-cap">' + aiMark() +
+            /* Not "who is not going to be a deal" — the biggest row in it
+               is people nobody has rung yet, who still might be. */
+            (isBuyer() && !loss.rows.length ? 'Where people are stopping'
+              : 'How deals collapse') + '</span>' +
+          /* The block stays whole — where deals die is the one thing on
+             this page a client can act on, and a report that only ever
+             shows what worked is not believed. What changes is the column:
+             ours is what the losses cost us, theirs is how many. */
+          (loss.rows.length
+            ? '<span class="s-pan-unit">' + (seesCost() ? 'spent' : 'deals') + '</span>' : '') +
         '</div>' +
         /* ══ THE COUNT BELONGS TO THE REASON, NOT TO A COLUMN ═════════════
            A bold "2 deals" in a right-aligned figure slot made a count look
@@ -9349,18 +11285,24 @@
                  second rank — the name's colour and weight, one step down in
                  size — which puts the count above the gloss and below the
                  reason without inventing a treatment for it. */
-              '<span class="s-pan-meta"><b>' + esc(plural(r.n, 'deal')) + '</b> &middot; ' +
+              '<span class="s-pan-meta">' +
+                (seesCost() ? '<b>' + esc(plural(r.n, 'deal')) + '</b> &middot; ' : '') +
                 esc(r.why ? r.why.say : 'the record does not say') + '</span>' +
             '</span>' +
-            '<span class="s-pan-cost">' + esc(fmtMoney(r.spend)) + '</span>' +
+            /* Said once. The count moves into the figure slot when the money
+               leaves it, so it is not read twice on one row. */
+            '<span class="s-pan-cost">' +
+              esc(seesCost() ? fmtMoney(r.spend) : commas(r.n)) + '</span>' +
           '</span>').join('') +
         '</div>' +
         '<p class="s-odds-note">' + lossNote + '</p>' +
         (lossActs ? '<div class="s-lead-acts">' + lossActs + '</div>' : '')
-          : '<p class="s-odds-note">Nothing has been lost.</p>') +
-      '</div>' +
+          : (isBuyer() ? buyerExits(scope)
+            : '<p class="s-odds-note">Nothing has been lost.</p>')) +
+      '</div>') +
 
-      askRow(execAsks(now, pipe)) +
+      (isBuyer() ? buyerStand(now, pipe, scope) : '') +
+      askRow(isBuyer() ? buyerAsks(now, pipe, loss) : execAsks(now, pipe)) +
       '</section>' +
     '</div>';
   }
@@ -9539,7 +11481,13 @@
          has reached the director on the campaigns that sell his product. */
       const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
-          (isLine()
+          /* A client WAS handed them, so the first half is already true of
+             this desk — and owns no campaign, so the second half is not.
+             `bookWhose` is the phrase, said once and read here. */
+          (isBuyer()
+            ? ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> ' +
+              esc(bookWhose()) + '.'
+            : isLine()
             ? ' been handed over on <b>' + plural(camps.length, 'campaign') + '</b> selling ' +
               esc(sellSay(myLine())) + '.'
             : ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.')
@@ -9698,7 +11646,26 @@
         : 'the way anybody new reaches your queue' };
 
     let opens;
-    if (onBook()) {
+    if (isBuyer()) {
+      /* ══ THREE VERBS, AND THE LINE IS THE SAME ONE ═══════════════════
+         Against the manager's four, this desk loses the two that operate
+         the machine — building a campaign and finding leads — and keeps the
+         two that are the client's own half of the funnel. That is the
+         handover line again, drawn through a row of buttons.
+
+         The third is the page they came for. Financials had one door, in
+         the rail, which is the right weight for a desk that visits it and
+         the wrong weight for the one desk whose whole reason it is. */
+      const top = all[0];
+      opens = [
+        { k: 'callnext', label: 'Warm-call the next one',
+          why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
+        { k: 'lead', label: 'Add a lead',
+          why: 'somebody you met, straight onto your board' },
+        { k: 'money', label: 'See the year',
+          why: 'what was promised, and what has happened against it' },
+      ];
+    } else if (onBook()) {
       /* Four verbs, and every one of them is something this desk actually
          does: the phone for a warm call, the brief before a meeting, the
          board for where the money is, and the builder — a manager sources
@@ -9873,7 +11840,10 @@
 
        On a campaign there is no book and the loop keeps its seventh chip,
        labelled Won, meaning the deals that campaign closed. */
-    const book = onBook() && !S.camp;
+    /* A buyer's board is deals: open, won, lost. The seventh chip turns a
+       row of filters into our customer book, which is the one reading this
+       desk does not have — see `customers`. */
+    const book = onBook() && !isBuyer() && !S.camp;
     const bookChip = () =>
       '<button class="filter-chip b-cut-book' + (on === 'won' ? ' active' : '') + '" ' +
       'type="button" data-q="won">' + chIcon('company') + 'Clients' +
@@ -10535,33 +12505,49 @@
       ? { label: 'On ' + listSay(camp.map(campName)), tone: 'ok' }
       : { label: 'Not on a campaign yet', tone: 'warn' };
     const first = call[0];
-    const callFirst = first
-      ? '<button class="s-inline-btn" type="button" data-call="' + esc(first.id) + '">Call ' +
-        esc(first.name.split(' ')[0]) + '</button>'
-      : '';
 
-    /* [2] ONE ROW, DECIDED BY STATE. Off a campaign the list has one job —
-       getting onto one — so the chips are the row. On one, the phone. */
-    /* `camp` is a set now, and an empty array is truthy — so this branched
-       on "is there a campaign" and got yes for a list on none, then drew
-       "Open undefined" where the way onto a campaign should have been. One
-       door per campaign, because with two of them there is no first. */
-    const actions = camp.length
-      ? (first
-          ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
-              '">Call the next one on this list</button>' +
-            /* The same verb as the queue's, so the same control: one label
-               drawn two ways on two surfaces is two controls to learn. */
-            (call.length > 1
-              ? '<button class="b-ghost" type="button" data-callall="' +
-                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-                'Call them</button>'
-              : '')
-          : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
-        camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
+    /* [2] ONE ROW, IN TWO HALVES: THE PHONE, THEN WHERE THE CAMPAIGN IS.
+       This was one row DECIDED BY state — off a campaign the list had one
+       job, getting onto one, so the chips were the whole row and there was
+       no way to call anybody from it. That is a rule about the QUEUE being
+       enforced on the TELEPHONE: a campaign decides whether these people
+       come round to you, and it has never decided whether you may dial a
+       number you are already looking at. Thirty-two callable people and
+       nowhere to press was the defect this page was rewritten to fix, and
+       it survived in the one state where a list spends most of its life.
+
+       So the phone is unconditional and the second half is what changes:
+       on a campaign, a door per campaign; off one, the way onto one. The
+       row keeps its shape across both states, which is the other half of
+       the argument — a reader who has learnt this row on a working list
+       should not meet a different one on a loose list.
+
+       `camp` is a set, and an empty array is truthy — which is why this
+       asks `camp.length` and not `camp`. Getting that wrong once drew
+       "Open undefined" where the way onto a campaign should have been. */
+    const phone = first
+      ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
+          '">Call the next one on this list</button>' +
+        /* The same verb as the queue's, so the same control: one label
+           drawn two ways on two surfaces is two controls to learn. */
+        (call.length > 1
+          ? '<button class="b-ghost" type="button" data-callall="' +
+            esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+            'Call them</button>'
+          : '')
+      : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>';
+    /* THE PRIMARY IS WHATEVER THE ROW IS FOR. With somebody to call, the
+       phone leads and the campaign is the quiet chip beside it, in the
+       same slot a working list puts its campaign doors. With nobody to
+       call, getting onto a campaign is the only thing left to do here and
+       it takes the loud button back. */
+    const onward = camp.length
+      ? camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
           '">Open ' + esc(campName(x)) + '</button>').join('')
-      : campMenu({ id: 'listCampPick', opts: campOpts(), cls: 's-insight-lnk primary',
+      : campMenu({ id: 'listCampPick', opts: campOpts(),
+          cls: first ? 's-inline-btn' : 's-insight-lnk primary',
           label: 'Put it on a campaign', cap: 'Put it on', go: 'list:' + l.id });
+    const actions = phone + onward;
 
     return '<div class="s-home">' +
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
@@ -10694,6 +12680,7 @@
      gets one, deterministically off the record's id so a re-run says the
      same thing. One write, one toast, one undo. */
   function fillList(id) {
+    if (isBuyer()) { toast('We fill the numbers in.'); return; }
     const l = DB.byList[id];
     if (!l) return;
     const f = finderOf();
@@ -10720,16 +12707,17 @@
   function listLead(l, people, call, onCamp) {
     const said = listSays(l, people, call.length, onCamp);
     if (!said || said.from === 'their own records') return '';
-    const first = call[0];
-    /* The missing-number reading gets V3's verb; the no-campaign reading
-       gets the phone anyway. */
+    /* The missing-number reading gets V3's verb. The no-campaign reading
+       used to get the phone too — "Call Omar anyway" — because the action
+       row above it had none off a campaign. It has one now, saying the same
+       thing in the louder place forty pixels higher, so this is one control
+       drawn twice on one screen. The sentence is what this block is for:
+       it says they are not in your queue, and the row says you may call
+       them regardless. */
     const door = /without a number/.test(said.text)
       ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
         'Fill in what is missing</button>'
-      : first
-        ? '<button class="s-insight-lnk" type="button" data-call="' + esc(first.id) + '">Call ' +
-          esc(first.name.split(' ')[0]) + (onCamp ? '' : ' anyway') + '</button>'
-        : '';
+      : '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this list">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -12099,7 +14087,7 @@
           draftField('Client', draftMenu('dClient', esc(cl ? cl.name : 'FlairsTech'),
             'Whose offer this is',
             draftItem('client', '', 'FlairsTech', !k.client, 'our own book') +
-            CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
+            CAMP_CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
               .map((x) => SELL[x] && SELL[x].name).filter(Boolean).join(', '))).join(''))) +
           /* Sector and region are two decisions, not one field with two
              menus in it: you can know the market and not the country, and a
@@ -12245,9 +14233,13 @@
           /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
              the only door to the finder was on a surface two clicks away
              that does not know which campaign you were working. */
+          /* The closed line stays for everybody — it is a fact about their
+             campaign. The finder does not: it is us spending a supplier. */
           (campOpen(k)
-            ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
-              '">Find more for this campaign</button>'
+            ? (seesCost()
+              ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
+                '">Find more for this campaign</button>'
+              : '')
             : '<span class="s-block-sub">It closed ' + esc(sayWhen(k.to)) + '. Nothing on it is dialled now.</span>') +
         '</div>' +
       '</section>' +
@@ -12318,12 +14310,14 @@
      campaign — owns it, calling — which is a sentence about the campaign
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
-  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR', stakeholder: 'Stakeholder' };
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR',
+    stakeholder: 'Stakeholder', client: 'Client' };
   /* "Stakeholder" names a job and not a book, and on the one desk where the
      book IS the job that is half a label. The product goes with it wherever a
      person is introduced — the bar, and the row you press to get there. */
   const jobSay = (p) => (p && JOB[p.fn] ? JOB[p.fn] : '') +
-    (p && p.sell && SELL[p.sell] ? ' · ' + SELL[p.sell].name : '');
+    (p && p.sell && SELL[p.sell] ? ' · ' + SELL[p.sell].name : '') +
+    (p && p.client && CLIENT[p.client] ? ' · ' + CLIENT[p.client].name : '');
   /* ══ ONE ROW, THREE BLOCKS ═════════════════════════════════════════════
      A campaign's team, a lead's team and a list's were three copies of the
      same nine lines of markup, and they had already started to drift: the
@@ -12857,7 +14851,7 @@
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
           'Show the ' + commas(fresh) + ' never called</button>' : '') +
-        (all.length || !campOpen(k) ? '' :
+        (all.length || !campOpen(k) || !seesCost() ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
           '">Nobody left to call — find more</button>') +
       '</div>' +
@@ -12992,7 +14986,7 @@
          finder is what puts it right. */
       const wrong = stepCounts(st.members)['wrong-number'] || 0;
       rs.push({ text: exits,
-        door: wrong ? { attr: 'data-bopen="' + esc(k.id) + '"',
+        door: (wrong && seesCost()) ? { attr: 'data-bopen="' + esc(k.id) + '"',
           say: 'Find more for this campaign' } : null });
     }
     /* ══ THE MANAGER'S COLUMN IS NOT A READING FOR THIS DESK ══════════════
@@ -13351,7 +15345,8 @@
         n: noNum, of: members.length, unit: 'person', name: 'No number on the record',
         sub: 'They are on the campaign and there is nothing to dial.',
         beats: 'AiMY finds numbers overnight; the finder brings people who already have one.',
-        door: { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' },
+        door: seesCost()
+          ? { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' } : null,
       });
     }
     const gate = here.filter((t) => t.outcome === 'gatekeeper').length;
@@ -13721,6 +15716,17 @@
      When something has, `openingAt` speaks instead, because an argument
      built on a thing that happened beats one built on a calendar. */
   function expansionsOf(accId) {
+    /* ══ AND THE SECOND THING IS ALWAYS OURS TO SELL ═══════════════════
+       Every row here is a service of ours we would put in front of a
+       company next, off what they already buy from us. On a client's desk
+       that company is one THEY found and are selling to, so the row reads
+       as us working their account behind them — and the verb under it says
+       "Offer Managed customer support", which is a product they do not sell
+       and a conversation they are not in.
+
+       Empty at the root, like `customers`, rather than hidden at the three
+       places it surfaces. */
+    if (isBuyer()) return [];
     const pool = accId ? [DB.byAcc[accId]].filter(isCust) : customers();
     const out = [];
     pool.forEach((a) => {
@@ -13771,7 +15777,9 @@
        amber chip — so the masthead was the fourth telling, and the longest:
        "Worth a check-in every three weeks, and nothing has been said here
        yet" sitting above a sentence that says the same two things. */
-    const ci = onBook() && !isCust(a) ? checkinSay(a, hist) : null;
+    /* How often we think an account is owed a word, off its tier. Our
+       cadence for working our own book, on their prospect. */
+    const ci = onBook() && !isCust(a) && seesGrade() ? checkinSay(a, hist) : null;
 
     /* The furthest anyone here has got, as the chip beside the name. Below
        `answered` nobody has been reached, and that is the chip's whole
@@ -13827,7 +15835,10 @@
              own line rather than down among the facts — and at the end of
              it, so that opening one account after another puts it in the
              same place every time. */
-          (onBook() ? tierMark(a, 1) : '') +
+          /* Gold, Silver, Bench is us deciding how much of our week an
+             account is worth. Over a company a client found and is selling
+             to, it is our grade on their prospect. */
+          (onBook() && seesGrade() ? tierMark(a, 1) : '') +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -13850,10 +15861,16 @@
                ranked them backwards. Both are drawn, because the pair IS
                the account management question: this is what they buy, and
                this is how much of us they could. */
-            (onBook() && isCust(a)
+            /* ══ NEITHER OF THESE IS A FACT ABOUT THEIR PROSPECT ══════
+               Both are facts about US, standing on the record of a company
+               a client is selling to. What it pays us a year is our ledger,
+               and what of ours could fit is our next sale into an account
+               they found. A client reading either one learns nothing about
+               their own deal and something about our book. */
+            (onBook() && isCust(a) && seesCost()
               ? fact('money', '<b>' + esc(euro(custWorth(a))) + '</b> a year today')
               : '') +
-            (onBook()
+            (onBook() && seesGrade()
               ? fact('target', '<b>' + esc(euro(ceilingOf(a))) +
                 '</b> of our work could fit')
               : '') +
@@ -13875,7 +15892,13 @@
                on and which nothing else on it states. A contract without
                its start date is a subscription of unknown standing, and
                how long they have stayed is most of what it means. */
-            (isCust(a)
+            /* ══ AND THIS IS OUR CONTRACT, NOT THEIR PROSPECT ══════════
+               Every service this company buys from US, and how long they
+               have bought it. On a client's desk that is our order book
+               printed on the record of a company they are chasing — it
+               names products they do not sell and a relationship they are
+               not part of. */
+            (isCust(a) && seesCost()
               ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) +
                 ' · a client for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
               : '') +
@@ -13887,7 +15910,8 @@
                countdown rides with it only inside the quarter, because
                "renews Mar 2027" needs no urgency attached in September. */
             (function () {
-              const rn = isCust(a) ? renewAt(a) : null;
+              /* Our renewal date on our contract. Same refusal. */
+              const rn = (isCust(a) && seesCost()) ? renewAt(a) : null;
               if (!rn) return '';
               return fact('calendar', 'Renews <b>' + esc(monthYear(rn.at)) + '</b>' +
                 (rn.days <= RENEW_SOON
@@ -13931,7 +15955,12 @@
         '</div>' +
       '</section>' +
 
-      storyBlock(onBook() && isCust(a) ? custStory(a) : accStory(a, people, hist)) +
+      /* `custStory` is the story of OUR relationship with this company —
+         what they pay, what we have billed, their tier, when we are next
+         due to call them. `accStory` is the story of the work, which is the
+         one a client's desk is entitled to. */
+      storyBlock(onBook() && isCust(a) && seesCost()
+        ? custStory(a) : accStory(a, people, hist)) +
       accLead(a, people, hist, call, free) +
       /* `fitBlock` stood here. It answered the same question the reading
          above answers, from the other end, under its own heading with its
@@ -14238,7 +16267,17 @@
        they have run it, or the clock the tier bought them — and the ladder
        below is about getting through to a stranger on the phone, which is
        not what anybody opens a customer's page to find out. */
-    if (onBook() && isCust(a)) return custSay(a);
+    /* ══ AND WHETHER THEY BUY FROM US IS NOT THE CLIENT'S QUESTION ═══
+       `custSay` reads a company as a customer of OURS: what they run from
+       the range, what usually follows it, when we are next due to call
+       them. Every branch of it is our account management, and on a client's
+       desk it lands on a company THEY are selling to — which is how a
+       prospect with no contract at all came to be described to Kestrel as
+       running AiMY Knowledge and due a check-in in eighteen days.
+
+       Same refusal as `custStory` two hundred lines down, so the record and
+       the reading over it agree about which story this page is telling. */
+    if (onBook() && isCust(a) && seesCost()) return custSay(a);
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
     if (sig) return signalReading(a, sig, hist);
@@ -14426,7 +16465,12 @@
       '</section></div>';
     }
     const a = accOf(c);
-    const camps = campsOf(c);
+    /* ══ THE CAMPAIGNS ON A RECORD ARE THE ONES THIS DESK PAID FOR ═════
+       `campsOf` is every campaign the person is on, ours included. On a
+       client's record that made the count wrong in a way that gave
+       something away: "and 2 more" over one of theirs and one of ours is
+       telling them we are also working their prospect, and how often. */
+    const camps = isBuyer() ? campsOf(c).filter(mine) : campsOf(c);
     const mineCamp = camps.filter(mine)[0] || camps[0];
     /* Past the hand-over the step has stopped moving — every deal reads
        "Handed over" for ever — so at the manager's desk the status is the
@@ -14503,8 +16547,21 @@
                 Only where there is a deal. A lead nobody has handed over is
                 not being sold anything yet, and the campaign beside it
                 already says what it would be. */
+            /* ══ AND THE DRIFT CANNOT LEAVE WHAT THE CLIENT SELLS ═══════
+               `sellOf` models a conversation turning onto something else,
+               and on our own book it can turn onto any of the eight because
+               we sell all eight. A client sells two. Drifted onto AiMY
+               Knowledge, this line told Kestrel what WE are pitching into an
+               account they found — not their deal turning, ours.
+
+               The VALUE underneath is deliberately left alone. What a deal
+               is worth cannot depend on who is looking, and clamping the
+               price here would hand the same deal two numbers on two desks.
+               Only the name is read off their own campaign. */
             (onBook() && c.checkpoint === 'handed-over'
-              ? fact('sell', esc((SELL[sellOf(c)] || {}).name || 'nothing named yet'))
+              ? fact('sell', esc((SELL[isBuyer()
+                  ? (lineOf(dealCamp(c)) || sellOf(c)) : sellOf(c)] || {}).name
+                || 'nothing named yet'))
               : '') +
             fact('role', esc(c.title)) +
             (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
@@ -14638,7 +16695,8 @@
             : c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO ? ' to confirm' : ''),
         attr: 'data-call="' + esc(c.id) + '"' } : null;
     /* no number, or a number that is not theirs: the verb is the supplier */
-    const find = (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
+    const find = (seesCost() && !c.dnc &&
+      (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
       ? { html: 'Find a number', attr: 'data-enrichcon="' + esc(c.id) + '"' } : null;
     /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
        nobody in particular; the campaign's owner is who gets them. */
@@ -14875,12 +16933,18 @@
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const last = hist.filter((t) => !wasMissed(t))[0];
     let door = '';
-    if (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
+    /* Both of these name the supplier in the verb — "Ask Apollo for a
+       number" — which is our sourcing on a client's screen twice over: the
+       cost and the vendor. Gated rather than reworded, because a client
+       cannot do this at all; the else-if falls through to a door they
+       can. */
+    if (seesCost() && !c.dnc &&
+        (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
         'Ask ' + esc(finderOf().name) + ' for a number</button>';
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
       door = coMenu(a, others, 'Try one of the ' + others.length + ' others at ' + a.name);
-    } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
+    } else if (seesCost() && c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
       /* NO COLLEAGUE TO TRY, so the door is the supplier. The reading says
          this number may not be theirs, and "Call Ava" under it called it
          again. */
@@ -15101,7 +17165,29 @@
   /* The campaign the deal belongs to, read the same way the index and the
      seed's own hand-over note read it, rather than through `campFor`, which
      answers for whoever is looking. */
-  const dealCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
+  /* ══ WHICH CAMPAIGN A LEAD IS READ THROUGH ═════════════════════════════
+     `firstCamp` is the raw answer and the one an INDEX must use: `byLine` is
+     global, every desk reads it, and a key that changed with whoever was
+     looking would have the stakeholder's book move when somebody switched
+     desks in the same session.
+
+     `dealCamp` is the reading, and for a buyer it is not the first campaign.
+     A person is on every campaign that reached them; thirty-three in this
+     corpus are on two different clients' at once, and three of Kestrel's ten
+     handed-over deals carry somebody else's campaign first. Left on
+     `camps[0]` those three price off norvant's product, file under a line
+     Kestrel does not buy, and put norvant's crew on the lead's team — three
+     leaks from one wrong word. The order in `camps` is the order the seed
+     dealt them in and was never a claim about whose lead it is. */
+  const firstCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
+  const dealCamp = (c) => {
+    if (!c || !c.camps.length) return null;
+    if (isBuyer()) {
+      const own = c.camps.filter((id) => onClient(DB.byCamp[id]))[0];
+      if (own) return DB.byCamp[own];
+    }
+    return DB.byCamp[c.camps[0]];
+  };
 
   /* ══ A DEAL IS NOT ALWAYS FOR WHAT THE CAMPAIGN OPENED WITH ════════════
      The product read the campaign's first `sells` and called that the deal's
@@ -15530,7 +17616,20 @@
   function accMap(a, people) {
     if (!people.length) return '';
     const by = Object.create(null);
-    people.forEach((c) => campsOf(c).forEach((k) => (by[k.id] = by[k.id] || []).push(c)));
+    /* ══ AND "SOMEBODY ELSE IN THE BUILDING" HAS AN OUTSIDE ════════════
+       The paragraph above keeps every campaign on this map on purpose, and
+       the argument is a good one: a colleague already calling this company
+       is the one thing this drawing can say that nothing else on the page
+       can. It holds for everybody inside the building.
+
+       A client is not. On their desk the other campaigns at their prospect
+       are ours and other clients' — so the limb that exists to say "we are
+       already here" becomes a list of who else we are selling for, drawn on
+       a company they found. Their own, or nothing. */
+    people.forEach((c) => campsOf(c).forEach((k) => {
+      if (isBuyer() && !mine(k)) return;
+      (by[k.id] = by[k.id] || []).push(c);
+    }));
     const ids = Object.keys(by).sort((x, y) =>
       ((mine(DB.byCamp[y]) ? 1 : 0) - (mine(DB.byCamp[x]) ? 1 : 0)) || (by[y].length - by[x].length));
     const mineN = ids.filter((id) => mine(DB.byCamp[id])).length;
@@ -15679,13 +17778,23 @@
         ? '<div class="b-nm">' +
             (o.next
               ? '<div class="b-nm-do' + (o.done ? ' is-done' : '') + '">' +
-                  '<span class="b-nm-mark">' + (o.done ? nmTick() : nmClock()) + '</span>' +
+                  /* THE MARK BELONGS IN THE BADGE. It was a 28px tile of its
+                     own beside a 12px chip — two objects saying one thing,
+                     and the louder of them saying the less. Inside the chip
+                     it is a leading glyph on the words it marks, and the
+                     chip takes the tile’s own colours so nothing is lost.
+
+                     The tile survives only when there is no chip to host
+                     it: no due date, no badge, and the mark still has to
+                     land somewhere. */
+                  (o.due ? '' : '<span class="b-nm-mark">' + (o.done ? nmTick() : nmClock()) + '</span>') +
                   '<span class="b-nm-text">' +
                     /* THE CHIP IS ABOVE THE SENTENCE. Trailing it, the chip
                        wrapped onto its own line anyway and read as an
                        afterthought to the instruction; what is owed and when
                        is the thing you look for first. */
                     (o.due ? '<span class="b-nm-due' + (o.due.late ? ' is-late' : '') + '">' +
+                      (o.done ? nmTick() : nmClock()) +
                       esc(o.due.what) + ' · ' + esc(o.due.when) + '</span>' : '') +
                     '<span class="b-nm-say">' + o.next + '</span>' +
                     (o.hand ? '<span class="b-nm-then">' + o.hand + '</span>' : '') +
@@ -18179,6 +20288,7 @@
      so the answer is the same every time it is asked. A new number starts
      its own count of attempts; the history keeps the old calls. */
   function enrichCon(id) {
+    if (isBuyer()) { toast('We fill the numbers in.'); return; }
     const c = DB.byCon[id];
     if (!c) return;
     const f = finderOf();
@@ -18461,6 +20571,50 @@
             : '') + '.',
         cta: 'Show the book',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }) });
+    }
+    /* ══ THE ONE ROW A CLIENT'S BELL HAS AND NO OTHER DESK DOES ═════════
+       The promise furthest from its number. `bookAttain`'s margin is the
+       constraint on how it is read: the full aggregate runs a pass over
+       every person on every campaign, and this runs on every paint of every
+       surface. So this row answers only the promises the BOOK alone can
+       settle — what has been signed, and what is still live — and leaves the
+       ones that need the whole scope to the ledger, which is one press away
+       and pays for that pass once.
+
+       Which is also the right row to put in a bell. A meeting count slipping
+       is a thing to read; the money slipping is a thing to ring about. */
+    if (isBuyer() && myDeal()) {
+      const dp = periodOf('deal');
+      const att = bookAttain();
+      const cheap = { arr: att.booked, 'pipe.open': pipelineOf(dealBook()).open };
+      /* A floor's promises cost nothing at all to read — the series is
+         seeded, so the last week of it is an array lookup rather than a
+         pass over anybody. */
+      /* The floor is generated once and cached, so after the first paint
+         this is an array lookup like the two above it. */
+      engsOf(dealOf(myClient())).forEach((e) => {
+        if (!e.team) return;
+        floorSeries(myClient(), e.k).forEach((m) => {
+          const v = floorNow(m.w);
+          if (v != null) cheap['team.' + m.k] = v;
+        });
+      });
+      const behind = myDeal().promises
+        .filter((r) => cheap[r.read] != null && !promKept(r, cheap[r.read]))
+        .map((r) => ({ r: r, got: cheap[r.read] }))
+        .sort((x, y) => (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)));
+      if (behind.length) {
+        const one = behind[0];
+        const said = PROM_SAY[one.r.k] || one.r.say;
+        const leftD = dp.end ? Math.max(0, daysBetween(TODAY_ISO, dp.end)) : null;
+        tasks.push({ id: 'promise-behind', sev: 'p2', type: 'Promises',
+          when: plural(behind.length, 'promise') + ' behind',
+          body: said.charAt(0).toUpperCase() + said.slice(1) + ' is at ' +
+            promFig(one.r, one.got) + ' of ' + promFig(one.r, one.r.to) +
+            (leftD == null ? '' : ', with ' + plural(leftD, 'day') + ' of the year left') + '.',
+          cta: 'Show the year',
+          ask: 'go:' + JSON.stringify({ on: 'money' }) });
+      }
     }
     const quiet = live.filter((c) => {
       if (stageOf(c) !== 'commercial') return false;
@@ -19128,7 +21282,14 @@
        It was greeting every desk, and the default desk is a BDR's, so the
        first thing the product said to the person it is named for was an
        offer to do somebody else's job. */
-    if (!onBook()) return;
+    /* ══ AND IT IS NOT THE BUYER'S EITHER, FOR THE SAME REASON ═══════
+       The paragraph above says a BDR does not decide which companies to go
+       after. Neither does the person paying us to. What this offers is a
+       stranger found in our own network and a connection of ours spent to
+       reach them, which is sourcing — the half of the work this desk buys
+       rather than does. It also names the service it read, which is a
+       supplier on a client's screen. */
+    if (!onBook() || isBuyer()) return;
     if (REACH_SAID) return;
     const hit = reachTop();
     if (!hit) return;
@@ -21209,8 +23370,14 @@
          money into a heading of its own and broke the sentence across three
          lines. The meter is this line's emphasis; the figure sits in the
          prose beside it, which is what `.b-prep-owed` already does. */
-      know.push(['How far to go', tierMark(a, 1) + ' — ' + esc(euro(ceilingOf(a))) +
-        ' of our work could fit here. ' + esc(tierOf(a).play)]);
+      /* Our tier, our ceiling and our play for the account, as the FIRST
+         thing a brief says is already known. On a client's brief for their
+         own prospect it is three of our judgements and none of their
+         facts. */
+      if (seesGrade()) {
+        know.push(['How far to go', tierMark(a, 1) + ' — ' + esc(euro(ceilingOf(a))) +
+          ' of our work could fit here. ' + esc(tierOf(a).play)]);
+      }
     }
     know.push(['Who', esc(ASK_OF[(camp && camp.sells[0]) || 'qa']) + ' is who this campaign asks for, ' +
       'and ' + esc(c.name.split(' ')[0]) + ' is ' + esc(c.title.toLowerCase()) + '.']);
@@ -21247,7 +23414,7 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' +
+            '<span class="b-back-k">' +
               esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
@@ -21313,17 +23480,45 @@
        narrating what the reader is doing. The rung's own label stays,
        because which step this is remains the question. */
     const owedNamed = inbound && c.next && why && why.indexOf(c.next.what) >= 0;
+    /* ══ ONE FACT, SAID ONCE ══════════════════════════════════
+       This row rendered a callback three times over. The rung is
+       { label: "Callback", say: "they asked to be called back" } and its
+       step is { what: "Call them back" }, so the chip, the sentence and the
+       pill were one fact in three grammars — a noun, a report, an order.
+       The only new words in the row were the two dates.
+
+       The guard below already knew this and said so, but it was reachable
+       only on an inbound call, where `why` happens to name the step. The
+       same collision on an outbound one went straight through.
+
+       Two cuts, each keeping whatever the chip does not already carry:
+
+         the gloss  goes when the rung is flagged `echo` — when its sentence
+                    names nothing its label does not. Its ", since 2 Aug"
+                    survives on its own, because a date is not a re-wording.
+
+         the verb   goes from the pill when the step is the rung said as an
+                    instruction. Compared on content words, so "Call them
+                    back" collapses to "callback" and matches the label,
+                    while the same step under "Answered" does not and keeps
+                    its verb — there it is the new information.
+
+       [Callback]  they asked to be called back, since 2 Aug
+       [Call them back · was due 8 Sep]          becomes
+       [Callback]  since 2 Aug  [was due 8 Sep] */
+    const bareWords = (x) => String(x).toLowerCase()
+      .replace(/\b(a|an|the|them|they|their|to|be|it|its|was|is|and|of|for|on|in)\b/g, '')
+      .replace(/[^a-z]/g, '');
+    const stepEcho = !!(c.next && bareWords(c.next.what) === bareWords(rg.label));
+    const since = c.checkpointAt ? 'since ' + sayWhen(c.checkpointAt) : '';
+    const owed = rg.echo ? since : rg.say + (since ? ', ' + since : '');
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
         esc(rg.label) + '</span>' +
-      (inbound ? '' : '<span class="b-prep-owed">' + esc(rg.say) +
-        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>') +
-      /* The chip and the reading are the same fact when the reading is the
-         overdue step — "Call them back · was due 6 Sep" over "Probably
-         chasing Call them back, it was due 6 Sep". The sentence keeps it,
-         because it is the one that says what it MEANS. */
+      (inbound || !owed ? '' : '<span class="b-prep-owed">' + esc(owed) + '</span>') +
       (c.next && !owedNamed
-        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
+        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' +
+          (stepEcho ? '' : esc(c.next.what) + ' · ') +
           esc((late ? 'was due ' : 'due ') + sayWhen(c.next.due)) + '</span>'
         : '') +
     '</div>';
@@ -21410,7 +23605,7 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' +
+            '<span class="b-back-k">' +
               esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
@@ -22060,6 +24255,13 @@
   }
 
   function cbuildStart() {
+    /* ══ GUARDED HERE, NOT ONLY WHERE THE BUTTON IS DRAWN ══════════════
+       Building a campaign, finding leads, buying a number and filling a
+       list are the four things on this product that operate the machine
+       rather than work the funnel, and every one of them spends our
+       suppliers' money. Each is refused at its own door as well as hidden,
+       so a control this sweep missed cannot act. */
+    if (isBuyer()) { toast('We build the campaigns. Say what you want and we will run it.'); return; }
     if (!onBook()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
     DRAFT = null;
@@ -22511,6 +24713,10 @@
      on a clean surface: the draft goes, and a half-built list is left
      rather than reopened underneath. */
   function lbuildStart(campId) {
+    /* The builder names a supplier on every screen of it — which one we
+       asked, what each fills, which to ask next — so there is no version of
+       it a client can be shown. */
+    if (isBuyer()) { toast('Finding people is ours. Add anybody you have met yourself.'); return; }
     DRAFT = null;
     if (S.build || S.list) goFree(Object.assign(cleared(), { on: 'lists' }), true);
     LBUILD = { kind: null, terms: [], step: 'kind', name: null,
@@ -22873,6 +25079,7 @@
       }
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
+      if (k === 'money') { go(Object.assign(cleared(), { on: 'money' })); return; }
       if (k === 'lead') { fillBar('Add a lead: '); return; }
       if (k === 'newcamp') { cbuildStart(); return; }
       if (k === 'callnext') {
@@ -23417,6 +25624,13 @@
        `#asPanel`, the Looking as menu under the user chip in the topnav.
        Dropping the branch with the buttons broke the real one, and the
        drawn-not-wired check caught it in the same second. */
+    /* Changing the book clears everything read out of the last one. */
+    const eng = t.closest('[data-eng]');
+    if (eng) { go(Object.assign(cleared(), { on: 'money', eng: eng.getAttribute('data-eng') })); return; }
+    const ag = t.closest('[data-ag]');
+    if (ag) { go(Object.assign(cleared(), { ag: ag.getAttribute('data-ag') })); return; }
+    const ev = t.closest('[data-ev]');
+    if (ev) { go(Object.assign(cleared(), { ag: S.ag, ev: ev.getAttribute('data-ev') })); return; }
     const as = t.closest('[data-as]');
     if (as) {
       shutMenus(null);
@@ -24148,6 +26362,18 @@
     },
     reset: reset,
     go: go,
+    /* The money aggregate for whichever desk is loaded — the same call the
+       report makes, with the same heads rule — so a figure on the page can
+       be checked against the derivation that produced it rather than read
+       back off the screen. */
+    book: (k) => bookMoney(bookScope(), periodOf(k || 'q'),
+      (isLine() || isBuyer()) ? 0 : workingHeads()),
+    /* The floor behind a software client's report, and the series read off
+       it, so a figure on the page can be checked against the conversations
+       it was averaged from. */
+    floor: (e, k) => floorOf(k || myClient(), e),
+    floorSeries: (e, k) => floorSeries(k || myClient(), e),
+    engs: () => engsOf(dealOf(myClient())).map((e) => e.k + ':' + e.kind),
     queue: queue,
     /* The mounted windowed lists. Exposed because the scroll handler is
        rAF-throttled and a hidden tab never runs a frame — so a check that

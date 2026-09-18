@@ -201,9 +201,32 @@
       --sp-15: 60px;
 
       /* ── Typography ── */
-      /* Pairing: Urbanist (primary — UI & body) + Poppins (display — headings) */
-      --font-sans:    "Urbanist", system-ui, sans-serif;  /* primary / body */
-      --font-display: "Poppins", system-ui, sans-serif;   /* pairing / headings */
+      /* ══ ONE FACE, EVERYWHERE ══════════════════════════
+         Poppins sets every word in this product, body and titles alike. That
+         is a decision rather than a default, so both tokens name it and there
+         is no pairing left — nothing remains for a second face to do.
+
+         ── What this costs, so nobody has to rediscover it ──
+
+         Poppins has no tabular figures. Every `font-variant-numeric:
+         tabular-nums` declaration in this build is therefore inert, and each
+         count, duration and money column sets on proportional digits: a
+         figure changes width when its value changes. Measured against
+         controls that DO support the feature, so this is the font and not
+         the test — digit-width spread at 100px, tabular-nums requested:
+
+           Poppins   63.00     Urbanist  66.11     DM Sans  74.41   (inert)
+           Figtree    0.00     Inter      0.00     Jakarta   0.00   (works)
+
+         Figtree held this slot for exactly one commit and set those figures
+         correctly. It was replaced deliberately. If aligned figures are ever
+         wanted back without giving up this face, the cheap fix is a third
+         token for numerals only, applied to elements that are PURELY a
+         number and never to a sentence with one in it — a stray digit from
+         another face inside running text shows. */
+      --font-sans:    "Poppins", system-ui, sans-serif;   /* body AND titles */
+      --font-display: "Poppins", system-ui, sans-serif;   /* the same face; the
+                                    token stays so its callers keep working */
       --font-mono:    "JetBrains Mono", monospace;
 
       /* Font style */
@@ -252,12 +275,45 @@
       --ink-rule:        var(--d600);   /* NON-TEXT. Hairlines and dots. Never type. */
 
       /* Font weights */
-      --fw-light:     300;
-      --fw-regular:   400;
-      --fw-medium:    500;
-      --fw-semibold:  600;
-      --fw-bold:      700;
-      --fw-extrabold: 800;
+      /* ══ THE LADDER, RE-CUT FOR POPPINS ═══════════════════
+         These numbers moved because the face changed. The ROLES did not:
+         --fw-bold still means "the emphatic one", it is just that in
+         Poppins the emphatic one is 600.
+
+         Poppins lays down more ink than Urbanist at every weight, and the
+         gap widens as it gets heavier. Measured in canvas as alpha per px
+         of line length — typographic colour, which is what the eye reads:
+
+                      Urbanist   Poppins same number   drift
+           regular      10.06        11.64             +15.7%
+           medium       11.65        14.12             +21.2%
+           semibold     13.74        16.60             +20.8%
+           bold         15.44        19.34             +25.3%
+           extrabold    16.83        21.37             +27.0%
+
+         Every rank landed a fifth to a quarter heavier than the value the
+         surface was calibrated against, and 47% of the runs on the desk
+         sit at bold or above — so the page shouted. Poppins covers in
+         300-700 the colour range Urbanist covered in 400-800, so the whole
+         ladder drops one step and lands back on the intended colour:
+
+                      target     now      drift
+           regular     10.06     9.26     -8.0%   (300)
+           medium      11.65    11.64     -0.1%   (400)
+           semibold    13.74    14.12     +2.8%   (500)
+           bold        15.44    16.60     +7.5%   (600)
+           extrabold   16.83    19.34    +14.9%   (700)
+
+         --fw-regular is 300 and deliberately unused: the type floor is 400
+         or heavier below 18px, and every site that named it sits at 16px
+         or under, so all twelve were moved to --fw-medium, which still
+         holds 400. It is here for display sizes, where 300 is legal. */
+      --fw-light:     200;
+      --fw-regular:   300;
+      --fw-medium:    400;
+      --fw-semibold:  500;
+      --fw-bold:      600;
+      --fw-extrabold: 700;
 
       /* Line heights */
       --lh-none:    1;
@@ -2944,7 +3000,21 @@
       animation: wave 1s ease-in-out infinite; transform-origin: center; }
     .voice-wave span:nth-child(2) { animation-delay: 0.12s; } .voice-wave span:nth-child(3) { animation-delay: 0.24s; }
     .voice-wave span:nth-child(4) { animation-delay: 0.36s; } .voice-wave span:nth-child(5) { animation-delay: 0.48s; }
-    .voice-timer { font-family: var(--font-mono); font-size: 14px; color: var(--err); }
+    /* Poppins, like everything else on screen. It has no tabular figures,
+       so a timer set in it changes width as it counts — measured at this
+       size: "1:11" is 15.91px against 28.50px for "9:59", a 12.59px range,
+       and "0:10" to "0:11" alone jumps 4.17px in a single tick. Monospace
+       held a flat 29.83px for every string and that is precisely what is
+       being given up here.
+
+       So the BOX is pinned instead: min-width at the widest string plus a
+       little, which stops the composer around it reflowing once a second.
+       The digits still shift inside that box. That part is inherent to a
+       proportional face and only per-digit spans, or a face with real
+       tabular figures, would cure it. tabular-nums is declared anyway — it
+       costs nothing and starts working the day the face ships the feature. */
+    .voice-timer { font-family: var(--font-sans); font-size: 14px; color: var(--err);
+      font-variant-numeric: tabular-nums; min-width: 2.25em; text-align: center; }
 
     /* ── Inline AI menu (text-selection toolbar) ── */
     .ai-menu { display: inline-flex; align-items: center; gap: 2px; padding: 3px;
