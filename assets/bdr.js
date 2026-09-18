@@ -15115,16 +15115,13 @@
           '<span class="s-rec-kind b-kinds">' + fact('campaign', 'Campaign') +
             '<span class="tag tag-neutral">' + (editing ? 'Editing' : 'Draft') +
             '</span></span>' +
+          /* ══ THE ORDER IS THE ORDER OF OPERATIONS ═══════════════════════
+             The primary led the row and the fill followed it, which reads
+             backwards: you fill the empty half and THEN you finish. The row
+             is right-aligned, so last is also nearest the corner the hand
+             goes to \u2014 which is where a confirming verb belongs and where
+             every dialog in the world has put it. */
           '<span class="b-draft-acts">' +
-            /* Greyed for the same reason and with the same sentence under it:
-               a campaign is already running, and leaving it without a name or
-               without a market would take those off a page somebody is
-               dialling from. */
-            (editing
-              ? '<button class="s-insight-lnk primary" type="button" data-cdone="' + esc(k.id) + '"' +
-                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Done</button>'
-              : '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
-                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>') +
             /* ══ THE EMPTY FIELDS, WITHOUT STARTING THE CAMPAIGN ═════════
                Run it has always filled whatever was left empty, and that is
                the wrong moment to find out what the product would have
@@ -15140,6 +15137,15 @@
               AIMY_SPARK + 'Let AiMY fill the rest</button>' : '') +
             (editing ? '' :
               '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>') +
+            /* Greyed for the same reason and with the same sentence under it:
+               a campaign is already running, and leaving it without a name or
+               without a market would take those off a page somebody is
+               dialling from. */
+            (editing
+              ? '<button class="s-insight-lnk primary" type="button" data-cdone="' + esc(k.id) + '"' +
+                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Done</button>'
+              : '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
+                (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>') +
           '</span>' +
         '</div>' +
         '<input class="b-draft-name" type="text" data-cfield="name" value="' + esc(k.name) + '" ' +
