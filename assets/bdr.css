@@ -6195,14 +6195,26 @@
    14px in. One row out of seven breaking the left margin is the kind of
    thing you see before you can say what it is. Measured: 353 against 367.
 
-   AND IT GETS THE BREAK THE BLOCK IT REPLACED HAD. `.b-aimy` sat here
-   with 10px above it, which is what separated the card's FACTS from the
-   thing under them. This went in at 2 and the three rows below the
-   sentence — two of facts and one of links — closed into one grey mass
-   with nothing saying which of them was a different kind of thing. */
+   AND IT GETS THE BREAK THE BLOCK IT REPLACED HAD — BOTH HALVES OF IT.
+   `.b-aimy` sat in this slot on a queue card and it carries `10px 0 14px`:
+   ten to separate the card's FACTS from the thing under them, fourteen to
+   keep the foot's hairline off it. This went in at 2, then at 10, and both
+   times with nothing underneath — so the rule sat flush against the links,
+   measured 168.1 to 168.1, with every other row on the card spaced and
+   this one pinned to a line.
+
+   Lopsided is worse than tight. Ten above and nothing below reads as the
+   links belonging to the foot rather than to the card, which is backwards:
+   they are the last of what the supplier returned, and the foot is what
+   you do about it.
+
+   THE NUMBER IS COPIED, NOT CHOSEN. It is the one the block this replaced
+   already used in the same slot, so a candidate card and the roster card
+   it becomes put their hairline the same distance under the last thing
+   above it. */
 .b-net-links {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
-  padding: 0 14px; margin: 10px 0 0; min-width: 0;
+  padding: 0 14px; margin: 10px 0 14px; min-width: 0;
 }
 .b-net-link {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0;
@@ -6287,25 +6299,27 @@
    the cap height of a 13px mark that was not there. */
 .b-net-fact > svg { --mark: 10px; }
 /* ══ THE CARD'S OWN RHYTHM, WHICH WAS ALL ONE INTERVAL ════════════════
-   `.b-qcard-where` carries `padding-top: 2px` because the two fact lines are
-   ONE block: the organisation on one, where and how big on the next, and 2px
-   is what keeps them reading as a pair rather than as two rows. Right for the
-   second one, wrong for the first, which is not continuing anything — it is
-   the first fact after a sentence about the company, and it sat 2px under it.
+   `.b-qcard-where` carries `padding-top: 2px` and there are two of them, so
+   that one value was doing two different jobs. Between the two fact lines it
+   is right and deliberate: the organisation on one, where and how big on the
+   next, 2px because they are ONE block and a bigger gap would make them read
+   as two. Above the first one it is not separating a pair, it is separating
+   the facts from the line that names who this is — and there it left the job
+   title sitting on top of the first fact with nothing between them.
 
-   AND IT IS THE PROSE THAT NEEDS IT, NOT THE CARD. A person's line here is
-   `b-qcard-role` — a job title of three or four words, at `--fs-xs`, which is
-   exactly what a roster card on the saved list carries and where 2px has
-   always been right: the step down in size does the separating on its own. A
-   company's is `b-qcard-what`, a sentence at `--fs-sm`, and prose needs a gap
-   under it or the eye runs straight on into the facts.
+   ON `.b-qcard`, NOT ON `.b-netcard`. This was written scoped to the
+   candidate card, because that is the card somebody was looking at when it
+   was noticed. But the queue card and the roster card are the same component
+   with the same two rows and the same 2px, and scoping the fix to one of the
+   three would have given a person 10px on the draft and 2px on the list
+   thirty seconds later — a difference between two pages, introduced by a rule
+   whose whole argument is that they should match. Every card grid gets it.
 
-   So the selector names the prose and not the surface. Written as
-   `.tc-summary + .b-qcard-where` it caught both, which would have given a
-   person 10px here and the same person 2px on the list thirty seconds later —
-   a difference between the two pages, introduced by a rule whose whole
-   argument is about the other one.
+   ONE VALUE FOR BOTH KINDS OF LINE. A first cut gave prose 10 and a job
+   title 8, on the argument that a sentence at `--fs-sm` needs more air under
+   it than three words at `--fs-xs`. That is true and it is worth two pixels,
+   which is not worth a second rule and a second thing to keep in step.
 
-   Not `:first-of-type` either: the sentence is a `<p>` too, so first-of-type
-   is the sentence and the rule would have landed on nothing at all. */
-.b-netcard .b-qcard-what + .b-qcard-where { padding-top: 10px; }
+   `.tc-summary + .b-qcard-where`, not `:first-of-type`: the summary is a `<p>`
+   too, so first-of-type is the summary and the rule lands on nothing. */
+.b-qcard .tc-summary + .b-qcard-where { padding-top: 8px; }
