@@ -14910,6 +14910,11 @@
      `spellcheck` is on here and off in `draftText`, and the difference is
      real: one holds names and job titles, this holds prose somebody will
      read out loud. */
+  /* Whether the engine sizes a field to its own content. Read once, because
+     it is a property of the browser and not of the page, and `CSS.supports`
+     is not free in a handler that runs on every keystroke. */
+  const FITS = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
+
   function draftArea(field, val, ph, least) {
     const v = String(val || '');
     const lines = v.split('\n').length - 1;
@@ -27348,6 +27353,19 @@
        leave the field, which is also when what is still missing changes. */
     const cf = e.target.closest && e.target.closest('[data-cfield]');
     if (cf) {
+      /* ══ THE BOX GROWS WHERE THE BROWSER WILL NOT GROW IT ═══════════════
+         `field-sizing: content` does this in the stylesheet and does it
+         exactly, and the drag handle that used to cover the engines without
+         it has been taken off. This covers them instead. It is here rather
+         than in a repaint because the line under this one is the reason: a
+         field writes on every keystroke and redraws on none of them, so the
+         row count the markup carries is a repaint behind whatever is being
+         typed. Guarded, so where the browser already handles it nothing sets
+         an inline height that would then have to be kept in step. */
+      if (!FITS && cf.tagName === 'TEXTAREA') {
+        cf.style.height = 'auto';
+        cf.style.height = cf.scrollHeight + 'px';
+      }
       const k = DB.byCamp[S.camp];
       if (k) {
         const f = cf.getAttribute('data-cfield');

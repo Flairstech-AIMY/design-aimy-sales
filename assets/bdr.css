@@ -5096,11 +5096,23 @@ textarea::placeholder,
 /* A field whose answer is a paragraph. The underline is the one every other
    field on the page wears; what changes is the box, because a sentence needs
    a second line and a 34ch input scrolls sideways rather than giving it one.
-   `resize` stays, and it is an addition to a box already sized from its own
-   content rather than the only way to see what you wrote. */
+
+   NO HANDLE. It had `resize: vertical`, defended at the time as an addition
+   to a box that already sizes itself rather than the only way to see what you
+   wrote — and that defence is the argument against it: the drag did nothing
+   the typing had not already done, and a corner grab with no press behind it
+   is the one shape this build does not ship. What it cost was a grey wedge in
+   the corner of all three fields, on a page whose whole job is to look like
+   the record rather than like a form.
+
+   Nothing is hidden by taking it away. Where `field-sizing` exists the
+   browser measures the box; where it does not, `draftArea` sets the rows from
+   the value on every repaint and the `input` handler grows it on every
+   keystroke, which is the half a repaint cannot cover because this build
+   deliberately does not repaint a field while it is being typed in. */
 .b-draft-area {
   display: block; width: 100%; max-width: 68ch;
-  line-height: var(--lh-base); resize: vertical;
+  line-height: var(--lh-base); resize: none;
   /* The browser measures its own text better than any character count can.
      Where it is supported this is exact at every width and every zoom; where
      it is not, `rows` is computed from the value and lands within a line.
