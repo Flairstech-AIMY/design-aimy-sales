@@ -710,6 +710,58 @@
     back: 'month-end takes a week and nobody can say why',
   };
 
+  /* ══ WHO TO ASK FOR, AS TITLES A SWITCHBOARD KNOWS ════════════════
+     `ASK_OF` says the job in the words the room uses — "whoever owns
+     quality" — which is exactly right inside a goal sentence and useless to
+     somebody asking reception for a name. The persona a campaign is aimed at
+     is the TITLES, and it is one line however many of them there are: a
+     campaign aimed at four jobs is one audience, not four, and four rows of
+     it would read as four audiences with one campaign each.
+
+     Authored per offering rather than banded off `TITLES`, for the reason
+     `ANSWERS` and `STORIES` are authored: this is a line somebody reads out
+     loud before dialling, and a generated permutation of job words is not. */
+  const PERSONA_OF = {
+    voice: 'Head of Contact Centre, Customer Service Director, Head of Customer Experience',
+    qa: 'Head of Quality, QA Manager, Service Delivery Manager',
+    know: 'Head of Digital, Chief Information Officer, Head of Shared Services',
+    support: 'Head of Customer Support, Support Operations Manager, Customer Care Lead',
+    test: 'VP Engineering, Head of Quality, Engineering Manager',
+    eng: 'VP Engineering, Chief Technology Officer, Engineering Manager',
+    data: 'Head of Technology, Chief Technology Officer, IT Director',
+    back: 'Finance Director, Head of Back Office, Operations Director',
+  };
+  /* The same line, cut to the band a sentence named. A builder told "QA
+     managers in Dutch software" should come out aimed at QA managers rather
+     than at the three titles the offering happens to ship with. Keyed by
+     `TITLE_BANDS`, so the builder and the list finder agree on what a band is. */
+  const PERSONA_BAND = {
+    support: 'Head of Customer Support, Support Operations Manager, Customer Care Lead',
+    quality: 'Head of Quality, QA Manager, Service Delivery Manager',
+    tech: 'Chief Technology Officer, IT Director, Head of Technology',
+    ops: 'Operations Director, Head of Shared Services, Head of Back Office',
+  };
+
+  /* ══ WHAT THE MANAGER KNOWS AND THE BOOK DOES NOT ═════════════════
+     A campaign's notes are the half of a brief no derivation can reach — who
+     we already know there, what went wrong last time, when their procurement
+     shuts. Seeded on half the book rather than all of it, because a field
+     with something in it on every single record reads as generated; and
+     dealt off the id's hash rather than the seed's cursor, so adding them
+     moves nothing else in the corpus. */
+  const CAMP_NOTES = [
+    'Two of these came in through the partner list — check whether we have already been introduced before dialling.',
+    'Do not lead with price here. The last three that went cold went cold on the number.',
+    'Their procurement shuts in December. Anything not agreed by the end of November lands in the new year.',
+    'The buying committee is bigger than it looks — nothing moves without the technical lead in the room.',
+    'We lost two of these to an incumbent last year. Ask what changed before pitching anything.',
+    'Keep the first call short. They take meetings and they do not take calls.',
+  ];
+  const campNote = (id) => {
+    const h = Math.abs(hash(id + ':note'));
+    return h % 10 < 5 ? CAMP_NOTES[h % CAMP_NOTES.length] : '';
+  };
+
   const INDUSTRIES = [
     { k: 'software',    label: 'Software' },
     { k: 'banking',     label: 'Banking & finance' },
@@ -1604,11 +1656,15 @@
         client: forClient ? forClient.k : null,
         target: target,
         persona: {
-          who: askFor,
+          /* The titles, not the role. `askFor` still writes the goal
+             sentence below, where "whoever owns quality" is the right way to
+             say it; this line is what a caller asks reception for. */
+          who: PERSONA_OF[sells[0].k] || askFor,
           at: ind.label.toLowerCase() + ' companies with more than ' +
             commas(pick(r, [200, 500, 1000, 2000])) + ' staff in ' + reg.label,
           why: WHY_NOW[sells[0].k],
         },
+        notes: campNote('c' + i),
         /* Three ways to ask for each, or every campaign selling the same
            thing prints the same goal and the surface reads as a template. */
         goal: target.noun === 'meeting'
@@ -2293,10 +2349,11 @@
         client: null,
         target: { n: 18, noun: 'meeting' },
         persona: {
-          who: ASK_OF.qa,
+          who: PERSONA_OF.qa,
           at: 'software companies with more than 500 staff in Benelux',
           why: WHY_NOW.qa,
         },
+        notes: 'Handed over rather than called. Everything on it is somebody else\u2019s conversation now.',
         goal: 'A scoping call with ' + ASK_OF.qa + ', with somebody in the room who can sign',
         pitch: 'They are in Benelux, and they are running this with people rather than with '
           + 'a system. ' + SELL.qa.name + ' is ' + SELL.qa.blurb + '. Open on what it costs '
@@ -16097,8 +16154,12 @@
       stops.push({
         n: gate, of: here.length, unit: 'call', name: 'Stopped at reception',
         sub: 'Somebody answered and it was not them.',
-        beats: 'Ask for ' + (k.persona ? k.persona.who : 'them by the job') +
-          ' by the job — reception puts a name through to nobody.',
+        /* The persona is a line of TITLES now, so the sentence names them
+           rather than appending "by the job" to a comma list and reading as
+           though the job were one more title on it. */
+        beats: 'Ask for the job, not a name' +
+          (k.persona && k.persona.who ? ' — ' + k.persona.who : '') +
+          '. Reception puts a name through to nobody.',
       });
     }
     const stuck = members.filter((c) => c.checkpoint === 'no-answer' && c.attempts >= TOUCH_RULE).length;
