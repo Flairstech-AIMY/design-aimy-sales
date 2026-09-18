@@ -4631,9 +4631,26 @@ textarea::placeholder,
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ink-primary);
 }
 .b-owed-when { font-size: var(--fs-2xs); color: var(--ink-quiet); }
+/* ══ A ROW'S SENTENCE IS STILL A SENTENCE ═══════════════════════
+   It was a clause when this row was built — "7 deals with the price on the
+   table" — and the rows it carries now are two and three of them, with two
+   names and a job title in the middle. At that length it was a paragraph
+   set to the full width of the column and leaded like a caption: it ran to
+   the verb on the right and the lines sat on top of each other.
+
+   `62ch` is this build's measure, used a dozen times in this file and
+   always with `text-wrap: pretty` beside it. It is the cap and not the
+   width: the column stays `flex: 1` so the verbs go on lining up down the
+   right-hand edge, and on a narrow pane the cap never binds. What it stops
+   is the long line on a wide screen, which is where the crowding was.
+
+   `--lh-snug` is 1.4, which is right for a clause and tight for a
+   paragraph; `--lh-base` is the body step and the one this build gives
+   anything anybody reads a whole sentence of. 19.6px to 21. */
 .b-owed-body {
   display: block; margin-top: 2px;
-  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-base);
+  max-width: 62ch; text-wrap: pretty;
 }
 /* ══ THE VERB IS AN ACTION, SO IT TAKES THE INK ACTIONS TAKE ════════
    `--accent` measured 3.77:1 here at 12px/600 and fails AA — and it failed in
