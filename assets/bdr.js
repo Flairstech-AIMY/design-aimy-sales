@@ -14351,10 +14351,25 @@
      to that person. The only thing you can do to this one is decide whether
      it survives to being saved, which is the whole job of this page.
 
-     AND AiMY SPEAKS ONLY WHERE IT HAS SOMETHING. `qcard`'s discipline: a
-     line under the mark is a claim, so a card whose supplier filled
-     everything and whose person is new to the book draws no block at all
-     rather than one reading "nothing to report". */
+     AND THERE IS NO AiMY BLOCK ON IT AT ALL. There was, and it was the
+     one-block-per-row defect this build has a paragraph about elsewhere:
+     fifteen cards each wearing the mark, and all of them saying one of two
+     sentences — no number, or no address. Worse, the panel directly above
+     the grid already says both, counted: "62 came back without a number…
+     28 have no email address", with the supplier who would fill them. A
+     marked block repeating a figure from forty pixels higher, on every card,
+     is the product talking rather than reading.
+
+     Both facts belong to the card and neither of them is an insight, so they
+     sit in the foot as facts. The third thing the block said — already in
+     your book — is the tag in the head, which is where a card's state has
+     always gone.
+
+     AND THE HEIGHTS FOLLOW FROM THAT. The block was the only element on this
+     card that was sometimes there and sometimes not, so a candidate with
+     nothing missing got eighty pixels of nothing between the links and the
+     foot, in a grid that stretches every card in a row to the tallest. Take
+     it out and every card has the same rows. */
   function netCard(n, i) {
     const f = finderOf();
     const hasPhone = n.seedPhone < f.phone;
@@ -14363,19 +14378,6 @@
     const person = buildKind() === 'con';
     const who = person ? n.name : n.co;
     const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    /* Ranked the way `aimySays` ranks: the thing that changes what you do
-       with this row, and only one of them. Already holding somebody beats
-       a missing field, because one is a reason to untick and the other is
-       a reason to ask a different supplier. */
-    const said = n.known
-      ? 'Already in your book. Keeping them gives you a second copy of somebody you may already have called.'
-      : !hasPhone && !hasMail
-        ? esc(f.name) + ' found neither a number nor an address.'
-        : !hasPhone
-          ? esc(f.name) + ' found no number, so they cannot be called.'
-          : !hasMail
-            ? esc(f.name) + ' found no email address.'
-            : '';
     return '<article class="type-card s-card b-qcard b-netcard' +
       (dropped ? ' is-dropped' : '') + '" style="--i:' + Math.min(i || 0, 8) + '">' +
       '<div class="tc-head">' +
@@ -14391,8 +14393,17 @@
            nothing is exactly that with the styling to prove it. */
         '<span class="tc-title s-card-title">' + esc(who) + '</span>' +
       '</div>' +
-      '<p class="tc-summary b-qcard-role">' +
-        (person ? esc(n.title) + ' at ' + esc(n.co) : esc(n.about)) + '</p>' +
+      /* TWO DIFFERENT LINES WEARING ONE CLASS. `b-qcard-role` is the job
+         under a name — short, semibold, one step down — and a person's is
+         exactly that. A company's is a sentence about what the place does,
+         which is the slot `lcard` fills with `b-qcard-what`: a step larger
+         and a weight lighter, because it is read rather than recognised.
+         Setting a sentence in the job's clothes made it the loudest thing
+         on a company card after the name. */
+      (person
+        ? '<p class="tc-summary b-qcard-role">' + esc(n.title) + ' at ' +
+          esc(n.co) + '</p>'
+        : '<p class="tc-summary b-qcard-what">' + esc(n.about) + '</p>') +
       '<p class="b-qcard-where">' +
         fact('where', esc(n.city)) +
         fact('staff', esc(commas(n.size) + ' staff')) + '</p>' +
@@ -14410,16 +14421,40 @@
           'target="_blank" rel="noopener">' + chIcon('linkedin') +
           '<span>LinkedIn</span></a>' +
       '</p>' +
-      aimyBlock(said ? { text: said } : null, true) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num b-fact">' + chIcon(hasPhone ? 'phone' : 'no') +
-          '<span>' + (hasPhone ? 'Has a number' : 'No number') + '</span></span>' +
+        /* The two things the supplier either filled or did not, which is the
+           only question this page asks about a stranger — and the two the
+           panel above offers to go and fill.
+
+           Both pairs are set within nine pixels of each other, so whether
+           this row fits on one line is a question about the CARD's width and
+           not about which of the four answers a given stranger got. Below
+           about 324px of card it wraps, and it wraps on all of them. */
+        '<span class="b-net-reach">' +
+          '<span class="b-net-fact b-fact">' + chIcon(hasPhone ? 'phone' : 'no') +
+            '<span>' + (hasPhone ? 'A number' : 'No number') + '</span></span>' +
+          '<span class="b-net-fact b-fact">' + chIcon(hasMail ? 'mail' : 'no') +
+            '<span>' + (hasMail ? 'An address' : 'No address') + '</span></span>' +
+        '</span>' +
         /* The label is the control, so the word is pressable along with the
-           box — a 15px tick on its own is the smallest target on the page. */
+           box — a 15px tick on its own is the smallest target on the page.
+
+           AND THE WORD DOES NOT CHANGE WITH THE STATE. It read "Left out"
+           when unticked, which is 25px wider than "Keep" — enough to push
+           the foot onto a second line on a narrow card, so unticking
+           somebody made their card 10px taller and every card in that row of
+           the grid taller with it. A control that resizes the thing it sits
+           in is a control you can feel through the page.
+
+           Nothing is lost by dropping it. The box is unticked, which is what
+           a box is for, and the whole card has gone quiet around it. Two of
+           those already say left-out; the third was only saying it again, in
+           the one place where saying it cost a reflow. The word stays what
+           pressing it does. */
         '<label class="b-net-keep">' +
           '<input class="s-tick" type="checkbox" data-bdrop="' + esc(n.id) + '"' +
           (dropped ? '' : ' checked') + ' aria-label="Keep ' + esc(who) + '" />' +
-          '<span>' + (dropped ? 'Left out' : 'Keep') + '</span>' +
+          '<span>Keep</span>' +
         '</label>' +
       '</div>' +
     '</article>';

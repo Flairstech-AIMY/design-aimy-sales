@@ -6248,3 +6248,22 @@
 @media (prefers-reduced-motion: no-preference) {
   .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
 }
+/* ══ THE TWO FACTS A FOOT CARRIES HERE ═══════════════════════════════
+   `.b-qcard-num` is the number to call: one fact, at body size in bold,
+   because on a queue card it IS the next press. Neither of these is. They
+   are what the supplier managed to fill, which is a thing you read once per
+   card while deciding whether to keep it, so they take the interface step
+   rather than the figure step and there is room for both.
+
+   BOTH STATES TAKE THE SAME INK. A missing field is not a quieter fact than
+   a present one — it is the more interesting of the two on this page — and
+   setting it grey would make the cards you most need to look at the hardest
+   to read. The icon and the word carry the difference. */
+.b-net-reach {
+  display: inline-flex; align-items: center; flex-wrap: wrap;
+  gap: 4px 14px; min-width: 0;
+}
+.b-net-fact {
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
+}
+.b-net-fact > svg { flex: none; width: 12px; height: 12px; }
