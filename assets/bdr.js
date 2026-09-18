@@ -12692,16 +12692,14 @@
        `camp` is a set, and an empty array is truthy — which is why this
        asks `camp.length` and not `camp`. Getting that wrong once drew
        "Open undefined" where the way onto a campaign should have been. */
+    /* The individual verb only. The bulk one moved down to the roster's
+       own head, where the people it calls are on screen under it and the
+       pager decides which ones — this copy called `call.slice(0, PAGE)`,
+       the first page of the callable, whichever page you were actually
+       looking at. */
     const phone = first
       ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
-          '">Call the next one on this list</button>' +
-        /* The same verb as the queue's, so the same control: one label
-           drawn two ways on two surfaces is two controls to learn. */
-        (call.length > 1
-          ? '<button class="b-ghost" type="button" data-callall="' +
-            esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-            'Call them</button>'
-          : '')
+          '">Call the next one on this list</button>'
       : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>';
     /* THE PRIMARY IS WHATEVER THE ROW IS FOR. With somebody to call, the
        phone leads and the campaign is the quiet chip beside it, in the
@@ -12775,13 +12773,49 @@
 
       listLead(l, people, call, camp.length > 0) +
 
-      '<section class="s-block s-block-wide" aria-label="Who is on it">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
-          '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · never called first, then by called</span></div>' +
-        rosterBlock(paged(people).rows) +
-        pager(paged(people), 'person') +
-      '</section>' +
+      /* ══ THE COUNT SAT WHERE THE VERB BELONGS ═════════════════════════
+         "46 people · never called first, then by called" was at the far end
+         of the heading's row, and the queue block has a note against its
+         own version of this saying exactly what is wrong with it: that end
+         of the row is where a section's ACTIONS live, so a figure parked
+         there reads as a control you cannot press. The queue already moved
+         its count under the heading into `.b-tocall`; this is the same
+         move on the same component, so the two blocks stop being two
+         shapes for one thing.
+
+         And the slot it leaves is filled by what the slot is for. The
+         people are right underneath and the pager is right below them, so
+         the verb here calls WHAT IS ON SCREEN — this page of the roster,
+         not the first page of the list — which is the whole reason it is
+         better placed here than in the masthead's action row. Follow the
+         pager to page three and it calls page three.
+
+         ONE BULK VERB ON THE PAGE. It used to sit in the action row as
+         well, and two pills reading "Call them" two hundred pixels apart,
+         calling sets that are the same until you turn a page, is the
+         defect this build keeps naming: one label drawn twice is two
+         controls to learn. The masthead keeps the individual verb, which
+         is the list-wide one — "Call the next one on this list". */
+      (function () {
+        const pg = paged(people);
+        const now = pg.rows.filter(callable);
+        return '<section class="s-block s-block-wide" aria-label="Who is on it">' +
+          '<div class="s-camp-list-head">' +
+            '<h2 class="s-block-h">Who is on it</h2>' +
+            /* One left to call is the card's own button, six rows down and
+               already naming them. */
+            (now.length > 1
+              ? '<button class="b-ghost" type="button" data-callall="' +
+                esc(now.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+                'Call them</button>'
+              : '') +
+          '</div>' +
+          '<p class="b-tocall">' + esc(plural(people.length, 'person')) +
+            ' · never called first, then by called</p>' +
+          rosterBlock(pg.rows) +
+          pager(pg, 'person') +
+        '</section>';
+      })() +
 
       /* A LIST IS WHO IS ON IT. Where they stand and what has been said
          are the campaign's questions, answered on the campaign's page — a
