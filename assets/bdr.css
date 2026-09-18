@@ -4962,6 +4962,61 @@
 .b-draft-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
+/* ══ 83b. THE HALF OF A CAMPAIGN THAT IS SENTENCES ═══════════════════
+   The eight facts above this block are a word or a name each and sit three to
+   a row. These three are prose — a line of job titles, the angle somebody
+   says out loud, and whatever the manager knows that the book does not — and
+   a paragraph in a 1fr track of a three-column grid is a column of single
+   words. One column, and the measure comes from the type rather than from the
+   grid. 68ch because a pitch is read once, fast, by somebody about to speak.
+
+   It is the record's own `.b-cmeta` either way, so the block reads as part of
+   the record on a running campaign and as part of the form on a draft without
+   either of them learning a second layout. */
+.b-said { grid-template-columns: minmax(0, 1fr); max-width: 100%; row-gap: 20px; }
+.b-said .b-draft-in, .b-said .b-cmeta-p { max-width: 68ch; }
+
+/* The caption and the verb on one row — `.b-team-head`'s shape, which is what
+   this build uses wherever a section has exactly one thing you can do to it.
+   `.b-cmeta-cap` keeps its own 8px underneath, so the field below sits where
+   it sits on every other part whether or not the verb is drawn. */
+.b-draft-caprow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+
+/* ══ ASKING AiMY IS NOT A PEER OF ANSWERING ═════════════════════════
+   A filled button beside a field would make writing the field yourself the
+   second option, on a page whose whole argument is that you already know what
+   this campaign is. This is the weight of a word with the mark in front of
+   it: on screen the whole time, never louder than the caption beside it, and
+   it takes the accent on hover where every other quiet verb here does.
+
+   `--d200` and not below it. It is a control, and the ramp's floor for type
+   is the floor for a control that is type. */
+.b-draft-ai {
+  display: inline-flex; align-items: center; gap: 5px; padding: 0;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d200); background: none; border: 0; cursor: pointer;
+  transition: color var(--t-fast);
+}
+.b-draft-ai:hover { color: var(--accent-text); }
+.b-draft-ai:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+/* The mark's own class. `.b-aimy-mark` belongs to a card's note and carries
+   that block's size and its one-pixel optical nudge, and `.b-ghost > svg` in
+   this same sheet is 14px square and outranks it — so the same markup drew at
+   two sizes depending on what it had been put inside. */
+.b-spark { flex: none; width: 11px; height: 13px; }
+.b-draft-fill > .b-spark { width: 13px; height: 15px; }
+
+/* A field whose answer is a paragraph. The underline is the one every other
+   field on the page wears; what changes is the box, because a sentence needs
+   a second line and a 34ch input scrolls sideways rather than giving it one.
+   `resize` stays, and it is an addition to a box already sized from its own
+   content rather than the only way to see what you wrote. */
+.b-draft-area {
+  display: block; width: 100%; max-width: 68ch;
+  line-height: var(--lh-base); resize: vertical;
+}
+
 /* On a page the two doors sit in a column 282px wide, so the figure and its
    bar have the width of the card rather than half of it. Nothing else about
    them changes: same card, same steps, same promise on the floor of it. */

@@ -14836,6 +14836,114 @@
       'value="' + esc(val || '') + '" placeholder="' + esc(ph) + '" spellcheck="false" />';
   }
 
+  /* ══ A FIELD WHOSE ANSWER IS A PARAGRAPH ═══════════════════════════════
+     The pitch and the notes are not one line, and a 34ch input pretending
+     otherwise puts a caller's opening sentence in a box that scrolls
+     sideways while it is being written. Same underline, same placeholder
+     rank, and sized to what is in it: a two-line note is two lines and a
+     six-line one is six, because a field that hides half its own value is a
+     field nobody trusts they saved.
+
+     `spellcheck` is on here and off in `draftText`, and the difference is
+     real: one holds names and job titles, this holds prose somebody will
+     read out loud. */
+  function draftArea(field, val, ph) {
+    const v = String(val || '');
+    const lines = v.split('\n').length - 1;
+    const rows = Math.max(2, Math.min(12, Math.ceil(v.length / 72) + lines + 1));
+    return '<textarea class="b-draft-in b-draft-area" data-cfield="' + esc(field) + '" ' +
+      'rows="' + rows + '" placeholder="' + esc(ph) + '" spellcheck="true">' +
+      esc(v) + '</textarea>';
+  }
+
+  /* One press, and the mark says whose sentence it is about to be. It is
+     offered on a field that already has something in it as well as on an
+     empty one: a line you have edited into something worse is still a line
+     you may want thrown away and redrawn, and the receipt puts it back. */
+  /* Its own class. `.b-aimy-mark` is the mark on a card's note and carries
+     that block's size and its one-pixel optical nudge; `.b-ghost > svg` in
+     the same sheet is 14px square and would win over it on specificity, so
+     the same markup would draw at two sizes depending on what it was put
+     inside. */
+  const AIMY_SPARK = '<svg class="b-spark" width="11" height="13" viewBox="0 0 18 20" ' +
+    'aria-hidden="true"><use href="#aimy-logo-small"/></svg>';
+  const aiDraft = (field) =>
+    '<button class="b-draft-ai" type="button" data-cdraft="' + esc(field) + '">' +
+      AIMY_SPARK + 'Draft it</button>';
+
+  /* `draftField` with a verb on the caption's row. The caption keeps its own
+     rank and the button sits beside it rather than under the value, because
+     a control under a field reads as something you do to the answer and this
+     is something you do INSTEAD of writing one. */
+  function draftPart(cap, ai, body) {
+    return '<div class="b-cmeta-part">' +
+      '<div class="b-draft-caprow"><span class="b-cmeta-cap">' + esc(cap) + '</span>' +
+        (ai || '') + '</div>' +
+      '<div class="b-cmeta-say">' + body + '</div>' +
+    '</div>';
+  }
+
+  /* ══ WHO WE CALL, AND WHAT WE SAY ══════════════════════════════════════
+     Three things a campaign carries that no figure on the page can stand
+     for: the titles to ask reception for, the angle to open on, and
+     whatever the manager knows that the book does not.
+
+     Two of the three existed and neither was reachable. `pitch` was written
+     by the seed and by both builders and read in exactly one place — the
+     sentence a caller sees the moment before he dials — so the manager who
+     owns the campaign could not see the words his floor was using, let
+     alone change them. `persona.who` was read once, inside a blocker's
+     remedy. Nothing anywhere held a note.
+
+     One block, drawn the same way twice: on a draft, where every value is a
+     field because nothing has been answered yet, and on a running campaign,
+     where the owner gets those same fields and everybody else gets the
+     words. That is `campDraftPage`'s own argument — a draft is the record
+     with the answers as fields — applied to the half of the record it did
+     not cover.
+
+     AiMY drafts two of the three and never the third. */
+  function campSaid(k, own) {
+    const P = k.persona || {};
+    const out = [];
+    if (own || P.who) {
+      out.push(draftPart('Targeted persona', own ? aiDraft('persona') : '',
+        own ? draftText('persona.who', P.who,
+          'The titles to ask reception for \u2014 Head of Quality, QA Manager')
+          : '<p class="b-cmeta-p">' + esc(P.who) + '</p>'));
+    }
+    if (own || k.pitch) {
+      out.push(draftPart('Sales pitch', own ? aiDraft('pitch') : '',
+        own ? draftArea('pitch', k.pitch,
+          'What we give them, why it is worth having now, and what to open on')
+          : '<p class="b-cmeta-p">' + esc(k.pitch) + '</p>'));
+    }
+    if (own || k.notes) {
+      out.push(draftPart('Notes', '',
+        own ? draftArea('notes', k.notes,
+          'Anything the book does not know \u2014 who we have already been introduced to, ' +
+          'what went wrong last time, when their procurement shuts')
+          : '<p class="b-cmeta-p">' + esc(k.notes) + '</p>'));
+    }
+    return out.length ? '<div class="b-cmeta b-said">' + out.join('') + '</div>' : '';
+  }
+
+  /* On a running campaign it is a block of the record, in the slot the
+     obstacles block above it has always promised: "the block above says
+     where the campaign stands; the one below says the words". There was no
+     block below it. */
+  function campSaidBlock(k) {
+    const own = isMgr() && k.owner === me().id;
+    const body = campSaid(k, own);
+    if (!body) return '';
+    return '<section class="s-block s-block-wide" aria-label="Who we call, and what we say">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Who we call, and what we say</h2>' +
+        (own ? '<span class="s-block-say">saved as you type</span>' : '') +
+      '</div>' + body +
+    '</section>';
+  }
+
   function campDraftPage(k) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
@@ -14843,6 +14951,10 @@
     const crew = k.crew.map((id) => actor(id)).filter(Boolean);
     /* What is still missing, named. A disabled button that will not say why
        is the worst control in software. */
+    /* What AiMY would write if it were asked now. Read here so the offer is
+       only made when there is something behind it; read again on the press,
+       because the answer changes as the page is filled in. */
+    const fillable = Object.keys(campFill(k)).length;
     const miss = [];
     if (!k.name) miss.push('a name');
     if (!k.aim) miss.push('a goal');
@@ -14864,6 +14976,19 @@
           '<span class="b-draft-acts">' +
             '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
               (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>' +
+            /* ══ THE EMPTY FIELDS, WITHOUT STARTING THE CAMPAIGN ═════════
+               Run it has always filled whatever was left empty, and that is
+               the wrong moment to find out what the product would have
+               written: by then the campaign is live and the words are on a
+               caller's screen. The same `campFill`, offered before the
+               decision rather than inside it.
+
+               It is drawn only when there IS something to fill, so it never
+               appears as a control that does nothing \u2014 and it disappears
+               once the page is answered, which is itself a reading of where
+               the draft stands. */
+            (fillable ? '<button class="b-ghost b-draft-fill" type="button" data-cfill>' +
+              AIMY_SPARK + 'Let AiMY fill the rest</button>' : '') +
             '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>' +
           '</span>' +
         '</div>' +
@@ -14934,6 +15059,12 @@
           draftField('Time frame', draftText('weeks', String(weeks), '6') +
             '<span class="b-draft-unit">weeks · closes ' + esc(sayDay(k.to)) + '</span>') +
         '</div>' +
+        /* Under the facts, not among them. The eight above are a word or a
+           name each and sit three to a row; these three are sentences, and a
+           paragraph in a 1fr track of a three-column grid is a column of
+           single words. It is also the order the brief this was drawn from
+           puts them in: what it is, then who we are after, then the angle. */
+        campSaid(k, true) +
         /* What is still missing stays down here with the fields it is about.
            Run it is greyed from the first moment and this is the sentence
            saying why — a control that appears only once you are allowed to
@@ -15059,6 +15190,11 @@
          between them and the one a caller actually carries into the next
          call. */
       blockersBlock(k) +
+
+      /* The words. Everything above this is a count of what happened; this
+         is what to say on the next one, and on a campaign somebody owns it
+         is where they say it differently. */
+      campSaidBlock(k) +
 
       /* Context, not a worklist: the last few things that happened here and
          the count of what they are the last few of. A second pager on this
@@ -26202,6 +26338,71 @@
       return;
     }
 
+    /* ══ ONE FIELD, WRITTEN ON ONE PRESS, AND UNDONE ON ONE MORE ══════════
+       The persona and the pitch are the two fields on this record whose
+       answer the book already knows: the titles an offering is sold into,
+       and what it gives the market it is aimed at. Everything else on the
+       page is a decision.
+
+       It overwrites rather than fills, because this is pressed BY somebody
+       looking at a line they do not like. What makes that safe is the
+       receipt: the old words go back on one press, and they are the words
+       and not a flag, so a line typed by hand and redrawn by accident is
+       not lost. No confirm \u2014 doctrine, and a confirm before a write you
+       can undo is a question asked to no purpose. */
+    const cdraft = t.closest('[data-cdraft]');
+    if (cdraft) {
+      const k = DB.byCamp[S.camp];
+      if (!k) return;
+      const f = cdraft.getAttribute('data-cdraft');
+      const p = campParts(k);
+      const made = f === 'persona' ? sayPersona(p) : sayPitch(p);
+      /* It says what it is short of rather than writing something out of a
+         default. Every word of both sentences comes out of the offering. */
+      if (!made) {
+        toast('Say what we are selling first \u2014 every word of this comes out of that.');
+        return;
+      }
+      const wasP = k.persona;
+      const wasT = k.pitch;
+      if (f === 'persona') {
+        campSet(k, { persona: { who: made, at: (wasP && wasP.at) || '',
+          why: (wasP && wasP.why) || WHY_NOW[p.sell] || '' } });
+      } else campSet(k, { pitch: made });
+      paint();
+      toast((f === 'persona' ? 'Persona' : 'Pitch') + ' drafted \u2014 it is yours to edit',
+        () => {
+          campSet(k, f === 'persona' ? { persona: wasP } : { pitch: wasT });
+          paint();
+        });
+      return;
+    }
+
+    /* ══ THE WHOLE EMPTY HALF, ON THE SAME PRESS ══════════════════════════
+       What Run it has always done, offered before the campaign is live
+       rather than inside the decision to make it live. The receipt names
+       what it wrote \u2014 "AiMY wrote the goal, the persona, the pitch and the
+       ask" \u2014 because a sweep that reports a count leaves the reader to go
+       and find out which fields moved. */
+    const cfill = t.closest('[data-cfill]');
+    if (cfill) {
+      const k = DB.byCamp[S.camp];
+      if (!k) return;
+      const patch = campFill(k);
+      const keys = Object.keys(patch);
+      if (!keys.length) {
+        toast('Nothing left on it that I can write. The rest is yours.');
+        return;
+      }
+      const was = Object.create(null);
+      keys.forEach((x) => (was[x] = k[x]));
+      campSet(k, patch);
+      paint();
+      toast('AiMY wrote ' + fillSay(patch), () => { campSet(k, was); paint(); },
+        'Every word of it is yours to change.');
+      return;
+    }
+
     const crun = t.closest('[data-crun]');
     if (crun) {
       if (crun.disabled) return;
@@ -26795,6 +26996,12 @@
         if (f === 'weeks') {
           const w = Math.max(1, Math.min(52, parseInt(v, 10) || 1));
           campSet(k, { to: dayAdd(w * 7) });
+        } else if (f === 'persona.who') {
+          /* The one field on this page whose value lives inside an object.
+             Written as a whole persona rather than by mutating the one that
+             is there, so `DELTA` holds a shape it can carry across a reload
+             instead of a half-object the seed would have to repair. */
+          campSet(k, { persona: Object.assign({}, k.persona || {}, { who: v }) });
         } else {
           const p = {};
           p[f] = v;
