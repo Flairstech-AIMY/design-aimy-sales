@@ -724,7 +724,27 @@ button {
    and have nothing happen. min-height only: align-self:stretch made a
    one-line field 36px tall against a 20px line-height, which reads as a
    textarea waiting for a second line. */
-.aimy-float-input, .overlay-input { min-height: 24px; }
+/* ══ AND A FLEX ITEM WILL NOT SHRINK BELOW ITS OWN MIN-CONTENT ══════
+   `flex: 1` sets the BASIS to zero and says nothing about the floor. The
+   floor is `min-width: auto`, which on a flex item means min-content — and
+   an <input> with no `size` has a min-content width of twenty characters,
+   173px in this face. The bar is a row of icon, field, mic and send inside
+   312px on a 360px phone, so the field held 173 of it, the row could not
+   fit, and the two buttons were pushed out through the right-hand end of
+   the pill. Measured: send's right edge 10px past the padding box, the bar
+   overflowing by 3.
+
+   THE REST STATE ONLY, WHICH IS WHY IT SURVIVED. Focus scrolls the field
+   into view on a phone and the keyboard reflows the fixed bar, so the
+   overflow moves out of frame the moment anybody touches it — it is broken
+   exactly while nobody is looking at it closely, and whole on the one pass
+   anybody makes to check.
+
+   The library's own answer, used at five other `flex: 1` call sites in
+   aimy-ds.css and missing at these two. Here rather than there because
+   these two lines already patch this pair for this product, and this sheet
+   loads after it. */
+.aimy-float-input, .overlay-input { min-height: 24px; min-width: 0; }
 .aimy-float-bar, .overlay-input-bar { cursor: text; }
 /* …and everything else in the bar goes back to an ordinary arrow, so the
    chrome around the field does not offer a text caret.
