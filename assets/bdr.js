@@ -6428,10 +6428,29 @@
      the way into whichever one owns it. The bell keeps the same list for
      when you are somewhere else. */
   function owedBlock() {
-    /* The day is the block directly above this one, so a row pointing at it
-       is the page saying the same thing twice. The bell keeps that row,
-       because there it is the only place today gets named. */
-    const tasks = mgrTasks().filter((t) => t.id !== 'diary-today');
+    /* \u2550\u2550 THE DIARY'S BUSINESS STAYS IN THE DIARY \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+       Two ids refused, one rule, and the second was asked out loud: is this
+       not already in the diary?
+
+       `diary-today` points at the block directly above this one, so drawing
+       it is the page saying the same thing twice.
+
+       `met:` is the page saying it a THIRD time. A meeting that has been and
+       gone with nothing written about it is counted in the Today paragraph
+       at the top of this very page \u2014 "7 meetings have been and gone with
+       nothing said about them" \u2014 and the diary carries a Missing details
+       block that lists all seven, each with this row's own verb on it. This
+       block drew four of them, and at p1, so the top four rows of what wants
+       you were a subset of another surface's list sitting above the five
+       things no other surface on this page is about: deals past their date,
+       leads never warm-called, contracts renewing, customers who moved, and
+       a price on the table nobody has chased.
+
+       THE BELL KEEPS BOTH, which is the answer `diary-today` already got and
+       for the same reason: the bell is what you read when you are somewhere
+       else, and somewhere else is exactly where those surfaces are. */
+    const tasks = mgrTasks().filter((t) =>
+      t.id !== 'diary-today' && t.id.indexOf('met:') !== 0);
     const live = queue(null, 'all').filter(dealLive);
     return '<section class="s-block s-block-wide" aria-label="What wants you">' +
       '<div class="s-camp-list-head">' +
