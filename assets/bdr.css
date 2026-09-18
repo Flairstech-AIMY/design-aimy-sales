@@ -433,24 +433,34 @@
 .b-qcard .b-qcard-foot > :only-child { margin-left: auto; }
 /* ══ THE BODY'S LAST LINE DOES NOT ALWAYS END ITSELF ═══════════════
    On a card with a reading on it, `.b-aimy` closes the body with its own
-   `margin-bottom: 14px` and the gov row starts 23px under the last words.
-   A campaign nobody has started has no reading — there is nothing to read
-   off a campaign with no calls on it — so `.b-qcard-why` becomes the last
-   block in the body, and it has no bottom of its own. Measured at 13px
-   text to text against the 10px above it: the line saying who asked for
-   this and the line saying whose desk it is on read as one paragraph.
+   `margin-bottom: 14px`, and that is the space between the last block and
+   the rule `.tc-gov` draws along its top. A campaign nobody has started has
+   no reading — there is nothing to read off one with no calls on it — so
+   `.b-qcard-why` becomes the last block in the body and it has no bottom of
+   its own. Measured at 0px from the words to the rule: the line saying who
+   asked for this and the line saying whose desk it is on read as one
+   paragraph with a hairline through them.
 
-   `margin-top: auto` cannot do this job. It is what pushes the foot to the
-   card's bottom, and on the TALLEST card in a row there is no slack for it
-   to take, so it computes to 0 and the separation is whatever the foot's
-   own padding happens to be.
+   ══ AND THE FIRST FIX PUT THE SPACE ON THE WRONG SIDE OF THE RULE ═══
+   It was `padding-top: 23px` on the foot, which is INSIDE the border: the
+   foot's contents moved down 14px, the rule stayed exactly where it was
+   against the words above it, and the card grew for nothing. Measured text
+   to text it read as fixed — 27px against 13 — and the thing anybody could
+   actually see had not moved at all. Space meant to separate a block from a
+   BORDERED one below it has to sit above that border: padding under the
+   block, or a margin, and never padding inside the bordered box.
 
-   On the foot rather than on the line above it: saying "the last body block
-   before the foot" from the other side needs `:has()`, and a selector that
-   silently does nothing on an engine without it is worse than one that
-   states the case it is for. 23px is 14 + 9, the distance a reading leaves,
-   so a draft and a running campaign close their bodies identically. */
-.b-qcard .b-qcard-why + .b-qcard-foot { padding-top: 23px; }
+   `margin-top: auto` cannot do it either. That is what pushes the foot to
+   the card's bottom, and on the tallest card in a row there is no slack for
+   it to take, so it computes to 0.
+
+   So it goes under the line itself, and `is-last` is written by the card,
+   which already knows the answer: the same `isDraft` that decides whether
+   to draw the reading. A class rather than `:has(+ .b-qcard-foot)`, which
+   says the same thing in a feature that can be absent, and which the audit
+   cannot pair with anything. 14px, so a draft and a running campaign close
+   their bodies the same distance from the rule. */
+.b-qcard .b-qcard-why.is-last { padding-bottom: 14px; }
 .b-qcard-num {
   font-size: var(--fs-base); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; color: var(--ink-secondary);

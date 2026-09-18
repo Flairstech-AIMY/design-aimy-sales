@@ -4800,20 +4800,35 @@
          sentence wraps under itself rather than under the mark. */
       '<p class="tc-summary b-qcard-what b-fact">' + chIcon('target') +
         '<span>' + campGoalSay(k) + '</span></p>' +
+      /* \u2550\u2550 AND IT SAYS WHETHER IT IS THE LAST THING IN THE BODY \u2550\u2550\u2550\u2550\u2550\u2550\u2550
+         The line under it is drawn only on a campaign that has run \u2014 there
+         is nothing to read off one with no calls on it \u2014 and `.b-aimy` is
+         what closes the body, with its own 14px under it, before the gov
+         row's rule. Without it this line IS the body's last, and it had no
+         bottom of its own: the rule landed on the words.
+
+         A class rather than `:has(+ .b-qcard-foot)`, which says the same
+         thing in the stylesheet and says it in a feature that can be absent.
+         The card already knows the answer \u2014 it is the same `isDraft` that
+         decides whether to draw the reading, four lines down \u2014 so it says so
+         where it knows it, and the audit can see the class. */
+      (isDraft(k)
+        ? '<div class="b-qcard-why is-last">' : '<div class="b-qcard-why">') +
       (isAsked(k)
-        ? '<div class="b-qcard-why">' + esc(actor(k.by).name) + ' asked for it' +
-          (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') + '</div>'
+        ? esc(actor(k.by).name) + ' asked for it' +
+          (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '')
         : isDraft(k)
-        ? '<div class="b-qcard-why">' + (members.length
+        ? (members.length
           ? '<b>' + commas(members.length) + '</b> on it, and nobody calling them yet'
-          : 'Nobody on it yet') + '</div>'
+          : 'Nobody on it yet')
         : campOpen(k)
-        ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
+        ? '<b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
           (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
-          (fresh ? ', <b>' + commas(fresh) + '</b> never called' : '') + '</div>'
-        : '<div class="b-qcard-why"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
-          '</b> of its ' + plural(members.length, 'person') + ' never called when it closed</div>') +
+          (fresh ? ', <b>' + commas(fresh) + '</b> never called' : '')
+        : '<b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
+          '</b> of its ' + plural(members.length, 'person') + ' never called when it closed') +
+      '</div>' +
       /* Nothing has happened on a draft, so there is nothing to read off it
          and a reading invented from an empty campaign is the one thing this
          block must never do. */
