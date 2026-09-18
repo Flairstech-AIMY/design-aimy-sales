@@ -3718,9 +3718,6 @@
   .pipe-card { max-height: calc(var(--vp-h) - 150px); }
 }
 
-/* A button that carries a staged choice says so by holding full ink; the
-   verb it replaced is still the same button underneath. */
-.b-menu-open.is-set { color: var(--d50); }
 /* A tick in a menu row: on for what is chosen, a held place for what is not,
    so the rows do not shift as you pick. */
 .b-menu-tick {
@@ -6156,3 +6153,166 @@
 }
 .b-note-name:hover { color: var(--d50); }
 .b-note-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* ══ THE DRAFT LIST'S NAME IS THE MASTHEAD, TYPEABLE ═══════════════════
+   `.s-rec-title` is a flex row: the name, then the state chip beside it.
+   `.s-build-name` is `width: 100%` — written for `.s-sheet-head`, where the
+   heading is a block and full width is what it wants — and inside a flex row
+   that made the heading grow to eat the whole line, which pushed the chip to
+   the far right edge and broke the one thing this page was made to match.
+
+   So here the field is sized by its own content: `size` sets the width
+   before CSS arrives and is the floor, `field-sizing: content` grows it as
+   you type, and `max-width` stops a long name from running past the column.
+   The heading shrinks to fit and the chip sits where it sits on a saved list
+   — next to the name, not across the page from it.
+
+   `field-sizing` is Chromium-only today. Everywhere else the `size`
+   attribute alone answers, which is the same layout one repaint behind: the
+   field is redrawn at the right width the next time the page paints. */
+.s-rec-title > .s-rec-name.is-field { min-width: 0; margin-top: 0; }
+.s-rec-title .s-build-name {
+  width: auto; max-width: 100%;
+  field-sizing: content;
+}
+/* ══ THE CANDIDATE CARD ═══════════════════════════════════════════════
+   `netCard` is `qcard`'s anatomy with three slots doing different work, and
+   these are the rules for those three. Everything else on it — the head, the
+   title, the two fact lines, the AiMY block, the foot — is the card every
+   other surface in this build draws, unstyled again here on purpose. */
+
+/* ══ THE TWO PLACES YOU CAN GO AND LOOK ══════════════════════════════
+   A stranger off an index is the one record in this product you cannot open,
+   so the only way to check them before you keep them is to go outside. The
+   row carried both addresses as bare text and they were the quietest thing
+   on it; here they are links and read as links, one step under the facts.
+
+   `min-width: 0` on the anchor because a domain does not break: without it
+   a long one pushes the card wider than its column and the grid stops being
+   a grid. */
+/* ══ AND IT SITS IN THE CARD'S GUTTER LIKE EVERY OTHER ROW ═══════════
+   This had no horizontal padding, so its marks began at the card's edge
+   while the tag, the name, the sentence, the facts and the foot all begin
+   14px in. One row out of seven breaking the left margin is the kind of
+   thing you see before you can say what it is. Measured: 353 against 367.
+
+   AND IT GETS THE BREAK THE BLOCK IT REPLACED HAD — BOTH HALVES OF IT.
+   `.b-aimy` sat in this slot on a queue card and it carries `10px 0 14px`:
+   ten to separate the card's FACTS from the thing under them, fourteen to
+   keep the foot's hairline off it. This went in at 2, then at 10, and both
+   times with nothing underneath — so the rule sat flush against the links,
+   measured 168.1 to 168.1, with every other row on the card spaced and
+   this one pinned to a line.
+
+   Lopsided is worse than tight. Ten above and nothing below reads as the
+   links belonging to the foot rather than to the card, which is backwards:
+   they are the last of what the supplier returned, and the foot is what
+   you do about it.
+
+   THE NUMBER IS COPIED, NOT CHOSEN. It is the one the block this replaced
+   already used in the same slot, so a candidate card and the roster card
+   it becomes put their hairline the same distance under the last thing
+   above it. */
+.b-net-links {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
+  padding: 0 14px; margin: 10px 0 14px; min-width: 0;
+}
+.b-net-link {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--accent-label); text-decoration: none;
+  transition: color var(--t-fast);
+}
+.b-net-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 10px, which is what `.b-qcard-where` gives its marks. Three stacked
+   rows of mark-then-text whose marks are 10, 11 and 12 wide start their
+   text at three different places — 383, 370 and 385 — and a column that
+   is nearly aligned reads worse than one that is plainly not. */
+.b-net-link > svg { flex: none; width: 10px; height: 10px; }
+.b-net-link:hover { color: var(--accent); text-decoration: underline; }
+.b-net-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ══ THE FOOT'S VERB IS A DECISION ABOUT THE CARD ═════════════════════
+   Every other card in this build ends in something to do to that person.
+   This one ends in whether they survive, so the tick sits where the verb
+   sits and carries the word with it: a 14px box on its own is the smallest
+   target on the surface, and `<label>` makes the word part of it.
+
+   IT DOES NOT FADE. `.s-tick` is 0.35 until the card is hovered, which is
+   right on a grid where picking is an occasional thing you do to one card.
+   It is wrong here: every card on this page is asking the same question,
+   the answer is already set on all of them, and a page of ticks you cannot
+   see until you reach for them is a page that does not look answerable. */
+.b-net-keep {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: color var(--t-fast);
+}
+.b-net-keep .s-tick { opacity: 1; width: 15px; height: 15px; }
+.b-net-keep:hover { color: var(--d50); }
+
+/* ══ AND ONE YOU HAVE LEFT OUT STAYS ON THE PAGE ══════════════════════
+   Unticking does not remove the card, and it should not: the count in the
+   masthead has already dropped, and a row that vanishes when you untick it
+   makes changing your mind a search. So it goes quiet instead — a treatment
+   rather than a re-inking, so nothing inside it has to hold a second colour.
+
+   THE WAY BACK KEEPS FULL INK, AND THAT IS WHY THIS IS NOT ONE RULE ON THE
+   CARD. `opacity` on a parent cannot be undone by a child: it composites
+   the subtree as one layer, so `.b-net-keep { opacity: 1 }` under a card at
+   0.45 is a rule that reads as an exception and has no effect whatsoever.
+   It was written that way first and it took a screenshot to catch — the
+   audit cannot see a rule that applies cleanly and does nothing.
+
+   So the dimming is applied to the card's CONTENT instead, every child but
+   the foot, and inside the foot to the fact and not to the control. The one
+   press that gives you this person back is the one thing on the card still
+   at full strength, which is what you want on the card you are least sure
+   about. */
+.b-netcard.is-dropped > *:not(.b-qcard-foot) { opacity: 0.45; }
+/* The foot's own fact was dimmed by name here. It has not carried a
+   `.b-qcard-num` since the reach pills went in, so this rule has been
+   applying to nothing — the second kind of dead rule the audit cannot
+   see, after the one whose effect is cancelled by its parent. The foot
+   holds only the tick now, and the tick is what must stay bright. */
+.b-netcard.is-dropped:hover > *:not(.b-qcard-foot),
+.b-netcard.is-dropped:focus-within > *:not(.b-qcard-foot) { opacity: 0.85; }
+@media (prefers-reduced-motion: no-preference) {
+  .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
+}
+/* ══ THE CONTACT BLOCK, UNDER THE FIRMOGRAPHICS ══════════════════════
+   The number and the address moved out of the foot and into the card's
+   facts, where they are the value rather than a word about the value. They
+   are a different KIND of fact from the two lines above them — where the
+   place is and how big it is describe the company; these are how you reach
+   somebody — so the block starts with the same 8px the facts take under the
+   name, and the lines inside it keep `.b-qcard-where`'s own 2px because they
+   are a pair in exactly the way the two firmographic lines are.
+
+   On a company card the 8px falls on the contact's name instead, because
+   there the block is who-and-how rather than just how. */
+.b-netcard .b-net-contact { padding-top: 8px; }
+/* ══ THE CARD'S OWN RHYTHM, WHICH WAS ALL ONE INTERVAL ════════════════
+   `.b-qcard-where` carries `padding-top: 2px` and there are two of them, so
+   that one value was doing two different jobs. Between the two fact lines it
+   is right and deliberate: the organisation on one, where and how big on the
+   next, 2px because they are ONE block and a bigger gap would make them read
+   as two. Above the first one it is not separating a pair, it is separating
+   the facts from the line that names who this is — and there it left the job
+   title sitting on top of the first fact with nothing between them.
+
+   ON `.b-qcard`, NOT ON `.b-netcard`. This was written scoped to the
+   candidate card, because that is the card somebody was looking at when it
+   was noticed. But the queue card and the roster card are the same component
+   with the same two rows and the same 2px, and scoping the fix to one of the
+   three would have given a person 10px on the draft and 2px on the list
+   thirty seconds later — a difference between two pages, introduced by a rule
+   whose whole argument is that they should match. Every card grid gets it.
+
+   ONE VALUE FOR BOTH KINDS OF LINE. A first cut gave prose 10 and a job
+   title 8, on the argument that a sentence at `--fs-sm` needs more air under
+   it than three words at `--fs-xs`. That is true and it is worth two pixels,
+   which is not worth a second rule and a second thing to keep in step.
+
+   `.tc-summary + .b-qcard-where`, not `:first-of-type`: the summary is a `<p>`
+   too, so first-of-type is the summary and the rule lands on nothing. */
+.b-qcard .tc-summary + .b-qcard-where { padding-top: 8px; }
