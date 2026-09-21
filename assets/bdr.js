@@ -1786,9 +1786,25 @@
     const CON_N = 560;
     for (let i = 0; i < CON_N; i++) {
       const a = acc[Math.floor(r() * ACC_N)];
-      /* Reachability is not universal, and that is the point of enrichment:
-         a contact with no number cannot be called however good the fit. */
-      const hasPhone = chance(r, 0.82);
+      /* —— TWO IN A HUNDRED, NOT EIGHTEEN —————————————————————————————
+         Reachability is not universal, and that is the point of enrichment:
+         a contact with no number cannot be called however good the fit. But
+         0.82 put ninety-odd unreachable people through a corpus of 560, and
+         at that share the gap stopped being an exception and became a
+         property of the product — every list card led with how many of it
+         came back blank, and the counts under every roster read low enough
+         that the bulk verbs kept vanishing on pages that looked full.
+
+         Two in a hundred. The overnight pass below fills a tenth of
+         whatever is left, so the corpus settles near eighteen in a
+         thousand: enough that the gap exists and the verb that fixes it has
+         something to do, few enough that it is news when you meet one.
+
+         This is the SEED's share and not the supplier's. A list the finder
+         has just built is mostly blank by design — LinkedIn returns a
+         number for 21 in 100, Apollo for 74 — and that spread is the whole
+         argument for choosing between them. Nothing here touches it. */
+      const hasPhone = chance(r, 0.98);
       con.push({
         id: 'p' + i,
         acc: a.id,
