@@ -12365,7 +12365,7 @@
 
   /* The queue, cut by state. The cuts are always visible and their counts sum
      to All, so the row of chips is also the shape of the day. */
-  function cuts(counts, all) {
+  function cuts(counts, all, call) {
     const on = S.q || 'all';
     /* ══ THE COUNT IS THE SIZE; THE BADGE IS THE NEWS ══════════════════
        Every chip here carries one number and it is how many are in the cut
@@ -12436,24 +12436,43 @@
       '</button>';
     /* The run sits at the end of the row it acts on: these cuts, this page.
        It had a row of its own above them, which read as a second heading. */
-    /* ══ A RUN IS SOMETHING A LIST HAS, NOT SOMETHING A FILTER HAS ═══════
-       A `Call them` ended this row, handing `data-callall` the fifteen
-       callable rows of whatever page the cuts had left showing. It read as
-       the verb for the cuts, and that is exactly what was wrong with it: a
-       cut is a view, it changes when you press a chip or type in the box,
-       and a run down a set that is only a view of this second is a run
-       nobody chose the members of.
-
-       A run belongs to a LIST — a named set somebody assembled and can look
-       at again — and the list page offers it twice, once for the list and
-       once for who is on it. The queue keeps the one call it can name: the
-       top card's, which is one person you can see. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
       (onBook() ? MGR_BUCKETS : BUCKETS).filter((b) => !(book && b.k === 'won'))
         .map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
-      /* The rule is what ends the group of cuts, so the book's chip sits
-         past it rather than among them: it is a different desk, not a
-         seventh cut of this one. */
+      /* ══ THE VERB THAT STARTS A RUN IS A BUTTON ══════════════════════
+         Only where `call` has anything in it, which is only inside a
+         campaign — argued where the set is built. On the plain queue the
+         row is chips and nothing else.
+
+         It was `.s-inline-btn` — accent words with no ground, no border and
+         no box — sitting at the end of a row of filter chips that all have
+         one. So the one control on that row that DOES something looked less
+         like a control than the six that only narrow a list, and it read as
+         a caption on the search field beside it.
+
+         `.b-ghost`, this build's own ghost. An insight link was no better
+         than the link it replaced: sales.css forces that class to a pill,
+         and it carries the chips' fill and the chips' hairline, so it was a
+         chip in every measurable way sitting in a row of chips, with only
+         the words saying otherwise. The ghost has NO FILL AT REST — its own
+         comment says the border is all that is left saying press me — which
+         is exactly the difference between the one control here that acts and
+         the six that narrow a list. Not the height — measured, the ghost is
+         32 layout pixels against a chip's 30, which is nothing. The fill is
+         the whole of it.
+
+         Not the primary: the campaign spends its one filled control on the
+         top card, on the argument written over that card that fifteen
+         identical primaries is fifteen recommendations and therefore none. */
+      ((call && call.length)
+        ? '<button class="b-ghost b-cuts-go" type="button" data-callall="' +
+          esc(call.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+          'Call them</button>'
+        : '') +
+      /* After the run, because the run belongs to the cuts it acts on and
+         the rule is what ends that group. A separator drawn before the
+         verb would put the verb on the book's side of it, acting on a set
+         it cannot act on. */
       (book ? '<span class="b-cut-split" aria-hidden="true"></span>' + bookChip() : '') +
       '</div>';
   }
@@ -12536,6 +12555,23 @@
     const pg = book
       ? paged(customers().filter((a) => matches(custHay(a))))
       : paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
+    /* ══ THE RUN NEEDS A SET SOMEBODY CHOSE ═════════════════════════
+       Empty off a campaign, so the row that offers a run does not draw
+       there. The queue's cuts are a VIEW — they change when you press a
+       chip or type in the box — and a run down fifteen rows that a filter
+       happened to leave showing is a run nobody chose the members of. A
+       campaign is not that: it is a named set with a roster, an audience
+       and something it sells, and working down it is the whole job.
+
+       `canRing`, not `callable`. `callable` means the CALLER has not
+       finished with them — it stops at rank 3 and excludes a hand-over —
+       so on a manager's campaign, where every lead is handed over by
+       definition, it answered false for every row and the run never drew.
+       `canRing` is the desk-aware form: a number and no do-not-call is the
+       whole of the test once the lead is yours. */
+    const call = S.camp
+      ? pg.rows.filter((c) => canRing(c) && rowVerb(c) === 'Call')
+      : [];
     return '<section class="s-block s-block-wide" aria-label="Your accounts">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
@@ -12577,7 +12613,7 @@
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
               : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
         : '') +
-      cuts(counts, all) +
+      cuts(counts, all, call) +
       (book ? custGrid(pg.rows) : qgrid(pg.rows)) +
       /* ══ AND THE FOOT COUNTS THE SAME THING THE TAB NAMES ═════════════
          People on one desk, deals on the other, under a tab that says

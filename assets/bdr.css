@@ -2288,13 +2288,35 @@ textarea::placeholder,
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
-/* ══ 41. THE CUTS ARE ONE ROW ═════════════════════════════════════
-   `.b-cuts-go` and the narrow-screen spacer that went with it are gone with
-   the `Call them` they positioned — the run belongs to a list and not to a
-   view, argued where the button stood. What is left is chips on one line,
-   which needs nothing but their own centring; the spacer existed only to
-   push a verb onto a line of its own, and there is no verb. */
+/* ══ 41. THE RUN SITS WITH THE CUTS IT RUNS ════════════════════════════════
+   "Call these 15" had a row of its own above the cuts, which read as a
+   second heading over the list. It ends the row of cuts instead: the chips
+   say which fifteen, and the verb is at the far end of the same line. */
 .b-cuts-row { align-items: center; }
+.b-cuts-go { margin-left: auto; }
+
+/* ══ AND ON A NARROW ONE IT IS NOT THE SAME LINE ════════════════════
+   The rule above rests on there being ONE line. The row wraps, and
+   `margin-left: auto` then pushes the verb to the far end of whichever line
+   it lands on — measured at a 459px layout, four chips took the first line
+   and `Call them` sat on the second with a 39px gap after `After meeting 3`,
+   reading as that chip's own button rather than the set's.
+
+   THE SPACER IS A PSEUDO-ELEMENT OF THE FLEX CONTAINER, which is a flex item
+   like any other. Full basis, no height, ordered between the chips and the
+   verb: it fills out whatever line the chips ended on and puts the verb on a
+   line of its own, left with them, where it reads as the verb for all of
+   them. `flex-basis: 100%` on the button itself cannot do this — the
+   `max-width: max-content` needed to keep it from stretching clamps the
+   hypothetical size the line-break is decided from, so it simply sits back
+   down beside the last chip; measured, twice.
+
+   Nothing here applies above 720 layout px, where the row is one line and the
+   rule above is right as it stands. */
+@media (max-width: 719.98px) { /* 720 layout px */
+  .b-cuts-row::after { content: ''; flex: 0 0 100%; height: 0; order: 1; }
+  .b-cuts-row .b-cuts-go { order: 2; margin-left: 0; margin-top: 2px; }
+}
 
 /* ══ 42. THE WAY OUT IS ITS OWN DECISION ═══════════════════════════════════
    Ending a lead sat in the row of ordinary verbs at the same weight as
