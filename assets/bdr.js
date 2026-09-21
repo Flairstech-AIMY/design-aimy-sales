@@ -13606,14 +13606,30 @@
   function listLead(l, people, call, onCamp) {
     const said = listSays(l, people, call.length, onCamp);
     if (!said || said.from === 'their own records') return '';
-    /* The missing-number reading gets V3's verb. The no-campaign reading
-       used to get the phone too — "Call Omar anyway" — because the action
-       row above it had none off a campaign. It has one now, saying the same
-       thing in the louder place forty pixels higher, so this is one control
-       drawn twice on one screen. The sentence is what this block is for:
-       it says they are not in your queue, and the row says you may call
-       them regardless. */
-    const door = /without a number/.test(said.text)
+    /* —— THE DOOR ANSWERS THE DATA, NOT THE SENTENCE ————————————————————————
+       This asked whether the reading it had just chosen CONTAINED the words
+       "without a number", which is a gate on prose. A list that is off a
+       campaign AND short of numbers has both facts true, `listSays` picks
+       the campaign one because it is the bigger of the two, and the verb
+       that fixes the other fact then did not draw at all.
+
+       Measured on a list built three days ago: 25 people, 4 of them with a
+       number. The masthead offered "Call all 4", the roster head offered
+       nothing because one page of fifteen held at most one of the four, and
+       the page carried no way to go and get the other twenty-one — on the
+       one surface whose whole job is a list you have just built.
+
+       So it asks the records. `fillList` is idempotent-ish by design — it
+       only touches people with no phone and the supplier's hit rate is read
+       off each id — so the verb standing under the other sentence costs
+       nothing when there is little to fill.
+
+       The no-campaign reading used to get the phone too — "Call Omar
+       anyway" — and that one stays gone: the action row forty pixels
+       higher says it louder, and one control drawn twice on one screen is
+       two controls to learn. This is not that. It is the only place the
+       shortfall can be fixed from. */
+    const door = people.some((c) => !c.phone)
       ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
         'Fill in what is missing</button>'
       : '';
