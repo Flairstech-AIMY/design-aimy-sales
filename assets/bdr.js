@@ -4642,7 +4642,7 @@
     if (last && last.outcome === 'gatekeeper') {
       const h = bestHour();
       return {
-        text: 'Reception took it last time' + (h ? '. This book gets through most around ' +
+        text: 'Reception took it last time' + (h ? '. Calls here get through most around ' +
           h.hour + ':00 — ' + h.pct + '% of ' + commas(h.n) + ' calls' : '.'),
         from: h ? 'every call on the record' : 'the call before this one',
       };
@@ -6640,7 +6640,7 @@
     }
     const door = (label, q) => '<button class="s-insight-lnk" type="button" data-go="' +
       esc(JSON.stringify(Object.assign(cleared(), { q: q }))) + '">' + esc(label) + '</button>';
-    return '<section class="s-insight is-lead s-block-wide" aria-label="Where the book stands">' +
+    return '<section class="s-insight is-lead s-block-wide" aria-label="Where your deals stand">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
@@ -6882,11 +6882,11 @@
     if (hold.length) {
       bits.push('<b>' + commas(hold.length) + '</b> had news about work we already do for them');
     }
-    return '<section class="s-insight is-lead s-block-wide" aria-label="Where the book stands">' +
+    return '<section class="s-insight is-lead s-block-wide" aria-label="Where your accounts stand">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
-        '<span class="work-state ws-detected" data-work-state="detected">Read off the book</span>' +
+        '<span class="work-state ws-detected" data-work-state="detected">Read off your accounts</span>' +
       '</div>' +
       '<div class="s-lead-line">' +
         '<span class="s-lead-n">' + esc(euro(worth)) + '</span>' +
@@ -10642,7 +10642,7 @@
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">Financials</h2>' +
         '<div class="s-rec-body">' +
-          '<p class="s-block-sub">This is the book a sales manager carries — what has been ' +
+          '<p class="s-block-sub">This is what a sales manager carries — what has been ' +
           'gained against the quarter’s target, and what the campaigns behind it cost. Your ' +
           'desk has neither, so every figure on it would be somebody else’s. What you have ' +
           'done is on your campaigns and in your calls.</p>' +
@@ -10942,7 +10942,7 @@
                   : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
                 ' &middot; to ' +
                 esc(sayDay(periodOf('deal').end))
-              : 'Your book &middot; ' +
+              : 'Yours &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
           /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
@@ -12255,7 +12255,7 @@
            row that starts something rather than continuing it. */
         campDoor,
         { k: 'lead', label: 'Add a lead',
-          why: 'somebody you met, straight onto your board' },
+          why: 'somebody you met, straight into your contacts' },
         { k: 'money', label: 'See the year',
           why: 'what was promised, and what has happened against it' },
       ];
@@ -12284,7 +12284,7 @@
            the cards; a third way in is not a way in. This slot goes to the
            thing the desk could not do at all. */
         { k: 'lead', label: 'Add a lead',
-          why: 'somebody you met, straight onto your board' },
+          why: 'somebody you met, straight into your contacts' },
         findLeads,
       ];
     } else if (here === 'camps') {
@@ -13058,7 +13058,7 @@
         /* The warmest fact on the row when it is true, and it is rarely
            true: a bridge who works somewhere we already talk to is a
            different kind of ask from a stranger doing a favour. */
-        (r.via.known ? ', already in your book' : '') + '.';
+        (r.via.known ? ', already one of your contacts' : '') + '.';
     const why = WHY_NOW[reachKey(hit.c)];
     return path + ' <b>' + esc(reachSell(hit.c).name) + '</b> is what fits them' +
       (why ? ': ' + esc(why) : '') + '.';
@@ -13080,16 +13080,16 @@
     if (r.k === 'first') {
       return '<b>' + esc(c.name) + '</b> is a connection of yours — ' + who + '. ' +
         '<b>' + esc(sell.name) + '</b> is what fits them and they are nowhere in your ' +
-        'book. Want me to write the message?';
+        'contacts. Want me to write the message?';
     }
     return 'You and <b>' + esc(c.name) + '</b> — ' + who + ' — share <b>' +
-      esc(plural(r.n, 'connection')) + '</b>, and they are nowhere in your book. ' +
+      esc(plural(r.n, 'connection')) + '</b>, and they are nowhere in your contacts. ' +
       'The closest is <b>' + esc(r.via.name) + '</b>, ' + esc(r.via.title) + ' at ' +
       esc(r.via.co) +
       /* Almost never, and worth a clause when it happens: a bridge who
          works somewhere we already talk to is a warmer ask than a
          stranger doing a favour. */
-      (r.via.known ? ', which is already in your book' : '') +
+      (r.via.known ? ', already one of your contacts' : '') +
       '. Want me to write the ask?';
   }
   /* ══ AND IT IS A FIRST APPROACH, NOT A RECONNECTION ════════════════════
@@ -13724,7 +13724,7 @@
       (t[ax.k] || []).forEach((v) => chips.push({ axis: ax.k, val: v, label: opts[v] || v }));
     });
     if ((t.only || []).indexOf('new') >= 0) {
-      chips.push({ axis: 'only', val: 'new', label: 'Not already in the book' });
+      chips.push({ axis: 'only', val: 'new', label: 'New to you' });
     }
     if ((t.only || []).indexOf('phone') >= 0) {
       chips.push({ axis: 'only', val: 'phone', label: 'Has a number' });
@@ -14103,7 +14103,7 @@
       if (dupes) {
         out.push({ k: 'dedupe', terms: [['only', 'new']],
           say: '<b>' + commas(dupes) + ' of the ' + commas(found.length) +
-            '</b> are already in your book.',
+            '</b> are already in your contacts.',
           act: 'Leave them out' });
       }
     }
@@ -14271,7 +14271,7 @@
         { at: 1.5, text: '✓ ' + commas(withNum) + ' with a number, ' + commas(withMail) + ' with an address' } ] },
       { id: 'known', label: 'Take out who you have', icon: 'known', duration: 1.4, logs: [
         { at: 0.05, text: '$ diff against your book' },
-        { at: 0.5, text: '→ ' + commas(known) + ' already in your book' },
+        { at: 0.5, text: '→ ' + commas(known) + ' already in your contacts' },
         { at: 0.9, text: '→ ' + commas(mine2.length) + ' brought in from yours' },
         { at: 1.2, text: '✓ ' + commas(rows.length + mine2.length) + ' ready to save' } ] },
     ];
@@ -14873,7 +14873,7 @@
           person ? null : 'founded ' + n.founded,
           person ? (hasPhone ? 'has a number' : 'no number') : null,
           person ? (hasMail ? 'has an address' : 'no address') : null,
-          n.known ? 'already in your book' : null,
+          n.known ? 'already in your contacts' : null,
         ].filter(Boolean).map(esc).join(' · ') + '</span>' +
         '<span class="s-brow-links">' +
           '<a class="s-brow-link" href="https://' + esc(n.domain) + '" target="_blank" ' +
@@ -15106,7 +15106,7 @@
     }
     if (known.length) {
       out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
-        say: verbFor(known.length, 'is') + ' already in your book, so saving ' +
+        say: verbFor(known.length, 'is') + ' already in your contacts, so saving ' +
           (known.length === 1 ? 'them' : 'these') + ' would give you a second copy ' +
           'of somebody you may already have called.' });
     }
@@ -15244,7 +15244,7 @@
       ax.opts().forEach((o) => (opts[o[0]] = o[1]));
       bits.push(v.map((x) => opts[x] || x).join(' or '));
     });
-    if ((t.only || []).indexOf('new') >= 0) bits.push('not already in the book');
+    if ((t.only || []).indexOf('new') >= 0) bits.push('new to you');
     return bits.length ? bits.join(' · ') : 'everyone the sources hold';
   }
   /* ══ A LIST IS NAMED THE WAY THE SEEDED ONES ARE ═══════════════════════
@@ -15273,7 +15273,7 @@
       ? (ind ? ind.replace(/^./, (c) => c.toUpperCase()) + ' companies' : 'Companies')
       : (who || 'People') + (ind ? ' at ' + ind + ' companies' : '');
     return head + (where ? ' in ' + where : '') + (size ? ', ' + size + ' staff' : '') +
-      ((t.only || []).indexOf('new') >= 0 ? ', not already in the book' : '');
+      ((t.only || []).indexOf('new') >= 0 ? ', new to you' : '');
   }
 
   /* ══ ONE CAMPAIGN, AS THE PERSON WORKING IT SEES IT ═════════════════════
@@ -15451,7 +15451,7 @@
     if (edit || k.notes || empty) {
       out.push(draftPart('Notes', '',
         edit ? draftArea('notes', k.notes,
-          'Anything the book does not know \u2014 who we have already been introduced to, ' +
+          'Anything we do not already have \u2014 who we have already been introduced to, ' +
           'what went wrong last time, when their procurement shuts')
           : k.notes ? '<p class="b-cmeta-p">' + esc(k.notes) + '</p>'
             : none('Nothing written.')));
@@ -15785,7 +15785,7 @@
     if (!k) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such campaign</h2>' +
-        '<div class="s-rec-body"><p class="s-block-sub">That campaign is not in the book.</p>' +
+        '<div class="s-rec-body"><p class="s-block-sub">You do not have that campaign.</p>' +
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
@@ -17369,7 +17369,7 @@
     public: { fits: ['know', 'support', 'back'],
       why: 'one answer to one question, and a procurement cycle that rewards a documented one' },
     telecom: { fits: ['voice', 'qa', 'support', 'data'],
-      why: 'the largest contact centres in the book, and the most conversations nobody listens to' },
+      why: 'the largest contact centres there are, and the most conversations nobody listens to' },
     industry: { fits: ['back', 'support', 'test', 'data'],
       why: 'back office that grew by acquisition, and shop-floor systems nobody tests' },
     hospitality: { fits: ['voice', 'support', 'know'],
@@ -17535,7 +17535,7 @@
     if (a.notes || own) {
       out.push(draftPart('Notes', '', own
         ? draftArea('notes', a.notes,
-          'Anything the book does not know about this company \u2014 who we have ' +
+          'Anything we do not already have about this company \u2014 who we have ' +
           'already been introduced to, what happened last time, when they buy',
           2, 'data-afield')
         : '<p class="b-cmeta-p">' + esc(a.notes) + '</p>'));
@@ -17562,7 +17562,7 @@
     if (!a) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such company</h2>' +
-        '<div class="s-rec-body"><p class="s-block-sub">That company is not in the book.</p>' +
+        '<div class="s-rec-body"><p class="s-block-sub">You do not have that company.</p>' +
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
@@ -18359,7 +18359,7 @@
     if (!c) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such person</h2>' +
-        '<div class="s-rec-body"><p class="s-block-sub">That record is not in the book. ' +
+        '<div class="s-rec-body"><p class="s-block-sub">You do not have that contact. ' +
         'It may have been on a list that was discarded.</p>' +
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
@@ -19730,7 +19730,7 @@
        item on the invoice, not a step in anybody's story. */
     steps.push(foundBy
       ? { k: 'Found on a list', t: sayDay(list.at), tone: 'neutral' }
-      : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
+      : { k: 'Already yours', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
     if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
       steps.push({ k: stepLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
@@ -20052,7 +20052,7 @@
            there is genuinely nothing to add: the line goes rather than
            reaching for something to fill it. */
         const from = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
-        return from ? 'In the book since <b>' + esc(sayDay(from.at)) + '</b>' : '';
+        return from ? 'Yours since <b>' + esc(sayDay(from.at)) + '</b>' : '';
       }
       case 'no-answer':
         return 'called <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
@@ -20470,7 +20470,7 @@
       '<div class="proto-sec">' +
         '<div class="proto-h">Incoming calls</div>' +
         '<button class="proto-link" type="button" data-inbound="known">' +
-          'Somebody on the board calls in</button>' +
+          'Somebody in your contacts calls in</button>' +
         '<button class="proto-link" type="button" data-inbound="named">' +
           'A stranger calls in, and says who they are</button>' +
         '<button class="proto-link" type="button" data-inbound="anon">' +
@@ -21650,7 +21650,7 @@
           '<span class="b-ring-name">' + esc(who) + '</span>' +
           (sub ? '<span class="b-ring-sub">' + sub + '</span>' : '') +
           (live ? '' : '<span class="b-ring-state">' +
-            (c ? 'Incoming call' : 'Not in the book') + '</span>') +
+            (c ? 'Incoming call' : 'Not one of yours') + '</span>') +
         '</span>' +
         (live ? '' :
           '<span class="b-ring-acts">' +
@@ -22013,7 +22013,7 @@
       con: r.con, camp: c ? campFor(c) : null, state: 'live', secs: 0,
       dir: 'in', phone: r.phone,
       stranger: c ? null : {
-        id: null, acc: null, name: r.phone, title: 'Not in the book',
+        id: null, acc: null, name: r.phone, title: 'Not one of yours',
         phone: r.phone, camps: [], checkpoint: 'not-called', attempts: 0,
         next: null, remember: null, dnc: false, fate: null,
       },
@@ -22061,7 +22061,7 @@
      it is the thing every rung starts from. */
   function strangerPrep(phone) {
     const body = '<div class="b-prep">' +
-      '<p class="b-prep-id">Not in the book · ' + esc(phone) + '</p>' +
+      '<p class="b-prep-id">Not one of yours · ' + esc(phone) + '</p>' +
       '<blockquote class="b-open">' +
         '<span class="b-open-cap">What to get</span>' +
         '<p class="b-open-say">Their name and who they work for. I will read the ' +
@@ -22409,7 +22409,7 @@
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
         body: plural(late.length, 'deal') + ' owed something before today: ' +
           namesSay(late) + '.',
-        cta: 'Show the board', ask: 'How do my deals stand?',
+        cta: 'Show my deals', ask: 'How do my deals stand?',
         /* The same fact the row stated, at the length a clause has: the
            figure and what is true of it, with the names left to the board
            the figure opens. */
@@ -22528,7 +22528,7 @@
       tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
         body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
           'for a week: ' + namesSay(quiet) + '.',
-        cta: 'Show the board', ask: 'How do my deals stand?',
+        cta: 'Show my deals', ask: 'How do my deals stand?',
         line: briefN(quiet.length, 'deal', { on: 'deals' }) +
           (quiet.length === 1 ? ' has' : ' have') +
           ' a price on the table and nothing said for a week' });
@@ -22764,7 +22764,7 @@
     } else if (S.camp && DB.byCamp[S.camp]) tags.push(tag(DB.byCamp[S.camp].name));
     else if (S.acc && DB.byAcc[S.acc]) tags.push(tag(DB.byAcc[S.acc].name));
     else if (S.list && DB.byList[S.list]) tags.push(tag(DB.byList[S.list].name));
-    else tags.push(tag('Your book · ' + plural(myCampaigns().length, 'campaign')));
+    else tags.push(tag('Yours · ' + plural(myCampaigns().length, 'campaign')));
     host.innerHTML = tags.join('');
   }
   /* ══ THE CHAT COLUMN: ON SCREEN, AND RECENT ════════════════════════════
@@ -23265,7 +23265,7 @@
          exists and now carries what the lead is for. */
       opts: [
         { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
-        { k: 'add', label: 'Add them to the board', quiet: true },
+        { k: 'add', label: 'Add them to my contacts', quiet: true },
       ] });
     paintThread();
   }
@@ -24750,7 +24750,7 @@
     reindex();
     addTouch(t);
     go({ con: c.id });
-    toast(esc(c.name) + ' is on your board' +
+    toast(esc(c.name) + ' is in your contacts' +
       (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said', () => {
       dropTouch(t.id);
       DB.con = DB.con.filter((x) => x.id !== c.id);
@@ -25133,7 +25133,7 @@
         }).filter((x) => x.days != null && x.days > checkinDays(x.c))
           .sort((x, y) => y.days - x.days);
         if (!cold.length) {
-          return 'Nothing on your board has gone quiet — every live deal has been ' +
+          return 'Nothing on your desk has gone quiet — every live deal has been ' +
             'touched inside what its account is worth.';
         }
         return '<b>' + plural(cold.length, 'deal') + '</b> ' +
@@ -25271,14 +25271,14 @@
          comment. Counted here the way each desk stores it. */
       const gone = onBook() ? (S.camp ? 0 : unrecorded().length) : (counts.after || 0);
       return '<b>' + commas(all.length) + '</b> ' +
-        (onBook() ? (all.length === 1 ? 'deal on your board' : 'deals on your board')
+        (onBook() ? (all.length === 1 ? 'deal on your desk' : 'deals on your desk')
           : 'people can be called') +
         (S.camp ? ' on this campaign' : '') + ' — ' +
         cuts.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
           commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
         (gone ? ' And <b>' + plural(gone, 'meeting') + '</b> ' +
           (gone === 1 ? 'has' : 'have') + ' passed without a word.' : '') +
-        doors(door(onBook() ? 'Show the board' : 'Work the queue',
+        doors(door(onBook() ? 'Show my deals' : 'Work the queue',
             Object.assign(cleared(), { on: onBook() ? 'deals' : 'calls', camp: S.camp || '' })) +
           (gone && !onBook() ? door('Say what happened',
             Object.assign(cleared(), { camp: S.camp || '', q: 'after' })) : ''));
@@ -26139,9 +26139,9 @@
            gave their name as X". The colon does the same work of marking
            this as a report rather than a fact, and the hint below says the
            rest. */
-        ? esc(num) + ' is not in the book. From the call: ' + esc(saidList(said)) +
+        ? esc(num) + ' is not in your contacts. From the call: ' + esc(saidList(said)) +
           '. Shall I open a contact on that?'
-        : esc(num) + ' is not in the book, and nothing in the call told me who it ' +
+        : esc(num) + ' is not in your contacts, and nothing in the call told me who it ' +
           'was. Tell me who they were and I will open a contact for them.',
       hint: said.length
         ? 'If I got any of that wrong, type it correctly instead and I will use yours.'
@@ -26231,7 +26231,7 @@
       html: esc(f.name) + (f.title ? ', ' + esc(f.title) : '') +
         (f.co ? ' at ' + esc(f.co) : ', at no company you named') +
         '. Opening that and logging the call against them.',
-      hint: f.co ? '' : 'Without a company they land on your board on their own.',
+      hint: f.co ? '' : 'Without a company they land in your contacts on their own.',
       step: 'whoismake',
       /* ══ A CONTACT, BECAUSE THAT IS WHAT IS BEING MADE ══════════════
          This said "Open an account", over a person who has answered the
@@ -27465,7 +27465,7 @@
       : p[0] === 'size' ? (SIZE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
       : p[0] === 'title' ? (TITLE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
       : p[0] === 'where' ? (COUNTRY_OPTS.filter((c) => c[0] === p[1])[0] || [p[1], p[1]])[1]
-      : 'not already in the book');
+      : 'new to you');
     const hit = lbuildMatched().length;
     /* in the page's axis order, so the read-back and the chips agree */
     const axisOrder = BUILD_AXES.map((ax) => ax.k);
