@@ -17742,14 +17742,21 @@
         '</div>' +
         accSaid(a) +
         '<div class="s-rec-actions">' +
+          /* ══ A COMPANY IS NOT A SET YOU WORK DOWN ═════════════════════
+             `Call all 4 here` stood beside this and offered a run down
+             everybody at the company. A run is for a set assembled to be
+             worked — a list, a campaign — and the people at one account are
+             not that: they are one buying group, and calling four of them
+             in a row, each hearing the same opening, is how a company
+             decides it is being processed. Whoever you call second here you
+             call BECAUSE of what the first one said, which is a decision
+             and not a queue.
+
+             So the record keeps the one call it can name and the rows
+             below keep theirs. The runs live where the set was chosen. */
           (call.length
             ? '<button class="s-insight-lnk primary" type="button" data-call="' +
-                esc(call[0].id) + '">Call ' + esc(call[0].name.split(' ')[0]) + '</button>' +
-              (call.length > 1
-                ? '<button class="s-inline-btn" type="button" data-callall="' +
-                  esc(call.map((c) => c.id).join(',')) + '">Call all ' + call.length +
-                  ' here</button>'
-                : '')
+                esc(call[0].id) + '">Call ' + esc(call[0].name.split(' ')[0]) + '</button>'
             : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
           accHandBtn(people) +
         '</div>' +
