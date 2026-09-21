@@ -1048,7 +1048,7 @@
 
      NOT `isClient`, and the near miss is the point. `CLIENTS` already means
      the white-label partner, `isCust` already means an account that buys
-     from us, and `custState` returns the literal label 'Client' for a third
+     from us, and `custState` returned the literal label 'Client' for a third
      thing again. A fourth meaning of one word in one file is the same silent
      lie `parse()` refuses when it says `as` names a desk and not a person. */
   const isBuyer = () => me().fn === 'client';
@@ -4374,7 +4374,7 @@
     const o = openingAt(a);
     if (o && o.kind === 'open') return { label: 'Opening', tone: 'ok' };
     if (o && o.kind === 'hold') return { label: 'Check in', tone: 'warn' };
-    return { label: 'Client', tone: 'neutral' };
+    return { label: 'Account', tone: 'neutral' };
   }
   /* Who to ring. The person who signed if the contract has one on it, then
      anybody at the company with a number — and where there is neither, the
@@ -4474,7 +4474,7 @@
   function custGrid(rows) {
     if (!rows.length) {
       return S.find
-        ? '<p class="b-vfoot">No client matches “' + esc(S.find) + '”. ' +
+        ? '<p class="b-vfoot">No account matches “' + esc(S.find) + '”. ' +
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
         : '<p class="b-vfoot">Nobody is buying from you yet. A deal marked Won lands here.</p>';
     }
@@ -5628,7 +5628,7 @@
        lands you on the pipeline, which is a different list of different
        companies, and the one you were reading is two presses away. */
     if (S.on === 'deals') {
-      return backBtn('data-back', S.q === 'won' ? 'Back to the clients' : 'Back to accounts');
+      return backBtn('data-back', S.q === 'won' ? 'Back to the accounts' : 'Back to contacts');
     }
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     /* ══ AND THE LOG GOES BACK WHERE ITS DOOR IS ════════════════════
@@ -5685,20 +5685,28 @@
           /* The URL key stays `deals`: it is in bookmarks, in `backHere`, in
              every `data-go` payload on the page, and renaming a key to match
              a label is a migration for a word. */
-          one('deals', 'Accounts', queue().length, Object.assign(cleared(), { on: 'deals' })) +
+          one('deals', 'Contacts', queue().length, Object.assign(cleared(), { on: 'deals' })) +
           one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))
-        /* ══ ONE WORD FOR ONE SET ══════════════════════════════════════
+        /* ══ ONE WORD FOR ONE SET, AND IT NAMES WHAT IS IN IT ══════════
            The caller's tab said Calls and the manager's said Deals, over the
-           same companies read from two ends of the same process. A product
-           that renames the thing when the reader changes is a product with
-           two vocabularies, and a caller handing a lead up has to translate
-           to say what she is handing.
+           same set read from two ends of one process. A product that renames
+           the thing when the reader changes is a product with two
+           vocabularies, and a caller handing a lead up has to translate to
+           say what she is handing. One word on both, then — and for a while
+           the word was Accounts, which was the second half of the problem:
+           every row under it is a PERSON. The stretch was written down at
+           the pager and it was never anything but a stretch.
 
-           Accounts on both. The URL key stays `calls` for the same reason
-           the manager's stayed `deals`: it is in `cleared()`, in `switcher`
-           and in every bookmark, and a key renamed to match a label is a
-           migration for a word. */
-        : one('calls', 'Accounts', queue().length, cleared())) +
+           Contacts. It is a person we approach, and what a contact becomes
+           is an account — so the two words name the two ends of the process
+           instead of one word naming both. The `won` cut is Accounts, the
+           company record is an account, and nothing in the product calls a
+           person one any more.
+
+           The URL key stays `calls`, and the manager's stays `deals`: they
+           are in `cleared()`, in `switcher` and in every bookmark, and a key
+           renamed to match a label is a migration for a word. */
+        : one('calls', 'Contacts', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       /* A list is what a supplier returned, and its rows carry which one
          and what it filled. `DB.list` is the whole build's, unscoped, and
@@ -8584,7 +8592,7 @@
     { k: 'contacted', label: 'Contacted' },
     { k: 'replied',   label: 'Replied' },
     { k: 'met',       label: 'Met' },
-    { k: 'won',       label: 'Clients' },
+    { k: 'won',       label: 'Accounts' },
   ];
   /* Two config numbers, from finance, set once. Payback reads the margin. */
   const GROSS_MARGIN = 0.72;
@@ -9227,10 +9235,10 @@
           'trustworthy fastest?' });
     }
     if (now.payback != null) {
-      out.push({ label: 'Why a client takes so long to pay back',
-        ask: 'It takes ' + now.payback.toFixed(1) + ' months for a client to repay what they ' +
+      out.push({ label: 'Why an account takes so long to pay back',
+        ask: 'It takes ' + now.payback.toFixed(1) + ' months for an account to repay what they ' +
           'cost to win. Break that down into cost per meeting, how many meetings become ' +
-          'clients, and deal size — and tell me which one I can actually move.' });
+          'accounts, and deal size — and tell me which one I can actually move.' });
     }
     return out.slice(0, 3);
   }
@@ -12389,7 +12397,7 @@
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
       esc(k) + '">' + esc(label) + '<span class="b-cut-n" data-fig="cut:' + esc(k) + '">' + commas(n) + '</span>' +
       (badge ? '<span class="b-cut-new" data-fig="new:' + esc(k) + '" ' +
-        'title="' + esc(plural(badge, 'client') + ' moved') + '">' + commas(badge) + '</span>' : '') +
+        'title="' + esc(plural(badge, 'account') + ' moved') + '">' + commas(badge) + '</span>' : '') +
       '</button>';
     /* ══ AND THE BOOK IS NOT ONE OF THE SIX ════════════════════════════
        It was drawn in the loop with the stages, in stage order, between
@@ -12426,11 +12434,11 @@
     const book = onBook() && !isBuyer() && !S.camp;
     const bookChip = () =>
       '<button class="filter-chip b-cut-book' + (on === 'won' ? ' active' : '') + '" ' +
-      'type="button" data-q="won">' + chIcon('company') + 'Clients' +
+      'type="button" data-q="won">' + chIcon('company') + 'Accounts' +
       '<span class="b-cut-n" data-fig="cut:won">' + commas(customers().length) + '</span>' +
       (openings().length
         ? '<span class="b-cut-new" data-fig="new:won" title="' +
-          esc(plural(openings().length, 'client') + ' moved') + '">' +
+          esc(plural(openings().length, 'account') + ' moved') + '">' +
           commas(openings().length) + '</span>'
         : '') +
       '</button>';
@@ -12572,7 +12580,7 @@
     const call = S.camp
       ? pg.rows.filter((c) => canRing(c) && rowVerb(c) === 'Call')
       : [];
-    return '<section class="s-block s-block-wide" aria-label="Your accounts">' +
+    return '<section class="s-block s-block-wide" aria-label="Your contacts">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
          call 15`, and those two are drawn from what the search matched —
@@ -12600,7 +12608,7 @@
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
         findBox(S.camp ? 'Find someone on this campaign'
-          : book ? 'Find a client, a sector, a thing that happened'
+          : book ? 'Find an account, a sector, a thing that happened'
           : 'Find a name, a company, a campaign') +
       '</div>' +
       /* THE NUMBER SITS UNDER THE HEADING IT COUNTS. It was at the far end
@@ -12615,22 +12623,22 @@
         : '') +
       cuts(counts, all, call) +
       (book ? custGrid(pg.rows) : qgrid(pg.rows)) +
-      /* ══ AND THE FOOT COUNTS THE SAME THING THE TAB NAMES ═════════════
-         People on one desk, deals on the other, under a tab that says
+      /* ══ AND THE FOOT COUNTS THE SAME THING THE TAB NAMES ═════════
+         People on one desk, deals on the other, under a tab that said
          Accounts on both: three nouns for one set, and a caller handing a
          lead up had to translate twice. The tab is the name of the thing, so
          the foot uses it.
 
-         It is a stretch on the caller's desk and the size of it is worth
-         writing down: her 134 rows sit at 76 companies, because a campaign
-         puts two and three people at the same one. Hers is a queue of people
-         AT accounts. The manager's is 48 at 44, which is the same word doing
-         honest work. Making it literal on both means one card per company
-         with its people inside it, which is a different queue. */
-      /* And on the one cut where a row is a company that pays us, it says
-         so. "28 accounts" is true and is the tab's word for a set this
-         surface has a better one for. */
-      pager(pg, book ? 'client' : 'account') +
+         It USED to be a stretch, and the size of it was written down here:
+         her 134 rows sit at 76 companies, because a campaign puts two and
+         three people at the same one, so a foot reading "134 accounts" was
+         counting people and calling them companies. The tab says Contacts
+         now and the foot says contacts, and the count is finally literal:
+         134 people is 134 contacts however many companies they work at.
+
+         And on the one cut where a row IS a company, the foot says account,
+         which is the word that cut is named with. */
+      pager(pg, book ? 'account' : 'contact') +
     '</section>';
   }
   /* Where you are, and the two ways to move. Never "load more": a caller
@@ -15598,7 +15606,7 @@
              same verb the persona and the pitch do. `draftPart` rather than
              `draftField` for exactly that: a caption with a verb beside it. */
           draftPart('The goal', aiDraft('aim'), draftText('aim', aimNow,
-            'What it is worth having worked — 2 new clients for AiMY QA')) +
+            'What it is worth having worked — 2 new accounts for AiMY QA')) +
           draftField('What we sell them', draftMenu('dSell',
             sells.length ? sells.map((x) => esc(x.name)).join(', ') : '',
             'What is on this one', SELLS.map((x) =>
@@ -16375,11 +16383,11 @@
       /* Two of these regions are plural or a group and take the article:
          "in the Netherlands", "in the Nordics", against "in DACH". */
       const where = (g.reg === 'Netherlands' || g.reg === 'Nordics' ? 'the ' : '') + g.reg;
-      return 'Our first ' + g.ind + ' client in ' + where + ' for ' + who + '.';
+      return 'Our first ' + g.ind + ' account in ' + where + ' for ' + who + '.';
     }
     if (g.kind === 1) return euro(g.money) + ' of new business for ' + who + '.';
     if (g.kind === 3) return plural(g.n, 'account') + ' won off a competitor for ' + who + '.';
-    return plural(g.n, 'new client') + ' for ' + who + '.';
+    return plural(g.n, 'new account') + ' for ' + who + '.';
   }
 
   /* The sentence, once, so the card and the record cannot drift apart. */
@@ -17600,7 +17608,7 @@
        fact about a company goes in the slot reserved for the strongest
        fact, and nothing outranks buying from us. */
     const chip = isCust(a)
-      ? { label: 'Client', tone: 'ok' }
+      ? { label: 'Account', tone: 'ok' }
       : top && rank(top.checkpoint) >= rank('answered')
       ? { label: stepLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
       : everReached
@@ -17699,7 +17707,7 @@
                not part of. */
             (isCust(a) && seesCost()
               ? fact('sell', esc(joinAnd(holdSay(subsAt(a)))) +
-                ' · a client for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
+                ' · an account for <b>' + esc(sayFor(subsAt(a)[0].since)) + '</b>')
               : '') +
             /* The one date on this page somebody outside the building set.
                It is stated in the relationship block too, as the node the
@@ -19877,7 +19885,7 @@
          cumulative figure rather than off the rate, and then adds a tier to
          a list it is not parallel with. The money is one sentence and what
          the tier asks of you is another. */
-      now: '<b>' + esc(sayFor(subs[0].since)) + '</b> a client, worth <b>' +
+      now: '<b>' + esc(sayFor(subs[0].since)) + '</b> an account, worth <b>' +
         esc(euro(worth)) + '</b> a year' +
         /* Three marks, not five. How many contracts and which tier are both
            already drawn — the contracts by name in the masthead and the
@@ -22448,8 +22456,8 @@
     const moved = openings();
     if (moved.length) {
       const one = moved[0];
-      tasks.push({ id: 'cust-open', sev: 'p2', type: 'Clients',
-        when: plural(moved.length, 'client') + ' moved',
+      tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
+        when: plural(moved.length, 'account') + ' moved',
         body: one.acc.name + ' ' + one.news.say + ', which makes a case for ' +
           SELL[one.offer].name + ' — and they do not have it' +
           (moved.length > 1
@@ -22458,7 +22466,7 @@
             : '') + '.',
         cta: 'Show the book',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
-        line: briefN(moved.length, 'client', { on: 'deals', q: 'won' }) +
+        line: briefN(moved.length, 'account', { on: 'deals', q: 'won' }) +
           ' moved this week' });
     }
     /* ══ THE ONE ROW A CLIENT'S BELL HAS AND NO OTHER DESK DOES ═════════
