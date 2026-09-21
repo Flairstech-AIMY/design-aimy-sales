@@ -22059,7 +22059,7 @@
       '<blockquote class="b-open">' +
         '<span class="b-open-cap">What to get</span>' +
         '<p class="b-open-say">Their name and who they work for. I will read the ' +
-          'call back when you hang up and offer to open an account on it.</p>' +
+          'call back when you hang up and offer to open a contact on it.</p>' +
       '</blockquote>' +
     '</div>';
     openCanvas();
@@ -26134,15 +26134,15 @@
            this as a report rather than a fact, and the hint below says the
            rest. */
         ? esc(num) + ' is not in the book. From the call: ' + esc(saidList(said)) +
-          '. Shall I open an account on that?'
+          '. Shall I open a contact on that?'
         : esc(num) + ' is not in the book, and nothing in the call told me who it ' +
-          'was. Tell me who they were and I will open an account for them.',
+          'was. Tell me who they were and I will open a contact for them.',
       hint: said.length
         ? 'If I got any of that wrong, type it correctly instead and I will use yours.'
         : 'A name is enough. Like "Ruben Haverkamp, Head of Facilities at Kuijpers".',
       step: 'whois',
       opts: said.length
-        ? [{ k: 'make', label: 'Open an account' }, { k: 'no', label: 'No, leave it', quiet: true }]
+        ? [{ k: 'make', label: 'Open a contact' }, { k: 'no', label: 'No, leave it', quiet: true }]
         : [{ k: 'no', label: 'No, leave it', quiet: true }],
     });
     paintThread();
@@ -26227,11 +26227,15 @@
         '. Opening that and logging the call against them.',
       hint: f.co ? '' : 'Without a company they land on your board on their own.',
       step: 'whoismake',
-      /* "an", not "the". There is no account yet — and "Open the account"
-         is already a control in this build, on records that HAVE one, where
-         it means go and look at it. Two verbs behind one label is the kind
-         of collision nobody reports and everybody mis-clicks once. */
-      opts: [{ k: 'go', label: 'Open an account' }],
+      /* ══ A CONTACT, BECAUSE THAT IS WHAT IS BEING MADE ══════════════
+         This said "Open an account", over a person who has answered the
+         phone once. An account is what a contact becomes; a stranger whose
+         name we have just heard is the other end of that line. "An" rather
+         than "the" was doing the work of keeping this apart from "Open the
+         account" — a control on records that HAVE one, where it means go
+         and look at it — and one article is too thin a thing to carry a
+         difference of kind. The noun carries it now. */
+      opts: [{ k: 'go', label: 'Open a contact' }],
     });
     paintThread();
     return true;
