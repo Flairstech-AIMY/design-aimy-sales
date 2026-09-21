@@ -3844,7 +3844,22 @@ textarea::placeholder,
   line-height: var(--lh-snug); color: var(--ink-muted);
   margin: 0 0 4px;
 }
-.b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
+.b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 10px; }
+/* ── A CHIP THAT WRAPS IS NOT A CHIP ANY MORE ──────────────────────
+   §48 sets 3px of vertical padding, which is the right amount for what a
+   doc chip is everywhere else: one short line inside a pill, sitting in a
+   sentence. In the brief it is neither. A document's real name runs past the
+   panel's 329px column, so the chip takes the full width and the name wraps —
+   and 3px above and below 36px of text is two lines pressed against the top
+   and bottom of their own pill.
+
+   The padding is set against the BLOCK here rather than against the line:
+   half a line of air top and bottom, 14px at the sides so the first and last
+   lines clear the stadium's curve, and 10px between the chips so two of them
+   stacked read as two doors and not as a four-line paragraph. Scoped to the
+   brief's two document lists — "You can send" and "On paper"; the chip in a
+   beat's sentence stays the size of the words around it. */
+.b-prep-refp .b-doc { padding: 9px 14px; gap: 10px; }
 
 /* ══ 57. WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
    Three chips with one lit, beside a sentence naming the lit one — a control
