@@ -25199,7 +25199,7 @@
          they are buying, not something they audit — the same reason
          `fillList` answers this desk with "We fill the numbers in." */
       if (isBuyer()) {
-        return 'Finding the people is our side of it. What is on your desk is what we ' +
+        return 'Finding the people is our side of it. What you see here is what we ' +
           'are doing with them once we have.';
       }
       const loose = DB.list.filter((l) => listLoose(l));
@@ -25224,7 +25224,7 @@
            said only where the question was not narrowed to one. */
         const gone = S.camp ? [] : unrecorded();
         if (!late.length && !now.length && !gone.length) {
-          return 'Nothing is owed on your desk' + (S.camp ? ' on this campaign' : '') +
+          return 'Nothing is owed' + (S.camp ? ' on this campaign' : '') +
             '. Every deal is inside its date' + (S.camp ? '' : ' and every meeting is written up') + '.';
         }
         const bits = [];
