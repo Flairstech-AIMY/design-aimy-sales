@@ -10942,7 +10942,7 @@
                   : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
                 ' &middot; to ' +
                 esc(sayDay(periodOf('deal').end))
-              : 'Yours &middot; ' +
+              : 'Everything &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
           /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
@@ -19730,7 +19730,7 @@
        item on the invoice, not a step in anybody's story. */
     steps.push(foundBy
       ? { k: 'Found on a list', t: sayDay(list.at), tone: 'neutral' }
-      : { k: 'Already yours', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
+      : { k: 'Already a contact', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
     if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
       steps.push({ k: stepLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
@@ -20052,7 +20052,7 @@
            there is genuinely nothing to add: the line goes rather than
            reaching for something to fill it. */
         const from = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
-        return from ? 'Yours since <b>' + esc(sayDay(from.at)) + '</b>' : '';
+        return from ? 'A contact since <b>' + esc(sayDay(from.at)) + '</b>' : '';
       }
       case 'no-answer':
         return 'called <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
@@ -21650,7 +21650,7 @@
           '<span class="b-ring-name">' + esc(who) + '</span>' +
           (sub ? '<span class="b-ring-sub">' + sub + '</span>' : '') +
           (live ? '' : '<span class="b-ring-state">' +
-            (c ? 'Incoming call' : 'Not one of yours') + '</span>') +
+            (c ? 'Incoming call' : 'Not a contact') + '</span>') +
         '</span>' +
         (live ? '' :
           '<span class="b-ring-acts">' +
@@ -22013,7 +22013,7 @@
       con: r.con, camp: c ? campFor(c) : null, state: 'live', secs: 0,
       dir: 'in', phone: r.phone,
       stranger: c ? null : {
-        id: null, acc: null, name: r.phone, title: 'Not one of yours',
+        id: null, acc: null, name: r.phone, title: 'Not a contact',
         phone: r.phone, camps: [], checkpoint: 'not-called', attempts: 0,
         next: null, remember: null, dnc: false, fate: null,
       },
@@ -22061,7 +22061,7 @@
      it is the thing every rung starts from. */
   function strangerPrep(phone) {
     const body = '<div class="b-prep">' +
-      '<p class="b-prep-id">Not one of yours · ' + esc(phone) + '</p>' +
+      '<p class="b-prep-id">Not a contact · ' + esc(phone) + '</p>' +
       '<blockquote class="b-open">' +
         '<span class="b-open-cap">What to get</span>' +
         '<p class="b-open-say">Their name and who they work for. I will read the ' +
@@ -22421,7 +22421,7 @@
     if (cold.length) {
       tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
         body: plural(cold.length, 'lead') + (cold.length === 1 ? ' has' : ' have') +
-          ' been on your desk two days or more without a warm call: ' + namesSay(cold) + '.',
+          ' waited two days or more without a warm call: ' + namesSay(cold) + '.',
         cta: 'Show them', ask: 'How do my deals stand?',
         line: briefN(cold.length, 'lead', { on: 'deals' }) +
           (cold.length === 1 ? ' has' : ' have') + ' waited two days for a warm call' });
@@ -22764,7 +22764,7 @@
     } else if (S.camp && DB.byCamp[S.camp]) tags.push(tag(DB.byCamp[S.camp].name));
     else if (S.acc && DB.byAcc[S.acc]) tags.push(tag(DB.byAcc[S.acc].name));
     else if (S.list && DB.byList[S.list]) tags.push(tag(DB.byList[S.list].name));
-    else tags.push(tag('Yours · ' + plural(myCampaigns().length, 'campaign')));
+    else tags.push(tag('Everything · ' + plural(myCampaigns().length, 'campaign')));
     host.innerHTML = tags.join('');
   }
   /* ══ THE CHAT COLUMN: ON SCREEN, AND RECENT ════════════════════════════
@@ -25133,7 +25133,7 @@
         }).filter((x) => x.days != null && x.days > checkinDays(x.c))
           .sort((x, y) => y.days - x.days);
         if (!cold.length) {
-          return 'Nothing on your desk has gone quiet — every live deal has been ' +
+          return 'Nothing has gone quiet — every live deal has been ' +
             'touched inside what its account is worth.';
         }
         return '<b>' + plural(cold.length, 'deal') + '</b> ' +
@@ -25271,7 +25271,7 @@
          comment. Counted here the way each desk stores it. */
       const gone = onBook() ? (S.camp ? 0 : unrecorded().length) : (counts.after || 0);
       return '<b>' + commas(all.length) + '</b> ' +
-        (onBook() ? (all.length === 1 ? 'deal on your desk' : 'deals on your desk')
+        (onBook() ? (all.length === 1 ? 'deal' : 'deals')
           : 'people can be called') +
         (S.camp ? ' on this campaign' : '') + ' — ' +
         cuts.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
