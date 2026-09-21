@@ -6717,7 +6717,7 @@
       return due != null && due <= 0
         ? { text: 'Rescheduled, and the day to pick it back up has come.',
             from: 'the date you set when you parked it', act: call }
-        : { text: 'Rescheduled. Back on the desk ' +
+        : { text: 'Rescheduled. Back with you ' +
             esc(c.next ? sayWhen(c.next.due) : 'when you say so') + '.',
             from: 'the date you set when you parked it',
             act: { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' } };
@@ -10643,8 +10643,8 @@
         '<h2 class="s-rec-cap">Financials</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">This is what a sales manager carries — what has been ' +
-          'gained against the quarter’s target, and what the campaigns behind it cost. Your ' +
-          'desk has neither, so every figure on it would be somebody else’s. What you have ' +
+          'gained against the quarter’s target, and what the campaigns behind it cost. You ' +
+          'carry neither, so every figure here would be somebody else’s. What you have ' +
           'done is on your campaigns and in your calls.</p>' +
           backBtn('data-home', 'Back to the briefing') +
         '</div>' +
@@ -17955,7 +17955,7 @@
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
         '<span class="work-state ws-detected" data-work-state="detected">' +
-          esc(thin ? 'what this desk holds here' : said.from) + '</span>' +
+          esc(thin ? 'what we hold here' : said.from) + '</span>' +
       '</div>' +
       /* ══ THREE CLAIMS AT ONE RANK IS A SLAB ════════════════════════════
          A customer's reading is what happened, what it means and what of
@@ -18781,7 +18781,7 @@
             (w.back ? ' That is a no for now rather than a no.' : '')
           : ' Nothing was written down when it closed.')
         : k === 'later'
-          ? (c.next && c.next.due ? ' Back on the desk ' + esc(sayWhen(c.next.due)) + '.' : '')
+          ? (c.next && c.next.due ? ' Back with you ' + esc(sayWhen(c.next.due)) + '.' : '')
           : '';
       return stateWrap(k === 'won' ? 'is-won' : k === 'lost' ? 'is-lost' : 'is-later',
         chIcon(k === 'won' ? 'check' : k === 'lost' ? 'no' : 'clock'),
