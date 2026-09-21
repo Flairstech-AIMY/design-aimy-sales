@@ -18291,8 +18291,8 @@
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">The team</h2>' +
         '<span class="s-block-say">' + (ids.length
-          ? esc(plural(ids.length, 'person')) + ' on this lead'
-          : 'nobody on this lead') + '</span>' +
+          ? esc(plural(ids.length, 'person')) + ' on this contact'
+          : 'nobody on this contact') + '</span>' +
         (own ? conCrewPick(c) : '') +
       '</div>' +
       /* ══ AND THE SAME OVERFLOW, BECAUSE THIS ONE GROWS FASTER ══════════
