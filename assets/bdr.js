@@ -12720,6 +12720,58 @@
      queue. Every chip is always visible and toggling one is the whole of the
      interaction; nothing opens, nothing has to be dismissed. */
 
+  /* —— WHAT A RUN HANDS BACK IS ALMOST ALL CALLABLE ————————————————————————
+     A supplier's own hit rate used to decide this on its own, and on a
+     25-row run through LinkedIn that is four numbers and twenty-one blanks:
+     a list you have just paid for that you cannot work, and a page whose
+     bulk verbs will not draw because no page of it holds two people you can
+     call. The gap was the product's loudest fact about its own results.
+
+     A run comes back full now, bar a few. FIVE, or two in a hundred once
+     the run is big enough for that to be the larger — the same share the
+     seeded corpus carries, so a found list and a held one feel like the
+     same kind of thing. The blanks are still the rows with the highest
+     `seedPhone`, so who goes without is deterministic and a re-run says the
+     same thing.
+
+     THE SUPPLIER STILL DECIDES where it can do better than the floor:
+     `Math.max` means a good source fills more than the cap requires and a
+     poor one is lifted to it. What it costs is the spread between suppliers
+     on the phone axis at these sizes — Apollo's 74 and LinkedIn's 21 both
+     clear the floor on a 25-row run — and that argument still runs on the
+     email axis, which is untouched, and on the panel naming who fills what.
+
+     Nothing here is the index's business: `buildMatched` filters candidates
+     before a result set exists, so "only ones with a number" still narrows
+     on the raw rate. */
+  const NO_NUM_CAP = 5;
+  const NO_NUM_SHARE = 0.02;
+  /* —— A COUNT, NOT A RATE —————————————————————————————————————————————————
+     A floor on the RATE gives about five blanks and sometimes six, because
+     twelve uniform draws do not land evenly either side of a threshold.
+     The cap is a count, so the threshold is read off the values: the
+     (N-cap)-th smallest `seedPhone`, which leaves exactly `cap` rows above
+     it however the draws fell. Deterministic, and a re-run says the same.
+
+     Cached on the array itself. `netPhone` is called once per row at save
+     and the sort is over the whole result, so without this a 500-row save
+     sorts 500 rows 500 times. `DRAFT.rows` is a stable array and `found` is
+     handed in directly, so identity is the right key. The supplier is NOT
+     cached: `Math.max` runs on every call, so swapping source moves the
+     numbers without invalidating anything. */
+  let FILL_AT = null;
+  function fillRate(rows) {
+    const f = finderOf();
+    const list = rows || (DRAFT && DRAFT.rows) || [];
+    if (!list.length) return f.phone;
+    if (!FILL_AT || FILL_AT.rows !== list) {
+      const cap = Math.max(NO_NUM_CAP, Math.ceil(list.length * NO_NUM_SHARE));
+      FILL_AT = { rows: list, at: list.length <= cap ? 0
+        : list.map((n) => n.seedPhone).sort((a, b) => a - b)[list.length - cap] };
+    }
+    return Math.max(f.phone, FILL_AT.at);
+  }
+
   /* ══ WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
      Three suppliers, and one of them is down — which is the normal state of
      three third-party APIs and something the page could not say. `down` is a
@@ -14011,9 +14063,23 @@
        twice before it. */
     return '<div class="b-expect">' +
       '<span class="b-srcs-cap">What to expect</span>' +
-      '<p class="b-exp-say"><b>' + esc(wide[0]) + '</b> — ' + esc(wide[1]) + '. Maybe <b>' +
-        Math.round(f.phone * 100) + '%</b> of them with a phone number, going on what ' +
-        esc(f.name) + ' did last week.</p>' +
+      /* —— AND IT PROMISED THE SUPPLIER'S RATE ——————————————————————————————
+         This said "Maybe 21% of them with a phone number, going on what
+         LinkedIn Sales Navigator did last week" — true of the supplier and
+         no longer true of the run, which fills to within a few of complete
+         whatever the source returns. An expectation that undersells the
+         thing by sixty points is worse than none: it is the one figure a
+         caller decides on.
+
+         The shortfall, then, as the count it is, off the same arithmetic
+         `fillRate` uses. Capped at 500 because the run is. */
+      '<p class="b-exp-say"><b>' + esc(wide[0]) + '</b> — ' + esc(wide[1]) + '.' +
+        (found.length
+          ? ' All but <b>' + commas(Math.max(NO_NUM_CAP,
+              Math.ceil(Math.min(found.length, 500) * NO_NUM_SHARE))) +
+            '</b> of them with a phone number, because we fill in what ' +
+            esc(f.name) + ' misses.'
+          : '') + '</p>' +
       /* What you already hold is said by the suggestion above, which also
          offers to drop them. Saying it twice, once without the fix, is the
          duplication this rebuild keeps taking out. */
@@ -14144,8 +14210,8 @@
     /* Where the callable ones are. A criterion that narrows to people you can
        actually call is worth more than one that narrows to more people. */
     if (buildKind() === 'con' && found.length > 3 && anyCrit(t)) {
-      const f2 = finderOf();
-      const dead = found.filter((r) => r.seedPhone >= f2.phone).length;
+      const floor = fillRate(found);
+      const dead = found.filter((r) => r.seedPhone >= floor).length;
       if (dead && dead / found.length >= 0.25) {
         out.push({ k: 'phone', terms: [['only', 'phone']],
           say: '<b>' + commas(dead) + ' of the ' + commas(found.length) +
@@ -14307,7 +14373,8 @@
     const known = rows.filter((x) => x.known).length;
     const t = terms();
     const nCrit = Object.keys(t).reduce((n, k) => n + (t[k] || []).length, 0);
-    const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
+    const floor = fillRate(rows);
+    const withNum = rows.filter((x) => x.seedPhone < floor).length;
     const withMail = rows.filter((x) => x.seedEmail < f.email).length;
     const kind = buildKind() === 'acc' ? 'companies' : 'people';
     const others = FINDERS.filter((x) => x.k !== f.k);
@@ -14801,7 +14868,7 @@
     const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
     const f = finderOf();
     const kept = rows.filter((x) => DRAFT.drop.indexOf(x.id) < 0).length;
-    const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
+    const withNum = rows.filter((x) => x.seedPhone < fillRate(rows)).length;
     /* What Save would write, which is what the masthead counts — the
        unticked are off it, and the ones you brought from your own book are
        on it. The arithmetic between that and what the suppliers returned is
@@ -14911,7 +14978,7 @@
      unticked row is how you drop somebody before any of it is saved. */
   function netRow(n) {
     const f = finderOf();
-    const hasPhone = n.seedPhone < f.phone;
+    const hasPhone = n.seedPhone < fillRate();
     const hasMail = n.seedEmail < f.email;
     const dropped = DRAFT && DRAFT.drop.indexOf(n.id) >= 0;
     const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -15006,7 +15073,12 @@
 
      Lifted out and read by both, so what the card shows is exactly what the
      record gets and there is no second copy of the formula to drift. */
-  const netPhone = (n) => (n.seedPhone < finderOf().phone
+  /* `rows` is optional and the save hands it in: `fillRate()` alone reads
+     `DRAFT.rows`, and the save falls back to re-matching when the draft has
+     gone, which would have written the supplier's raw rate into the list —
+     the one path where the floor not applying is a WRITE rather than a
+     wrong label. */
+  const netPhone = (n, rows) => (n.seedPhone < fillRate(rows)
     ? '+31 6 ' + String(1000000 + Math.floor(n.seedPhone * 8999999)) : null);
   const netEmail = (n) => (n.seedEmail < finderOf().email
     ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') +
@@ -15139,7 +15211,8 @@
     /* "The best of the three" is not true while one of the three is not
        answering, and the listing on the builder says which one that is. */
     const ofThem = finderUp().length < FINDERS.length ? 'the ones answering' : 'the three';
-    const noPhone = rows.filter((n) => n.seedPhone >= f.phone);
+    const floor = fillRate(rows);
+    const noPhone = rows.filter((n) => n.seedPhone >= floor);
     const noMail = rows.filter((n) => n.seedEmail >= f.email);
     const known = rows.filter((n) => n.known);
     const out = [];
@@ -15219,7 +15292,7 @@
         /* The same two functions the card drew from, so the number on the
            card and the number on the record are one value and not two
            spellings of one intention. */
-        phone: netPhone(n), email: netEmail(n),
+        phone: netPhone(n, found), email: netEmail(n),
         /* Dealt out in order, so three callers get a third each rather than
            one of them getting five hundred. */
         camps: camp ? [camp.id] : [], owner: crew[i % crew.length],
