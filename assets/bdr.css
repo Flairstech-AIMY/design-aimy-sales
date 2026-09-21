@@ -5045,8 +5045,19 @@ textarea::placeholder,
    spare — and the reason these two could carry a figure at 32px on a page
    is the reason they still can here: there is nothing beside them. */
 .rail-doors { display: grid; gap: 10px; margin-top: 12px; }
+/* ── AND IT MUST BE ALLOWED TO BE NARROWER THAN ITS CONTENTS ─────────────
+   `width: 100%` says what it wants; `min-width: auto` is what a grid and a
+   flex item get by default and it says the opposite — never smaller than
+   the widest thing inside. In the rail's 282px track that made the card
+   284.3, so both doors hung two pixels over the edge and the rail grew a
+   horizontal scrollbar. Not the diary card's fault: Financials did it too,
+   which is how you know it is the box and not the sentence.
+
+   `min-width: 0` hands the sizing back to the track. Everything inside can
+   wrap, which is the other half of this fix. */
 .b-door {
   display: flex; flex-direction: column; gap: 12px; width: 100%; height: 100%;
+  min-width: 0;
   text-align: left; padding: 18px 20px 20px;
   border: 1px solid var(--card-border); border-radius: var(--r-2xl);
   background: var(--card-bg);
@@ -5086,6 +5097,23 @@ textarea::placeholder,
   display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: -4px;
   font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
 }
+/* ── A CLEAR DAY IS TWO SENTENCES, NOT A NAME AND A WORD ──────────────────
+   The row was built for "Evie Reid" beside "Demo" — two short things that
+   sit on one line at any width the rail has. The empty day puts "Nothing is
+   in the diary" in the name's slot and "9 things in the fortnight ahead" in
+   the kind's, and `.b-kind` is `white-space: nowrap`, so the sentence could
+   not break and the name was crushed into three ragged lines beside it:
+   Nothing / is in the / diary. Measured at 70px of row for two facts.
+
+   The row wraps. Where both halves fit they stay on one line and the booked
+   day is untouched; where they do not, the second takes a line of its own,
+   which is what two sentences want anyway. 48px, and both read straight.
+
+   `white-space: normal` only HERE. The nowrap is right everywhere else
+   `.b-kind` is used, where it holds one or two words and a break inside it
+   would read as two facts. */
+.b-door-who { flex-wrap: wrap; }
+.b-door-who .b-kind { white-space: normal; }
 
 /* ── the book, as a figure ─────────────────────────────────────────────── */
 .b-door-fig {
