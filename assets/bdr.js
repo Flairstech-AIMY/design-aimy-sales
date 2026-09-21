@@ -4721,7 +4721,22 @@
      `dealSays` still carries every `from`. They are the reasoning behind the
      ranking and they are read on the record; what changed is where they are
      drawn, not whether the sentence has a source. */
-  function aimyBlock(said, bare) {
+  /* —— AND A READING CAN CARRY THE VERB THAT ANSWERS IT ————————————————————
+     `act` is a third, optional slot: one control, under the sentence and
+     under its provenance, for the case where the reading names something
+     the reader can fix from where they are standing. Every existing caller
+     passes nothing and gets exactly the markup it got before.
+
+     It sits INSIDE `.b-aimy-say` rather than in the card's foot. The foot
+     is `space-between` with one fact and one way in; a third child spreads
+     the row and the verb stops belonging to the sentence that called for
+     it. Here it reads as the last line of the reading, which is what it is.
+
+     Nesting a control in a card that is itself a door is the supported
+     shape: the whole-card handler is written as a trailing fallback, so
+     anything matched above it wins and a press on this never opens the
+     card behind it. */
+  function aimyBlock(said, bare, act) {
     if (!said) return '';
     /* THE SIZE IS AN ATTRIBUTE, NOT ONLY A RULE. An `<svg>` with no width or
        height attribute and no CSS reaching it falls back to the replaced
@@ -4736,6 +4751,7 @@
         '<use href="#aimy-logo-small"/></svg>' +
       '<span class="b-aimy-say">' + said.text +
         (bare ? '' : '<span class="b-aimy-from">' + esc(said.from) + '</span>') +
+        (act ? '<span class="b-aimy-act">' + act + '</span>' : '') +
       '</span>' +
     '</div>';
   }
@@ -5002,7 +5018,17 @@
       '<p class="tc-summary b-qcard-what">' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
         commas(call) + '</b> of them callable</div>' +
-      aimyBlock(listSays(l, people, call, !!camp)) +
+      /* The card states the shortfall — "6 of them came back without a
+         number, so they cannot be called" — and until now said it with
+         nothing to press. The verb is the page's, on the records rather
+         than on the sentence, for the same reason it is on the page: a list
+         off a campaign shows the campaign reading and the shortfall is
+         still true underneath it. */
+      aimyBlock(listSays(l, people, call, !!camp), false,
+        people.some((c) => !c.phone)
+          ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
+            'Fill in what is missing</button>'
+          : '') +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num b-fact">' + chIcon('calendar') +
           '<span>built ' + esc(sayWhen(l.at)) + '</span></span>' +
