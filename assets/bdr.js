@@ -12721,55 +12721,64 @@
      interaction; nothing opens, nothing has to be dismissed. */
 
   /* —— WHAT A RUN HANDS BACK IS ALMOST ALL CALLABLE ————————————————————————
-     A supplier's own hit rate used to decide this on its own, and on a
-     25-row run through LinkedIn that is four numbers and twenty-one blanks:
-     a list you have just paid for that you cannot work, and a page whose
-     bulk verbs will not draw because no page of it holds two people you can
-     call. The gap was the product's loudest fact about its own results.
+     A supplier's own hit rate used to decide this alone, and on a 25-row
+     run through LinkedIn that is four numbers and twenty-one blanks: a list
+     you have just paid for that you cannot work, on a page whose bulk verbs
+     will not draw because no page of it holds two people you can call.
 
-     A run comes back full now, bar a few. FIVE, or two in a hundred once
-     the run is big enough for that to be the larger — the same share the
-     seeded corpus carries, so a found list and a held one feel like the
-     same kind of thing. The blanks are still the rows with the highest
-     `seedPhone`, so who goes without is deterministic and a re-run says the
-     same thing.
+     So the shortfall is a COUNT this end, not the supplier's rate applied
+     to whatever came back. FIVE at worst, or two in a hundred once the run
+     is big enough for that to be the larger — the same share the seeded
+     corpus carries, so a found list and a held one feel like the same kind
+     of thing.
 
-     THE SUPPLIER STILL DECIDES where it can do better than the floor:
-     `Math.max` means a good source fills more than the cap requires and a
-     poor one is lifted to it. What it costs is the spread between suppliers
-     on the phone axis at these sizes — Apollo's 74 and LinkedIn's 21 both
-     clear the floor on a 25-row run — and that argument still runs on the
-     email axis, which is untouched, and on the panel naming who fills what.
+     AND THE SUPPLIER STILL DECIDES HOW CLOSE TO THAT YOU LAND. A flat cap
+     handed Apollo and LinkedIn the same five, which took the one number the
+     builder asks you to choose on and made it decorative. The cap belongs
+     to the WORST source — the poorest rate on the board leaves the full
+     five, and every better one leaves proportionally fewer:
+
+         gap = cap × (1 - rate) / (1 - worst rate)
+
+     which on a 25-row run is LinkedIn 5, Exa 4, ZoomInfo 3, Apollo 2, and
+     on a 395-row run is 8, 6, 5, 3. Order preserved at every size, the
+     worst case is the number we promised, and picking Apollo still buys you
+     something you can see.
 
      Nothing here is the index's business: `buildMatched` filters candidates
      before a result set exists, so "only ones with a number" still narrows
      on the raw rate. */
   const NO_NUM_CAP = 5;
   const NO_NUM_SHARE = 0.02;
+  /* How many of a set of `count` come back without one. */
+  function fillGap(count) {
+    if (!count) return 0;
+    const f = finderOf();
+    const cap = Math.max(NO_NUM_CAP, Math.ceil(count * NO_NUM_SHARE));
+    const worst = FINDERS.reduce((lo, x) => Math.min(lo, x.phone), 1);
+    return Math.min(count, Math.ceil(cap * (1 - f.phone) / (1 - worst)));
+  }
   /* —— A COUNT, NOT A RATE —————————————————————————————————————————————————
-     A floor on the RATE gives about five blanks and sometimes six, because
-     twelve uniform draws do not land evenly either side of a threshold.
-     The cap is a count, so the threshold is read off the values: the
-     (N-cap)-th smallest `seedPhone`, which leaves exactly `cap` rows above
-     it however the draws fell. Deterministic, and a re-run says the same.
+     A floor on the RATE gives about the cap and sometimes one over, because
+     twelve uniform draws do not land evenly either side of a threshold. The
+     threshold is read off the values instead — the (N-gap)-th smallest
+     `seedPhone` — which leaves exactly `gap` above it however the draws
+     fell. Deterministic, so a re-run says the same.
 
-     Cached on the array itself. `netPhone` is called once per row at save
-     and the sort is over the whole result, so without this a 500-row save
-     sorts 500 rows 500 times. `DRAFT.rows` is a stable array and `found` is
-     handed in directly, so identity is the right key. The supplier is NOT
-     cached: `Math.max` runs on every call, so swapping source moves the
-     numbers without invalidating anything. */
+     The SORT is cached on the array and the GAP is not: `netPhone` is
+     called once per row at save and the sort is over the whole result, so
+     without the cache a 500-row save sorts 500 rows 500 times — while the
+     gap has to move the moment you press another supplier. */
   let FILL_AT = null;
   function fillRate(rows) {
-    const f = finderOf();
     const list = rows || (DRAFT && DRAFT.rows) || [];
-    if (!list.length) return f.phone;
+    if (!list.length) return finderOf().phone;
+    const gap = fillGap(list.length);
+    if (gap <= 0) return 1;
     if (!FILL_AT || FILL_AT.rows !== list) {
-      const cap = Math.max(NO_NUM_CAP, Math.ceil(list.length * NO_NUM_SHARE));
-      FILL_AT = { rows: list, at: list.length <= cap ? 0
-        : list.map((n) => n.seedPhone).sort((a, b) => a - b)[list.length - cap] };
+      FILL_AT = { rows: list, sorted: list.map((n) => n.seedPhone).sort((a, b) => a - b) };
     }
-    return Math.max(f.phone, FILL_AT.at);
+    return FILL_AT.sorted[list.length - gap];
   }
 
   /* ══ WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
@@ -14075,9 +14084,8 @@
          `fillRate` uses. Capped at 500 because the run is. */
       '<p class="b-exp-say"><b>' + esc(wide[0]) + '</b> — ' + esc(wide[1]) + '.' +
         (found.length
-          ? ' All but <b>' + commas(Math.max(NO_NUM_CAP,
-              Math.ceil(Math.min(found.length, 500) * NO_NUM_SHARE))) +
-            '</b> of them with a phone number, because we fill in what ' +
+          ? ' All but <b>' + commas(fillGap(Math.min(found.length, 500))) +
+            '</b> of them with a phone number, because we fill in most of what ' +
             esc(f.name) + ' misses.'
           : '') + '</p>' +
       /* What you already hold is said by the suggestion above, which also
