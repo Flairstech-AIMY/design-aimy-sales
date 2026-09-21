@@ -570,6 +570,18 @@
   font-size: var(--fs-2xs); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
+/* ── THE LAST LINE OF A READING CAN BE A VERB ─────────────────────────────
+   One control, under the sentence and under its source, where the reading
+   names something the reader can fix from where they are standing — a list
+   card saying six of them came back without a number, with the thing that
+   goes and gets them.
+
+   `display: block` on a span inside a span, which is what lets it take its
+   own line without making `.b-aimy-say` a flex column: the text above it is
+   a run of inline content and a column would break every `<b>` in it onto a
+   line of its own. The 8px is one step over the 4px the source line takes,
+   because a thing you press needs more air above it than a caption does. */
+.b-aimy-act { display: block; margin-top: 8px; }
 
 /* ══ 13. THE BUILDER'S HEADING TAKES ITS OWN WIDTH ═════════════════════════
    `.s-sheet-head` is a flex row and `.s-sheet-head-main` is only `min-width:
