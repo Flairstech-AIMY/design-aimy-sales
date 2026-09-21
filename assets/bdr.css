@@ -289,6 +289,32 @@
 .b-qcard .tc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .b-qcard .tc-type { margin-left: auto; text-align: right; }
 
+/* ── ONE LINE, OR THE HEAD STOPS BEING A ROW ─────────────────────────────
+   The head wraps, so a campaign with a long name took a second line and the
+   two halves of the strip — the state on the left, the campaign on the right
+   — stopped being one row. Two cards beside each other then disagreed about
+   where the name beneath them started, on nothing more than how many words
+   a campaign was given, and the taller head pushed its whole card down.
+
+   The name is a label, not a sentence: the first two thirds of it already
+   says which campaign this is, and the card opens to the rest. So the head
+   holds its one line and the name gives up its tail. The tag never shrinks
+   — it is two words and the fixed half of the pair — and the mark is
+   already `flex: none`, so every pixel of the shrinking lands on the words
+   that can afford to lose one.
+
+   Scoped to the two cards whose head is a PAIR — a person's and a company's,
+   both `[data-card]`, both a state on the left and one fact on the right. The
+   campaign card's head is three parts and its third is the product being
+   sold, which sits close enough to its limit that one line would cut a word
+   in half to save twenty pixels. That is a worse trade and it keeps the
+   wrap. */
+.b-qcard[data-card] .tc-head { flex-wrap: nowrap; }
+.b-qcard[data-card] .tc-head > .tag { flex: none; }
+.b-qcard[data-card] .tc-type > span {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* ── THE CARD'S OWN PADDING IS ON ITS CHILDREN ────────────────────────────
    `.type-card` is `padding: 0` and every `.tc-*` part carries `… 14px` of its
    own. Two of the parts here are this build's and had none, so the reason
