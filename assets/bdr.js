@@ -4041,18 +4041,23 @@
         (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
           '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
-      /* ══ THE ACCOUNT IS OFTEN THE PERSON ═══════════════════════════════
-         The mark sat on the company line, on the reading that a tier ranks
-         a company. Half the time the company is the least of it: what is
-         being worked is one person who happens to have an employer, and on
-         a card where the name is the headline and the company is a fact
-         underneath it, a rank pinned to the fact is a rank on the wrong
-         row. It goes with the name — the thing this card IS — and the row
-         it lands on is the row a reader is already looking at. */
+      /* ══ A TIER RANKS A COMPANY, AND A PERSON IS NOT ONE ═════════════
+         The tier shield sat hard against the right of the name here, on the
+         reading that what is being worked is one person who happens to have
+         an employer — so the rank should land on the row the reader is
+         already looking at.
+
+         It is still a fact about the COMPANY. What it grades is how much
+         that company is worth going after, which does not change when you
+         swap one of its people for another, and a Gold beside a name says
+         Gold about the name. The mark stays on the surfaces that ARE a
+         company — the account card and the account record — and on the
+         brief's "How far to go", where the sentence around it names the
+         account and the ceiling in one breath. The company on this card is
+         a door; the rank is on the page behind it. */
       '<div class="b-qcard-top">' +
         '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
           esc(c.name) + '</button>' +
-        (onBook() && a ? tierMark(a) : '') +
       '</div>' +
       /* Two elements, not one with a break in it. Who they are and where they
          work are different ranks — the role is the thing you open on, the
@@ -18401,10 +18406,11 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
-          /* The same rank, on the record the card opens. A mark that is on
-             the card and gone from the page behind it reads as something
-             the list made up. */
-          (onBook() && accOf(c) ? tierMark(accOf(c), 1) : '') +
+          /* No tier. It grades the COMPANY, and this masthead already
+             threw out industry, city, headcount and domain for being facts
+             about the company rather than about this person — the rank is
+             the same kind of fact and goes with them. It is on the account
+             page, which the company's name below is the door to. */
         '</div>' +
         /* ══ A RANK THAT WRAPS IS NOT A RANK ═══════════════════════════════
            Two ranks are drawn here — the first at lead size, the second a
