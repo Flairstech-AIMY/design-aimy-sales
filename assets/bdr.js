@@ -12467,7 +12467,7 @@
       ((call && call.length)
         ? '<button class="b-ghost b-cuts-go" type="button" data-callall="' +
           esc(call.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-          'Call them</button>'
+          'Call all ' + commas(call.length) + '</button>'
         : '') +
       /* After the run, because the run belongs to the cuts it acts on and
          the rule is what ends that group. A separator drawn before the
@@ -13492,7 +13492,7 @@
             (now.length > 1
               ? '<button class="b-ghost" type="button" data-callall="' +
                 esc(now.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-                'Call them</button>'
+                'Call all ' + commas(now.length) + '</button>'
               : '') +
           '</div>' +
           '<p class="b-tocall">' + esc(plural(people.length, 'person')) +
