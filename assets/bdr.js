@@ -25817,17 +25817,22 @@
     }
     body += '</div>';
 
-    /* THE RUN'S CONTROLS LIVE ON THE BRIEF, under a sentence naming what they
-       act on. In the panel they read as pausing or stopping THIS call, which
-       is a control whose object has to be guessed at. */
+    /* THE RUN'S CONTROLS LIVE ON THE BRIEF. In the panel they read as pausing
+       or stopping THIS call, which is a control whose object has to be
+       guessed at.
+
+       They stood under a sentence — "Call 1 of 15 on this run" — put there to
+       name what they act on. The panel says it already: `.call-of` prints the
+       same position beside the clock, on the surface you are looking at while
+       the call runs. Two places counting one run is one of them going stale in
+       the reader's head, and the brief's copy was the one nobody was watching.
+       The controls name their own objects — "this one" and "the run" — which
+       is the work the sentence was doing. */
     if (sess) {
-      const at = sess.done.length + sess.skipped.length + 1;
-      body += '<p class="s-callsum-note">Call <b>' + at + '</b> of <b>' + sess.ids.length +
-        '</b> on this run.</p>' +
-        '<div class="b-cuts">' +
-          '<button class="s-inline-btn" type="button" data-callskip>Skip this one</button>' +
-          '<button class="s-inline-btn" type="button" data-sessstop>Stop the run</button>' +
-        '</div>';
+      body += '<div class="b-cuts">' +
+        '<button class="s-inline-btn" type="button" data-callskip>Skip this one</button>' +
+        '<button class="s-inline-btn" type="button" data-sessstop>Stop the run</button>' +
+      '</div>';
     }
     openCanvas();
     say('aimy', answerBlock('Before you speak to ' + c.name, body,
