@@ -5094,9 +5094,14 @@ textarea::placeholder,
    The name sits under the clock with the kind of thing it is beside it, so
    the card answers when, who and what in three lines and stops. */
 .b-door-who {
-  display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: -4px;
+  display: flex; align-items: center; gap: 8px; min-width: 0;
   font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
 }
+/* The tuck belongs to the figure, not to the row. `-4px` closes the gap a
+   three-line-height figure leaves under itself; on the clear diary, which
+   has no figure at all now, it pulled the sentence up under the caption
+   instead and took 4px off a gap that was already the card's smallest. */
+.b-door-fig + .b-door-who { margin-top: -4px; }
 /* ── A CLEAR DAY IS TWO SENTENCES, NOT A NAME AND A WORD ──────────────────
    The row was built for "Evie Reid" beside "Demo" — two short things that
    sit on one line at any width the rail has. The empty day puts "Nothing is

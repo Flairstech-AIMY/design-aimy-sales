@@ -7260,8 +7260,14 @@
          with something in it gives to the KIND of thing it is. It is the
          same rank of fact — a second reading about the diary, beside the
          first — and the line under it belongs to the log now. */
-      return '<span class="b-door-fig is-quiet">Clear</span>' +
-        '<span class="b-door-who">Nothing is in the diary' +
+      /* —— NO FIGURE, BECAUSE THERE IS NO FIGURE ————————————————————————————
+         A big "Clear" stood over "Nothing is in the diary", which is the
+         same fact twice and the second time in words. It was there to keep
+         this card's first line level with the one beside it, which is a
+         reason about two boxes and not about the day: the other card's
+         figure is a number somebody needs, and an empty diary has none.
+         The sentence says it, and says it once. */
+      return '<span class="b-door-who">Nothing is in the diary' +
           '<span class="b-kind">' + (soon.length
             ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
             : 'none in the fortnight ahead') + '</span></span>' +
