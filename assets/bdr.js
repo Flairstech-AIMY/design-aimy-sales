@@ -569,7 +569,20 @@
          asking. */
       deal: { since: '2025-10-01', term: 12, notice: 60,
         engagements: [
-          { k: 'reach', kind: 'outbound', name: 'Outbound', fee: 180000,
+          /* ══ AND "OUTBOUND" IS OUR WORD FOR OUR OWN MOTION ══
+             It named the direction we dial in, on the desk of somebody who
+             does not dial. Beside `AiMY QA` and `Managed customer support`
+             — both things you can own — it was the one entry naming an
+             activity, and the activity is ours.
+             `Managed lead generation` is the same construction as the desk
+             one line down: who runs it, and what comes out. `kind` stays
+             `outbound`, which is what `onPipeline` reads and has nothing to
+             do with what this is called — and there is still no `sell`,
+             because nothing in `SELLS` is this and its LENGTH is load
+             bearing: a ninth row re-deals what every campaign in the book
+             is selling. */
+          { k: 'reach', kind: 'outbound', name: 'Managed lead generation',
+            fee: 180000,
             line: 'We find them, qualify them and put them in a room with you. ' +
               'What happens in the room is yours.',
             promises: [
@@ -639,8 +652,8 @@
              deals an offering to a campaign, so its LENGTH is load bearing
              the way `CLIENTS`'s is, and a ninth row to give one engagement
              a prettier label would re-deal what every campaign in the book
-             is selling. Outbound keeps its own name, which is also the
-             name anybody would use for it. */
+             is selling. The engagement above keeps a `name` of its own for
+             the same reason, and the margin there says what it is now. */
           { k: 'desk', kind: 'service', name: 'Support desk', sell: 'support',
             fee: 140000,
             spend: { was: 138000 },
@@ -9440,9 +9453,11 @@
   /* ══ WHAT A CLIENT BOUGHT, WHICH IS OFTEN MORE THAN ONE THING ══════════
      A deal written before this existed is one engagement that never needed
      naming, so the three clients with a single line of business are read
-     without being rewritten. */
+     without being rewritten. The name is the seed's, spelled the same way:
+     two places that both stand for the same service and drift the moment
+     one of them is renamed on its own. */
   const engsOf = (d) => (d && d.engagements) ||
-    (d ? [Object.assign({ k: 'only', name: 'Outbound' }, d)] : []);
+    (d ? [Object.assign({ k: 'only', name: 'Managed lead generation' }, d)] : []);
   /* ══════════════ WHAT THEY BOUGHT, IN THE WORDS THEY BOUGHT IT IN ══════════════
      An engagement's `name` is how this deal files it — "Quality tool",
      "Support desk" — and two of the three ARE something in the catalogue
