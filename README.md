@@ -402,6 +402,58 @@ which field on a scored conversation they average — `from` — and that is als
 what the generator ramps by, because a second client is where a metric's NAME
 used as a key stops being a name.
 
+**KESTREL'S PIPELINE BOOK IS AiMY TALENT, AND A HIRING PIPELINE IS A
+PIPELINE.** It was "Outbound", which names the direction we dial in on the
+desk of somebody who does not dial, and then "Managed lead generation",
+which is worse: finding and qualifying people is what AiMY Sales IS, so a
+contract listing it put the product the reader is standing in on the
+invoice beside two others. Kestrel sell test automation and engineering
+teams — people are the thing they ship, and hiring them is the constraint
+on the rest of the contract.
+
+`kind` stays `outbound` and `k` stays `reach`: the first is what
+`onPipeline` reads, which is what gives the book a ladder, campaigns and a
+board, and the second is what `?eng=` keys off. Neither is a word anybody
+sees. The ladder's words come off the engagement beside `metrics`, as
+`fn: { contacted: 'Approached', met: 'Interviewed', won: 'Hired' }`, folded
+over `BUYER_FN` so naming three stages leaves the other four alone — and
+`buyerBrief` and `promDoing` read the same table, so the sentence and the
+picture cannot come to different words for one stage.
+
+New promise keys where the SHORT name had to change, because `PROM_SAY` is
+keyed by `k` and three other clients read `met`, `found` and `arr` out of
+it. `found` keeps its key: "people we could reach" is the same sentence
+about a candidate as about a prospect.
+
+**AND `arr` WAS HOLDING UP THE WHOLE MONEY APPARATUS.** `targetFor` reads
+that promise, and a hiring engagement has none — nobody signs revenue off a
+hire — so the attainment bar drew booked against zero: "€65k of €0 — 0% of
+target", both markers at `left: 0%`, one tile saying the target was already
+met and the next saying 0% of it with 98% of the time gone. One zero, four
+voices. The margin over that bar was already right — *a bar with no target
+is a bar with nothing to say* — it just tested for a PIPELINE instead of for
+a target. It asks `a.target` now, which is the number it would print.
+`floorFigs` sorts on what the book HAS for the same reason: its three-tile
+branch says "was X at signing", and `was` is a baseline only a floor promise
+carries.
+
+**AND A CLIENT DOES NOT SCOPE TWICE.** `by` switches the money between what
+spent it and what earned it, which is right on the desk it was built for,
+where nothing else scopes the page. This desk has the engagement picker in
+its header and that rescopes every figure rather than one section, so two
+controls answering "which slice am I reading" is the reader holding two
+axes at once. Refused in `parse` beside `deals` and the lists, so a
+bookmarked `?by=svc` cannot reach it either.
+
+**The `svc` half was also putting our cost on their screen** — its campaign
+rows read "86 days left · €881 cost", which is what running that campaign
+costs US, on the desk whose whole line is that a client pays a fee and not
+a floor. **THE SWEEP THAT CHECKED THIS WENT OVER SURFACES, AND A FIGURE TWO
+PRESSES INSIDE A CUT OF A SECTION WAS NEVER ON THE LIST.** That is the
+lesson worth keeping: a client-scoping check has to enumerate the STATES of
+a surface, not the surfaces. The figure is gated behind `seesCost` at its
+own site as well.
+
 **Lambourne's claim is capacity, not a smaller payroll, and that is a decision
 rather than a softening.** Knowledge's own account of the Nordwind rollout
 sets the standard: reviewer headcount was unchanged, nobody was replaced, and
