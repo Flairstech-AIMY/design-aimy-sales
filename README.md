@@ -488,7 +488,7 @@ make. The sentence says what is true of both products and invites.
 
 Not the topnav, which already has a QA tab: that is the product switcher
 and the wrong weight. It says the product exists, not that it holds the
-half of this section that is missing. And not the front door either —
+half of this report that is missing. And not the front door either —
 `tbl=agents` lands a reader sent from a sentence about people ON the
 people. QA reads that param once and drops it from the URL, under a margin
 giving the rule both builds keep: context is passed, never reconstructed.
