@@ -1593,6 +1593,29 @@
     other: 'Write down what they actually said and read it back. Half of these are not objections, they are questions.',
   };
 
+  /* ══════════════ AND THE SAME ANSWER, SAID AS A THING WE DO ══════════════
+     `ANSWERS` is the line the team agreed, written the way a script is
+     written: an instruction to whoever is about to say it. Right for the
+     desk that says it, wrong for the company that bought the campaign —
+     they are not going to say any of it, and what they opened the block
+     for is whether anybody is doing anything about what keeps coming back.
+
+     Same commitment, said as a thing we do. A second table rather than a
+     translation at render time, so the client's sentence is a sentence
+     somebody wrote and can argue with, not a regex over somebody else's
+     imperative. `other` has no row here and never needs one: an unnamed
+     bucket is not a thing in the way, and `blockersOf` drops it. */
+  const OURS = {
+    pricing: 'We price it against what the work costs them today rather than '
+      + 'against a licence, and ask what one unfilled seat costs them a month.',
+    timing: 'We agree the quarter and book the meeting inside it — a date in the '
+      + 'diary survives a budget freeze, a promise to call back does not.',
+    feature: 'We ask which one thing is missing and say plainly whether we do it, '
+      + 'on the call rather than two calls later.',
+    service: 'We name what we do not do before they find it — the list of what we '
+      + 'do run is longer than they expect.',
+  };
+
   /* ── seed() — the whole corpus, from one number ─────────────────────────
      Deterministic and rebuilt on every load, which is what lets the store
      persist only what changed. Everything here is fixture: no network, no
@@ -5039,7 +5062,15 @@
 
     /* What this audience actually pushes back on, counted. */
     const objs = Object.create(null);
-    mine2.forEach((t) => t.objections.forEach((o) => (objs[o] = (objs[o] || 0) + 1)));
+    /* `other` is the bucket a reason lands in when nobody filed it, and on
+       this campaign it is the largest — so the card led with "Something
+       else came up on 3 calls here" on the desk of the company paying for
+       it. `blockersOf` drops it from the page for the same reason; this is
+       the same rule on the card that opens it. */
+    mine2.forEach((t) => t.objections.forEach((o) => {
+      if (isBuyer() && o === 'other') return;
+      objs[o] = (objs[o] || 0) + 1;
+    }));
     const top = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
     if (top && objs[top] >= 3) {
       const agreed = k.objections.filter((o) => o.k === top)[0];
@@ -17713,7 +17744,23 @@
     k.objections.forEach((o) => (agreed[o.k] = o.say));
     const said = Object.create(null);
     let gave = 0;
-    here.forEach((t) => (t.objections || []).forEach((o) => { said[o] = (said[o] || 0) + 1; gave++; }));
+    /* ══════════════ AND "SOMETHING ELSE" IS NOT A THING IN THE WAY ══════════════
+       `other` is where a reason lands when nobody filed it — the label is
+       literally "Something else" and the blurb is "Recorded, and not one
+       of the above". On our own desk that is a finding: three
+       conversations somebody has to go and listen to. On the client's it
+       is us telling the company paying for the campaign that we do not
+       know what three of their prospects said, at the top of the list,
+       with nothing under it.
+
+       Out of the DENOMINATOR as well as out of the rows. It is the
+       largest of the seven on this campaign, so keeping it in the count
+       and dropping its row would put "of 7 reasons" over a list that adds
+       to four and fold the biggest one into "came up less often". */
+    here.forEach((t) => (t.objections || []).forEach((o) => {
+      if (isBuyer() && o === 'other') return;
+      said[o] = (said[o] || 0) + 1; gave++;
+    }));
     const spoken = Object.keys(said).sort((a, b) => said[b] - said[a]).map((kk) => {
       const want = DOC_FOR[kk];
       let doc = -1;
@@ -17724,6 +17771,7 @@
         sub: (OBJECTION[kk] || {}).blurb || '',
         beats: agreed[kk] ||
           'Say the same thing to it twice and tell ' + actor(k.owner).name + ' what worked.',
+        ours: OURS[kk] || '',
         /* Whose sentence it is. An agreed answer is the campaign's own words
            and AiMY is only handing it over; everything else on this block is
            AiMY's read of the record, and the mark says that by itself. */
@@ -17742,6 +17790,8 @@
         n: noNum, of: members.length, unit: 'person', name: 'No number on the record',
         sub: 'They are on the campaign and there is nothing to dial.',
         beats: 'AiMY finds numbers overnight; the finder brings people who already have one.',
+        ours: 'We are finding numbers for them overnight, and the next list we pull '
+          + 'for you only brings people who already have one.',
         door: seesCost()
           ? { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' } : null,
       });
@@ -17757,6 +17807,8 @@
         beats: 'Ask for the job, not a name' +
           (k.persona && k.persona.who ? ' \u2014 ' + k.persona.who : '') +
           '. Reception puts a name through to nobody.',
+        ours: 'We ask reception for the job rather than a name' +
+          (k.persona && k.persona.who ? ' \u2014 ' + k.persona.who : '') + '.',
       });
     }
     const stuck = members.filter((c) => c.checkpoint === 'no-answer' && c.attempts >= TOUCH_RULE).length;
@@ -17775,6 +17827,14 @@
           : 'Past the fourth attempt a fifth is worth less than a colleague.',
         beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
           'Try that hour, or open their company and call somebody else there.',
+        /* Without an hour on the record the first clause is not drawn, and
+           "where that does not work" then points at nothing. Two
+           sentences, not one with a hole in it. */
+        ours: h
+          ? 'We call this campaign around ' + h.hour + ':00, when it gets through, and go '
+            + 'round the company for a colleague where that does not work.'
+          : 'We go round the company for a colleague rather than keep dialling the '
+            + 'same person.',
         door: { attr: 'data-q="no-answer"', say: 'Show the no-answers' },
       });
     }
@@ -17784,6 +17844,7 @@
         n: passed, of: members.length, unit: 'person', name: 'Meeting passed, nothing logged',
         sub: 'The meeting was the whole point and nobody said what happened.',
         beats: 'call them and settle it — showed up, did not show, or interested.',
+        ours: 'We are going back to each of them for the outcome.',
         door: { attr: 'data-q="after"', say: 'Work the ' + commas(passed) },
       });
     }
@@ -17810,9 +17871,26 @@
        is the one thing on the row the client could do something about,
        since they know their own market — and clearing it made the lead
        sentence read the stripped list and announce that every reason had
-       an answer agreed. Three of them do not. */
+       an answer agreed. Three of them do not.
+
+       ══════════════ AND SILENCE IS NOT THE ANSWER EITHER ══════════════
+       Stripping the beat and stopping left a block that named four things
+       in the way and said nothing about any of them — which reads as
+       nobody doing anything, on the one surface a client opens to find out
+       whether anybody is. `ours` is the same commitment said as a thing we
+       do.
+
+       ══════════════ AND `gap` IS A FACT ABOUT OUR FILING ══════════════
+       It means this campaign never wrote down its own agreed line, not
+       that nobody has an answer: `ANSWERS` is the house line and `OURS` is
+       the same line said as a thing we do, and both exist for every reason
+       a client is shown. Drawn on their copy it produced rows reading
+       "Open. We price it against what the work costs them today" — the
+       state and its own contradiction, one after the other.
+       Which campaign agreed its own wording is our bookkeeping. The answer
+       is the answer, so `gap` goes on this desk and the row gives it. */
     const plain = (x) => Object.assign({}, x,
-      { beats: '', from: '', door: null, doc: -1 });
+      { beats: x.ours || '', gap: false, from: '', door: null, doc: -1 });
     const cut = (xs) => (isBuyer() ? xs.map(plain) : xs);
     return {
       spoken: cut(shown),
@@ -17826,6 +17904,80 @@
          asking for the rest has to be able to produce the rest. */
       allStops: cut(stops), allSpoken: cut(spoken),
     };
+  }
+
+  /* ══════════════ THE SUMMARY IS THE WHOLE BLOCK, IN A SENTENCE ══════════════
+     The lead below is one claim over the rows, which is the right shape
+     for somebody reading between calls: they need the worst of it and the
+     rows carry what beats each one. A client is not between calls. They
+     opened this to find out whether anybody is on it, and four counts with
+     nothing over them does not answer that.
+
+     So the lead is the block: what stops a call, what comes back once it
+     connects, and where our answer to each of them stands — how many are
+     agreed, which are not, and whose they are. Both halves named
+     separately, because they are two populations counted against two
+     different totals and the mixed list `worst` reads off cannot say which
+     is which; `group` makes the same argument about the rows.
+
+     Named, never counted, for the open ones. "2 of the 4" would be read as
+     two mentions when it is two KINDS, and which ones is the half a client
+     can actually bring something to — they know their own market. */
+  function wayLead(k, b) {
+    const stop0 = b.stops[0];
+    const say0 = b.spoken[0];
+    const bits = [];
+    /* The headline figure is in the sentence rather than left to the row,
+       because this one is a summary: the margin below argues a lead must
+       not restate the evidence under it, and that is right when the lead
+       is a claim. A reader who is not going to work any of these rows is
+       owed the size of the biggest in the sentence that names it. */
+    if (stop0) {
+      bits.push('<b>' + esc(stop0.name) + '</b> is the most of what stops a call here, at <b>' +
+        commas(stop0.n) + ' of ' + esc(plural(stop0.of, stop0.unit)) + '</b>.');
+    }
+    if (say0) {
+      bits.push((stop0 ? 'Once one connects, <b>' : '<b>') + esc(say0.name.toLowerCase()) +
+        '</b> is what comes back most.');
+    }
+    /* Gated the way the rows are: under four reasons `blockersOf`
+       withholds the spoken list, and a claim about the answers to a list
+       nobody is being shown is a claim with no evidence under it. */
+    if (!b.spoken.length) {
+      if (b.thin) {
+        bits.push('Only ' + esc(plural(b.thin, 'person')) + ' here ' +
+          esc(verbFor(b.thin, 'has')) + ' given a reason so far, too few to call a pattern.');
+      }
+      return bits.join(' ');
+    }
+    /* ══════════════ AND WHETHER ANYBODY IS ON IT ══════════════
+       The half this block never said. Four counts and four sentences about
+       what is wrong is a status report with no status in it; what a client
+       opened it for is whether the reasons coming back have answers and
+       whose job it is when they do not. Both are on the record — `OURS`
+       per reason, and the campaign's own owner — so neither is asserted. */
+    const kinds = b.allSpoken;
+    const missing = kinds.filter((x) => !x.beats);
+    /* ══════════════ NAMED, NEVER COUNTED ══════════════
+       "We answer all 3 of the reasons they name" sat above rows reading
+       "of 4 reasons", and both were right: three KINDS came back across
+       four MENTIONS. Two denominators one word apart is the mismatch this
+       block's own margin spends a paragraph on, and it is unreadable in a
+       summary where there is no column head to disambiguate.
+       So the sentence names them and counts nothing. Which reason has no
+       answer is the half a client can bring something to anyway — they
+       know their own market — and a number never was. */
+    const names = (xs) => xs.map((x) => '<b>' + esc(x.name.toLowerCase()) + '</b>')
+      .join(', ').replace(/, ([^,]*)$/, ' and $1');
+    bits.push((!missing.length
+      ? 'We have an answer to every reason they name'
+      : missing.length === kinds.length
+        ? 'We have no agreed answer to ' + names(missing) + ' yet'
+        : 'We have an answer to all of them but ' + names(missing)) +
+      (k.owner
+        ? ', and <b>' + esc(actor(k.owner).name) + '</b> owns this campaign.'
+        : '.'));
+    return bits.join(' ');
   }
 
   function blockersBlock(k) {
@@ -17869,7 +18021,8 @@
        of 195 calls. The same three facts twice, and the second copy is the
        one set at the size of a figure. The claim stays up here; the evidence
        is the row. */
-    const lead = '<b>' + esc(worst.name) + '</b> is the most of it.' +
+    const lead = isBuyer() ? wayLead(k, b)
+      : '<b>' + esc(worst.name) + '</b> is the most of it.' +
       (gap
         ? ' Of the ' + esc(plural(b.gave, 'reason')) + ' anybody gave here, ' +
           /* Named, not counted. "2 of the 8" would be read as two of those
@@ -17953,7 +18106,12 @@
             '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" ' +
               'aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
             '<span class="b-aimy-say">' +
-              (x.gap ? '<b class="tone-warn">Nothing agreed.</b> ' : '') + esc(x.beats) +
+              /* The same fact, in the word the reader needs it in. On our
+                 own desk it is a gap somebody has to close; on the client's
+                 it is an item with a state and an owner, and the beat
+                 beside it names who. */
+              (x.gap ? '<b class="tone-warn">' +
+                (isBuyer() ? 'Open.' : 'Nothing agreed.') + '</b> ' : '') + esc(x.beats) +
               (x.door
                 ? ' <button class="s-inline-btn" type="button" ' + x.door.attr + '>' +
                   esc(x.door.say) + '</button>'
