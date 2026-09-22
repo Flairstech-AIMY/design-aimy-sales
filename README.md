@@ -457,8 +457,9 @@ promise is a promise ABOUT — it is just not this product's job to open one.
 **SO THE REPORT SAYS WHERE THE OTHER HALF IS.** An average stated with no
 way down to the conversation it came from is making a claim it cannot
 support, and that argument did not go away with the roster — it moved.
-`qaLine` carries it: *this page is what the scoring came to; AiMY QA is
-the scoring*, with a link on `agent-scorecards.html?tbl=agents`.
+`qaLine` carries it in one sentence: *AiMY QA shows which goal each agent
+is losing, and the reason under every verdict*, with the product name
+carrying a link on `agent-scorecards.html?tbl=agents`.
 
 **In the block that already speaks, not a second one.** It was an AiMY
 card under the four metrics for one commit. The report already has an AiMY
@@ -466,11 +467,19 @@ block at the top with the mark on it, so a second card in the same voice
 eight hundred pixels below the first is the page speaking twice — and
 `.slv`'s own stylesheet had made that call before, when `.slv-signals` put
 four buttons under that paragraph and lost them for repeating what the
-sentence already linked. So it is a second `.slv-line`, and the link is a
-phrase in `.slv-n` rather than a chip: in this paragraph weight plus
-underline means pressable and weight alone means important. It also reads
-better there — "this page" is now said at the top of the page it is
-about.
+sentence already linked. So it is a second `.slv-line`, and the NAME is
+the mark, in `.slv-n`: in this paragraph weight plus underline means
+pressable and weight alone means important, so a phrase built to be
+pressed would be a second way of saying it. Measured in both themes —
+weight 600 with the accent underline at 0.45 against the plain bold's 500
+and none, and light re-resolves that accent to a deeper purple rather
+than flattening it.
+
+**A door does not need an argument.** Three sentences stood here for two
+commits: this page is what the scoring came to, the scoring is AiMY QA,
+and a chip under it saying keep track of the desk. All three said one
+thing at descending volume, in a block whose other lines are one verdict
+each.
 
 `.slv-line` carried `margin: 0`, which was right for the one-line case it
 was built for and wrong the moment a block holds two: "What we think
@@ -479,12 +488,15 @@ verdicts about four different things 0.0px apart. 8 now, under the 12
 `.slv-head` keeps above the body, so the lines group beneath the heading
 as one answer and each verdict is still its own.
 
-A suggestion rather than a drill, and **the wording turns on it**. The two
-builds do not share a corpus — this floor is seeded by `floorOf` on a
-stream of its own and QA has its own records — so a door reading "open
-these conversations" would promise that the figure above decomposes on the
-other side of it. That is the one kind of claim this desk exists not to
-make. The sentence says what is true of both products and invites.
+**AND THE HEDGING WENT WITH THEM.** That wording existed to avoid
+promising that the figures on this page decompose on the other side of
+the link, because the two BUILDS do not share a corpus — this floor is
+seeded by `floorOf` on a stream of its own and QA has its own records.
+That is a fact about the prototype, and it was answering a question
+nobody reading this page is asking. In the PRODUCT, this client bought
+AiMY QA: `sell: 'qa'`, which is why the ledger three blocks up already
+says "AiMY QA is behind on average quality". What that product shows them
+is a plain statement of something they own.
 
 Not the topnav, which already has a QA tab: that is the product switcher
 and the wrong weight. It says the product exists, not that it holds the
