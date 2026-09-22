@@ -6880,7 +6880,12 @@
           : '') +
       '</div>' +
       (want.length
-        ? '<div class="s-odds-rows">' + want.slice(0, 3).map(floorRow).join('') + '</div>' +
+        /* Not `.map(floorRow)`: the second argument `map` hands a callback
+           is the INDEX, which arrives as the floor and is truthy from the
+           second row on. Named here so the shortlist stays a shortlist —
+           the per-person reading belongs on the tab. */
+        ? '<div class="s-odds-rows">' + want.slice(0, 3).map((x) => floorRow(x)).join('') +
+          '</div>' +
           (want.length > 3
             ? '<div class="b-acts b-acts-end">' +
               '<button class="b-ghost" type="button" data-go="' +
@@ -10107,13 +10112,18 @@
      that reads a floor — and it was written out three times. Three
      spellings of one sweep over two thousand scored conversations is how
      they come to disagree about which goal it is. */
-  function weakestGoal(f) {
-    if (!f || !f.evals.length) return null;
+  /* With an agent it is the same question of one person's conversations,
+     which is what the floor's rows and their own page both ask. */
+  function goalsFor(f, id) {
+    if (!f) return [];
+    const es = id ? f.evals.filter((e) => e.agent === id) : f.evals;
+    if (!es.length) return [];
     return QA_GOALS.map((g) => {
-      const n = f.evals.filter((e) => e.goals.filter((y) => y.k === g.k && y.pass).length).length;
-      return { g: g, pc: Math.round((n / f.evals.length) * 100) };
-    }).sort((a, b) => a.pc - b.pc)[0];
+      const n = es.filter((e) => e.goals.filter((y) => y.k === g.k && y.pass).length).length;
+      return { g: g, pc: Math.round((n / es.length) * 100) };
+    }).sort((a, b) => a.pc - b.pc);
   }
+  const weakestGoal = (f, id) => goalsFor(f, id)[0] || null;
 
   /* ══════════════ AND WHAT IS BEING DONE ABOUT THE ONES BEHIND ══════════════
      The ledger named fourteen promises, marked five of them behind and
@@ -10171,7 +10181,25 @@
     return say + ' ' + (bits.length ? bits.join(', ') + ', and ' + last : last) + '.';
   }
 
-  function floorRow(x) {
+  function floorRow(x, f, floorW) {
+    /* ══════════════ AND THE ROW NAMES THE EXCEPTION, NOT THE RULE ══════════════
+       A row under the line said the average and the tenure and stopped,
+       which leaves a reader with eight names and no idea what any of them
+       is about — the same shape the campaign's obstacles and the report's
+       ledger both had. The goals are a breakdown OF the score, so the
+       worst of them answers why this average is this average.
+
+       Drawn on every row it answered it eight times in the same words: on
+       this desk one goal is the worst for all eight under the line, so the
+       column read "Survey promotion is costing them the most" eight times
+       under a lead that had just said exactly that. A finding repeated
+       once a row is a finding nobody reads by the third one.
+
+       So the lead carries the pattern and the rows carry what breaks it.
+       Where somebody's worst goal is the floor's, their row says nothing
+       and means it; where it is a different one, that is the whole reason
+       to read their row rather than book the same afternoon for them. */
+    const w = f && isBuyer() && x.avg < 80 ? weakestGoal(f, x.a.id) : null;
     return '<button class="s-pan-p s-pan-go" type="button" data-ag="' + esc(x.a.id) + '">' +
       '<span class="s-pan-who">' +
         '<b>' + esc(x.a.name) +
@@ -10180,17 +10208,23 @@
         '<span class="s-pan-meta">' + esc(plural(x.n, 'conversation')) + ' scored &middot; ' +
           esc(plural(Math.round(x.a.months / 12 * 10) / 10 >= 1
             ? Math.round(x.a.months / 12) : 1, 'year')) + ' on the floor</span>' +
+        (w && (!floorW || w.g.k !== floorW.g.k)
+          ? aimyBlock({ text: 'It is <b>' + esc(w.g.title.toLowerCase()) + '</b> costing ' +
+            'them, at <b>' + commas(w.pc) + '%</b> of their conversations' +
+            (floorW ? ', not ' + esc(floorW.g.title.toLowerCase()) : '') + '.' }, true)
+          : '') +
       '</span>' +
       '<span class="s-pan-cost">' + esc(commas(x.avg) + '%') + '</span>' +
     '</button>';
   }
+
   function floorPage() {
     const f = floorOf(myClient(), (myEng() || {}).k);
     if (!f) return '<div class="s-home"></div>';
     const rows = floorRanked(f);
     const rule = (title, list) => (list.length
       ? '<div class="s-pan-restitle">' + title + '</div>' +
-        '<div class="s-odds-rows">' + list.map(floorRow).join('') + '</div>'
+        '<div class="s-odds-rows">' + list.map((x) => floorRow(x, f, fw)).join('') + '</div>'
       : '');
     /* ══════════════ A TAB, NOT A PAGE WITH A WAY BACK ══════════════
        This opened with "Back to the year", which was the only honest control
@@ -10210,11 +10244,48 @@
        same two facts, forty pixels apart.
        What is left is the one thing neither of the others says: the order
        they are in. */
+    /* ══════════════ WHAT IS COSTING THE FLOOR, BEFORE THE FLOOR ══════════════
+       Eighteen names in three rules, and nothing over them saying what the
+       floor is about — a reader arrives at a roster and has to build the
+       finding themselves out of eighteen percentages. The briefing above
+       counts how many are under the line; what it cannot say is WHY, and
+       the goals are a breakdown of exactly that.
+       The sharp half is how many of them it is the same goal for. One goal
+       under six of the eight is an afternoon with a trainer; eight
+       different ones are eight conversations, and a client deciding
+       whether this desk is being run is owed which of those it is. */
+    const fw = isBuyer() ? weakestGoal(f) : null;
+    const lead = (function () {
+      if (!fw) return '';
+      const t = (myDeal() || {}).team || {};
+      const whose = t.whose === 'ours' ? 'the desk' : 'your floor';
+      const under = rows.filter((x) => x.avg < 80);
+      const same = under.filter((x) => {
+        const o = weakestGoal(f, x.a.id);
+        return o && o.g.k === fw.g.k;
+      }).length;
+      /* "8 of the 8" is a ratio standing in for a word. Where it is all of
+         them that is the finding, and it is the one that decides whether
+         this is an afternoon with a trainer or eight conversations. */
+      const share = !under.length || !same ? ''
+        : same === under.length
+          ? ' &mdash; and it is the worst goal for <b>every one of the ' +
+            commas(under.length) + '</b> under the line.'
+          : ' &mdash; and it is the worst goal for <b>' + commas(same) + ' of the ' +
+            commas(under.length) + '</b> under the line.';
+      const mgr = acctMgr();
+      return aimyBlock({ text: '<b>' + esc(fw.g.title) + '</b> is the goal costing ' +
+        esc(whose) + ' the most, at <b>' + commas(fw.pc) + '%</b> of conversations' +
+        (share || '.') +
+        (mgr ? ' <b>' + esc(mgr.name) + '</b> owns ' +
+          (t.whose === 'ours' ? 'the desk' : 'it') + '.' : '') }, true);
+    }());
     return '<div class="s-home">' +
       topBrief('floor') +
       '<section class="s-exec-sec s-block-wide">' +
         '<div class="s-camp-list-head">' + switcher('floor') +
           '<span class="s-block-say">worst first</span>' + '</div>' +
+        lead +
         /* Said where the records are, not in a footnote somewhere else. */
         (f.seen > f.evals.length
           ? '<p class="s-exec-note">The averages are over all ' + esc(commas(f.seen)) +
@@ -10237,10 +10308,9 @@
     if (!a) return '<div class="s-home"></div>';
     const es = f.evals.filter((e) => e.agent === a.id).sort((x, y) => y.w - x.w);
     const avg = es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : 0;
-    const per = QA_GOALS.map((g) => {
-      const n = es.filter((e) => e.goals.filter((x) => x.k === g.k && x.pass).length).length;
-      return { g: g, pc: es.length ? Math.round((n / es.length) * 100) : 0 };
-    }).sort((x, y) => x.pc - y.pc);
+    /* The fourth spelling of this sweep, and the last: `goalsFor` answers
+       it for the floor and for one person off the same pass. */
+    const per = goalsFor(f, a.id);
     return '<div class="s-home">' +
       /* `data-back` clears every key, which on this desk landed on Today —
          a button saying floor and going somewhere else. It names the
@@ -10256,6 +10326,24 @@
         '<p class="s-exec-scope">' + esc(commas(avg) + '% average') + ' &middot; ' +
           esc(plural(es.length, 'conversation')) + ' scored &middot; ' +
           esc(floorSay(avg)) + '</p>' +
+        /* ══════════════ AND THE TABLE IS A RANKING, NOT A FINDING ══════════════
+           Seven goals with a percentage each is the evidence; which of
+           them is doing the damage and whether it is this person or the
+           whole floor is the reading, and a client opening somebody's page
+           has to build it themselves out of seven rows and a memory of the
+           page before. The comparison is the half the table cannot hold:
+           the same goal, across everybody, off the same sweep. */
+        (function () {
+          if (!isBuyer() || !per.length) return '';
+          const mine2 = per[0];
+          const all = goalsFor(f).filter((z) => z.g.k === mine2.g.k)[0];
+          const t = (myDeal() || {}).team || {};
+          const whose = t.whose === 'ours' ? 'the desk' : 'the floor';
+          return aimyBlock({ text: '<b>' + esc(mine2.g.title) + '</b> is their lowest goal, ' +
+            'at <b>' + commas(mine2.pc) + '%</b> of their conversations' +
+            (all ? ' against <b>' + commas(all.pc) + '%</b> across ' + esc(whose) : '') +
+            '.' }, true);
+        }()) +
         '<div class="b-funnel">' +
           '<div class="b-fn-head"><span class="b-fn-name">Goal</span><span></span>' +
             '<span class="b-fn-n">passed</span><span class="b-fn-conv">worth</span></div>' +
@@ -10351,8 +10439,18 @@
         '<div class="s-afs">' +
           attFig('Scored', commas(e.score) + '%', floorSay(e.score).toLowerCase(),
             e.score >= 80 ? 'ok' : null) +
-          attFig('Points lost', commas(lost), lost ? 'across ' +
-            plural(rows.filter((x) => !x.pass).length, 'goal') : 'nothing missed', null) +
+          (function () {
+            /* "across 1 goal" is a count standing where a name fits. The
+               row that failed is eight inches down the page and this is
+               the figure a reader stops on; at one or two it says which,
+               and past that the count is the honest summary. */
+            const bad = rows.filter((x) => !x.pass);
+            return attFig('Points lost', commas(lost),
+              !lost ? 'nothing missed'
+                : isBuyer() && bad.length <= 2
+                  ? 'all on ' + bad.map((x) => x.g.title.toLowerCase()).join(' and ')
+                  : 'across ' + plural(bad.length, 'goal'), null);
+          }()) +
           (function () {
             const l = lagOf(e);
             return attFig('Looked at', l.fig + ' later',
