@@ -452,9 +452,29 @@ week by week, `floorNow` takes the last four of those weeks so one quiet
 week cannot flip a verdict, and `promiseGot` puts the result beside what was
 written down. The report shows four metrics across forty-eight weeks against
 their value at signing. A scored conversation is still what the coverage
-promise is a promise ABOUT — it is just not this product's job to open one,
-and the section that used to offer says so rather than pretending the claim
-needs no support.
+promise is a promise ABOUT — it is just not this product's job to open one.
+
+**SO THE SECTION SAYS WHERE THE OTHER HALF IS.** An average stated with no
+way down to the conversation it came from is making a claim it cannot
+support, and that argument did not go away with the roster — it moved. An
+AiMY block under the four metrics carries it: *this page is what the
+scoring came to; the scoring is AiMY QA*, with a link on
+`agent-scorecards.html?tbl=agents`.
+
+A suggestion rather than a drill, and **the wording turns on it**. The two
+builds do not share a corpus — this floor is seeded by `floorOf` on a
+stream of its own and QA has its own records — so a door reading "open
+these conversations" would promise that the figure above decomposes on the
+other side of it. That is the one kind of claim this desk exists not to
+make. The sentence says what is true of both products and invites.
+
+Not the topnav, which already has a QA tab: that is the product switcher
+and the wrong weight. It says the product exists, not that it holds the
+half of this section that is missing. And not the front door either —
+`tbl=agents` lands a reader sent from a sentence about people ON the
+people. QA reads that param once and drops it from the URL, under a margin
+giving the rule both builds keep: context is passed, never reconstructed.
+`QA_HOME` holds the address once, the way `SELL` and `REPS` hold theirs.
 
 `FLOOR_SUBJ` and `FLOOR_CHAN` are drawn and no longer read. `pick` walks
 this floor's stream in order, so removing two draws re-deals every score,
