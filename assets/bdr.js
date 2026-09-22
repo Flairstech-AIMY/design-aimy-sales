@@ -10676,50 +10676,46 @@
      the only before-and-after model anywhere in the tree. Here it is said in
      words rather than drawn, because four rows do not make a heatmap and the
      sentence carries the thing a chart would only imply. */
-  /* ══════════════ WHERE THE CONVERSATIONS ARE, SAID ONCE ══════════════
-     A SUGGESTION, NOT A DRILL, AND THE WORDING TURNS ON IT. The two
-     products do not share a corpus: this floor is seeded by `floorOf` on a
-     stream of its own and QA has its own records. A door reading "open
-     these conversations" would promise that the figures on this page
-     decompose on the other side of it, which is the one kind of claim this
-     desk exists not to make. So the line says what is TRUE of both —
-     scoring is what AiMY QA does, this page is what the scoring came to —
-     and invites rather than asserts. Standing at the TOP of the report it
-     is a better sentence than it was under the metrics, because "this
-     page" is now said at the top of the page it is about.
+  /* ══════════════ WHERE THE CONVERSATIONS ARE, IN ONE LINE ══════════════
+     Three sentences stood here — this page is what the scoring came to,
+     the scoring is AiMY QA, and a chip under it saying keep track of the
+     desk. All three said the same thing at descending volume, in a block
+     whose other lines are one verdict each. A door does not need an
+     argument; it needs to say what is on the other side of it.
 
-     THE LINK IS A PHRASE, NOT A CHIP. `.slv-line`'s own rule: weight plus
-     underline means pressable, weight alone means important, and the four
-     buttons that used to sit under this paragraph were taken out for
-     repeating what the sentence already linked. `.slv-n` is that mark, and
-     it sets `font-family` and `font-size` to inherit — written for a
-     `<button>`, and neither of them is anything an `<a>` minds.
+     The hedging went with them, and it was answering a question nobody on
+     this page is asking. It read "this page is what the scoring came to"
+     to avoid promising that these figures decompose on the other side of
+     the link, because the two BUILDS do not share a corpus. That is a fact
+     about the prototype. In the product, this client bought AiMY QA —
+     `sell: 'qa'`, which is why the ledger three blocks up already says
+     "AiMY QA is behind on average quality" — so what that product shows
+     them is a plain statement of what they own.
+
+     THE PRODUCT NAME IS THE DOOR. `.slv-line`'s rule is that weight plus
+     underline means pressable and weight alone means important, so the
+     name can carry the link without a phrase built to be pressed. One
+     line, one mark, and no second way of saying it. `.slv-n` sets
+     `font-family` and `font-size` to inherit — written for a `<button>`,
+     and neither is anything an `<a>` minds.
 
      `agent-scorecards.html?tbl=agents`, not the front door: that page
      reads `tbl` on load and drops it from the URL, under a margin giving
-     the reason both builds keep — context is passed, never reconstructed.
-     A reader sent from a sentence about people lands on the people.
-
-     Not the topnav either, which already carries a QA tab: that is the
-     product switcher and the wrong weight. It says the product exists, not
-     that it holds the half of this report that is missing. */
+     the rule both builds keep — context is passed, never reconstructed.
+     A reader sent from a sentence about people lands on the people. And
+     not the topnav, which already carries a QA tab: that is the product
+     switcher, and it says the product exists rather than what it holds. */
   function qaLine() {
     const t = isBuyer() ? (myDeal() || {}).team : null;
     if (!t) return '';
-    /* The pronoun has to have something to point at. "The desk,
-       conversation by conversation, the goal each of them is losing" reads
-       THEM back to a desk, which is one thing — so the clause carrying
-       the plural carries the pronoun with it, and the desk's own version
-       names the agent instead. */
-    const whose = t.whose === 'ours'
-      ? 'the desk conversation by conversation, the goal each agent is losing'
-      : 'your own people, conversation by conversation, the goal each of them is losing';
-    return '<p class="slv-line">This page is what the scoring came to. ' +
-      '<b>AiMY QA</b> is the scoring — ' + esc(whose) + ', and the reason ' +
-      'under every verdict. ' +
+    /* Whose floor it is, in one word, because the rest of the sentence is
+       the same either way. */
+    const who = t.whose === 'ours' ? 'each agent' : 'each of your people';
+    return '<p class="slv-line">' +
       '<a class="slv-n" href="' + esc(QA_HOME + 'agent-scorecards.html?tbl=agents') +
-        '" target="_blank" rel="noopener">Keep track of ' +
-        esc(t.whose === 'ours' ? 'the desk' : 'your team') + ' in AiMY QA</a></p>';
+        '" target="_blank" rel="noopener">AiMY QA</a>' +
+      ' shows which goal ' + esc(who) + ' is losing, and the reason under ' +
+      'every verdict.</p>';
   }
 
   function buyerFloor() {
