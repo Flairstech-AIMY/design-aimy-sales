@@ -5074,13 +5074,18 @@
     const top = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
     if (top && objs[top] >= 3) {
       const agreed = k.objections.filter((o) => o.k === top)[0];
-      /* The second sentence is the answer the team agreed to give, or the
-         note about what to do when nobody agreed one — the words a caller
-         says out loud. The count is the finding and it is the whole of what
-         the company paying for the campaign is owed here. */
+      /* ══════════════ AND THE CARD ANSWERS ITSELF ══════════════
+         The second sentence is the line the team agreed to say, which is a
+         caller's script and came off this card for that reason — leaving a
+         card that named what keeps coming back and said nothing about it,
+         which is the shape every surface on this desk had before the same
+         repair. `OURS` is the same commitment as a thing we do, so the
+         card can carry it without carrying the script. */
       return {
         text: esc(OBJECTION[top].label) + ' came up on <b>' + objs[top] + '</b> calls here.' +
-          (isBuyer() ? '' : ' ' + esc(agreed ? agreed.say : OBJECTION[top].blurb)),
+          (isBuyer()
+            ? (OURS[top] ? ' ' + esc(OURS[top]) : '')
+            : ' ' + esc(agreed ? agreed.say : OBJECTION[top].blurb)),
         from: commas(mine2.length) + ' calls on this campaign',
       };
     }
@@ -12497,6 +12502,61 @@
   /* ══ THE CAMPAIGNS YOU ARE ON ═══════════════════════════════════════════
      Its own surface, not a block under a thousand people. Paged like every
      other worklist, because fourteen today is forty next quarter. */
+  /* ══════════════ THREE CARDS ARE NOT AN ANSWER TO "ARE THESE WORKING" ══════════════
+     The grid says what each campaign is and where each one is, one card at
+     a time, and leaves the reader to hold three of them in their head and
+     subtract. The paragraph above it names which has handed over the most
+     and which closes first — the size and the clock. What neither says is
+     whether they are going to get there, which is the only question the
+     company paying for them opened this tab with.
+
+     Two sentences, both aggregate, both off derivations the cards and the
+     campaign pages already draw: the pace across all of them, and the one
+     thing most in the way on all of them. What we do about that one is on
+     each card and on each campaign, where the persona it turns on is the
+     right persona — three campaigns ask reception for three different job
+     titles, and an aggregate that named one of them would name it for the
+     other two as well. */
+  function campsLead(camps) {
+    if (!isBuyer()) return '';
+    const open = camps.filter(campOpen);
+    if (open.length < 2) return '';
+    const bits = [];
+    const stood = open.map((k) => ({ k: k, st: campStand(k) })).filter((x) => x.st.target);
+    const behind = stood.filter((x) => x.st.need > 0 && x.st.perWeek);
+    if (stood.length && !behind.length) {
+      bits.push('All <b>' + commas(stood.length) + '</b> are past what they were set for.');
+    } else if (behind.length) {
+      const worst = behind.slice().sort((a, b) => b.st.need - a.st.need)[0];
+      /* "1 of the 3 have ground to make up, X the most" was wrong twice on
+         one line: `plural` inflects a noun and the verb beside it was a
+         literal, and where one campaign is behind there is no "most" for
+         it to be the most of. */
+      bits.push('<b>' + commas(behind.length) + ' of the ' + commas(stood.length) +
+        '</b> ' + esc(verbFor(behind.length, 'has')) + ' ground to make up' +
+        (behind.length === 1 ? ': <b>' : ', <b>') + esc(worst.k.name) + '</b>' +
+        (behind.length === 1 ? ' wants <b>' : ' the most — <b>') +
+        esc(plural(worst.st.perWeek, worst.st.noun)) + ' a week</b> ' +
+        (behind.length === 1 ? 'to land' : 'lands') + ' the other <b>' +
+        commas(worst.st.need) + '</b> before it closes.');
+    }
+    /* Aggregated by NAME, because a stop is the same stop on three
+       campaigns and the denominators add: the alternative is the biggest
+       single figure on any one of them wearing the word "across". */
+    const by = Object.create(null);
+    open.forEach((k) => (blockersOf(k).allStops || []).forEach((s) => {
+      const row = by[s.name] || (by[s.name] = { n: 0, of: 0, unit: s.unit });
+      row.n += s.n; row.of += s.of;
+    }));
+    const top = Object.keys(by).sort((a, b) => by[b].n - by[a].n)[0];
+    if (top) {
+      bits.push('<b>' + esc(top) + '</b> is the most of what is in the way on all ' +
+        esc(commas(open.length)) + ', at <b>' + commas(by[top].n) + ' of ' +
+        esc(plural(by[top].of, by[top].unit)) + '</b>.');
+    }
+    return bits.length ? aimyBlock({ text: bits.join(' ') }, true) : '';
+  }
+
   function campsPage() {
     /* "soonest to close first", which the caption promised and the list
        did not do; closed ones last */
@@ -12523,6 +12583,9 @@
            and what each card says is said by the card. */
         (S.find ? '<p class="s-block-sub">' + plural(camps.length, 'campaign') +
           ' matching “' + esc(S.find) + '”.</p>' : '') +
+        /* Over the grid and under the row that finds one: it is a reading
+           of what is in the grid, so a narrowed grid narrows it too. */
+        campsLead(camps) +
         cgrid(pg.rows) +
         pager(pg, 'campaign') +
       '</section>' +
