@@ -269,6 +269,25 @@
 .s-camp-list-head > .s-engpick {
   order: 99; margin-left: auto; margin-right: 0; align-self: center;
 }
+/* ══════════════ EXCEPT WHERE A FIND BOX IS ALREADY ON IT ══════════════
+   Campaigns is the one tab that carries a search field, and a tab strip, a
+   field and a control is where the row stops being a toolbar and starts
+   being three things in a line. It also wraps on its own under about
+   1200px, which puts the scope on a second line at some widths and not
+   others — a layout that changes shape with the window is worse than
+   either shape.
+
+   So where there is a find box the scope takes the row above it, at every
+   width, and the tabs and the field keep theirs. `:has` is how this head
+   already branches on the same condition three rules down.
+
+   `order: 0` puts it back where the markup has it — first, which is the
+   line above — and `justify-content` does what the auto margin did, because
+   an item that is already the full width has no free space for a margin to
+   absorb. */
+.s-camp-list-head:has(.b-find) > .s-engpick {
+  order: 0; flex-basis: 100%; justify-content: flex-end; margin-left: 0;
+}
 .s-camp-list-head > .s-engpick + .b-switch { margin-right: auto; }
 /* And the same end of the report's header. `.s-exec-top` is
    `space-between` and its own margin says the control that changes what is
