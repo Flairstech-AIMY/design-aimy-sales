@@ -10859,29 +10859,43 @@
     const es = engsOf(dealOf(myClient()));
     if (es.length < 2) return '';
     const here = myEng();
-    /* The sub-line is what the engagement IS, in the words the report's
-       own "What you bought" uses for it. Not how its promises stand: that
-       is `myYear`, which answers for the book being read rather than for
-       each of them, so three states under three names would be one true
-       figure and two borrowed from it. */
-    const item = (k, name, sub) =>
+    /* ══════════════ AND A NAME NEEDS NO GLOSS UNDER IT ══════════════
+       Each row carried a second line saying what the engagement is — "your
+       people, our scoring" under AiMY QA. It doubled the height of a list
+       whose whole job is to be read in one glance, to explain names the
+       catalogue already made explicit: a product name IS the description,
+       which is what naming them out of `SELLS` was for.
+       The words are not lost. `ENG_SAY` still writes them on the report's
+       own "What you bought", where there is a row to read rather than a
+       list to choose from, and beside how the promises on each stand. */
+    const item = (k, name) =>
       '<button class="b-menu-item" type="button" role="menuitem" data-eng="' + esc(k) + '"' +
       ((S.eng || '') === k ? ' aria-current="true"' : '') + '>' +
-        '<span class="b-menu-line"><span class="b-menu-name">' + esc(name) + '</span>' +
-        (sub ? '<span class="b-menu-sub">' + esc(sub) + '</span>' : '') + '</span>' +
+        '<span class="b-menu-name">' + esc(name) + '</span>' +
       '</button>';
+    /* ══════════════ AND THE LABEL IS NOT A SECOND THING TO READ ══════════════
+       "What you bought" stood beside the button as a caption. Two
+       elements to say what one control is, and it wore `.s-block-say`,
+       whose -8px top margin is written for a caption sitting against a
+       block heading and put this one eight pixels above the thing it was
+       captioning.
+       The button says it instead: three of the four labels it can carry
+       are a product's own name, which needs no caption at all. `aria-label`
+       carries what the caption was for, because "Everything" on its own is
+       the one label that does not say what it is everything OF. */
+    const label = here ? engName(here) : 'Everything';
     return '<div class="s-engpick">' +
-      '<span class="s-block-say s-engpick-cap">What you bought</span>' +
       '<span class="b-menu-wrap">' +
         '<button class="b-ghost b-menu-open s-engpick-btn" type="button" ' +
-          'data-pickopen="engMenu" aria-haspopup="menu">' +
-          esc(here ? engName(here) : 'Everything') + chIcon('down') + '</button>' +
-        '<div class="b-menu" id="engMenu" role="menu" hidden>' +
+          'data-pickopen="engMenu" aria-haspopup="menu" ' +
+          'aria-label="' + esc('What you bought: ' + label) + '">' +
+          esc(label) + chIcon('down') + '</button>' +
+        '<div class="b-menu s-engpick-menu" id="engMenu" role="menu" hidden>' +
           /* No `.b-menu-cap`: the caption beside the button already says
              what the list is, and a menu repeating its own label at the top
              of itself is the page saying it twice eight pixels apart. */
-          item('', 'Everything', plural(es.length, 'engagement') + ' side by side') +
-          es.map((e) => item(e.k, engName(e), ENG_SAY[e.kind] || '')).join('') +
+          item('', 'Everything') +
+          es.map((e) => item(e.k, engName(e))).join('') +
         '</div>' +
       '</span>' +
     '</div>';

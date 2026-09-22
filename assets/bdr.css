@@ -273,10 +273,14 @@
    edge on that second line, which is where the header meant it to be. */
 .s-exec-top > .s-engpick { margin-left: auto; }
 .s-engpick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-/* The caption is not one of the controls beside it — the same argument
-   `.s-camp-list-head`'s own first-child rule makes, at this scale. */
-.s-engpick-cap { flex: none; }
 .s-engpick-btn { display: inline-flex; align-items: center; gap: 8px; }
+/* The longest label here is a product's whole name, and `.b-menu`'s 216 is
+   shared by every menu in the build — so "Managed customer support" broke
+   over two lines among three that take one, and a list read in one glance
+   looked ragged for want of eleven pixels. 216 is a MINIMUM: an item that
+   refuses to wrap widens this menu to its widest name and leaves every
+   other menu alone. */
+.s-engpick-menu .b-menu-item { white-space: nowrap; }
 /* Quiet, and it grows nothing on hover: the caret is a statement about the
    control rather than a second thing to look at. */
 .s-engpick-btn svg { width: 14px; height: 14px; opacity: 0.6; flex: none; }
