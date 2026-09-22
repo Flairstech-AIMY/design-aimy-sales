@@ -8004,14 +8004,29 @@
      behind of 14 and the report said 5 behind of 14, on the same desk, four
      hundred pixels apart. One derivation, so they cannot disagree again. */
   let YEAR_CACHE = null;
+  /* ══════════════ AND THE PASS IS ONLY PAID WHERE IT IS OWED ══════════════
+     A promise on a floor reads its own seeded series and a promise about
+     regions reads the campaigns; neither needs a pass over anybody. A floor
+     book's four promises are all of the first kind, so the pass it was
+     paying for was a walk over a pipeline none of its figures come from.
+     Small — this corpus is six hundred people and the pass is single
+     figures of milliseconds — and the reason is not the milliseconds. It is
+     that a surface with no pipeline should not be reading one.
+
+     Written as which readings are CHEAP rather than which are dear, so the
+     failure mode of forgetting to add one is a slower answer and never a
+     wrong one. */
+  const cheapRead = (r) => r.read.indexOf('team.') === 0 || r.read === 'camps.regions';
   function myYear() {
     if (YEAR_CACHE) return YEAR_CACHE;
     const p = periodOf('deal');
-    const scope = bookScope();
-    const now = bookMoney(scope, p, workingHeads());
-    const pipe = pipelineOf(dealBook());
     const d = myDeal();
-    const scored = ((d && d.promises) || [])
+    const proms = (d && d.promises) || [];
+    const pass = proms.some((r) => !cheapRead(r));
+    const scope = pass ? bookScope() : [];
+    const now = pass ? bookMoney(scope, p, workingHeads()) : { funnel: [], byLine: [] };
+    const pipe = pass ? pipelineOf(dealBook()) : null;
+    const scored = proms
       .map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
       .filter((x) => x.got != null);
     YEAR_CACHE = { p: p, now: now, pipe: pipe, scope: scope, scored: scored,
@@ -9954,11 +9969,19 @@
   const floorBand = (n) => (n >= 80 ? 'ok' : n >= 65 ? 'warn' : 'err');
   const floorSay = (n) => (n >= 80 ? 'On track' : n >= 65 ? 'Watch' : 'At risk');
   function floorRanked(f) {
-    return f.agents.map((a) => {
+    /* Twenty-four people against two and a half thousand scored
+       conversations is fifty-eight thousand comparisons, and three surfaces
+       want the answer on one paint: the briefing counts who is under the
+       line, the block under it draws the worst three, and the tab draws all
+       of them in three rules. Held on the floor itself, which `FLOOR_CACHE`
+       generates once and nothing ever writes to. */
+    if (f.ranked) return f.ranked;
+    f.ranked = f.agents.map((a) => {
       const es = f.evals.filter((e) => e.agent === a.id);
       return { a: a, n: es.length,
         avg: es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : null };
     }).filter((x) => x.avg != null).sort((x, y) => x.avg - y.avg);
+    return f.ranked;
   }
   /* One person on it. Written once because Today shows the top of this list
      and the tab shows all of it, and two spellings of one row is how the two
@@ -12157,11 +12180,17 @@
      nothing to do on this product unless something offers to go and find
      more, and "Find leads" is that door on every surface. */
   function topBrief(here) {
-    const all = queue(null, 'all');
+    /* A floor's paragraph and a floor's four ways to start read neither of
+       these, and `queue(null, 'all')` is a pass over every person in the
+       client's book — which is the PIPELINE's book, on a surface that has
+       no pipeline. Both halves branch on `onFloor` before they look at
+       anything, so the work is not done rather than done and dropped. */
+    const floor = onFloor();
+    const all = floor ? [] : queue(null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
-    counts.after = queue(null, 'after').length;
-    const camps = myCampaigns();
+    counts.after = floor ? 0 : queue(null, 'after').length;
+    const camps = floor ? [] : myCampaigns();
     return '<section class="slv s-block-wide" aria-label="Today">' +
       '<div class="slv-head">' +
         '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
@@ -12355,9 +12384,16 @@
          held one until now, which is the whole reason it survived. Fixed
          rather than carried across, and named here because it is not this
          change's bug. */
+      /* And a client does not own one either. "3 campaigns are yours" on
+         the desk of the company we are running them FOR claims the one
+         thing this desk is built to be careful about — who does the work
+         — and `bookWhose` is the phrase for it, said once and read here
+         the way the briefing on Today reads it. */
       return (isLine()
         ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' sells ' : ' sell ') +
           esc(sellSay(myLine())) + '.'
+        : isBuyer()
+        ? plural(camps.length, 'campaign') + ' ' + esc(bookWhose()) + '.'
         : plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') + ' yours.') +
         ' <b>' + esc(busiest.name) +
         '</b> has the most left to call at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
