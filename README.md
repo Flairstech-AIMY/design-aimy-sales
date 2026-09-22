@@ -362,6 +362,21 @@ the corpus produces a cause. Only on the ones we answer for: where a
 promise moves at their end the group's heading says so, and a line from us
 would be us taking credit for their afternoon.
 
+**AND THE FLOOR WAS A ROSTER.** Eighteen names in three rules with nothing
+over them, which is the same shape again. The lead names the goal costing
+the floor most and — the sharp half — how many of the people under the line
+it is the SAME goal for: one goal under every one of the eight is an
+afternoon with a trainer, eight different ones are eight conversations.
+
+**The rows carry what breaks the pattern, not the pattern.** Drawn on every
+row the per-person reading said "Survey promotion is costing them the most"
+eight times under a lead that had just said it; a row speaks only where
+that person's worst goal is not the floor's. On the quality tool that is
+four of eleven. The person's page opens on the comparison its table cannot
+hold — their lowest goal against the same goal across the floor — and a
+conversation that lost its points on one or two goals names them rather
+than counting them. `goalsFor` is the single sweep behind all four.
+
 Who owns them is said ONCE, in the summary at the top. Three behind rows
 each ending "and Lina Haddad owns it" is one name down one column. And the
 cause has to belong to the promise it sits under: keyed on `team.` the
