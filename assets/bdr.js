@@ -4940,6 +4940,21 @@
         ? (members.length
           ? '<b>' + commas(members.length) + '</b> on it, and nobody calling them yet'
           : 'Nobody on it yet')
+        : isBuyer()
+        /* ══════════════ WHAT A CARD SAYS TO THE COMPANY THAT BOUGHT IT ══════════════
+           "4 of its 56 people to call, 2 callbacks, 38 never called" is the
+           size of somebody's afternoon. It is the right line for the desk
+           that works the campaign and it is three counts of a queue on the
+           desk that paid for one — which does not open the queue and has
+           nobody to send at it. The same roster, read forwards: how far the
+           finding has got, and how much of it reached their team. */
+        ? '<b>' + commas(members.filter((c) => c.checkpoint !== 'not-called').length) +
+          '</b> of its ' + plural(members.length, 'person') + ' reached' +
+          (function () {
+            const h = members.filter((c) => c.checkpoint === 'handed-over').length;
+            return h ? ', <b>' + commas(h) + '</b> handed over' : '';
+          }()) +
+          (campOpen(k) ? '' : ', and it closed ' + esc(sayWhen(k.to)))
         : campOpen(k)
         ? '<b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
@@ -4980,6 +4995,8 @@
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' +
           (isAsked(k) ? (campFills(k) ? 'Open it' : 'See it')
+            /* Work it is the verb of the desk that runs it. */
+            : isBuyer() ? 'See it'
             : isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
@@ -5026,9 +5043,13 @@
     const top = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
     if (top && objs[top] >= 3) {
       const agreed = k.objections.filter((o) => o.k === top)[0];
+      /* The second sentence is the answer the team agreed to give, or the
+         note about what to do when nobody agreed one — the words a caller
+         says out loud. The count is the finding and it is the whole of what
+         the company paying for the campaign is owed here. */
       return {
-        text: esc(OBJECTION[top].label) + ' came up on <b>' + objs[top] + '</b> calls here. ' +
-          esc(agreed ? agreed.say : OBJECTION[top].blurb),
+        text: esc(OBJECTION[top].label) + ' came up on <b>' + objs[top] + '</b> calls here.' +
+          (isBuyer() ? '' : ' ' + esc(agreed ? agreed.say : OBJECTION[top].blurb)),
         from: commas(mine2.length) + ' calls on this campaign',
       };
     }
@@ -12451,14 +12472,27 @@
          thing this desk is built to be careful about — who does the work
          — and `bookWhose` is the phrase for it, said once and read here
          the way the briefing on Today reads it. */
+      /* ══════════════ AND WHICH ONE IS BUSIEST IS OUR QUESTION ══════════════
+         "Benelux manufacturing has the most left to call at 7" ranks three
+         campaigns by the size of the work still in them, which is what the
+         desk that works them wants to know first. What the company paying
+         for them wants first is which one is producing. Same shape, the
+         other end of the same roster. */
+      const handed = (kk) => membersOf(kk.id)
+        .filter((c) => c.checkpoint === 'handed-over').length;
+      const best = camps.slice().sort((a, b) => handed(b) - handed(a))[0];
       return (isLine()
         ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' sells ' : ' sell ') +
           esc(sellSay(myLine())) + '.'
         : isBuyer()
-        ? plural(camps.length, 'campaign') + ' ' + esc(bookWhose()) + '.'
+        ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') +
+          ' running for you.'
         : plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') + ' yours.') +
-        ' <b>' + esc(busiest.name) +
-        '</b> has the most left to call at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
+        (isBuyer()
+          ? ' <b>' + esc(best.name) + '</b> has handed over the most at <b>' +
+            commas(handed(best)) + '</b>, and <b>'
+          : ' <b>' + esc(busiest.name) + '</b> has the most left to call at <b>' +
+            commas(queue(busiest.id).length) + '</b>, and <b>') +
         esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
     }
     if (here === 'lists') {
@@ -16071,14 +16105,25 @@
           : P.who ? '<p class="b-cmeta-p">' + esc(P.who) + '</p>'
             : none('No titles named \u2014 callers are asking for whoever picks up.')));
     }
-    if (edit || k.pitch || empty) {
+    /* ══════════════ AND THE PITCH IS SOMETHING SOMEBODY SAYS ══════════════
+       Two of these three are written to the floor. The pitch ends on what
+       to open on — "open on what it costs them today, not on what we do" —
+       and the notes hold what went wrong last time and when their
+       procurement shuts. Both are how we work the campaign rather than
+       what the campaign is, and the company paying for it reads the goal,
+       the offering and the persona, which are the brief.
+       The whole field rather than its last sentence: the opener is one
+       clause of a seeded string today and a free text box the moment
+       somebody edits it, and a rule that trims a sentence off the end
+       would eat a real one the first time nobody wrote a closer. */
+    if ((edit || k.pitch || empty) && !isBuyer()) {
       out.push(draftPart('Sales pitch', edit ? aiDraft('pitch') : '',
         edit ? draftArea('pitch', k.pitch,
           'What we give them, why it is worth having now, and what to open on')
           : k.pitch ? '<p class="b-cmeta-p">' + esc(k.pitch) + '</p>'
             : none('Nothing written, so every caller opens on their own words.')));
     }
-    if (edit || k.notes || empty) {
+    if ((edit || k.notes || empty) && !isBuyer()) {
       out.push(draftPart('Notes', '',
         edit ? draftArea('notes', k.notes,
           'Anything we do not already have \u2014 who we have already been introduced to, ' +
@@ -17119,7 +17164,16 @@
     const meId = me().id;
     const myCalls = callsIn(DB.touch.filter((t) => t.camp === k.id && t.by === meId));
     const today = myCalls.filter((t) => t.at.slice(0, 10) === TODAY_ISO);
-    const fresh0 = !myCalls.length;
+    /* ══════════════ AND THIS ONE IS ABOUT THE READER'S OWN PHONE ══════════════
+       `myCalls` is `t.by === me().id`, so on a client's desk it is empty
+       every time and the deck always resolved to "You have not called
+       anyone on this campaign yet. Call the next one — what to say comes
+       up with it." Three claims, none of them true of the reader: they
+       have not called anyone because calling is the thing they bought, the
+       door goes to a queue this desk does not draw, and what to say is
+       ours. They get the pace instead, which is the same question a client
+       is asking of a campaign with sixty-five days on it. */
+    const fresh0 = !isBuyer() && !myCalls.length;
     /* ══ THREE FIGURES ON A ROW, NONE OF THEM MEASURED ═════════════════
        "Today: 14 calls · 3 got through · 1 meetings set" — dot-separated,
        so nothing said the three were a chain, and the second and third were
@@ -17181,10 +17235,15 @@
         /* Call the next one is sixty pixels up, in the header. Here the
            doors are the cuts, and on a first visit the pitch. */
 
-        (back && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
-          'Work the ' + commas(back) + ' callbacks</button>' : '') +
-        (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
-          'Show the ' + commas(fresh) + ' never called</button>' : '') +
+        /* Both are cuts of the queue, and `parse` sends `on=deals` back to
+           Today on this desk — so on a client's copy they are two buttons
+           that land where they were pressed. */
+        (back && campOpen(k) && !isBuyer()
+          ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
+            'Work the ' + commas(back) + ' callbacks</button>' : '') +
+        (fresh && campOpen(k) && !isBuyer()
+          ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
+            'Show the ' + commas(fresh) + ' never called</button>' : '') +
         (all.length || !campOpen(k) || !seesCost() ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
           '">Nobody left to call — find more</button>') +
@@ -17259,7 +17318,11 @@
            the roster, same as every other reading in this block. */
         text: '<b>' + commas(cold.length) + '</b> of the ' +
           esc(plural(members.length, 'person')) + ' here were being worked and have not ' +
-          'been called in a fortnight. They are spread across the cuts below.',
+          'been called in a fortnight.' +
+          /* The cuts ARE below, on the desk that draws them. A client's
+             copy of this page has no queue under it, so the sentence was
+             pointing at nothing. */
+          (isBuyer() ? '' : ' They are spread across the cuts below.'),
       });
     }
 
@@ -17704,7 +17767,12 @@
            names — "Stopped at reception", "Pricing", "Timing" — and it was
            the only one starting lower case. */
         n: stuck, of: members.length, unit: 'person', name: 'Called four times, never picked up',
-        sub: 'Past the fourth attempt a fifth is worth less than a colleague.',
+        /* The rule is ours — what a fifth attempt is worth against going
+           round the company instead — and it is a rule for whoever is
+           dialling. What is true of these four people either way is that
+           they have been tried and have not answered. */
+        sub: isBuyer() ? 'Four attempts each, and nobody has picked up.'
+          : 'Past the fourth attempt a fifth is worth less than a colleague.',
         beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
           'Try that hour, or open their company and call somebody else there.',
         door: { attr: 'data-q="no-answer"', say: 'Show the no-answers' },
@@ -17727,17 +17795,36 @@
        problem into a narrow one and sends the reader to fix the wrong thing.
        The counts come out with the rows so the block can say what it left. */
     const shown = gave >= 4 ? spoken.slice(0, 2) : [];
+    /* ══════════════ THE BEAT IS A MOVE, AND THE CLIENT MAKES NONE ══════════════
+       Every row here is a count and a beat, and the beat is an instruction
+       to whoever is about to dial: ask for the job rather than a name,
+       this campaign gets through around two, call them and settle it, say
+       the same thing twice and tell Lina what worked. On the client's copy
+       of this block that is us briefing our own floor in front of the
+       company paying for it — and the doors under two of them open a board
+       this desk no longer has.
+
+       What survives is the measurement, which is what the block's own
+       margin says it is for: what came back, how often, and out of what.
+       `gap` STAYS. "Nothing agreed" is a finding rather than a move — it
+       is the one thing on the row the client could do something about,
+       since they know their own market — and clearing it made the lead
+       sentence read the stripped list and announce that every reason had
+       an answer agreed. Three of them do not. */
+    const plain = (x) => Object.assign({}, x,
+      { beats: '', from: '', door: null, doc: -1 });
+    const cut = (xs) => (isBuyer() ? xs.map(plain) : xs);
     return {
-      spoken: shown,
+      spoken: cut(shown),
       spokenKinds: spoken.length,
       spokenRest: gave - shown.reduce((n, x) => n + x.n, 0),
       thin: gave && gave < 4 ? gave : 0,
-      stops: stops.slice(0, 2), stopsAll: stops.length,
+      stops: cut(stops.slice(0, 2)), stopsAll: stops.length,
       calls: here.length, gave: gave,
       /* The untruncated lists, for the drill-down. The block shows two of
          each because four findings is what somebody reads between calls;
          asking for the rest has to be able to produce the rest. */
-      allStops: stops, allSpoken: spoken,
+      allStops: cut(stops), allSpoken: cut(spoken),
     };
   }
 
@@ -17859,6 +17946,9 @@
             '<span class="b-way-of">of ' + esc(plural(x.of, x.unit)) + '</span>' +
           '</span>' +
           (x.sub ? '<span class="b-way-sub">' + esc(x.sub) + '</span>' : '') +
+          /* A beat with nothing in it is `.b-aimy`'s mark over an empty
+             sentence — AiMY signing for a reading it did not make. */
+          (!x.beats && !x.gap && !x.door && !(x.doc != null && x.doc >= 0) ? '' :
           '<div class="b-way-beat b-aimy">' +
             '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" ' +
               'aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
@@ -17871,7 +17961,7 @@
               (x.doc != null && x.doc >= 0 ? ' ' + docChip(k.id, x.doc, k.resources[x.doc]) : '') +
               (x.from ? '<span class="b-aimy-from">' + esc(x.from) + '</span>' : '') +
             '</span>' +
-          '</div>' +
+          '</div>') +
         '</span>' +
       '</div>';
 
@@ -17927,11 +18017,14 @@
         '<span class="s-block-say">read off ' + esc(plural(b.calls, 'call')) +
         ' on this campaign</span></div>' +
       '<p class="b-way-lead">' + lead + '</p>' +
-      group('Before you reach them', b.stops, stopRest) +
+      /* Second person, and on this desk the second person is not the one
+         doing the reaching. Same two groups, our verb. */
+      group(isBuyer() ? 'Before we reach them' : 'Before you reach them',
+        b.stops, stopRest) +
       /* The thin case is in the lead now, where a statement about this block
          belongs. Nothing stands in for the group; it is absent because it is
          absent. */
-      group('Once you do', b.spoken, spokeRest) +
+      group(isBuyer() ? 'Once we do' : 'Once you do', b.spoken, spokeRest) +
     '</section>';
   }
 
