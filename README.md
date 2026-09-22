@@ -203,7 +203,7 @@ in full:
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
-| Marit Okonjo, client | `?as=kestrel` | the same shell, scoped to what they bought — Today, then the pipeline we run for them or the floor we score, with their year a press away; `?eng=` picks which of the three |
+| Marit Okonjo, client | `?as=kestrel` | the same shell — Today, contacts, the diary, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and adds People where that one is a floor |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -249,11 +249,28 @@ belonging to somebody outside the company being the one desk that works
 differently.
 
 A client opens on a briefing now, like everybody else, and the row under it
-is what the book holds: the pipeline's four on the overview and on
-`reach`, Today and People on a floor. `onFloor` is the predicate — a team
-on the engagement, which `myDeal` nulls on the overview, so there is no list
-of kinds to keep in step with the seed. The engagement chips live in
-`switcher` above the row, because they change what every tab in it counts.
+is Today, Contacts, the Diary and Campaigns on every book — plus People
+where the chosen engagement has a floor. **The book ADDS a tab; it never
+takes three away.** For one commit it did: a floor drew Today and People
+alone, on the argument that the other three read a pipeline a floor has
+not got. `bookIds` is keyed by the CLIENT, so there is one pipeline however
+many things were bought, one diary, one set of campaigns we are running —
+and the person reading the quality tool is the same person with the same
+meetings in it. A chip that removes a control has taken away a capability
+rather than narrowed a reading, which is the thing this build does not do
+to a breakpoint and must not do to a scope.
+
+So `onFloor` — a team on the engagement, which `myDeal` nulls on the
+overview, so there is no list of kinds to keep in step with the seed — adds
+three things and subtracts nothing: the People tab, a clause in the day's
+paragraph, and a block under the diary holding the three worst. The Start
+strip follows the SURFACE rather than the book, the way Campaigns and Lists
+already do: Today keeps the client's four verbs, and the floor's drill — a
+person, a scored conversation, the goal costing the most — is on the People
+tab's own strip.
+
+The engagement chips live in `switcher` above the row, because they change
+what the briefing and the year SAY rather than which tabs exist.
 `floorPage` is a tab rather than a page with a way back on it, and the
 report keeps every word it had, reached from the rail and the Start strip
 and called Your year on the desk whose year it is.

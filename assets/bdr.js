@@ -3673,11 +3673,18 @@
          desk. */
       if (S.on === 'floor') S.on = '';
     }
-    /* And the other way round: the three pipeline tabs, on a book that has
-       no pipeline. The overview keeps them because `bookIds` is keyed by
-       the client — a client has one pipeline however many things they
-       bought, and on the overview it is in view along with the rest. */
-    if (onFloor() && (S.on === 'cal' || S.on === 'camps' || S.on === 'deals')) S.on = '';
+    /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
+       They were refused here for one commit, on the argument that Contacts,
+       the Diary and Campaigns read a pipeline and a floor book has none.
+       Wrong twice. `bookIds` is keyed by the CLIENT: there is one pipeline
+       however many things were bought, one diary, one set of campaigns we
+       are running, and the person reading the quality tool is the same
+       person with the same meetings in it. And a control that disappears
+       when you change scope has not narrowed a reading, it has taken away a
+       capability — which is the one thing this build does not do to a
+       breakpoint and should not do to a chip either.
+
+       What a floor ADDS is its people. Nothing is subtracted. */
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
@@ -5753,22 +5760,24 @@
       (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
       (n === null ? '' :
         '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
-    /* ══ A FLOOR'S TABS ARE THE TWO THINGS A FLOOR HAS ═══════════════
-       Contacts, the Diary and Campaigns read a pipeline and this book has
-       none, so the row is not the manager's row with three dead entries in
-       it. It is Today and the people whose conversations we score — which
-       is the same row doing the same job, over what is actually here.
-       `parse` refuses the other three by key for the same reason.
-       People, not "Your floor" or "The desk we run": both of those are
-       true of one of the two floors and the page itself says which. A tab
-       is a noun for a set, the way Contacts is.
+    /* ══════════════ A FLOOR ADDS A TAB; IT DOES NOT REPLACE THREE ══════════════
+       This drew Today and People alone on a floor book, on the argument
+       that the other three read a pipeline this book does not have. They
+       read the CLIENT's pipeline — `bookIds` is keyed by the client, not by
+       what they bought — so the diary Marit is looking at is her diary
+       whichever of the three she is reading, and taking it off the row when
+       she pressed Quality tool took away a capability rather than narrowing
+       a reading.
+       People, not "Your floor" or "The desk we run": both of those are true
+       of one of the two floors and the page itself says which. A tab is a
+       noun for a set, the way Contacts is.
        Off `team.agents` rather than off `floorOf`, which builds a year of
        scored conversations. A tab wants the count, not the corpus. */
-    const row = onFloor()
-      ? one('today', 'Today', null, cleared()) +
-        one('floor', 'People', ((myDeal() || {}).team || {}).agents || 0,
-          Object.assign(cleared(), { on: 'floor' }))
-      : bookTabs(one, here);
+    const row = bookTabs(one, here) +
+      (onFloor()
+        ? one('floor', 'People', ((myDeal() || {}).team || {}).agents || 0,
+            Object.assign(cleared(), { on: 'floor' }))
+        : '');
     /* ══ AND WHICH BOOK THE ROW IS ABOUT ═══════════════════════
        The chips lived on the report, which was the whole desk and so also
        the only place the desk could be re-scoped. With a Today under them
@@ -6681,19 +6690,14 @@
   }
 
   function mgrHome() {
-    /* ══════════════ THE SAME PAGE, OVER WHAT THIS BOOK HOLDS ══════════════
-       Three of the four blocks below read a pipeline, and two of the three
-       client books have none. That was the argument for giving a client the
-       report instead of a desk, and it proves the wrong thing: it says these
-       BLOCKS do not belong on those books, not that a briefing does not.
-
-       So the page is the page, and what stands in it is what the book has.
-       A floor's day is who on it wants an afternoon; the overview's is the
-       diary and the three things they bought, side by side. Both open the
-       way every other desk on this product opens — on Today, with the
-       switcher under it and the year one press away in the rail. */
-    if (onFloor()) return floorHome();
-    if (isBuyer() && bookKind() === 'all') return everyHome();
+    /* ══════════════ ONE PAGE, AND THE BOOK ADDS TO IT ══════════════
+       This had three bodies for a commit — one for a floor, one for the
+       overview, one for everybody else — which is how a page comes to
+       differ in ways nobody decided. The blocks below already say who they
+       are for: `reqBlock` draws for a manager, `connBlock` for anybody but
+       a client, and the two under them for a client whose book has
+       something more to say. A desk that cannot answer a block leaves a
+       gap; it does not get a different page. */
     return '<div class="s-home">' +
       topBrief('today') +
       dayBlock() +
@@ -6717,68 +6721,60 @@
          for, which is the whole reason they are on the page you open the day
          on. */
       connBlock() +
+      /* ══════════════ AND WHAT A CLIENT'S BOOK ADDS TO THE DAY ══════════════
+         A floor has one question with a day in it — who on it wants an
+         afternoon — and the overview has the one no single book can
+         answer, which is which of the three is working. Neither replaces
+         the diary above them: this client's meetings are hers whichever
+         engagement she happens to be reading. */
+      floorBlock() +
+      (isBuyer() && bookKind() === 'all'
+        ? (function () { const y = myYear(); return engList(y.now, y.pipe); }())
+        : '') +
     '</div>';
   }
 
-  /* ══════════════ A FLOOR'S TODAY ══════════════
-     Everything on a manager's is a pipeline: what is in the diary, what was
-     handed over, which campaign closes first. A floor has one question with
-     a day in it — who on it wants an afternoon — and that is what stands
-     here. The whole list is the tab beside it, ranked in three rules; this
-     is the top of it and the door.
+  /* ══════════════ WHO ON THE FLOOR WANTS AN AFTERNOON ══════════════
+     The top of the People tab, on the page the day opens on. The whole list
+     is one press away, ranked in three rules; this is the shortlist — the
+     same cut `connBlock` makes on the desk next door and for the same
+     reason, a set to work rather than a directory.
 
      Not the twelve weeks, which is the other thing a floor has: that is the
      year, it is the evidence under the promises, and it is on the page the
      rail's door opens. A briefing is about today. */
-  function floorHome() {
+  function floorBlock() {
+    if (!onFloor()) return '';
     const f = floorOf(myClient(), (myEng() || {}).k);
     const t = (myDeal() || {}).team || {};
     const rows = f ? floorRanked(f) : [];
     const want = rows.filter((x) => x.avg < 80);
     const whose = t.whose === 'ours' ? 'the desk' : 'your floor';
-    return '<div class="s-home">' +
-      topBrief('today') +
-      '<section class="s-block s-block-wide" aria-label="Who wants an afternoon">' +
-        '<div class="s-camp-list-head">' + switcher('today') +
-          /* The paragraph above has already counted them. What it has not
-             said is which three these are and why they are in this order,
-             which is the shape every caption on this desk takes: how many,
-             then what they are sorted by. */
-          (want.length
-            ? '<span class="s-block-say">' +
-              esc(commas(Math.min(3, want.length))) + ' of them · worst first</span>'
-            : '') + '</div>' +
+    return '<section class="s-block s-block-wide" aria-label="Who wants an afternoon">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">' +
+          esc(t.whose === 'ours' ? 'The desk we run' : 'Your floor') + '</h2>' +
+        /* The paragraph above has already counted them. What it has not said
+           is which of them these are and why they are in this order, which
+           is the shape every caption on this desk takes: how many, then what
+           they are sorted by. */
         (want.length
-          ? /* Three. The tab holds all of them and this is a briefing, which
-               is the same cut `connBlock` makes on the desk next door and
-               for the same reason: a shortlist to work, not a directory. */
-            '<div class="s-odds-rows">' + want.slice(0, 3).map(floorRow).join('') + '</div>' +
-            (want.length > 3
-              ? '<div class="b-acts b-acts-end">' +
-                '<button class="b-ghost" type="button" data-go="' +
-                  esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
-                  'Show the other ' + esc(commas(want.length - 3)) + '</button></div>'
-              : '')
-          : '<p class="s-block-sub">Nobody on ' + esc(whose) + ' is under eighty per cent. ' +
-            'The whole floor is on the tab above, worst first.</p>') +
-      '</section>' +
-    '</div>';
-  }
-
-  /* ══════════════ AND THE OVERVIEW'S ══════════════
-     A client with three engagements has one pipeline — `bookIds` is keyed
-     by the client, not by what they bought — so the diary is the diary and
-     it belongs here the way it does on the pipeline book. What the overview
-     adds is the question no single book can answer: which of the three is
-     working. `engList` is that question, and it is a door per row, so the
-     next press is the one that is behind. */
-  function everyHome() {
-    const y = myYear();
-    return '<div class="s-home">' +
-      topBrief('today') +
-      dayBlock() +
-      engList(y.now, y.pipe) +
-    '</div>';
+          ? '<span class="s-block-say">' + esc(commas(Math.min(3, want.length))) +
+            ' of the ' + esc(commas(want.length)) + ' under eighty · worst first</span>'
+          : '') +
+      '</div>' +
+      (want.length
+        ? '<div class="s-odds-rows">' + want.slice(0, 3).map(floorRow).join('') + '</div>' +
+          (want.length > 3
+            ? '<div class="b-acts b-acts-end">' +
+              '<button class="b-ghost" type="button" data-go="' +
+                esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
+                'Show the other ' + esc(commas(want.length - 3)) + '</button></div>'
+            : '')
+        : '<p class="s-block-sub">Nobody on ' + esc(whose) + ' is under eighty per cent. ' +
+          'All ' + esc(plural(rows.length, 'of them')) + ' are on the People tab, ' +
+          'worst first.</p>') +
+    '</section>';
   }
 
   function homePage() {
@@ -12180,17 +12176,11 @@
      nothing to do on this product unless something offers to go and find
      more, and "Find leads" is that door on every surface. */
   function topBrief(here) {
-    /* A floor's paragraph and a floor's four ways to start read neither of
-       these, and `queue(null, 'all')` is a pass over every person in the
-       client's book — which is the PIPELINE's book, on a surface that has
-       no pipeline. Both halves branch on `onFloor` before they look at
-       anything, so the work is not done rather than done and dropped. */
-    const floor = onFloor();
-    const all = floor ? [] : queue(null, 'all');
+    const all = queue(null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
-    counts.after = floor ? 0 : queue(null, 'after').length;
-    const camps = floor ? [] : myCampaigns();
+    counts.after = queue(null, 'after').length;
+    const camps = myCampaigns();
     return '<section class="slv s-block-wide" aria-label="Today">' +
       '<div class="slv-head">' +
         '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
@@ -12304,48 +12294,44 @@
     return ' ' + (said.length ? said.join(', ') + ' and ' + last : last) + '.';
   }
 
-  /* ══════════════ A FLOOR'S PARAGRAPH ══════════════
-     The manager's opens on the diary and then counts leads and campaigns,
-     because those are what a pipeline desk's day is made of. A floor has
-     none of the three. What it has is people, the conversations scored under
-     them, and how many of those people are below the line — and only the
-     last of those has a day in it, which is why the block under this
-     paragraph is about exactly that.
+  /* ══════════════ A FLOOR, AS ONE CLAUSE OF THE DAY ══════════════
+     This was a paragraph of its own that REPLACED the day's — the diary,
+     the meetings nobody wrote up, the leads and the campaigns all gone the
+     moment you pressed Quality tool, because the book had no pipeline. The
+     book has no pipeline; the client does, and she is the same person with
+     the same diary whichever of the three she is reading.
 
-     Every figure is the way into the tab that owns it, which is the rule the
-     rest of this briefing keeps. Except on that tab: a door to the page you
-     are standing on is not a door. */
-  function floorBrief(here) {
+     So it is a clause, and it goes where the floor sits in her day: after
+     what has a clock on it and before the year, which is the one thing
+     here that is not about today at all.
+
+     The figure is the way into the tab that owns it, which is the rule the
+     rest of this briefing keeps — except on that tab, where a door to the
+     page you are standing on is not a door. */
+  function floorLine(here) {
+    if (!onFloor()) return '';
     const t = (myDeal() || {}).team || {};
     const whose = t.whose === 'ours' ? 'the desk we run for you' : 'your floor';
     const f = floorOf(myClient(), (myEng() || {}).k);
-    if (!f) return 'Nothing has been scored on ' + esc(whose) + ' yet.' + yearClause();
+    if (!f) return 'Nothing has been scored on ' + esc(whose) + ' yet.';
     const rows = floorRanked(f);
     const to = Object.assign(cleared(), { on: 'floor' });
     const door = (html) => (here === 'floor' ? '<b>' + html + '</b>'
       : '<button class="slv-n" type="button" data-go="' + esc(JSON.stringify(to)) + '">' +
         html + '</button>');
-    const risk = rows.filter((x) => x.avg < 65).length;
-    const watch = rows.filter((x) => x.avg >= 65 && x.avg < 80).length;
+    const under = rows.filter((x) => x.avg < 80).length;
     /* "8,634 of 8,634 conversations scored" is a ratio nobody asked for —
-       the floor page makes the same call two hundred lines down. */
+       the People tab makes the same call two hundred lines down. */
     const scored = f.seen >= f.held
-      ? 'every one of their <b>' + commas(f.held) + '</b> conversations has been scored'
+      ? 'every one of their <b>' + commas(f.held) + '</b> conversations scored'
       : '<b>' + commas(f.seen) + '</b> of their <b>' + commas(f.held) +
-        '</b> conversations have been scored';
-    const said = [];
-    if (risk) {
-      said.push(door('<b>' + commas(risk) + '</b>') + ' ' +
-        (risk === 1 ? 'wants' : 'want') + ' an afternoon');
-    }
-    if (watch) {
-      said.push(door('<b>' + commas(watch) + '</b>') + ' ' +
-        (watch === 1 ? 'is' : 'are') + ' worth watching');
-    }
+        '</b> conversations scored';
     return door(esc(plural(rows.length, 'person'))) + ' ' +
-      (rows.length === 1 ? 'is' : 'are') + ' on ' + esc(whose) + ', and ' + scored + '. ' +
-      (said.length ? said.join(' and ') + '.'
-        : 'Nobody on it is under eighty per cent.') + yearClause();
+      (rows.length === 1 ? 'is' : 'are') + ' on ' + esc(whose) + ' with ' + scored +
+      ', and ' + (under
+        ? '<b>' + commas(under) + '</b> of them ' + (under === 1 ? 'is' : 'are') +
+          ' under eighty per cent'
+        : 'none of them is under eighty per cent') + '.';
   }
 
   /* ══════════════ AND THE ONE FACT NO TAB HOLDS ══════════════
@@ -12370,7 +12356,10 @@
   }
 
   function briefSentence(here, counts, all, camps) {
-    if (onFloor()) return floorBrief(here);
+    /* The tab's own paragraph, the way Campaigns and Lists have one: what
+       is on the page under it, and nothing about the pipeline, which is
+       three tabs to the left with its own counts on them. */
+    if (here === 'floor') return floorLine(here) + yearClause();
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
@@ -12460,13 +12449,17 @@
          diary has a clock on it, the book is the size of the desk, and this
          is what has slipped. A reader who stops after two sentences has read
          the two that are about the next eight hours. */
+      /* The floor, where there is one, then the year. Both are clauses of
+         this paragraph rather than paragraphs instead of it. */
+      const floor = onFloor() ? ' ' + floorLine(here) : '';
       if (!on.length) {
-        return 'Nothing is in the diary today.' + owed + ' ' + book + briefOwed() + yearClause();
+        return 'Nothing is in the diary today.' + owed + ' ' + book + briefOwed() +
+          floor + yearClause();
       }
       return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
         (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
           esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book + briefOwed() +
-        yearClause();
+        floor + yearClause();
     }
     return openerText(counts, all, camps);
   }
@@ -12625,18 +12618,16 @@
           why: 'what you sell, to whom, and how many you want' };
 
     let opens;
-    if (onFloor()) {
-      /* ══════════════ FOUR VERBS A FLOOR ACTUALLY HAS ══════════════
-         The client's four below are the pipeline's: a warm call, a campaign
-         to ask for, a lead to add. None of them exists here — there is no
-         queue, no campaign and nobody to put in it — and a desk shown the
-         door to a thing it cannot do learns the door is a lie.
+    if (here === 'floor') {
+      /* ══════════════ FOUR VERBS THE FLOOR'S OWN TAB HAS ══════════════
+         On the SURFACE, not on the book — the same rule Campaigns and Lists
+         keep below. A client standing on Today has a queue, a diary and
+         campaigns whichever engagement is selected, so Today keeps the
+         client's four; it is this page that has a drill instead.
 
-         What a floor has is a drill: the floor, a person on it, one scored
-         conversation, and the goal underneath the lot. So the row is the
-         bottom of that drill rather than the top of it, because the top is
-         the tab six pixels above and a door to the page you are standing
-         next to is not a door. */
+         And the row is the bottom of that drill rather than the top of it:
+         the top is the list six pixels below, and a door to the page you
+         are standing on is not a door. */
       const f = floorOf(myClient(), (myEng() || {}).k);
       const t = (myDeal() || {}).team || {};
       const rows = f ? floorRanked(f) : [];
@@ -22914,21 +22905,7 @@
      only p1 the desk has. */
   function mgrTasks() {
     const tasks = [];
-    /* ══════════════ AND A FLOOR'S BELL HOLDS ONE ROW ══════════════
-       Every row below but the promises is a pipeline fact: a meeting nobody
-       wrote up, a deal past its date, a lead waiting on a warm call, a
-       contract renewing, an account that moved. A client standing in a floor
-       book has none of them — no diary, no board, no customer book — and
-       `parse` refuses the very keys those rows' doors carry, so each one was
-       a sentence about somebody else's deals with a control that landed back
-       on Today.
-
-       It reads the whole client's pipeline, not this book's, which is why it
-       stays on the overview: there is one pipeline however many things were
-       bought, and on the overview it is in view along with everything
-       else. */
-    const pipe = !onFloor();
-    if (pipe) unrecorded().slice(0, 4).forEach((m) => {
+    unrecorded().slice(0, 4).forEach((m) => {
       const days = -daysBetween(TODAY_ISO, m.iso);
       tasks.push({
         id: 'met:' + m.con.id + ':' + m.iso,
@@ -22941,7 +22918,7 @@
         ask: 'fill:Had a ' + m.kind + ' with ' + m.con.name + ', ',
       });
     });
-    const soon = pipe ? meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed') : [];
+    const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed');
     if (soon.length) {
       /* ══ TWO COUNTS OF TODAY ON ONE SCREEN ═══════════════════════════
          This said "N things in the diary today" and so does the paragraph
@@ -22955,7 +22932,7 @@
           soon[0].con.name + '.',
         cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
     }
-    const live = pipe ? queue(null, 'all').filter(dealLive) : [];
+    const live = queue(null, 'all').filter(dealLive);
     const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
     if (late.length) {
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
@@ -22996,7 +22973,7 @@
        customer with it rather than the difference — which is why it is
        above the openings and why it is the one customer row that names a
        date instead of a count. */
-    const due = (pipe ? customers() : []).map((a) => ({ a: a, r: renewAt(a) }))
+    const due = customers().map((a) => ({ a: a, r: renewAt(a) }))
       .filter((x) => x.r && x.r.days <= RENEW_SOON)
       .sort((x, y) => x.r.days - y.r.days);
     if (due.length) {
@@ -23011,7 +22988,7 @@
         line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
           ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
     }
-    const moved = pipe ? openings() : [];
+    const moved = openings();
     if (moved.length) {
       const one = moved[0];
       tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
