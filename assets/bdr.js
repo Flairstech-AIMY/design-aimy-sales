@@ -10839,15 +10839,51 @@
      bought one thing has one book and a switcher with one option is a
      control that cannot be worked, which is the same argument that took the
      period chips off this desk. */
+  /* ══════════════ AND IT IS ONE CONTROL, NOT A ROW OF THEM ══════════════
+     The margin above is still right that this is a control and not four
+     desks; what it got wrong is which control. It was `.s-tabcuts`, the
+     chip row the report uses for its period and its cuts — so the one
+     thing on this desk that changes WHICH BOOK every figure is read out of
+     was drawn in the component that means a filter on a list.
+
+     And a row does not survive the contract growing. Three engagements fit
+     beside each other and six do not, and the names are the catalogue's
+     now — "Managed customer support" is not a chip.
+
+     `.b-menu` is the build's own: `data-pickopen` opens it, the listener
+     that closes menus closes it, and the campaign picker and the hand-over
+     are already it. A second thing that behaves nearly the same is the one
+     outcome to avoid. */
   function engChips() {
     if (!isBuyer()) return '';
     const es = engsOf(dealOf(myClient()));
     if (es.length < 2) return '';
-    const chip = (k, label) => '<button class="chip' +
-      ((S.eng || '') === k ? ' active' : ' default') + '" type="button" ' +
-      'data-eng="' + esc(k) + '">' + esc(label) + '</button>';
-    return '<div class="s-tabcuts" role="group" aria-label="What you bought">' +
-      chip('', 'Everything') + es.map((e) => chip(e.k, engName(e))).join('') +
+    const here = myEng();
+    /* The sub-line is what the engagement IS, in the words the report's
+       own "What you bought" uses for it. Not how its promises stand: that
+       is `myYear`, which answers for the book being read rather than for
+       each of them, so three states under three names would be one true
+       figure and two borrowed from it. */
+    const item = (k, name, sub) =>
+      '<button class="b-menu-item" type="button" role="menuitem" data-eng="' + esc(k) + '"' +
+      ((S.eng || '') === k ? ' aria-current="true"' : '') + '>' +
+        '<span class="b-menu-line"><span class="b-menu-name">' + esc(name) + '</span>' +
+        (sub ? '<span class="b-menu-sub">' + esc(sub) + '</span>' : '') + '</span>' +
+      '</button>';
+    return '<div class="s-engpick">' +
+      '<span class="s-block-say s-engpick-cap">What you bought</span>' +
+      '<span class="b-menu-wrap">' +
+        '<button class="b-ghost b-menu-open s-engpick-btn" type="button" ' +
+          'data-pickopen="engMenu" aria-haspopup="menu">' +
+          esc(here ? engName(here) : 'Everything') + chIcon('down') + '</button>' +
+        '<div class="b-menu" id="engMenu" role="menu" hidden>' +
+          /* No `.b-menu-cap`: the caption beside the button already says
+             what the list is, and a menu repeating its own label at the top
+             of itself is the page saying it twice eight pixels apart. */
+          item('', 'Everything', plural(es.length, 'engagement') + ' side by side') +
+          es.map((e) => item(e.k, engName(e), ENG_SAY[e.kind] || '')).join('') +
+        '</div>' +
+      '</span>' +
     '</div>';
   }
 
@@ -10905,9 +10941,9 @@
         const other = es.filter((x) => !(x.promises || []).some((p) => p.read === 'arr'));
         if (!money.length || !other.length) return '';
         return '<p class="s-exec-note">' +
-          esc(money.map((x) => x.name).join(' and ')) +
+          esc(money.map(engName).join(' and ')) +
           (money.length === 1 ? ' answers' : ' answer') + ' in money. ' +
-          esc(other.map((x) => x.name).join(' and ')) +
+          esc(other.map(engName).join(' and ')) +
           (other.length === 1 ? ' answers' : ' answer') + ' in coverage, speed and hours that ' +
           'were not being covered &mdash; which is not money and is not added to it. ' +
           'The figure above is what the year cost, not what it was worth.</p>';
@@ -22094,6 +22130,9 @@
     pin: '<path d="M12 17v5"/> <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
     share: '<circle cx="18" cy="5" r="3"/> <circle cx="6" cy="12" r="3"/> <circle cx="18" cy="19" r="3"/> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
     trash: '<path d="M10 11v6"/> <path d="M14 11v6"/> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/> <path d="M3 6h18"/> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    /* `fwd` points along a row and this points at what opens under it:
+       the same stroke, turned a quarter. */
+    down: '<path d="m6 9 6 6 6-6"/>',
     more: '<circle cx="12" cy="12" r="1"/> <circle cx="19" cy="12" r="1"/> <circle cx="5" cy="12" r="1"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one

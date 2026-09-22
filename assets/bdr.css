@@ -243,8 +243,42 @@
    rather than as one of the controls beside it. `flex-basis: 100%` hands the
    chips the whole line above, and the auto-margin has to move with them or a
    find box at the far end of the tab row lands next to the tabs instead. */
-.s-camp-list-head > .s-tabcuts { flex-basis: 100%; margin-bottom: 0; }
-.s-camp-list-head > .s-tabcuts + .b-switch { margin-right: auto; }
+/* ══════════════ AND IT SITS AT THE FAR END OF THE ROW ══════════════
+   It had a line of its own above the tabs, which is what a row of chips
+   needed and a single control does not — thirty-eight pixels of page to
+   hold one button, and the eye met the scope before the thing it scopes.
+   On the tabs' own row at the far right it reads the way a scope reads
+   everywhere: the tabs are what you are looking at, the control at the end
+   is which book they are counting.
+   `order`, not a move in the markup: `switcher` emits this before the tab
+   row because that is the reading order a screen reader wants — which
+   book, then the tabs of it — and the eye wants the opposite. Flex is
+   where that difference belongs.
+   `margin-right: 0` because `.s-camp-list-head > :first-child` hands its
+   auto to whatever is first in the DOM, which is still this: left alone it
+   would take the free space on its own right and sit short of the edge. */
+.s-camp-list-head > .s-engpick {
+  order: 99; margin-left: auto; margin-right: 0; align-self: center;
+}
+.s-camp-list-head > .s-engpick + .b-switch { margin-right: auto; }
+/* And the same end of the report's header. `.s-exec-top` is
+   `space-between` and its own margin says the control that changes what is
+   read sits opposite the title — but the title block takes the full
+   measure, so the control wraps to a line of its own and `space-between`
+   has nothing left to push it against. An auto margin holds it at the
+   edge on that second line, which is where the header meant it to be. */
+.s-exec-top > .s-engpick { margin-left: auto; }
+.s-engpick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* The caption is not one of the controls beside it — the same argument
+   `.s-camp-list-head`'s own first-child rule makes, at this scale. */
+.s-engpick-cap { flex: none; }
+.s-engpick-btn { display: inline-flex; align-items: center; gap: 8px; }
+/* Quiet, and it grows nothing on hover: the caret is a statement about the
+   control rather than a second thing to look at. */
+.s-engpick-btn svg { width: 14px; height: 14px; opacity: 0.6; flex: none; }
+/* Which one you are reading, inside the list as well as on the button — a
+   menu opened to change scope should say where you already are. */
+.b-menu-item[aria-current] .b-menu-name { color: var(--accent-text); }
 
 /* ══ 11. THE QUEUE, AS CARDS IN THREE COLUMNS ══════════════════════════════
    A row had space for a name, a line and a button — enough to be ranked by
