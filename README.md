@@ -352,6 +352,25 @@ with a stub — correct for a floor, silently zero for the six funnel
 promises on the overview — and said 8 behind of 14 four hundred pixels from
 a report saying 5.
 
+**AND A LEDGER THAT ONLY MARKS THINGS BEHIND IS NOT A STATUS EITHER.** The
+same repair as the campaign's obstacle block, on the page its owner opens
+next: fourteen promises, five wearing a BEHIND pill, and not a word about
+what is being done about any of them. `promDoing` is the line — how far
+short (or OVER, where the promise runs down; `was` is the only field that
+knows which way it runs), how long is left, and what is holding it where
+the corpus produces a cause. Only on the ones we answer for: where a
+promise moves at their end the group's heading says so, and a line from us
+would be us taking credit for their afternoon.
+
+Who owns them is said ONCE, in the summary at the top. Three behind rows
+each ending "and Lina Haddad owns it" is one name down one column. And the
+cause has to belong to the promise it sits under: keyed on `team.` the
+weakest goal landed beneath "sixteen hundred contacts a week", so the
+volume promise was short because survey promotion passes on 59% of
+conversations. One is how many we answer, the other is how well.
+`weakestGoal` is the single spelling of that sweep, which three surfaces
+were each doing their own way.
+
 A promise on a floor is a promise to MOVE a number rather than reach one, so
 it carries `was` — the baseline, set at signing — and reads down as often as
 up. `promKept` is the one place that knows which.
