@@ -457,9 +457,20 @@ promise is a promise ABOUT — it is just not this product's job to open one.
 **SO THE REPORT SAYS WHERE THE OTHER HALF IS.** An average stated with no
 way down to the conversation it came from is making a claim it cannot
 support, and that argument did not go away with the roster — it moved.
-`qaLine` carries it in one sentence: *AiMY QA shows which goal each agent
-is losing, and the reason under every verdict*, with the product name
-carrying a link on `agent-scorecards.html?tbl=agents`.
+`qaLine` carries it in one sentence, with the door at the end of it:
+*which goal each agent is losing, and the reason under every verdict, is
+in AiMY QA*, linking `agent-scorecards.html?tbl=agents`.
+
+**ON THE DESK WE STAFF, AND NOT ON THE TOOL.** `myDeal().team` was the
+guard and it is true of both floors — but one of them IS AiMY QA. The
+client bought it, their eight hundred seats are on it, and they are in it
+every day; a door from our invoice to the product they already use is a
+link back to where the reader came from, on the one page that is about
+what it cost. `whose` knows the difference: `ours` is a team we staff,
+`yours` is a floor they run. The desk is the engagement with a team in it
+to keep track of — eighteen people the client never sees, and "scored not
+sampled" is a promise on their contract with nothing on this desk behind
+it.
 
 **In the block that already speaks, not a second one.** It was an AiMY
 card under the four metrics for one commit. The report already has an AiMY
@@ -468,12 +479,21 @@ eight hundred pixels below the first is the page speaking twice — and
 `.slv`'s own stylesheet had made that call before, when `.slv-signals` put
 four buttons under that paragraph and lost them for repeating what the
 sentence already linked. So it is a second `.slv-line`, and the NAME is
-the mark, in `.slv-n`: in this paragraph weight plus underline means
-pressable and weight alone means important, so a phrase built to be
-pressed would be a second way of saying it. Measured in both themes —
-weight 600 with the accent underline at 0.45 against the plain bold's 500
-and none, and light re-resolves that accent to a deeper purple rather
-than flattening it.
+the mark: in this paragraph weight plus underline means pressable and
+weight alone means important, so a phrase built to be pressed would be a
+second way of saying it.
+
+**And this one is blue, because it leaves.** Every other mark in the
+paragraph is accent-coloured and lands somewhere on this desk. `--info`
+is not a new colour — the design system contrast-checked it in both
+themes, and both were measured here: #7ea7ff on the dark card, #067dc2 on
+the light one. `external` joins `ICONS` for it, Lucide's arrow leaving a
+frame, where the frame is the half that stops it reading as `fwd` at an
+angle. Sized in `em`, because a mark inside a sentence is type and moves
+with the type. `nowrap` on the link, because it broke away from the name
+and stood alone at the start of the next line, which reads as a bullet.
+The mark is `aria-hidden`, so the anchor says "opens in a new tab" in
+words.
 
 **A door does not need an argument.** Three sentences stood here for two
 commits: this page is what the scoring came to, the scoring is AiMY QA,
