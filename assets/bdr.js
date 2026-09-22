@@ -7294,15 +7294,31 @@
      thing — enough to know whether to press it, and nothing that competes
      with the day you actually opened. */
   function calNext(m, i) {
-    return (m.con.id
+    /* ══════════════ AND A ROW WITH NO RECORD STILL HAS A DAY ══════════════
+       An entry with no contact behind it drew as a plain div, because
+       there is nothing to open — true of the record and false of the row.
+       It is on a day, the grid beside it picks days, and `data-calpick` is
+       the key that does it. Pressing what is coming now shows what is on
+       that day, which is the only thing a reader wanted from it. */
+    const open = m.con.id
       ? '<button class="b-cal-nrow" type="button" data-con="' + esc(m.con.id) + '" '
-      : '<div class="b-cal-nrow is-plain" ') +
+      : '<button class="b-cal-nrow" type="button" data-calpick="' + esc(m.iso) + '" ';
+    /* ══════════════ AND WHO IT IS WITH IS THE LESS USEFUL HALF ══════════════
+       On a desk inside this company the name is a prospect and the row is
+       how you recognise which deal is next. On a client's it is our own
+       account manager, who is on every entry in the book — "Hala Mansour
+       and Lin…", truncated, against a line that never said the thing was
+       the conversation about whether the year runs again.
+       The subject, then, and the people are on the day itself one press
+       away. */
+    return open +
       'style="--i:' + Math.min(i, 8) + '">' +
       '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
       '<span class="b-cal-nwhen">' + esc(sayDay(m.iso)) +
         (m.h == null ? '' : ' · ' + esc(clockOf(m))) + '</span>' +
-      '<span class="b-cal-nwho">' + esc(m.con.name) + '</span>' +
-    (m.con.id ? '</button>' : '</div>');
+      '<span class="b-cal-nwho">' +
+        esc(isBuyer() && m.title ? m.title : m.con.name) + '</span>' +
+    '</button>';
   }
 
   function calBody(selIn) {
@@ -7889,10 +7905,42 @@
      rather than side by side: the panel goes landscape only inside the
      pop-out, where width is the axis with room to spare and height is the
      axis that clips. A page has the height. */
+  /* ══════════════ A MONTH GRID DOES NOT SAY WHETHER ANYBODY IS TURNING UP ══════════════
+     Eleven months of an account fit in a grid as eleven dots, and a client
+     landing on September sees two of them. What they came to find out is
+     whether we sit down with them on any kind of rhythm and what the next
+     one is about — neither of which a calendar can say, because a calendar
+     draws one month and this is a question about a year.
+
+     Read off `clientMeets` over the whole term, which is the same
+     derivation the grid itself draws, so the count and the dots cannot
+     disagree. */
+  function diaryLead() {
+    if (!isBuyer()) return '';
+    const p = periodOf('deal');
+    if (!p.from || !p.end) return '';
+    const all = meetings(p.from, p.end);
+    if (!all.length) return '';
+    const held = all.filter((m) => m.held);
+    const next = all.filter((m) => !m.held && m.iso >= TODAY_ISO)[0];
+    const bits = [];
+    if (held.length) {
+      bits.push('We have sat down <b>' + esc(plural(held.length, 'time')) +
+        '</b> since the year opened, the last of them on <b>' +
+        esc(sayDay(held[held.length - 1].iso)) + '</b>.');
+    }
+    bits.push(next
+      ? 'Next is <b>' + esc(sayDay(next.iso)) + '</b> &mdash; <b>' + esc(next.title) +
+        '</b>, with ' + esc(next.con.name) + '.'
+      : 'Nothing is booked between now and <b>' + esc(sayDay(p.end)) + '</b>.');
+    return aimyBlock({ text: bits.join(' ') }, true);
+  }
+
   function diaryPage() {
     return '<div class="s-home">' +
       '<section class="s-block s-block-wide" aria-label="The diary">' +
         '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
+        diaryLead() +
         '<div class="b-diary" id="calPage">' + calBody(CALSEL) + '</div>' +
         /* What it counts is meetings of OURS that nobody wrote up, and the
            door beside it opens notes authored by the reader — `parse`
