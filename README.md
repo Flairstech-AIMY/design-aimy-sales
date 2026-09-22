@@ -298,6 +298,28 @@ is for; `gap` stays with it, because "Nothing agreed" is a finding and the
 lead sentence reads the same list, so stripping it made the lead announce
 that every reason had an answer agreed when three did not.
 
+**AND A BLOCK THAT ONLY SAYS WHAT IS WRONG IS NOT A STATUS.** Taking the
+beats out left four counts and four sentences about what is going wrong,
+which reads as nobody doing anything on the one surface a client opens to
+find out whether anybody is. `OURS` is `ANSWERS` said as a thing we do
+rather than as an instruction to whoever is about to say it — a second
+table, not a regex over the first — and every named reason carries one.
+`gap` is not drawn on this desk: it means the campaign never wrote down
+its own wording, not that nobody has an answer, and drawn it produced rows
+reading "Open. We price it against what the work costs them today".
+
+`wayLead` is the summary that replaces the claim: what stops a call and how
+much of it, what comes back once one connects, whether we have an answer to
+each, and whose campaign it is. It NAMES and never counts — three kinds
+across four mentions is two denominators one word apart, which is the
+mismatch `blockersOf` spends a paragraph on.
+
+And `other` — "Something else", the bucket a reason lands in when nobody
+filed it — is dropped from the client's copy of both the block and the card
+that opens it, denominator included. On Kestrel's first campaign it is the
+largest of the seven, so keeping the count and dropping the row would have
+put "of 7 reasons" over a list adding to four.
+
 The rest of the same sweep: the group captions, `campLead`'s deck (which is
 `t.by === me().id`, so on this desk it always resolved to "you have not
 called anyone on this campaign yet"), the card's three queue counts and its
