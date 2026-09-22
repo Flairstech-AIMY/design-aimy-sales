@@ -3064,7 +3064,13 @@ textarea::placeholder,
      both before any of it is above the composer: 40 is the card's 1px
      border, its 5 of padding, the 26px strip itself, and the 8 that goes
      behind the bar. Set to the strip's own height it landed the handle four
-     pixels off the bar — drawn, and pressed against it. */
+     pixels off the bar — drawn, and pressed against it.
+     IT DID NOT MOVE WHEN THE OPEN CARD SHRANK, and the arithmetic says
+     why: `100%` of the translate is the card's own height, so this number
+     alone decides what stands above the seam. Taken to 28 to match the
+     open card's 14px strip it took the tucked tab down with it, which is a
+     part of the component nobody asked to change. The shut lip is 26 again
+     two hundred lines down, and this is the 40 that goes with it. */
   --peek-lip: 40px;
   clip-path: inset(-64px -64px calc(-1 * var(--peek-tuck)) -64px);
 }
@@ -3169,11 +3175,51 @@ textarea::placeholder,
 
    Both controls live up here, because a dismiss that goes down with the
    drawer is a dismiss you have to open the drawer to reach. */
+/* ══════════════ THE LIP COSTS NO HEIGHT ══════════════
+   It was a 26px row of its own above the answer, and 26 is what the × in
+   it measures — so the card spent 26px on a 4px mark and a button, then
+   another 28 on the sentence's own padding, to show 24px of text. Ninety
+   pixels of card for one line, and three quarters of it chrome.
+
+   Out of flow, then: the strip is drawn ACROSS the top of the card rather
+   than above it, over the padding the sentence already had, and the ×
+   moves to the corner. The card is 58px and reads as one object rather
+   than a handle with an answer under it.
+
+   WHAT IT COSTS IS THE TARGET, AND THAT IS THE WHOLE OF WHAT IT COSTS.
+   The margin under `.b-peek-grip` argues for a row you cannot miss over a
+   line you have to hit, and it is right — this is the trade taken
+   deliberately, not an oversight. Two things pay it back: the press band
+   is still the full width of the card, and shut, where there is nothing
+   else on the sliver to press, the strip grows to the whole of it. */
 .b-peek-lip {
-  position: relative; flex: none;
-  display: flex; align-items: center; justify-content: flex-end;
-  height: 26px;
+  position: absolute; top: 0; left: 0; right: 0; height: 14px;
+  z-index: 1;
 }
+/* ══════════════ AND SHUT, IT IS THE ROW IT ALWAYS WAS ══════════════
+   The strip above is the OPEN card's arrangement. Tucked, the sliver is
+   the only part of this component anybody sees, and it was already the
+   right shape: a 26px row inside the card's padding, the bar at its
+   centre, the × at its end. Nothing about saving height in the open card
+   is an argument for changing the shut one, and a 14px strip down there
+   drew the × half behind the composer — a chevron with its bottom sheared
+   off.
+
+   So the geometry comes back exactly: inset by the card's own 5, 26 tall,
+   the × at the end of it. `--peek-lip` is the travel and it is untouched,
+   so what stands above the seam is what always stood above the seam — the
+   same numbers, not similar ones. It is the same control in two forms,
+   which is what a component does when the room changes. */
+.b-peek.is-shut .b-peek-lip {
+  top: 5px; left: 5px; right: 5px; height: 26px;
+  display: flex; align-items: center; justify-content: flex-end;
+}
+/* Inset by the padding again, so the handle follows the card's inner curve
+   rather than its outer one. */
+.b-peek.is-shut .b-peek-grip { border-radius: 19px 19px 0 0; }
+/* Back to a flex child of that row: `top: 0` is the row's own top and the
+   2px is the gap it always had from the card's right padding. */
+.b-peek.is-shut .b-peek-x { top: 0; right: 2px; }
 /* THE GRIP IS THE ROW, NOT THE MARK IN IT. A 36×4 bar is four pixels tall
    and a target is forty-four; drawn as the button it would be a line you
    have to hit. So the button is the width of the drawer and the height of
@@ -3183,7 +3229,10 @@ textarea::placeholder,
 .b-peek-grip {
   position: absolute; inset: 0;
   display: grid; place-items: center;
-  padding: 0; border: 0; border-radius: 19px 19px 0 0;
+  /* The card's 24px less its 1px border: the strip sits on the inside of
+     that edge now rather than inside the 5px padding, so it follows the
+     outer curve and not the inner one. */
+  padding: 0; border: 0; border-radius: 23px 23px 0 0;
   background: none; cursor: pointer;
   transition: background-color var(--t-fast);
 }
@@ -3259,7 +3308,10 @@ textarea::placeholder,
    same card moving one pixel reads as a key going down. */
 .b-peek-open {
   display: grid; width: 100%;
-  padding: 14px 16px; border: 0; border-radius: 20px;
+  /* Right padding clears the × now sitting over this corner — the
+     sentence must never run under it, and a three-line answer at 760 is
+     the case that would. */
+  padding: 12px 44px 12px 16px; border: 0; border-radius: 20px;
   background: none; font-family: inherit; text-align: left; cursor: pointer;
   transition: background-color var(--t-fast), transform 120ms var(--ease-out);
 }
@@ -3281,7 +3333,7 @@ textarea::placeholder,
    opens the canvas; gone entirely when the answer carries no chips, so it
    costs no space of its own. The padding is the button's own, minus the
    bottom, so the chips sit under the sentence on the same left edge. */
-.b-peek-acts { display: block; padding: 0 16px 14px; }
+.b-peek-acts { display: block; padding: 0 16px 12px; }
 .b-peek-acts:empty { display: none; }
 /* The button keeps its full box when it is alone and gives up its bottom
    padding when the chips follow, so the gap between them is the chip row's
@@ -3337,10 +3389,15 @@ textarea::placeholder,
 /* 32px of button under a 14px mark, and a thumb wants 44. The target grows
    and the button does not: an invisible box centred on it takes the press,
    so the card keeps its proportions and the finger keeps its margin. */
+/* ══════════════ AND THE × IS WHY THE ROW WAS 26 ══════════════
+   Nothing about a dismiss wants a row of its own; it was in one because
+   the lip was one, and the lip was 26 because this is. In the corner it
+   costs the card nothing, and it keeps the property the lip was giving it:
+   it is outside `.b-peek-main`, so it does not go down with the drawer and
+   is still there to press when the answer is tucked away. */
 .b-peek-x {
-  position: relative;
-  flex: none; display: grid; place-items: center; width: 26px; height: 26px;
-  margin-right: 2px;
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  display: grid; place-items: center; width: 26px; height: 26px;
   border: 0; border-radius: 50%; background: none; color: var(--ink-muted);
   cursor: pointer; transition: color var(--t-fast), background-color var(--t-fast);
 }
