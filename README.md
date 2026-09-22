@@ -288,6 +288,27 @@ the lists and the notes. The check is a sweep of every client surface
 against the whole contact corpus: the only names left are the client's own
 people on their own floor.
 
+**AND THE SECOND PERSON ON THIS DESK IS NOT THE ONE DIALLING.** Taking the
+people off a page does not take the voice off it. Every beat in What is in
+the way was a move for whoever is about to call — ask for the job rather
+than a name, this campaign gets through around two, say the same thing
+twice and tell Lina what worked — with doors under two of them onto a board
+this desk no longer draws. The measurement stays, which is what the block
+is for; `gap` stays with it, because "Nothing agreed" is a finding and the
+lead sentence reads the same list, so stripping it made the lead announce
+that every reason had an answer agreed when three did not.
+
+The rest of the same sweep: the group captions, `campLead`'s deck (which is
+`t.by === me().id`, so on this desk it always resolved to "you have not
+called anyone on this campaign yet"), the card's three queue counts and its
+Work it, the campaigns tab ranking by how much work is left, the pitch,
+which ends on what to open on, the notes, which hold what went wrong last
+time, the fifth-attempt rule, and a sentence pointing at cuts that are not
+below. The check is the same shape as the names one — a regex of caller
+verbs over every client surface — and it is worth re-running after anything
+that touches campaign copy, because all of it is still drawn, unchanged,
+one `?as=` away.
+
 So `onFloor` — a team on the engagement, which `myDeal` nulls on the
 overview, so there is no list of kinds to keep in step with the seed — adds
 three things and subtracts nothing: the People tab, a clause in the day's
