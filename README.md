@@ -203,7 +203,7 @@ in full:
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
-| Marit Okonjo, client | `?as=kestrel` | the same shell — Today, contacts, the diary, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and adds People where that one is a floor |
+| Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and adds People where that one is a floor |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -249,16 +249,44 @@ belonging to somebody outside the company being the one desk that works
 differently.
 
 A client opens on a briefing now, like everybody else, and the row under it
-is Today, Contacts, the Diary and Campaigns on every book — plus People
-where the chosen engagement has a floor. **The book ADDS a tab; it never
-takes three away.** For one commit it did: a floor drew Today and People
-alone, on the argument that the other three read a pipeline a floor has
-not got. `bookIds` is keyed by the CLIENT, so there is one pipeline however
-many things were bought, one diary, one set of campaigns we are running —
-and the person reading the quality tool is the same person with the same
-meetings in it. A chip that removes a control has taken away a capability
-rather than narrowed a reading, which is the thing this build does not do
-to a breakpoint and must not do to a scope.
+is Today, the Diary and Campaigns on every book — plus People where the
+chosen engagement has a floor. **The book ADDS a tab; it never takes one
+away.** For one commit it did: a floor drew Today and People alone, on the
+argument that the rest read a pipeline a floor has not got. `bookIds` is
+keyed by the CLIENT, so there is one diary and one set of campaigns however
+many things were bought, and the person reading the quality tool is the
+same person with the same meetings in it. A chip that removes a control has
+taken away a capability rather than narrowed a reading, which is the thing
+this build does not do to a breakpoint and must not do to a scope.
+
+**THE CLIENT IS IN NONE OF THE ROOMS WE BOOKED, AND SEES NONE OF THE
+PEOPLE IN THEM.** Two readings that survived from the desks either side of
+this one and were wrong on both counts.
+
+Her diary held thirty-one prospect meetings and the page offered to brief
+her for an eleven o'clock she was never going to — the engagement's own
+line is "we find them and put them in a room with you, what happens in the
+room is yours", and it is her sales people in the room. `clientMeets`
+derives what she IS in: a kickoff at `since`, a check-in every month with
+quarterly reviews on the third, each floor's go-live at `team.deployedAt`
+weeks, and the conversation about next year five days before the term
+ends. Nothing written down — move `since` or `term` and all of it moves —
+and marked `free`, which is what keeps `unrecorded` off it: a review with
+an account manager is not a meeting somebody here forgot to write up.
+`hala` is the one row on `REPS` who holds the last of them, with a function
+nothing filters on, so no count in the corpus moved.
+
+And Contacts went with it. Fifteen named prospects, their call histories,
+the stage each is at and a verb on every card: none of them is hers to
+warm-call, and how many times we tried somebody before they answered is our
+operation rather than her delivery. What she bought is answered in the
+aggregate, on the report. So the campaign page drops the people on it, the
+day-by-day of our calls and the button that starts the next one — the
+brief, where it stands and what is in the way are the campaign; the rest is
+the floor — and `parse` refuses `con` and `acc` the way it already refuses
+the lists and the notes. The check is a sweep of every client surface
+against the whole contact corpus: the only names left are the client's own
+people on their own floor.
 
 So `onFloor` — a team on the engagement, which `myDeal` nulls on the
 overview, so there is no list of kinds to keep in step with the seed — adds
