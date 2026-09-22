@@ -203,7 +203,7 @@ in full:
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
-| Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and adds People where that one is a floor |
+| Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and every figure on the desk is read out of that one |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -249,15 +249,15 @@ belonging to somebody outside the company being the one desk that works
 differently.
 
 A client opens on a briefing now, like everybody else, and the row under it
-is Today, the Diary and Campaigns on every book — plus People where the
-chosen engagement has a floor. **The book ADDS a tab; it never takes one
-away.** For one commit it did: a floor drew Today and People alone, on the
-argument that the rest read a pipeline a floor has not got. `bookIds` is
-keyed by the CLIENT, so there is one diary and one set of campaigns however
-many things were bought, and the person reading the quality tool is the
-same person with the same meetings in it. A chip that removes a control has
-taken away a capability rather than narrowed a reading, which is the thing
-this build does not do to a breakpoint and must not do to a scope.
+is Today, the Diary and Campaigns on every book. **The book ADDS a tab; it
+never takes one away.** For one commit it did: a floor drew Today and People
+alone, on the argument that the rest read a pipeline a floor has not got.
+`bookIds` is keyed by the CLIENT, so there is one diary and one set of
+campaigns however many things were bought, and the person reading the
+quality tool is the same person with the same meetings in it. A chip that
+removes a control has taken away a capability rather than narrowed a
+reading, which is the thing this build does not do to a breakpoint and must
+not do to a scope.
 
 **THE CLIENT IS IN NONE OF THE ROOMS WE BOOKED, AND SEES NONE OF THE
 PEOPLE IN THEM.** Two readings that survived from the desks either side of
@@ -331,20 +331,18 @@ verbs over every client surface — and it is worth re-running after anything
 that touches campaign copy, because all of it is still drawn, unchanged,
 one `?as=` away.
 
-So `onFloor` — a team on the engagement, which `myDeal` nulls on the
-overview, so there is no list of kinds to keep in step with the seed — adds
-three things and subtracts nothing: the People tab, a clause in the day's
-paragraph, and a block under the diary holding the three worst. The Start
-strip follows the SURFACE rather than the book, the way Campaigns and Lists
-already do: Today keeps the client's four verbs, and the floor's drill — a
-person, a scored conversation, the goal costing the most — is on the People
-tab's own strip.
+So a floor book adds nothing to the row either, and for a while it added
+four: a People tab over a roster of named agents, a person's page under
+that, one scored conversation under THAT, and a block on Today holding the
+three worst. **SEE "WHERE THE PRODUCT ENDS" BELOW.** All of it is AiMY QA's
+and all of it has gone there. `onFloor` went with it; the engagement is
+still folded over the deal by `myDeal`, which is what every figure on this
+desk is read through.
 
-The engagement chips live in `switcher` above the row, because they change
-what the briefing and the year SAY rather than which tabs exist.
-`floorPage` is a tab rather than a page with a way back on it, and the
-report keeps every word it had, reached from the rail and the Start strip
-and called Your year on the desk whose year it is.
+The engagement picker lives in `switcher` beside the row, because it changes
+what the briefing and the year SAY rather than which tabs exist. The report
+keeps every word it had, reached from the rail and the Start strip and
+called Your year on the desk whose year it is.
 
 `myYear` is the one derivation behind all of it, memoised per paint and
 cleared with the rest of the money. The rail used to answer this question
@@ -357,10 +355,16 @@ same repair as the campaign's obstacle block, on the page its owner opens
 next: fourteen promises, five wearing a BEHIND pill, and not a word about
 what is being done about any of them. `promDoing` is the line — how far
 short (or OVER, where the promise runs down; `was` is the only field that
-knows which way it runs), how long is left, and what is holding it where
-the corpus produces a cause. Only on the ones we answer for: where a
-promise moves at their end the group's heading says so, and a line from us
-would be us taking credit for their afternoon.
+knows which way it runs) and how long is left. Only on the ones we answer
+for: where a promise moves at their end the group's heading says so, and a
+line from us would be us taking credit for their afternoon.
+
+It carried a cause too, and only one survives — an outbound promise short
+because some of the people we found were never called, which is our own
+queue unworked. A floor promise got "survey promotion passes on 60% of
+conversations", the best sentence this block ever produced, and it reads a
+breakdown OF the quality score out of a library of seven CR-codes. See
+below.
 
 **AND THREE CARDS ARE NOT AN ANSWER TO "ARE THESE WORKING".** The grid says
 where each campaign is one card at a time and leaves the reader to hold
@@ -381,30 +385,6 @@ when the last was, and what the next one is about. What is coming said WHO,
 which on this desk is our own account manager on every entry in the book;
 it says what now, and `calNext` rows with no record behind them carry
 `data-calpick` so pressing one opens the day it is on.
-
-**AND THE FLOOR WAS A ROSTER.** Eighteen names in three rules with nothing
-over them, which is the same shape again. The lead names the goal costing
-the floor most and — the sharp half — how many of the people under the line
-it is the SAME goal for: one goal under every one of the eight is an
-afternoon with a trainer, eight different ones are eight conversations.
-
-**The rows carry what breaks the pattern, not the pattern.** Drawn on every
-row the per-person reading said "Survey promotion is costing them the most"
-eight times under a lead that had just said it; a row speaks only where
-that person's worst goal is not the floor's. On the quality tool that is
-four of eleven. The person's page opens on the comparison its table cannot
-hold — their lowest goal against the same goal across the floor — and a
-conversation that lost its points on one or two goals names them rather
-than counting them. `goalsFor` is the single sweep behind all four.
-
-Who owns them is said ONCE, in the summary at the top. Three behind rows
-each ending "and Lina Haddad owns it" is one name down one column. And the
-cause has to belong to the promise it sits under: keyed on `team.` the
-weakest goal landed beneath "sixteen hundred contacts a week", so the
-volume promise was short because survey promotion passes on 59% of
-conversations. One is how many we answer, the other is how well.
-`weakestGoal` is the single spelling of that sweep, which three surfaces
-were each doing their own way.
 
 A promise on a floor is a promise to MOVE a number rather than reach one, so
 it carries `was` — the baseline, set at signing — and reads down as often as
@@ -436,6 +416,64 @@ Four desks and three books means every question about a figure has six
 answers. Check all of them, and on the client's check what is NOT there: a
 sweep over 45 of its surfaces, one per engagement, is the only reason to
 believe it.
+
+## Where the product ends
+
+**A ROSTER OF NAMED AGENTS IS THE QA PRODUCT.** For several commits this
+desk drew one and got better and better at it: twenty-four people in three
+rules worst first, a lead naming the goal costing the floor most and how
+many of the people under the line shared it, rows that spoke only where
+somebody's worst goal broke that pattern, a person's page comparing their
+lowest goal against the same goal across the floor, and under that one
+conversation with a verdict and a reason per goal. Every one of those was a
+good reading. None of them was this product's.
+
+AiMY QA already held all three levels — `agent-scorecards.html`,
+`goal-browser.html`, `manual-audit.html` — and its own README reserves the
+word "goal" for exactly these evaluation goals and forbids a blended metric
+with no provenance. So nothing here was a capability to lose. It was one to
+stop having twice, in two places that would drift.
+
+**THE LINE IS THE VERB, AND ON THIS DESK THE VERB IS BUYING.** Sales answers
+what the year cost and whether the promises held. QA answers how a
+conversation went and what to say to the person who had it. A client
+standing in Sales asking which CR-code is costing them the most is asking a
+question this surface cannot follow up: there is nothing here to open, no
+record to show the working, and a cause with no evidence under it is the
+one thing this desk exists not to do. The same test the client shell was
+drawn by — a surface belongs to whoever does the verb on it — and it cuts
+the other way as well as towards.
+
+**WHAT STAYS IS THE CORPUS, BECAUSE IT IS THE EVIDENCE.** `floorOf` still
+generates a year of scored conversations on a stream of its own, still
+ramps from `deployedAt` towards the number the contract promised, and is
+still the only thing any floor figure is read out of: `floorSeries` means it
+week by week, `floorNow` takes the last four of those weeks so one quiet
+week cannot flip a verdict, and `promiseGot` puts the result beside what was
+written down. The report shows four metrics across forty-eight weeks against
+their value at signing. A scored conversation is still what the coverage
+promise is a promise ABOUT — it is just not this product's job to open one,
+and the section that used to offer says so rather than pretending the claim
+needs no support.
+
+`FLOOR_SUBJ` and `FLOOR_CHAN` are drawn and no longer read. `pick` walks
+this floor's stream in order, so removing two draws re-deals every score,
+lag and minute after them and moves every figure on the report — the same
+property that makes `SELLS` unable to take a ninth row. Load bearing on the
+stream rather than on the page, which is worth a margin, because a field
+nothing reads is normally a field to delete.
+
+Who owns the behind promises is said ONCE, in the summary at the top. Three
+behind rows each ending "and Lina Haddad owns it" is one name down one
+column.
+
+And one fault the cut exposed rather than caused: the client's Start strip
+read "1 of your 4 promises are behind". `plural` inflects the noun it is
+handed and the verb beside it was a literal, so the clause agreed with
+"promises" instead of with its own subject — the same fault as "1 of the 3
+have ground to make up". It stood unread because a floor book drew four
+other verbs until the People tab went, which is the argument for one desk
+rather than a desk per book.
 
 ## The customer book
 
