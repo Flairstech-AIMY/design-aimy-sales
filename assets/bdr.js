@@ -3754,7 +3754,18 @@
      with no arrival and no skeleton behind it. It is the single change in
      this build that replaces everything on screen at once, and it was the one
      change that said nothing while it did so. */
-  const surfaceKey = () => [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
+  /* ══════════════ AND THE FLOOR'S THREE ARE SURFACES TOO ══════════════
+     A person on the floor and one scored conversation are records, exactly
+     the way a contact and a company are, and the book a client is reading
+     replaces every word on the page. None of the three was in here, so the
+     whole drill was a hard cut with no arrival — and worse below, where
+     the scroll key decides whether a new page starts at its top. */
+  const surfaceKey = () =>
+    [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build, S.eng, S.ag, S.ev].join('|');
+  /* Which RECORD you are on, which is the narrower question: a page of the
+     queue turning is the same list under your hands and must not be thrown
+     to the top, and opening something from row eleven of it must. */
+  const recordKey = () => [S.con, S.camp, S.eng, S.ag, S.ev].join('|');
 
   function go(over, replace) {
     if (leavingResult(over)) {
@@ -3763,7 +3774,7 @@
       byId('pageScroll').scrollTop = 0;
       return;
     }
-    const wasOn = S.con + '|' + S.camp;
+    const wasOn = recordKey();
     const wasSurface = surfaceKey();
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
@@ -3796,7 +3807,7 @@
        opposite case: you are working a list, the rows change underneath you,
        and being thrown to the top of the document each time is what makes a
        pager worse than a scroll. */
-    if (wasOn !== S.con + '|' + S.camp) byId('pageScroll').scrollTop = 0;
+    if (wasOn !== recordKey()) byId('pageScroll').scrollTop = 0;
   }
 
   function arrive() {
@@ -28347,7 +28358,7 @@
       /* A question rather than a place. The report's own `secAsk` puts the
          words in the composer and leaves the press to the reader, which is
          the right shape for a thing AiMY is being ASKED. */
-      if (k.indexOf('ask:') === 0) { fillBar(k.slice(4) + ' '); return; }
+      if (k.indexOf('ask:') === 0) { fillBar(k.slice(4)); return; }
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
       if (k === 'money') { go(Object.assign(cleared(), { on: 'money' })); return; }
