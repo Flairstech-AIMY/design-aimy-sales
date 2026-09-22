@@ -362,6 +362,16 @@ the corpus produces a cause. Only on the ones we answer for: where a
 promise moves at their end the group's heading says so, and a line from us
 would be us taking credit for their afternoon.
 
+**AND THREE CARDS ARE NOT AN ANSWER TO "ARE THESE WORKING".** The grid says
+where each campaign is one card at a time and leaves the reader to hold
+three of them in their head. `campsLead` is two aggregate sentences off
+derivations the cards already draw: how many are behind the pace they need
+and what the worst wants a week, and the one thing most in the way across
+all of them — aggregated by NAME, because a stop is the same stop on three
+campaigns and the denominators add. What we do about it stays on the cards
+and the campaign pages, where the persona it turns on is the right one:
+three campaigns ask reception for three different job titles.
+
 **AND A CALENDAR CANNOT SAY WHETHER ANYBODY IS TURNING UP.** It draws one
 month, and that is a question about a year: eleven months of this account
 are eleven dots and September holds two. `diaryLead` reads `clientMeets`
