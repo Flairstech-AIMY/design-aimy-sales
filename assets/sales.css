@@ -6977,6 +6977,35 @@ body.is-calling .overlay-chats { display: none; }
 }
 .slv-n:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
 
+/* ── AND ONE OF THEM LEAVES THE PRODUCT ──
+   Every other mark in this paragraph is accent-coloured and lands
+   somewhere on this desk. This one opens AiMY QA in a new tab, and a
+   reader should be able to tell that from the mark rather than from the
+   hostname once they have arrived.
+
+   `--info` is the blue the design system already contrast-checked in both
+   themes — #7ea7ff on the dark card, #067dc2 on the light one — so this
+   is not a new colour, it is the one that already means "this is
+   elsewhere". After `.slv-n:hover`, which is the same specificity and
+   would otherwise take the accent back on hover.
+
+   The mark is sized in `em` and not px: it sits inside a sentence, so it
+   is a piece of type and has to move with the type around it. */
+/* `nowrap` because the mark broke away from the name it belongs to and
+   stood alone at the start of the next line, which reads as a bullet
+   rather than as part of a link. The run is a fixed product name plus a
+   13px glyph, so keeping it whole moves the wrap one word earlier and
+   cannot overflow. */
+.slv-out {
+  color: var(--info); text-decoration-color: rgba(var(--info-rgb), 0.5);
+  white-space: nowrap;
+}
+.slv-out:hover { color: var(--info); text-decoration-color: rgba(var(--info-rgb), 0.95); }
+.slv-out svg {
+  width: 0.8em; height: 0.8em; margin-left: 5px;
+  vertical-align: -0.04em; flex: none;
+}
+
 /* ── WAYS TO START ──
 
    `.slv-signals` was here: four buttons repeating the sets the paragraph

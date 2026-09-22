@@ -10676,28 +10676,24 @@
      the only before-and-after model anywhere in the tree. Here it is said in
      words rather than drawn, because four rows do not make a heatmap and the
      sentence carries the thing a chart would only imply. */
-  /* ══════════════ WHERE THE CONVERSATIONS ARE, IN ONE LINE ══════════════
-     Three sentences stood here — this page is what the scoring came to,
-     the scoring is AiMY QA, and a chip under it saying keep track of the
-     desk. All three said the same thing at descending volume, in a block
-     whose other lines are one verdict each. A door does not need an
-     argument; it needs to say what is on the other side of it.
+  /* ══════════════ AND THE DOOR IS FOR A TEAM WE RUN ══════════════
+     `myDeal().team` was the guard, which is true of both floors — and one
+     of them is a TOOL. The quality tool is AiMY QA: the client bought it,
+     their own eight hundred seats are on it, and they are in it already.
+     A door from our invoice to the product they use every day is a link
+     to where the reader has just come from, and it sits on the one page
+     that is about what that product COST.
+     The desk is the other shape. We staff it, the client never sees the
+     eighteen people on it, and "scored not sampled" is a promise on their
+     contract with nothing on this desk behind it. That is the engagement
+     with a team in it to keep track of, and `whose` is the field that
+     knows: `ours` is a team we run, `yours` is a floor they run.
 
-     The hedging went with them, and it was answering a question nobody on
-     this page is asking. It read "this page is what the scoring came to"
-     to avoid promising that these figures decompose on the other side of
-     the link, because the two BUILDS do not share a corpus. That is a fact
-     about the prototype. In the product, this client bought AiMY QA —
-     `sell: 'qa'`, which is why the ledger three blocks up already says
-     "AiMY QA is behind on average quality" — so what that product shows
-     them is a plain statement of what they own.
-
-     THE PRODUCT NAME IS THE DOOR. `.slv-line`'s rule is that weight plus
-     underline means pressable and weight alone means important, so the
-     name can carry the link without a phrase built to be pressed. One
-     line, one mark, and no second way of saying it. `.slv-n` sets
-     `font-family` and `font-size` to inherit — written for a `<button>`,
-     and neither is anything an `<a>` minds.
+     THE LINK IS THE LAST THING ON THE LINE, in `--info`. Everything else
+     pressable in this paragraph is accent-coloured and goes somewhere on
+     this desk; the one blue run with a frame-and-arrow after it is the one
+     that leaves the product. A reader should be able to tell that from the
+     mark rather than from the hostname after they have arrived.
 
      `agent-scorecards.html?tbl=agents`, not the front door: that page
      reads `tbl` on load and drops it from the URL, under a margin giving
@@ -10707,15 +10703,15 @@
      switcher, and it says the product exists rather than what it holds. */
   function qaLine() {
     const t = isBuyer() ? (myDeal() || {}).team : null;
-    if (!t) return '';
-    /* Whose floor it is, in one word, because the rest of the sentence is
-       the same either way. */
-    const who = t.whose === 'ours' ? 'each agent' : 'each of your people';
-    return '<p class="slv-line">' +
-      '<a class="slv-n" href="' + esc(QA_HOME + 'agent-scorecards.html?tbl=agents') +
-        '" target="_blank" rel="noopener">AiMY QA</a>' +
-      ' shows which goal ' + esc(who) + ' is losing, and the reason under ' +
-      'every verdict.</p>';
+    if (!t || t.whose !== 'ours') return '';
+    return '<p class="slv-line">Which goal each agent is losing, and the reason ' +
+      'under every verdict, is in ' +
+      '<a class="slv-n slv-out" href="' +
+        esc(QA_HOME + 'agent-scorecards.html?tbl=agents') + '" target="_blank" ' +
+        /* The mark is `aria-hidden`, so the fact that this one leaves the
+           product has to be said in words for a reader who cannot see it. */
+        'rel="noopener" aria-label="AiMY QA, opens in a new tab">AiMY QA' +
+        chIcon('external') + '</a></p>';
   }
 
   function buyerFloor() {
@@ -21710,6 +21706,12 @@
     /* `fwd` points along a row and this points at what opens under it:
        the same stroke, turned a quarter. */
     down: '<path d="m6 9 6 6 6-6"/>',
+    /* The only mark in this set that means a door out of the product.
+       Lucide's `external-link`, which is what the sibling builds draw for
+       the same thing — an arrow leaving a frame, and the frame is the half
+       that makes it read as leaving rather than as `fwd` at an angle. */
+    external: '<path d="M15 3h6v6"/> <path d="M10 14 21 3"/>' +
+      ' <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/>',
     more: '<circle cx="12" cy="12" r="1"/> <circle cx="19" cy="12" r="1"/> <circle cx="5" cy="12" r="1"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
