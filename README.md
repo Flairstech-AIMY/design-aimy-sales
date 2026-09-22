@@ -203,7 +203,7 @@ in full:
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
-| Marit Okonjo, client | `?as=kestrel` | their year, read from the other side of the invoice — and `?eng=` for which of the three things they bought |
+| Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and adds People where that one is a floor |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -232,11 +232,179 @@ not sign three different years.
 
 `bookKind` is the split: `outbound` reads a pipeline and gets every surface
 the manager works; `software` and `service` read a floor — people, scored
-conversations, and no campaign anywhere; `all` is the overview and reads
-none of them. So the attainment bar, three of the four tiles, both cuts and
-the losses draw only where there is a pipeline, and what stands in their
-place is the promise ledger, which every book has, plus the twelve weeks or
-the three engagements side by side.
+conversations, and no campaign anywhere; `all` is the overview, which has
+the one pipeline this client has and both floors underneath it. So the
+attainment bar, three of the four tiles, both cuts and the losses draw only
+where there is a pipeline, and what stands in their place is the promise
+ledger, which every book has, plus the twelve weeks or the three
+engagements side by side.
+
+**THE REPORT WAS THE WHOLE DESK, AND IT IS NOT ANY MORE.** Contacts, the
+Diary and Campaigns read a pipeline and two of the three books have none, so
+this desk drew three tabs reading zero and the repair was to give it the
+report instead — no Today, no switcher, no rail door, and the only way to
+re-scope it was the page you were already standing on. Three empty tabs is
+an argument against those three tabs. It is not an argument for the one desk
+belonging to somebody outside the company being the one desk that works
+differently.
+
+A client opens on a briefing now, like everybody else, and the row under it
+is Today, the Diary and Campaigns on every book — plus People where the
+chosen engagement has a floor. **The book ADDS a tab; it never takes one
+away.** For one commit it did: a floor drew Today and People alone, on the
+argument that the rest read a pipeline a floor has not got. `bookIds` is
+keyed by the CLIENT, so there is one diary and one set of campaigns however
+many things were bought, and the person reading the quality tool is the
+same person with the same meetings in it. A chip that removes a control has
+taken away a capability rather than narrowed a reading, which is the thing
+this build does not do to a breakpoint and must not do to a scope.
+
+**THE CLIENT IS IN NONE OF THE ROOMS WE BOOKED, AND SEES NONE OF THE
+PEOPLE IN THEM.** Two readings that survived from the desks either side of
+this one and were wrong on both counts.
+
+Her diary held thirty-one prospect meetings and the page offered to brief
+her for an eleven o'clock she was never going to — the engagement's own
+line is "we find them and put them in a room with you, what happens in the
+room is yours", and it is her sales people in the room. `clientMeets`
+derives what she IS in: a kickoff at `since`, a check-in every month with
+quarterly reviews on the third, each floor's go-live at `team.deployedAt`
+weeks, and the conversation about next year five days before the term
+ends. Nothing written down — move `since` or `term` and all of it moves —
+and marked `free`, which is what keeps `unrecorded` off it: a review with
+an account manager is not a meeting somebody here forgot to write up.
+`hala` is the one row on `REPS` who holds the last of them, with a function
+nothing filters on, so no count in the corpus moved.
+
+And Contacts went with it. Fifteen named prospects, their call histories,
+the stage each is at and a verb on every card: none of them is hers to
+warm-call, and how many times we tried somebody before they answered is our
+operation rather than her delivery. What she bought is answered in the
+aggregate, on the report. So the campaign page drops the people on it, the
+day-by-day of our calls and the button that starts the next one — the
+brief, where it stands and what is in the way are the campaign; the rest is
+the floor — and `parse` refuses `con` and `acc` the way it already refuses
+the lists and the notes. The check is a sweep of every client surface
+against the whole contact corpus: the only names left are the client's own
+people on their own floor.
+
+**AND THE SECOND PERSON ON THIS DESK IS NOT THE ONE DIALLING.** Taking the
+people off a page does not take the voice off it. Every beat in What is in
+the way was a move for whoever is about to call — ask for the job rather
+than a name, this campaign gets through around two, say the same thing
+twice and tell Lina what worked — with doors under two of them onto a board
+this desk no longer draws. The measurement stays, which is what the block
+is for; `gap` stays with it, because "Nothing agreed" is a finding and the
+lead sentence reads the same list, so stripping it made the lead announce
+that every reason had an answer agreed when three did not.
+
+**AND A BLOCK THAT ONLY SAYS WHAT IS WRONG IS NOT A STATUS.** Taking the
+beats out left four counts and four sentences about what is going wrong,
+which reads as nobody doing anything on the one surface a client opens to
+find out whether anybody is. `OURS` is `ANSWERS` said as a thing we do
+rather than as an instruction to whoever is about to say it — a second
+table, not a regex over the first — and every named reason carries one.
+`gap` is not drawn on this desk: it means the campaign never wrote down
+its own wording, not that nobody has an answer, and drawn it produced rows
+reading "Open. We price it against what the work costs them today".
+
+`wayLead` is the summary that replaces the claim: what stops a call and how
+much of it, what comes back once one connects, whether we have an answer to
+each, and whose campaign it is. It NAMES and never counts — three kinds
+across four mentions is two denominators one word apart, which is the
+mismatch `blockersOf` spends a paragraph on.
+
+And `other` — "Something else", the bucket a reason lands in when nobody
+filed it — is dropped from the client's copy of both the block and the card
+that opens it, denominator included. On Kestrel's first campaign it is the
+largest of the seven, so keeping the count and dropping the row would have
+put "of 7 reasons" over a list adding to four.
+
+The rest of the same sweep: the group captions, `campLead`'s deck (which is
+`t.by === me().id`, so on this desk it always resolved to "you have not
+called anyone on this campaign yet"), the card's three queue counts and its
+Work it, the campaigns tab ranking by how much work is left, the pitch,
+which ends on what to open on, the notes, which hold what went wrong last
+time, the fifth-attempt rule, and a sentence pointing at cuts that are not
+below. The check is the same shape as the names one — a regex of caller
+verbs over every client surface — and it is worth re-running after anything
+that touches campaign copy, because all of it is still drawn, unchanged,
+one `?as=` away.
+
+So `onFloor` — a team on the engagement, which `myDeal` nulls on the
+overview, so there is no list of kinds to keep in step with the seed — adds
+three things and subtracts nothing: the People tab, a clause in the day's
+paragraph, and a block under the diary holding the three worst. The Start
+strip follows the SURFACE rather than the book, the way Campaigns and Lists
+already do: Today keeps the client's four verbs, and the floor's drill — a
+person, a scored conversation, the goal costing the most — is on the People
+tab's own strip.
+
+The engagement chips live in `switcher` above the row, because they change
+what the briefing and the year SAY rather than which tabs exist.
+`floorPage` is a tab rather than a page with a way back on it, and the
+report keeps every word it had, reached from the rail and the Start strip
+and called Your year on the desk whose year it is.
+
+`myYear` is the one derivation behind all of it, memoised per paint and
+cleared with the rest of the money. The rail used to answer this question
+with a stub — correct for a floor, silently zero for the six funnel
+promises on the overview — and said 8 behind of 14 four hundred pixels from
+a report saying 5.
+
+**AND A LEDGER THAT ONLY MARKS THINGS BEHIND IS NOT A STATUS EITHER.** The
+same repair as the campaign's obstacle block, on the page its owner opens
+next: fourteen promises, five wearing a BEHIND pill, and not a word about
+what is being done about any of them. `promDoing` is the line — how far
+short (or OVER, where the promise runs down; `was` is the only field that
+knows which way it runs), how long is left, and what is holding it where
+the corpus produces a cause. Only on the ones we answer for: where a
+promise moves at their end the group's heading says so, and a line from us
+would be us taking credit for their afternoon.
+
+**AND THREE CARDS ARE NOT AN ANSWER TO "ARE THESE WORKING".** The grid says
+where each campaign is one card at a time and leaves the reader to hold
+three of them in their head. `campsLead` is two aggregate sentences off
+derivations the cards already draw: how many are behind the pace they need
+and what the worst wants a week, and the one thing most in the way across
+all of them — aggregated by NAME, because a stop is the same stop on three
+campaigns and the denominators add. What we do about it stays on the cards
+and the campaign pages, where the persona it turns on is the right one:
+three campaigns ask reception for three different job titles.
+
+**AND A CALENDAR CANNOT SAY WHETHER ANYBODY IS TURNING UP.** It draws one
+month, and that is a question about a year: eleven months of this account
+are eleven dots and September holds two. `diaryLead` reads `clientMeets`
+over the whole term — the derivation the grid itself draws, so the count
+and the dots cannot disagree — and says how many times we have sat down,
+when the last was, and what the next one is about. What is coming said WHO,
+which on this desk is our own account manager on every entry in the book;
+it says what now, and `calNext` rows with no record behind them carry
+`data-calpick` so pressing one opens the day it is on.
+
+**AND THE FLOOR WAS A ROSTER.** Eighteen names in three rules with nothing
+over them, which is the same shape again. The lead names the goal costing
+the floor most and — the sharp half — how many of the people under the line
+it is the SAME goal for: one goal under every one of the eight is an
+afternoon with a trainer, eight different ones are eight conversations.
+
+**The rows carry what breaks the pattern, not the pattern.** Drawn on every
+row the per-person reading said "Survey promotion is costing them the most"
+eight times under a lead that had just said it; a row speaks only where
+that person's worst goal is not the floor's. On the quality tool that is
+four of eleven. The person's page opens on the comparison its table cannot
+hold — their lowest goal against the same goal across the floor — and a
+conversation that lost its points on one or two goals names them rather
+than counting them. `goalsFor` is the single sweep behind all four.
+
+Who owns them is said ONCE, in the summary at the top. Three behind rows
+each ending "and Lina Haddad owns it" is one name down one column. And the
+cause has to belong to the promise it sits under: keyed on `team.` the
+weakest goal landed beneath "sixteen hundred contacts a week", so the
+volume promise was short because survey promotion passes on 59% of
+conversations. One is how many we answer, the other is how well.
+`weakestGoal` is the single spelling of that sweep, which three surfaces
+were each doing their own way.
 
 A promise on a floor is a promise to MOVE a number rather than reach one, so
 it carries `was` — the baseline, set at signing — and reads down as often as

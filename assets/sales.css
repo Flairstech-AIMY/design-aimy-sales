@@ -4305,6 +4305,13 @@ body.is-calling { --fb-reserve: var(--call-width); }
    The columns belong on the record lists, where the number of things is
    the corpus rather than a role's block plan — see `.s-grid`. */
 .s-block-wide, .slv { grid-column: 1 / -1; }
+/* A report section dropped on a home page is wide too. `.s-exec-sec` is
+   built for the one-column report, where a figure row and a ledger run the
+   whole measure; in the home grid's two tracks it would be drawn at half of
+   it. The floor page has written `s-block-wide` beside the class by hand
+   since it was built — this is that, said once, so the next section
+   borrowed from the report does not have to remember. */
+.s-home > .s-exec-sec { grid-column: 1 / -1; }
 /* Space above a heading, more than below it: a heading belongs to what
    follows. The block gap supplies the above, so this only has to set the
    below and stay out of the way. */
