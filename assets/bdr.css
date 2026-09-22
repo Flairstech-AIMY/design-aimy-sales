@@ -243,26 +243,31 @@
    rather than as one of the controls beside it. `flex-basis: 100%` hands the
    chips the whole line above, and the auto-margin has to move with them or a
    find box at the far end of the tab row lands next to the tabs instead. */
-/* ══════════════ THREE LEVELS DO NOT FIT ON ONE LINE ══════════════
-   On the tabs' own row it put three controls of three shapes across one
-   1051px line: a tab strip, a search field, and a pill with a caption
-   floating loose between them. They are not siblings. The scope decides
-   which book every figure on the desk is read out of, the tabs pick a
-   surface of that book, and the find box narrows one list on one tab —
-   three levels of one hierarchy, flattened onto a row, which is exactly
-   what it looked like.
+/* ══════════════ ON THE TABS' OWN ROW, AT ITS FAR END ══════════════
+   It had a line of its own for a commit, and the line was the right answer
+   to the wrong problem: what made the row a mess was three controls of
+   three shapes with a caption floating loose between two of them, not the
+   row. The caption is gone and this is one pill now — a tab strip at the
+   left and a control at the right is a toolbar, which is what it always
+   should have been.
 
-   So the scope takes the line above and the other two keep theirs. It
-   still ends at the right edge, which is where it was asked to be and
-   where `.s-exec-top` independently puts the same control on the report:
-   reading starts at the left and the thing that changes what is read sits
-   opposite.
+   `order`, not a move in the markup: `switcher` emits this before the tab
+   row because that is the reading order a screen reader wants — which
+   book, then the tabs of it — and the eye wants the opposite. Flex is
+   where that difference belongs.
 
-   `justify-content`, not an auto margin, because the row IS the full width
-   now — the margin is what held it to the edge while it was one item among
-   others, and a full-width flex line has to push its own contents. */
+   `margin-right: 0` because `.s-camp-list-head > :first-child` hands its
+   auto to whatever is first in the DOM, which is still this: left alone it
+   takes the free space on its own right and sits short of the edge.
+
+   `align-self: center` against a row that aligns on the baseline. A pill
+   has no baseline worth sharing with an 18px tab — sat on one it hangs
+   below the strip by the depth of its own padding. On the Campaigns tab,
+   where a find box is on the row too, three controls still wrap to a
+   second line under about 1200px, and that is the row running out of room
+   rather than a shape nobody chose. */
 .s-camp-list-head > .s-engpick {
-  flex-basis: 100%; justify-content: flex-end; margin-right: 0;
+  order: 99; margin-left: auto; margin-right: 0; align-self: center;
 }
 .s-camp-list-head > .s-engpick + .b-switch { margin-right: auto; }
 /* And the same end of the report's header. `.s-exec-top` is
