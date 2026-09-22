@@ -9863,6 +9863,14 @@
      figure beside a promise that a contract wrote down. A scored
      conversation is still the thing coverage is a promise ABOUT — it is
      just not this product's job to open one. */
+  /* ══ AND THE SIBLING'S ADDRESS IS A CONSTANT ══
+     `index.html`'s topnav already holds it, spelled out in an `href`. One
+     more spelling of a deployed URL is one more thing to miss when it
+     moves, and this build's rule for that is `SELL` and `REPS`: the string
+     lives once and everything reads through it. Trailing slash included,
+     so a caller appends a path rather than remembering to. */
+  const QA_HOME = 'https://aimyqa.nour-ali.workers.dev/';
+
   let FLOOR_CACHE = Object.create(null);
   function floorOf(ckey, ekey) {
     /* Keyed by both, because one client can run two of these — a quality
@@ -10729,16 +10737,47 @@
         '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
         esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
         'swings far enough on its own to turn a promise from kept to behind.</p>' +
-      /* ══ AND THE FIGURES DO NOT OPEN HERE ══
+      /* ══════════════ AND WHAT THIS PAGE CANNOT SHOW, IT NAMES ══════════════
          "Show the 24 people behind it" was here, and the argument under it
          was sound: an average stated with no way down to the conversation
-         it was taken from is making a claim it cannot support. The way down
-         is AiMY QA, which holds the roster, the goal browser and the record
-         with a verdict on it — so the claim is still supportable and it is
-         still not supported HERE, which is the honest way to say it.
-         What this section can answer for itself it does: the note above
-         names how many weeks, which four, and that `now` is a mean of the
-         last four rather than whichever week fell last. */
+         it was taken from is making a claim it cannot support. The roster
+         went to AiMY QA — so the way down goes there too, and says so.
+
+         A SUGGESTION, NOT A DRILL, AND THE WORDING TURNS ON IT. The two
+         products do not share a corpus: this floor is seeded by `floorOf`
+         on a stream of its own and QA has its own records. A door reading
+         "open these conversations" would promise that the figure above
+         decomposes on the other side of it, which is the one kind of claim
+         this desk exists not to make. So the sentence says what is TRUE of
+         both — scoring is what AiMY QA does, this page is what the scoring
+         came to — and invites rather than asserts.
+
+         `agent-scorecards.html?tbl=agents` rather than the front door.
+         That page reads `tbl` on load and drops it from the URL, and its
+         own margin gives the reason: context is passed, never
+         reconstructed. A reader sent from a sentence about people should
+         land on the people rather than re-find them.
+
+         In `switcher`'s topnav there is already a QA tab, which is the
+         product switcher and the wrong weight: it says the product exists,
+         not that it holds the half of this section that is missing. */
+      (function () {
+        /* The pronoun has to have something to point at. "The desk,
+           conversation by conversation, the goal each of them is losing"
+           reads THEM back to a desk, which is one thing — so the clause
+           carrying the plural carries the pronoun with it, and the desk's
+           own version names the agent instead. */
+        const whose = t.whose === 'ours'
+          ? 'the desk conversation by conversation, the goal each agent is losing'
+          : 'your own people, conversation by conversation, the goal each of ' +
+            'them is losing';
+        return aimyBlock({ text: 'This page is what the scoring came to. ' +
+          'The scoring is <b>AiMY QA</b> — ' + esc(whose) +
+          ', and the reason under every verdict.' }, true,
+          '<a class="s-insight-lnk" href="' + esc(QA_HOME + 'agent-scorecards.html?tbl=agents') +
+            '" target="_blank" rel="noopener">Keep track of ' +
+            esc(t.whose === 'ours' ? 'the desk' : 'your team') + ' in AiMY QA</a>');
+      }()) +
     '</section>';
   }
 
