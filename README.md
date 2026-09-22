@@ -362,6 +362,16 @@ the corpus produces a cause. Only on the ones we answer for: where a
 promise moves at their end the group's heading says so, and a line from us
 would be us taking credit for their afternoon.
 
+**AND A CALENDAR CANNOT SAY WHETHER ANYBODY IS TURNING UP.** It draws one
+month, and that is a question about a year: eleven months of this account
+are eleven dots and September holds two. `diaryLead` reads `clientMeets`
+over the whole term — the derivation the grid itself draws, so the count
+and the dots cannot disagree — and says how many times we have sat down,
+when the last was, and what the next one is about. What is coming said WHO,
+which on this desk is our own account manager on every entry in the book;
+it says what now, and `calNext` rows with no record behind them carry
+`data-calpick` so pressing one opens the day it is on.
+
 **AND THE FLOOR WAS A ROSTER.** Eighteen names in three rules with nothing
 over them, which is the same shape again. The lead names the goal costing
 the floor most and — the sharp half — how many of the people under the line
