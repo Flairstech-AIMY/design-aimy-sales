@@ -3450,18 +3450,6 @@
   };
   const bookKind = () => (isBuyer() && myDeal() ? (myDeal().kind || 'outbound') : 'outbound');
   const onPipeline = () => bookKind() === 'outbound';
-  /* ══ AND THE OTHER SHAPE A BOOK COMES IN ═══════════════════════
-     `onPipeline` names one of the three and `bookKind() === 'all'` is read
-     inline for the overview, which left the two floors as the case named
-     only by what it is not. Every guard about them was therefore
-     `!onPipeline()` — true of the overview as well, where there is no
-     floor to guard and the guards were quietly wrong.
-
-     A floor is a team on the engagement. `myDeal` folds the chosen one
-     over the deal and hands back `team: null` for the overview, so that
-     field is the whole answer and there is no list of kinds to keep in
-     step with the seed. */
-  const onFloor = () => isBuyer() && !!(myDeal() || {}).team;
   const myClient = () => me().client || null;
   const clientOf = (k) => (k && k.client) || null;
   const onClient = (k) => !!myClient() && clientOf(k) === myClient();
@@ -3644,7 +3632,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'ag', 'ev', 'eng', 'ed'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -3717,24 +3705,16 @@
        this book does not hold is still refused, the way `as` is refused at
        the top of this function; what changed is that being refused now
        lands on Today rather than on the report. */
-    /* Normalised before anything reads `onPipeline` or `onFloor`, which are
-       answers about the engagement and not about the desk. */
+    /* Normalised before anything reads `onPipeline`, which is an answer
+       about the engagement and not about the desk. */
     if (!isBuyer()) S.eng = '';
     else if (S.eng && !engsOf(dealOf(myClient())).filter((e) => e.k === S.eng)[0]) S.eng = '';
-    /* The floor's three surfaces belong to a floor alone — a pipeline
-       client has no floor, the overview is not standing in one, and nobody
-       outside this client has theirs. Guarded on `onFloor` rather than on
-       `!onPipeline`, which let the overview through to `floorPage` and an
-       empty page: `floorOf` is keyed by the engagement, and the overview
-       has not chosen one. */
-    if (!onFloor()) {
-      S.ag = ''; S.ev = '';
-      /* And the surface itself, or `paint` reaches `floorPage` on a desk
-         with no floor and draws an empty page — which is the dead branch
-         this file refuses two guards up, arriving by a key instead of a
-         desk. */
-      if (S.on === 'floor') S.on = '';
-    }
+    /* `on=floor` was three surfaces and is now none of them, so it is
+       refused for everybody rather than for everybody without a floor —
+       the same shape as `deals` and `lists` above. A bookmark into the old
+       roster lands on Today, which is where being refused has landed on
+       this desk since it got a shell. */
+    if (S.on === 'floor') S.on = '';
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -3830,11 +3810,11 @@
      whole drill was a hard cut with no arrival — and worse below, where
      the scroll key decides whether a new page starts at its top. */
   const surfaceKey = () =>
-    [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build, S.eng, S.ag, S.ev].join('|');
+    [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build, S.eng].join('|');
   /* Which RECORD you are on, which is the narrower question: a page of the
      queue turning is the same list under your hands and must not be thrown
      to the top, and opening something from row eleven of it must. */
-  const recordKey = () => [S.con, S.camp, S.eng, S.ag, S.ev].join('|');
+  const recordKey = () => [S.con, S.camp, S.eng].join('|');
 
   function go(over, replace) {
     if (leavingResult(over)) {
@@ -4088,10 +4068,7 @@
     byId('chipBar').innerHTML = '';
     paintWho();
     paintMicIcons();
-    byId('wbStage').innerHTML = S.ev ? evalPage()
-      : S.ag ? agentPage()
-      : S.on === 'floor' ? floorPage()
-      : S.con ? contactPage()
+    byId('wbStage').innerHTML = S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
       /* A LIST URL IS A LIST, WHICHEVER DOOR IT CAME THROUGH. Save and the old
@@ -5889,24 +5866,15 @@
       (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
       (n === null ? '' :
         '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
-    /* ══════════════ A FLOOR ADDS A TAB; IT DOES NOT REPLACE THREE ══════════════
-       This drew Today and People alone on a floor book, on the argument
-       that the other three read a pipeline this book does not have. They
-       read the CLIENT's pipeline — `bookIds` is keyed by the client, not by
-       what they bought — so the diary Marit is looking at is her diary
-       whichever of the three she is reading, and taking it off the row when
-       she pressed Quality tool took away a capability rather than narrowing
-       a reading.
-       People, not "Your floor" or "The desk we run": both of those are true
-       of one of the two floors and the page itself says which. A tab is a
-       noun for a set, the way Contacts is.
-       Off `team.agents` rather than off `floorOf`, which builds a year of
-       scored conversations. A tab wants the count, not the corpus. */
-    const row = bookTabs(one, here) +
-      (onFloor()
-        ? one('floor', 'People', ((myDeal() || {}).team || {}).agents || 0,
-            Object.assign(cleared(), { on: 'floor' }))
-        : '');
+    /* ══════════════ AND A FLOOR ADDS NO TAB AT ALL ══════════════
+       People stood here, with two margins over it arguing about whether a
+       floor book takes the other three away. It does not — `bookIds` is
+       keyed by the CLIENT, so there is one pipeline, one diary and one set
+       of campaigns however many things were bought — and it does not add
+       one either. A roster of named agents with an average each is the QA
+       product; this desk is the money and the promises. The floor still
+       answers those, four metrics deep, on the report. */
+    const row = bookTabs(one, here);
     /* ══ AND WHICH BOOK THE ROW IS ABOUT ═══════════════════════
        The chips lived on the report, which was the whole desk and so also
        the only place the desk could be re-scoped. With a Today under them
@@ -6863,64 +6831,16 @@
          on. */
       connBlock() +
       /* ══════════════ AND WHAT A CLIENT'S BOOK ADDS TO THE DAY ══════════════
-         A floor has one question with a day in it — who on it wants an
-         afternoon — and the overview has the one no single book can
-         answer, which is which of the three is working. Neither replaces
-         the diary above them: this client's meetings are hers whichever
-         engagement she happens to be reading. */
-      floorBlock() +
+         The overview has the one question no single book can answer, which
+         is which of the three is working. A floor's own question stood
+         beside it — who on it wants an afternoon — as three named people
+         with an average each, which is a coaching list on a page about a
+         year's money. It does not replace the diary above it either: this
+         client's meetings are hers whichever engagement she is reading. */
       (isBuyer() && bookKind() === 'all'
         ? (function () { const y = myYear(); return engList(y.now, y.pipe); }())
         : '') +
     '</div>';
-  }
-
-  /* ══════════════ WHO ON THE FLOOR WANTS AN AFTERNOON ══════════════
-     The top of the People tab, on the page the day opens on. The whole list
-     is one press away, ranked in three rules; this is the shortlist — the
-     same cut `connBlock` makes on the desk next door and for the same
-     reason, a set to work rather than a directory.
-
-     Not the twelve weeks, which is the other thing a floor has: that is the
-     year, it is the evidence under the promises, and it is on the page the
-     rail's door opens. A briefing is about today. */
-  function floorBlock() {
-    if (!onFloor()) return '';
-    const f = floorOf(myClient(), (myEng() || {}).k);
-    const t = (myDeal() || {}).team || {};
-    const rows = f ? floorRanked(f) : [];
-    const want = rows.filter((x) => x.avg < 80);
-    const whose = t.whose === 'ours' ? 'the desk' : 'your floor';
-    return '<section class="s-block s-block-wide" aria-label="Who wants an afternoon">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">' +
-          esc(t.whose === 'ours' ? 'The desk we run' : 'Your floor') + '</h2>' +
-        /* The paragraph above has already counted them. What it has not said
-           is which of them these are and why they are in this order, which
-           is the shape every caption on this desk takes: how many, then what
-           they are sorted by. */
-        (want.length
-          ? '<span class="s-block-say">' + esc(commas(Math.min(3, want.length))) +
-            ' of the ' + esc(commas(want.length)) + ' under eighty · worst first</span>'
-          : '') +
-      '</div>' +
-      (want.length
-        /* Not `.map(floorRow)`: the second argument `map` hands a callback
-           is the INDEX, which arrives as the floor and is truthy from the
-           second row on. Named here so the shortlist stays a shortlist —
-           the per-person reading belongs on the tab. */
-        ? '<div class="s-odds-rows">' + want.slice(0, 3).map((x) => floorRow(x)).join('') +
-          '</div>' +
-          (want.length > 3
-            ? '<div class="b-acts b-acts-end">' +
-              '<button class="b-ghost" type="button" data-go="' +
-                esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
-                'Show the other ' + esc(commas(want.length - 3)) + '</button></div>'
-            : '')
-        : '<p class="s-block-sub">Nobody on ' + esc(whose) + ' is under eighty per cent. ' +
-          'All ' + esc(plural(rows.length, 'of them')) + ' are on the People tab, ' +
-          'worst first.</p>') +
-    '</section>';
   }
 
   function homePage() {
@@ -9895,30 +9815,14 @@
   ];
   const QA_GOAL = Object.create(null);
   QA_GOALS.forEach((g) => (QA_GOAL[g.k] = g));
-  /* ══ AND WHY IT WENT THE WAY IT DID ════════════════════════════════════
-     A verdict with no reason is a score somebody is asked to take on faith,
-     and the whole argument for scoring every conversation rather than a
-     sample is that each one can be gone back to. One sentence per goal per
-     outcome: the same duty `from` carries on every AiMY sentence in this
-     build, and the reason AiMY QA's own audit record carries `reason` beside
-     every verdict. */
-  const QA_WHY = {
-    follow: { ok: 'Next steps and a time to come back were both named before the end.',
-      no: 'It ended without a named next step or a time, after the customer asked what happens now.' },
-    survey: { ok: 'The survey was offered once, at the end, without pressing it.',
-      no: 'No survey was offered before the conversation closed.' },
-    empathy: { ok: 'The agent said back what the customer was annoyed about before going to fix it.',
-      no: 'The agent went straight to the fix without acknowledging what it had cost the customer.' },
-    ident: { ok: 'Identity was confirmed before any account detail was read out.',
-      no: 'Account detail was given before the customer had been confirmed.' },
-    tags: { ok: 'Logged under the category the conversation was actually about.',
-      no: 'Logged under a category that does not match what was discussed.' },
-    own: { ok: 'The agent took the next step themselves rather than handing it back.',
-      no: 'The customer was left holding the next step.' },
-    clear: { ok: 'The explanation was short and possible to act on.',
-      no: 'The explanation ran long and left the customer restating the question.' },
-  };
-
+  /* ══ DRAWN, AND NO LONGER READ ══
+     A conversation's subject and its channel were the record page's, and
+     that page is QA's. THE DRAWS STAY. `pick` walks this floor's own
+     stream, so taking two of them out re-deals every score, lag and
+     minute after it and moves every figure on the report — the same
+     reason `SELLS` cannot take a ninth row. Load bearing on the stream
+     rather than on the page, which is worth saying out loud, because a
+     field nothing reads is normally a field to delete. */
   const FLOOR_SUBJ = ['Refund still not received', 'Locked out after a domain change',
     'Charged twice on renewal', 'Delivery window missed', 'Account merge went wrong',
     'Password reset loop', 'Invoice does not match the order', 'Cancelled and still billed',
@@ -9942,6 +9846,23 @@
      towards the number the contract promised, fastest at the start. That is
      the shape the promise is making a claim about, and generating it any
      other way would be drawing the conclusion first. */
+  /* ══ AND THE CORPUS IS EVIDENCE, NOT A SURFACE ══
+     Everything drawn off this once — a roster of twenty-four people
+     ranked worst first, one person's seven goals, one conversation with a
+     verdict per goal — has gone to AiMY QA, which already had all three
+     of them: `agent-scorecards`, `goal-browser`, `manual-audit`. Its own
+     README reserves the word "goal" for exactly these and tells the
+     dashboard not to blend a metric without its provenance. Two products
+     drawing the same seven CR-codes is one of them answering the other's
+     question, and this one is about what the year cost and whether the
+     promises held.
+
+     So the corpus is what it always was underneath: the evidence. It is
+     generated so that `floorSeries` can mean it week by week, `floorNow`
+     can take the last four of those weeks, and `promiseGot` can put a
+     figure beside a promise that a contract wrote down. A scored
+     conversation is still the thing coverage is a promise ABOUT — it is
+     just not this product's job to open one. */
   let FLOOR_CACHE = Object.create(null);
   function floorOf(ckey, ekey) {
     /* Keyed by both, because one client can run two of these — a quality
@@ -10166,49 +10087,6 @@
   const EXIT_LABEL = { 'declined': 'Said no', 'wrong-number': 'Wrong number',
     'do-not-call': 'Asked us to stop', 'not-called': 'Not reached yet' };
 
-  /* ══ THE FLOOR, RANKED BY WHO NEEDS AN AFTERNOON ══════════════════════
-     Worst first, which is the one ordering that makes this a surface rather
-     than a roster. A list of twenty-four people alphabetically is a fact; the
-     three at the top of this one are a Monday. */
-  const floorBand = (n) => (n >= 80 ? 'ok' : n >= 65 ? 'warn' : 'err');
-  const floorSay = (n) => (n >= 80 ? 'On track' : n >= 65 ? 'Watch' : 'At risk');
-  function floorRanked(f) {
-    /* Twenty-four people against two and a half thousand scored
-       conversations is fifty-eight thousand comparisons, and three surfaces
-       want the answer on one paint: the briefing counts who is under the
-       line, the block under it draws the worst three, and the tab draws all
-       of them in three rules. Held on the floor itself, which `FLOOR_CACHE`
-       generates once and nothing ever writes to. */
-    if (f.ranked) return f.ranked;
-    f.ranked = f.agents.map((a) => {
-      const es = f.evals.filter((e) => e.agent === a.id);
-      return { a: a, n: es.length,
-        avg: es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : null };
-    }).filter((x) => x.avg != null).sort((x, y) => x.avg - y.avg);
-    return f.ranked;
-  }
-  /* One person on it. Written once because Today shows the top of this list
-     and the tab shows all of it, and two spellings of one row is how the two
-     surfaces come to draw the same person two ways. */
-  /* ══════════════ THE GOAL COSTING A FLOOR THE MOST ══════════════
-     Three surfaces ask it — the People tab's start strip, the report's
-     position at the foot of the page, and now every promise on the ledger
-     that reads a floor — and it was written out three times. Three
-     spellings of one sweep over two thousand scored conversations is how
-     they come to disagree about which goal it is. */
-  /* With an agent it is the same question of one person's conversations,
-     which is what the floor's rows and their own page both ask. */
-  function goalsFor(f, id) {
-    if (!f) return [];
-    const es = id ? f.evals.filter((e) => e.agent === id) : f.evals;
-    if (!es.length) return [];
-    return QA_GOALS.map((g) => {
-      const n = es.filter((e) => e.goals.filter((y) => y.k === g.k && y.pass).length).length;
-      return { g: g, pc: Math.round((n / es.length) * 100) };
-    }).sort((a, b) => a.pc - b.pc);
-  }
-  const weakestGoal = (f, id) => goalsFor(f, id)[0] || null;
-
   /* ══════════════ AND WHAT IS BEING DONE ABOUT THE ONES BEHIND ══════════════
      The ledger named fourteen promises, marked five of them behind and
      said nothing about any of the five. On our own desk that is a ledger
@@ -10241,21 +10119,15 @@
       if (cold) {
         bits.push('<b>' + commas(cold) + '</b> of the people we found are still to call');
       }
-    } else if (r.read === 'team.quality') {
-      /* ══════════════ AND THE WEAKEST GOAL IS A QUALITY ANSWER ══════════════
-         Keyed on `team.` it landed under every floor promise, so "sixteen
-         hundred contacts a week" came up 64 short because survey promotion
-         passes on 59% of conversations. One is how many we answer and the
-         other is how well; the goals are a breakdown OF the quality score
-         and explain nothing else. Where the corpus produces no cause the
-         line says the arithmetic and stops — `engStand`'s own margin makes
-         the same call. */
-      const w = weakestGoal(floorOf(myClient(), (r.eng || myEng() || {}).k));
-      if (w) {
-        bits.push('<b>' + esc(w.g.title) + '</b> passes on <b>' + commas(w.pc) +
-          '%</b> of conversations, which is most of it');
-      }
     }
+    /* ══════════════ AND A FLOOR PROMISE GETS THE ARITHMETIC ══════════════
+       There was a cause here: "survey promotion passes on 60% of
+       conversations, which is most of it". It is a true sentence and it is
+       a QA finding — a breakdown OF the quality score, named out of a goal
+       library this product no longer holds. How far short the promise is
+       and how long it has left are facts about the PROMISE, which is what
+       a client opens this page to ask. The outbound branch above keeps its
+       cause because that cause is our own unworked queue. */
     /* Joined structurally rather than by a regex over the finished string:
        every clause here carries markup, and the last comma a `, ([^,]*)$`
        could find is inside an attribute. `briefOwed` was bitten by exactly
@@ -10263,310 +10135,6 @@
     if (!bits.length) return say;
     const last = bits.pop();
     return say + ' ' + (bits.length ? bits.join(', ') + ', and ' + last : last) + '.';
-  }
-
-  function floorRow(x, f, floorW) {
-    /* ══════════════ AND THE ROW NAMES THE EXCEPTION, NOT THE RULE ══════════════
-       A row under the line said the average and the tenure and stopped,
-       which leaves a reader with eight names and no idea what any of them
-       is about — the same shape the campaign's obstacles and the report's
-       ledger both had. The goals are a breakdown OF the score, so the
-       worst of them answers why this average is this average.
-
-       Drawn on every row it answered it eight times in the same words: on
-       this desk one goal is the worst for all eight under the line, so the
-       column read "Survey promotion is costing them the most" eight times
-       under a lead that had just said exactly that. A finding repeated
-       once a row is a finding nobody reads by the third one.
-
-       So the lead carries the pattern and the rows carry what breaks it.
-       Where somebody's worst goal is the floor's, their row says nothing
-       and means it; where it is a different one, that is the whole reason
-       to read their row rather than book the same afternoon for them. */
-    const w = f && isBuyer() && x.avg < 80 ? weakestGoal(f, x.a.id) : null;
-    return '<button class="s-pan-p s-pan-go" type="button" data-ag="' + esc(x.a.id) + '">' +
-      '<span class="s-pan-who">' +
-        '<b>' + esc(x.a.name) +
-          '<span class="s-pan-state tone-' + floorBand(x.avg) + '">' +
-            esc(floorSay(x.avg)) + '</span></b>' +
-        '<span class="s-pan-meta">' + esc(plural(x.n, 'conversation')) + ' scored &middot; ' +
-          esc(plural(Math.round(x.a.months / 12 * 10) / 10 >= 1
-            ? Math.round(x.a.months / 12) : 1, 'year')) + ' on the floor</span>' +
-        (w && (!floorW || w.g.k !== floorW.g.k)
-          ? aimyBlock({ text: 'It is <b>' + esc(w.g.title.toLowerCase()) + '</b> costing ' +
-            'them, at <b>' + commas(w.pc) + '%</b> of their conversations' +
-            (floorW ? ', not ' + esc(floorW.g.title.toLowerCase()) : '') + '.' }, true)
-          : '') +
-      '</span>' +
-      '<span class="s-pan-cost">' + esc(commas(x.avg) + '%') + '</span>' +
-    '</button>';
-  }
-
-  function floorPage() {
-    const f = floorOf(myClient(), (myEng() || {}).k);
-    if (!f) return '<div class="s-home"></div>';
-    const rows = floorRanked(f);
-    const rule = (title, list) => (list.length
-      ? '<div class="s-pan-restitle">' + title + '</div>' +
-        '<div class="s-odds-rows">' + list.map((x) => floorRow(x, f, fw)).join('') + '</div>'
-      : '');
-    /* ══════════════ A TAB, NOT A PAGE WITH A WAY BACK ══════════════
-       This opened with "Back to the year", which was the only honest control
-       on it while the report was the desk and this hung off a button at the
-       bottom of one of its sections. It is one of the two things this book
-       holds, so it stands in the switcher beside Today — same briefing
-       above it, same row under that, as Contacts and the Diary do on a desk
-       with a pipeline. */
-    /* ══════════════ AND THE TAB IS THE HEADING ══════════════
-       A page title and a scope line stood here — "Your floor", then
-       "24 people · 6,634 of 7,459 conversations scored · worst first" —
-       which was right while this was a page you arrived at from a button
-       at the foot of the report. It is a tab now, the switcher above it is
-       an h2 whose current entry IS the heading, and the briefing over that
-       opens by saying how many people are on this floor and how many of
-       their conversations have been scored. Three lines, two of them the
-       same two facts, forty pixels apart.
-       What is left is the one thing neither of the others says: the order
-       they are in. */
-    /* ══════════════ WHAT IS COSTING THE FLOOR, BEFORE THE FLOOR ══════════════
-       Eighteen names in three rules, and nothing over them saying what the
-       floor is about — a reader arrives at a roster and has to build the
-       finding themselves out of eighteen percentages. The briefing above
-       counts how many are under the line; what it cannot say is WHY, and
-       the goals are a breakdown of exactly that.
-       The sharp half is how many of them it is the same goal for. One goal
-       under six of the eight is an afternoon with a trainer; eight
-       different ones are eight conversations, and a client deciding
-       whether this desk is being run is owed which of those it is. */
-    const fw = isBuyer() ? weakestGoal(f) : null;
-    const lead = (function () {
-      if (!fw) return '';
-      const t = (myDeal() || {}).team || {};
-      const whose = t.whose === 'ours' ? 'the desk' : 'your floor';
-      const under = rows.filter((x) => x.avg < 80);
-      const same = under.filter((x) => {
-        const o = weakestGoal(f, x.a.id);
-        return o && o.g.k === fw.g.k;
-      }).length;
-      /* "8 of the 8" is a ratio standing in for a word. Where it is all of
-         them that is the finding, and it is the one that decides whether
-         this is an afternoon with a trainer or eight conversations. */
-      const share = !under.length || !same ? ''
-        : same === under.length
-          ? ' &mdash; and it is the worst goal for <b>every one of the ' +
-            commas(under.length) + '</b> under the line.'
-          : ' &mdash; and it is the worst goal for <b>' + commas(same) + ' of the ' +
-            commas(under.length) + '</b> under the line.';
-      const mgr = acctMgr();
-      return aimyBlock({ text: '<b>' + esc(fw.g.title) + '</b> is the goal costing ' +
-        esc(whose) + ' the most, at <b>' + commas(fw.pc) + '%</b> of conversations' +
-        (share || '.') +
-        (mgr ? ' <b>' + esc(mgr.name) + '</b> owns ' +
-          (t.whose === 'ours' ? 'the desk' : 'it') + '.' : '') }, true);
-    }());
-    return '<div class="s-home">' +
-      topBrief('floor') +
-      '<section class="s-exec-sec s-block-wide">' +
-        /* ══════════════ AND "WORST FIRST" WENT WITH THE HEADING ══════════════
-           It was the one thing the title and the briefing did not say,
-           which earned it a place while the rest of this head was empty.
-           It stopped earning one when the scope moved onto the row: a
-           caption at caption size between a tab strip and a control, with
-           `.s-block-say`'s -8px pulling it off the line both of them sit
-           on.
-           Nothing is lost. The three rules under it are Wants an
-           afternoon, Worth watching and On track, in that order — the sort
-           IS the headings, and a list that announces an order its own
-           subheadings spell out is saying it twice. */
-        '<div class="s-camp-list-head">' + switcher('floor') + '</div>' +
-        lead +
-        /* Said where the records are, not in a footnote somewhere else. */
-        (f.seen > f.evals.length
-          ? '<p class="s-exec-note">The averages are over all ' + esc(commas(f.seen)) +
-            '. The conversations you can open are ' + esc(commas(f.evals.length)) +
-            ' of them, spread across the year and the floor.</p>'
-          : '') +
-        rule('Wants an afternoon', rows.filter((x) => x.avg < 65)) +
-        rule('Worth watching', rows.filter((x) => x.avg >= 65 && x.avg < 80)) +
-        rule('On track', rows.filter((x) => x.avg >= 80)) +
-      '</section>' +
-    '</div>';
-  }
-
-  /* One person, and the goal that is costing them. The breakdown is the
-     reason this page exists: an average tells a manager somebody is behind
-     and nothing about what to say to them. */
-  function agentPage() {
-    const f = floorOf(myClient(), (myEng() || {}).k);
-    const a = f ? f.agents.filter((x) => x.id === S.ag)[0] : null;
-    if (!a) return '<div class="s-home"></div>';
-    const es = f.evals.filter((e) => e.agent === a.id).sort((x, y) => y.w - x.w);
-    const avg = es.length ? Math.round(es.reduce((n, e) => n + e.score, 0) / es.length) : 0;
-    /* The fourth spelling of this sweep, and the last: `goalsFor` answers
-       it for the floor and for one person off the same pass. */
-    const per = goalsFor(f, a.id);
-    return '<div class="s-home">' +
-      /* `data-back` clears every key, which on this desk landed on Today —
-         a button saying floor and going somewhere else. It names the
-         surface, so it goes to the surface. */
-      '<div class="b-topbar s-block-wide">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '"',
-          (myDeal().team || {}).whose === 'ours' ? 'Back to the desk' : 'Back to the floor') +
-      '</div>' +
-      '<section class="s-exec-sec s-block-wide">' +
-        '<div class="s-sec-head">' +
-          '<h1 class="s-exec-h">' + esc(a.name) + '</h1>' +
-        '</div>' +
-        '<p class="s-exec-scope">' + esc(commas(avg) + '% average') + ' &middot; ' +
-          esc(plural(es.length, 'conversation')) + ' scored &middot; ' +
-          esc(floorSay(avg)) + '</p>' +
-        /* ══════════════ AND THE TABLE IS A RANKING, NOT A FINDING ══════════════
-           Seven goals with a percentage each is the evidence; which of
-           them is doing the damage and whether it is this person or the
-           whole floor is the reading, and a client opening somebody's page
-           has to build it themselves out of seven rows and a memory of the
-           page before. The comparison is the half the table cannot hold:
-           the same goal, across everybody, off the same sweep. */
-        (function () {
-          if (!isBuyer() || !per.length) return '';
-          const mine2 = per[0];
-          const all = goalsFor(f).filter((z) => z.g.k === mine2.g.k)[0];
-          const t = (myDeal() || {}).team || {};
-          const whose = t.whose === 'ours' ? 'the desk' : 'the floor';
-          return aimyBlock({ text: '<b>' + esc(mine2.g.title) + '</b> is their lowest goal, ' +
-            'at <b>' + commas(mine2.pc) + '%</b> of their conversations' +
-            (all ? ' against <b>' + commas(all.pc) + '%</b> across ' + esc(whose) : '') +
-            '.' }, true);
-        }()) +
-        '<div class="b-funnel">' +
-          '<div class="b-fn-head"><span class="b-fn-name">Goal</span><span></span>' +
-            '<span class="b-fn-n">passed</span><span class="b-fn-conv">worth</span></div>' +
-          per.map((x) => '<div class="b-fn-row">' +
-            /* ══ THE SHORT FORM, BECAUSE THE COLUMN IS `max-content` ═══
-               `.b-funnel`'s first column sizes to its widest label and the
-               other three take what is left, so one long title does not
-               wrap — it pushes the weights off the right edge, and at 375px
-               "Empathy and acknowledgment" is enough on its own. The full
-               title and the question it answers are both one level down, on
-               the conversation where the verdict was actually reached. */
-            '<span class="b-fn-name">' + esc(x.g.short || x.g.title) + '</span>' +
-            /* `FN_TONE` rather than the class name, because a funnel bar in
-               this build does not go red — it maps `err` onto amber, and a
-               fill asking for `tone-err` gets no rule at all and renders as
-               the neutral grey, which is how a thirty per cent came to look
-               the same as a seventy-five. */
-            '<span class="b-fn-bar"><span class="b-fn-fill ' +
-              (x.pc >= 80 ? FN_TONE.ok : x.pc >= 65 ? FN_TONE.neutral : FN_TONE.err) +
-              '" style="width:' + Math.max(2, x.pc) + '%"></span></span>' +
-            '<span class="b-fn-n">' + esc(commas(x.pc) + '%') + '</span>' +
-            '<span class="b-fn-conv">' + esc(commas(x.g.weight)) + '</span>' +
-          '</div>').join('') +
-        '</div>' +
-        '<div class="s-pan-restitle">The conversations</div>' +
-        '<div class="s-odds-rows">' + es.slice(0, 12).map((e) =>
-          '<button class="s-pan-p s-pan-go" type="button" data-ev="' + esc(e.id) + '">' +
-            '<span class="s-pan-who">' +
-              '<b>' + esc(e.subj) +
-                '<span class="s-pan-state tone-' + floorBand(e.score) + '">' +
-                  esc(CHAN_SAY[e.chan] || e.chan) + '</span></b>' +
-              '<span class="s-pan-meta">Week ' + esc(commas(e.w + 1)) + ' &middot; ' +
-                esc(lagOf(e).fig + ' ' + lagOf(e).say) + ' &middot; ' +
-                esc(commas(e.mins)) + ' min to resolve</span>' +
-            '</span>' +
-            '<span class="s-pan-cost">' + esc(commas(e.score) + '%') + '</span>' +
-          '</button>').join('') + '</div>' +
-      '</section>' +
-    '</div>';
-  }
-
-  const CHAN_SAY = { call: 'Call', email: 'Email', chat: 'Chat' };
-
-  /* ══ HOW LONG BEFORE SOMEBODY LOOKED, IN THIS BOOK'S UNIT ══════════════
-     `lag` is the same field on every scored conversation and it is not the
-     same measurement: on a floor running our tool it is days before a
-     reviewer got to it, on a desk we staff it is minutes before a customer
-     got a reply. The record page had the quality tool's unit and the
-     quality tool's target written into it, so a support desk conversation
-     answered in twenty-eight minutes was reported as "28 days later,
-     outside the two promised" — wrong unit, wrong promise, and it read as
-     a catastrophe on a conversation that beat its commitment.
-
-     Read off the metric whose `from` is `lag`, which is the same link the
-     generator and the series already use, so there is one answer to what
-     that field means rather than three. */
-  function lagOf(e) {
-    const d = myDeal();
-    const m = ((d && d.team && d.team.metrics) || []).filter((x) => x.from === 'lag')[0];
-    const p = m ? (d.promises || []).filter((r) => r.read === 'team.' + m.k)[0] : null;
-    return { p: p,
-      fig: p ? promFig(p, e.lag) : plural(e.lag, 'day'),
-      kept: p ? promKept(p, e.lag) : e.lag <= 2,
-      target: p ? promFig(p, p.to) : null,
-      say: p ? (PROM_SAY[p.k] || '').replace(/^time /, '') : 'to a first look' };
-  }
-
-  /* One conversation, every goal on it, and why each went the way it did.
-     This is the bottom of the drill and the thing the coverage promise is
-     a promise ABOUT — two in a hundred of these used to be read. */
-  function evalPage() {
-    const f = floorOf(myClient(), (myEng() || {}).k);
-    const e = f ? f.evals.filter((x) => x.id === S.ev)[0] : null;
-    if (!e) return '<div class="s-home"></div>';
-    const a = f.agents.filter((x) => x.id === e.agent)[0] || { name: 'Unknown' };
-    const rows = e.goals.map((g) => ({ g: QA_GOAL[g.k], pass: g.pass }))
-      .sort((x, y) => (x.pass === y.pass ? y.g.weight - x.g.weight : (x.pass ? 1 : -1)));
-    const lost = rows.filter((x) => !x.pass).reduce((n, x) => n + x.g.weight, 0);
-    return '<div class="s-home">' +
-      /* Same repair as the floor's: cleared, this went to Today rather than
-         to the person whose conversation this is. */
-      '<div class="b-topbar s-block-wide">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(),
-          { on: 'floor', ag: S.ag || e.agent }))) + '"', 'Back to ' + a.name.split(' ')[0]) +
-      '</div>' +
-      '<section class="s-exec-sec s-block-wide">' +
-        '<div class="s-sec-head">' +
-          '<h1 class="s-exec-h">' + esc(e.subj) + '</h1>' +
-        '</div>' +
-        '<p class="s-exec-scope">' + esc(CHAN_SAY[e.chan] || e.chan) + ' &middot; ' +
-          esc(a.name) + ' &middot; week ' + esc(commas(e.w + 1)) + ' &middot; ' +
-          esc(plural(e.mins, 'minute')) + ' to resolve</p>' +
-        '<div class="s-afs">' +
-          attFig('Scored', commas(e.score) + '%', floorSay(e.score).toLowerCase(),
-            e.score >= 80 ? 'ok' : null) +
-          (function () {
-            /* "across 1 goal" is a count standing where a name fits. The
-               row that failed is eight inches down the page and this is
-               the figure a reader stops on; at one or two it says which,
-               and past that the count is the honest summary. */
-            const bad = rows.filter((x) => !x.pass);
-            return attFig('Points lost', commas(lost),
-              !lost ? 'nothing missed'
-                : isBuyer() && bad.length <= 2
-                  ? 'all on ' + bad.map((x) => x.g.title.toLowerCase()).join(' and ')
-                  : 'across ' + plural(bad.length, 'goal'), null);
-          }()) +
-          (function () {
-            const l = lagOf(e);
-            return attFig('Looked at', l.fig + ' later',
-              l.target ? (l.kept ? 'inside the ' + l.target + ' promised'
-                : 'outside the ' + l.target + ' promised') : '',
-              l.kept ? 'ok' : null);
-          }()) +
-        '</div>' +
-        '<div class="s-pan-restitle">What was scored</div>' +
-        '<div class="s-odds-rows">' + rows.map((x) =>
-          '<span class="s-pan-p">' +
-            '<span class="s-pan-who">' +
-              '<b>' + esc(x.g.title) +
-                '<span class="s-pan-state tone-' + (x.pass ? 'ok' : 'err') + '">' +
-                  (x.pass ? 'passed' : 'failed') + '</span></b>' +
-              '<span class="s-pan-meta">' + esc(x.g.q) + ' &mdash; ' +
-                esc(QA_WHY[x.g.k][x.pass ? 'ok' : 'no']) + '</span>' +
-            '</span>' +
-            '<span class="s-pan-cost">' + esc(commas(x.g.weight)) + '</span>' +
-          '</span>').join('') + '</div>' +
-      '</section>' +
-    '</div>';
   }
 
   /* ══ WHAT A PROMISE IS SCORED OFF ══════════════════════════════════════
@@ -11026,18 +10594,19 @@
         why = ' The reason is ours: ' + esc(commas(cold)) +
           ' of the people we found were never called.';
       }
-    } else {
-      const f = floorOf(myClient(), e.k);
-      if (f && f.evals.length) {
-        /* The third spelling of this sweep, and the last: `weakestGoal`
-           is the one place that answers it now. */
-        const weak = weakestGoal(f);
-        if (weak) {
-          why = ' It is one goal doing most of it: ' + esc(weak.g.title.toLowerCase()) +
-            ' passes on ' + esc(commas(weak.pc)) + '% of conversations.';
-        }
-      }
     }
+    /* ══════════════ AND A FLOOR'S CAUSE IS NOT OURS TO NAME ══════════════
+       "It is one goal doing most of it: survey promotion passes on 60% of
+       conversations" stood here, and it is the best sentence this block
+       ever produced — which is why it is worth saying why it went. It
+       reads a breakdown OF the quality score out of a library of seven
+       CR-codes, and that library, the page that browses it and the record
+       that carries a verdict per code are AiMY QA's. A client owed a cause
+       is owed it from the product that can show the working.
+       What is left is not an apology: the promise is named, the gap is on
+       the ledger row above with the days it has left, and the last clause
+       still refuses to ask for the same fee. The outbound branch keeps its
+       cause because a queue nobody called is our own failure to work. */
     return name + ' missed ' + esc(plural(ours.length, 'promise')) +
       ' we answer for.' + why +
       ' We would not ask you to renew this one at the same fee.';
@@ -11160,21 +10729,16 @@
         '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
         esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
         'swings far enough on its own to turn a promise from kept to behind.</p>' +
-      /* ══ AND THE FIGURES OPEN ═══════════════════════════════════════
-         Four averages over nine hundred and sixty-five conversations. The
-         argument for scoring all of them instead of two in a hundred is
-         that any one can be gone back to, and a report that states the
-         average without a way down to the conversation is making exactly
-         the claim it cannot support. */
-      (function () {
-        const f = floorOf(myClient(), (myEng() || {}).k);
-        if (!f) return '';
-        return '<div class="s-lead-acts"><button class="s-insight-lnk primary" ' +
-          'type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'floor' }))) + '">' +
-          'Show the ' + esc(plural(f.agents.length, 'person')) +
-          (t.whose === 'ours' ? ' on it' : ' behind it') + '</button></div>';
-      }()) +
+      /* ══ AND THE FIGURES DO NOT OPEN HERE ══
+         "Show the 24 people behind it" was here, and the argument under it
+         was sound: an average stated with no way down to the conversation
+         it was taken from is making a claim it cannot support. The way down
+         is AiMY QA, which holds the roster, the goal browser and the record
+         with a verdict on it — so the claim is still supportable and it is
+         still not supported HERE, which is the honest way to say it.
+         What this section can answer for itself it does: the note above
+         names how many weeks, which four, and that `now` is a mean of the
+         last four rather than whichever week fell last. */
     '</section>';
   }
 
@@ -11341,29 +10905,33 @@
        branch further down, and it survived because the fix above returned
        early instead of covering every book. */
     if (!onPipeline()) {
-      const f = floorOf(myClient(), (myEng() || {}).k);
-      if (f) {
-        const ranked = floorRanked(f);
-        const worst = ranked[0];
-        if (worst) {
-          out.push({ label: 'Who needs an afternoon',
-            ask: worst.a.name + ' is averaging ' + commas(worst.avg) + '% across ' +
-              plural(worst.n, 'scored conversation') + '. Show me which goals they are losing ' +
-              'and what the coaching conversation should be.' });
-        }
-        const per = QA_GOALS.map((g) => {
-          const n = f.evals.filter((e) => e.goals.filter((x) => x.k === g.k && x.pass).length).length;
-          return { g: g, pc: f.evals.length ? Math.round((n / f.evals.length) * 100) : 0 };
-        }).sort((x, y) => x.pc - y.pc)[0];
-        if (per) {
-          out.push({ label: 'Which goal is costing us',
-            ask: per.g.title + ' passes on ' + commas(per.pc) + '% of conversations and is ' +
-              'worth ' + commas(per.g.weight) + ' points. What is going wrong on it?' });
-        }
-      }
       const d0 = myDeal();
+      /* ══════════════ AND WHAT A FLOOR BOOK ASKS IS WHAT IT COST ══════════════
+         Two of these were "Who needs an afternoon" and "Which goal is
+         costing us" — a named agent's average and a CR-code's pass rate,
+         which is a coaching brief put in the composer of a page about a
+         year's money. Both are AiMY QA's questions and QA can answer them
+         against the record; here they were a question nothing on the
+         surface could follow up.
+         A fee, and what it replaced. Every engagement has the first, and
+         `spend.was` on the desk is the only other money on this book — the
+         two numbers nobody divides, which is exactly why asking is worth
+         something. */
+      if (d0.fee) {
+        out.push({ label: 'Is this worth the fee',
+          ask: engName(myEng() || d0) + ' costs ' + fmtMoney(d0.fee) + ' a year. Take the ' +
+            'promises on it one at a time and say what each has been worth against that.' });
+      }
+      if (d0.spend && d0.spend.was) {
+        out.push({ label: 'Against what it cost before',
+          ask: 'We spent ' + fmtMoney(d0.spend.was) + ' running this ourselves and pay ' +
+            fmtMoney(d0.fee) + ' now. What did the difference buy, in the figures on ' +
+            'this page?' });
+      }
       const bad = (d0.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
         .filter((x) => x.got != null && !promKept(x.r, x.got));
+      /* Last of the three and the only one with a clock in it, which is
+         the order the overview's own three keep. */
       if (bad.length) {
         out.push({ label: 'What can still be caught',
           ask: plural(bad.length, 'promise') + ' on this one are behind with the year nearly ' +
@@ -12818,46 +12386,6 @@
     return ' ' + (said.length ? said.join(', ') + ' and ' + last : last) + '.';
   }
 
-  /* ══════════════ A FLOOR, AS ONE CLAUSE OF THE DAY ══════════════
-     This was a paragraph of its own that REPLACED the day's — the diary,
-     the meetings nobody wrote up, the leads and the campaigns all gone the
-     moment you pressed Quality tool, because the book had no pipeline. The
-     book has no pipeline; the client does, and she is the same person with
-     the same diary whichever of the three she is reading.
-
-     So it is a clause, and it goes where the floor sits in her day: after
-     what has a clock on it and before the year, which is the one thing
-     here that is not about today at all.
-
-     The figure is the way into the tab that owns it, which is the rule the
-     rest of this briefing keeps — except on that tab, where a door to the
-     page you are standing on is not a door. */
-  function floorLine(here) {
-    if (!onFloor()) return '';
-    const t = (myDeal() || {}).team || {};
-    const whose = t.whose === 'ours' ? 'the desk we run for you' : 'your floor';
-    const f = floorOf(myClient(), (myEng() || {}).k);
-    if (!f) return 'Nothing has been scored on ' + esc(whose) + ' yet.';
-    const rows = floorRanked(f);
-    const to = Object.assign(cleared(), { on: 'floor' });
-    const door = (html) => (here === 'floor' ? '<b>' + html + '</b>'
-      : '<button class="slv-n" type="button" data-go="' + esc(JSON.stringify(to)) + '">' +
-        html + '</button>');
-    const under = rows.filter((x) => x.avg < 80).length;
-    /* "8,634 of 8,634 conversations scored" is a ratio nobody asked for —
-       the People tab makes the same call two hundred lines down. */
-    const scored = f.seen >= f.held
-      ? 'every one of their <b>' + commas(f.held) + '</b> conversations scored'
-      : '<b>' + commas(f.seen) + '</b> of their <b>' + commas(f.held) +
-        '</b> conversations scored';
-    return door(esc(plural(rows.length, 'person'))) + ' ' +
-      (rows.length === 1 ? 'is' : 'are') + ' on ' + esc(whose) + ' with ' + scored +
-      ', and ' + (under
-        ? '<b>' + commas(under) + '</b> of them ' + (under === 1 ? 'is' : 'are') +
-          ' under eighty per cent'
-        : 'none of them is under eighty per cent') + '.';
-  }
-
   /* ══════════════ AND THE ONE FACT NO TAB HOLDS ══════════════
      Every other clause in this paragraph counts a set with a surface behind
      it. The year is not a set. It is the contract this whole desk sits
@@ -12883,7 +12411,6 @@
     /* The tab's own paragraph, the way Campaigns and Lists have one: what
        is on the page under it, and nothing about the pipeline, which is
        three tabs to the left with its own counts on them. */
-    if (here === 'floor') return floorLine(here) + yearClause();
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
@@ -12994,17 +12521,20 @@
          diary has a clock on it, the book is the size of the desk, and this
          is what has slipped. A reader who stops after two sentences has read
          the two that are about the next eight hours. */
-      /* The floor, where there is one, then the year. Both are clauses of
-         this paragraph rather than paragraphs instead of it. */
-      const floor = onFloor() ? ' ' + floorLine(here) : '';
+      /* The year last, and on this desk it is the only clause of the four
+         that is not about today. A floor clause stood in front of it — how
+         many people, how many of their conversations scored, how many
+         under eighty — and the last of those three was a coaching count
+         with no surface left behind it. What the coverage is worth is on
+         the report, beside the promise that asked for it. */
       if (!on.length) {
         return 'Nothing is in the diary today.' + owed + ' ' + book + briefOwed() +
-          floor + yearClause();
+          yearClause();
       }
       return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
         (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
           esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book + briefOwed() +
-        floor + yearClause();
+        yearClause();
     }
     return openerText(counts, all, camps);
   }
@@ -13163,52 +12693,7 @@
           why: 'what you sell, to whom, and how many you want' };
 
     let opens;
-    if (here === 'floor') {
-      /* ══════════════ FOUR VERBS THE FLOOR'S OWN TAB HAS ══════════════
-         On the SURFACE, not on the book — the same rule Campaigns and Lists
-         keep below. A client standing on Today has a queue, a diary and
-         campaigns whichever engagement is selected, so Today keeps the
-         client's four; it is this page that has a drill instead.
-
-         And the row is the bottom of that drill rather than the top of it:
-         the top is the list six pixels below, and a door to the page you
-         are standing on is not a door. */
-      const f = floorOf(myClient(), (myEng() || {}).k);
-      const t = (myDeal() || {}).team || {};
-      const rows = f ? floorRanked(f) : [];
-      const worst = rows[0];
-      /* The lowest-scored conversation anywhere on the floor. This is the
-         thing the coverage promise is a promise ABOUT: the argument for
-         scoring all of them rather than two in a hundred is that any one
-         can be gone back to. */
-      const low = f && f.evals.length
-        ? f.evals.slice().sort((a, b) => a.score - b.score)[0] : null;
-      /* And which goal is doing most of the damage across all of them. The
-         person's page asks this of one person; a floor with twenty-four on
-         it has one answer, and it is the one worth an afternoon. */
-      const weak = weakestGoal(f);
-      opens = [
-        worst
-          ? { k: 'ag:' + worst.a.id, label: 'Look at ' + worst.a.name.split(' ')[0],
-              why: esc(commas(worst.avg)) + '% is the lowest ' +
-                (t.whose === 'ours' ? 'on the desk' : 'on your floor') }
-          : { k: 'floor', label: t.whose === 'ours' ? 'Open the desk' : 'Open the floor',
-              why: 'nothing has been scored yet' },
-        low
-          ? { k: 'ev:' + low.agent + ':' + low.id, label: 'Read a conversation',
-              why: 'the lowest we scored, at ' + esc(commas(low.score)) + '%' }
-          : null,
-        weak
-          ? { k: 'ask:Which goal is costing us the most across ' +
-                (t.whose === 'ours' ? 'the desk' : 'the floor') + ', and what would fixing it be worth?',
-              label: 'Ask what is costing us',
-              why: esc(weak.g.title.toLowerCase()) + ' passes on ' +
-                esc(commas(weak.pc)) + '% of them' }
-          : null,
-        { k: 'money', label: 'See the year',
-          why: 'what was promised, and what has happened against it' },
-      ].filter(Boolean);
-    } else if (isBuyer()) {
+    if (isBuyer()) {
       /* ══ THREE VERBS, AND THE LINE IS THE SAME ONE ═══════════════════
          Against the manager's four, this desk loses the two that operate
          the machine — building a campaign and finding leads — and keeps the
@@ -13239,13 +12724,23 @@
         /* The question the report puts under its own ledger, on the page
            the day opens on — because a client eight days out is asking it
            before they have scrolled anywhere. */
+        /* ══════════════ AND THE VERB AGREES WITH THE COUNT ══════════════
+           "1 of your 4 promises are behind": `plural` inflects the noun it
+           is handed and the verb was a literal beside it, so the clause
+           agreed with "promises" rather than with its own subject. The same
+           fault the ledger had at "1 of the 3 have ground to make up", and
+           it stood here unread because a floor book showed four other verbs
+           until this commit — which is the argument for one desk rather
+           than a desk per book. */
         (nBehind
           ? { k: 'ask:' + commas(nBehind) + ' of my ' + plural(y.scored.length, 'promise') +
-                ' are behind with ' + run + ' to run. Say which of them can still be caught ' +
+                (nBehind === 1 ? ' is' : ' are') +
+                ' behind with ' + run + ' to run. Say which of them can still be caught ' +
                 'and what it would take.',
               label: 'Ask what can still be caught',
               why: esc(commas(nBehind)) + ' of your ' +
-                esc(plural(y.scored.length, 'promise')) + ' are behind' }
+                esc(plural(y.scored.length, 'promise')) +
+                (nBehind === 1 ? ' is behind' : ' are behind') }
           : { k: 'ask:Every promise on my year is being kept with ' + run + ' to run. ' +
                 'Say what next year should ask for instead.',
               label: 'Ask what next year should be',
@@ -29213,20 +28708,6 @@
         go(Object.assign(cleared(), { list: k.slice(5) }));
         return;
       }
-      /* The floor's three, which name a surface or a record rather than a
-         cut of a queue — the same shape `camp:` and `list:` take above. */
-      if (k === 'floor') { go(Object.assign(cleared(), { on: 'floor' })); return; }
-      if (k.indexOf('ag:') === 0) {
-        go(Object.assign(cleared(), { on: 'floor', ag: k.slice(3) }));
-        return;
-      }
-      if (k.indexOf('ev:') === 0) {
-        /* The person as well as the conversation, so the way back off it
-           lands on the person rather than on Today. */
-        const bits = k.slice(3).split(':');
-        go(Object.assign(cleared(), { on: 'floor', ag: bits[0], ev: bits[1] }));
-        return;
-      }
       /* A question rather than a place. The report's own `secAsk` puts the
          words in the composer and leaves the press to the reader, which is
          the right shape for a thing AiMY is being ASKED. */
@@ -30024,10 +29505,6 @@
       go(Object.assign(cleared(), { on: S.on, eng: eng.getAttribute('data-eng') }));
       return;
     }
-    const ag = t.closest('[data-ag]');
-    if (ag) { go(Object.assign(cleared(), { ag: ag.getAttribute('data-ag') })); return; }
-    const ev = t.closest('[data-ev]');
-    if (ev) { go(Object.assign(cleared(), { ag: S.ag, ev: ev.getAttribute('data-ev') })); return; }
     const as = t.closest('[data-as]');
     if (as) {
       shutMenus(null);
