@@ -454,12 +454,30 @@ written down. The report shows four metrics across forty-eight weeks against
 their value at signing. A scored conversation is still what the coverage
 promise is a promise ABOUT — it is just not this product's job to open one.
 
-**SO THE SECTION SAYS WHERE THE OTHER HALF IS.** An average stated with no
+**SO THE REPORT SAYS WHERE THE OTHER HALF IS.** An average stated with no
 way down to the conversation it came from is making a claim it cannot
-support, and that argument did not go away with the roster — it moved. An
-AiMY block under the four metrics carries it: *this page is what the
-scoring came to; the scoring is AiMY QA*, with a link on
-`agent-scorecards.html?tbl=agents`.
+support, and that argument did not go away with the roster — it moved.
+`qaLine` carries it: *this page is what the scoring came to; AiMY QA is
+the scoring*, with a link on `agent-scorecards.html?tbl=agents`.
+
+**In the block that already speaks, not a second one.** It was an AiMY
+card under the four metrics for one commit. The report already has an AiMY
+block at the top with the mark on it, so a second card in the same voice
+eight hundred pixels below the first is the page speaking twice — and
+`.slv`'s own stylesheet had made that call before, when `.slv-signals` put
+four buttons under that paragraph and lost them for repeating what the
+sentence already linked. So it is a second `.slv-line`, and the link is a
+phrase in `.slv-n` rather than a chip: in this paragraph weight plus
+underline means pressable and weight alone means important. It also reads
+better there — "this page" is now said at the top of the page it is
+about.
+
+`.slv-line` carried `margin: 0`, which was right for the one-line case it
+was built for and wrong the moment a block holds two: "What we think
+should change" draws one line per engagement, so the overview stood four
+verdicts about four different things 0.0px apart. 8 now, under the 12
+`.slv-head` keeps above the body, so the lines group beneath the heading
+as one answer and each verdict is still its own.
 
 A suggestion rather than a drill, and **the wording turns on it**. The two
 builds do not share a corpus — this floor is seeded by `floorOf` on a
