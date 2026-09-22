@@ -3731,6 +3731,25 @@
        either; a bookmark is what reaches them. */
     if (isBuyer()) { S.build = ''; S.list = ''; S.con = ''; S.acc = ''; }
     if (isBuyer() && S.on === 'deals') S.on = '';
+    /* ══════════════ AND THE CLIENT ALREADY HAS A SCOPE CONTROL ══════════════
+       `by` switches the money between two dimensions — what SPENT it and
+       what EARNED it — and it is the right control on the desk it was
+       built for, where there is nothing else scoping the page. This desk
+       has the engagement picker in its header, which rescopes every figure
+       on the page rather than one section of it, and two controls that
+       both answer "which slice am I reading" on one screen is the reader
+       holding two axes at once to locate a number.
+
+       AND THE `svc` HALF PUT OUR COST ON THEIR SCREEN. Its campaign rows
+       read "86 days left — €881 cost", which is what running that campaign
+       costs US. This desk exists on the line that a client pays a fee and
+       not a floor, and the sweep that checked it went over SURFACES — a
+       figure two presses inside a cut of a section was never on the list.
+       Refused here rather than hidden in the panel, the same as `deals`
+       and the lists above: a bookmark into the dimension cannot reach it
+       either. The figure is gated at its own site as well, because one
+       guard for a cost leak is one more than the last count. */
+    if (isBuyer()) S.by = '';
     /* ══ A FLOOR HAS FEWER SURFACES, NOT ONE ══════════════════════
        Contacts, the Diary and Campaigns are all readings of a pipeline. A
        floor has none, and the desk drew them anyway: three tabs reading
@@ -9614,6 +9633,9 @@
     return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
   function cutChips() {
+    /* Nothing to press for a reader `parse` has already answered for, and
+       a control with one reachable state is a label pretending. */
+    if (isBuyer()) return '';
     return '<div class="s-tabcuts s-cut-by" role="group" aria-label="Cut the money by">' +
       CUTS.map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
         '" type="button" data-by="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
@@ -12212,7 +12234,10 @@
                 sold.map((s) => '<span class="s-pan-p">' +
                   '<span class="s-pan-who"><b>' + esc(s.camp.name) + '</b>' +
                     '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
-                      (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
+                      /* Ours, so it goes where every other cost on this
+                         page goes: behind `seesCost`. */
+                      (s.total && seesCost()
+                        ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
                     '</span></span>' +
                   /* ══ A DASH SAYS "CANNOT BE SAID". THIS IS A KNOWN ZERO ════
                      The campaign is real, it cost €454, and it has signed
