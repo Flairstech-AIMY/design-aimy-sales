@@ -950,6 +950,19 @@
        function none of them names is a row none of them draw. The seed cursor
        does not move and no count in the corpus changes. */
     { id: 'sherif', name: 'Sherif Amin',   initials: 'SA', fn: 'stakeholder', sell: 'qa' },
+    /* ══════════════ AND ONE WHO SIGNS THE YEAR OFF ══════════════
+       A client's diary is meetings with US — they bought the finding and
+       the qualifying, and the rooms we book are for their sales people, not
+       for the person who signed. A monthly check-in is the account manager
+       who runs their campaigns; the conversation about whether the year
+       runs again is not hers to have on her own.
+
+       Appended with a function nothing else filters on, which is exactly
+       the margin above: `BDRS`, `MANAGERS`, `workingHeads`, `payrollRows`
+       and the seed's callers all name a function and this is not one of
+       them, so the seed cursor does not move and no count in the corpus
+       changes. She has no desk either — `DESKS` is four and stays four. */
+    { id: 'hala',   name: 'Hala Mansour',  initials: 'HM', fn: 'exec' },
     /* ══ AND ONE WHO DOES NOT WORK FOR US ═══════════════════════════════
        The three above read this book from our side and differ only in what
        bounds them. This one reads it from the other side of the invoice: a
@@ -3634,7 +3647,13 @@
        permanently empty and looks broken rather than closed. */
     if (isBuyer() && (S.on === 'lists' || S.on === 'notes')) S.on = '';
     if (isBuyer() && S.q === 'won') S.q = 'all';
-    if (isBuyer()) { S.build = ''; S.list = ''; }
+    /* The board and the record behind it, refused the way the lists and
+       the notes are two lines up and for the same reason: they are named
+       prospects and what we have done to each of them, which is our
+       operation rather than their delivery. `switcher` draws no door to
+       either; a bookmark is what reaches them. */
+    if (isBuyer()) { S.build = ''; S.list = ''; S.con = ''; S.acc = ''; }
+    if (isBuyer() && S.on === 'deals') S.on = '';
     /* ══ A FLOOR HAS FEWER SURFACES, NOT ONE ══════════════════════
        Contacts, the Diary and Campaigns are all readings of a pipeline. A
        floor has none, and the desk drew them anyway: three tabs reading
@@ -5267,6 +5286,33 @@
       };
     }
     const k = S.camp && DB.byCamp[S.camp];
+    /* ══════════════ A CAMPAIGN, READ FROM THE SIDE THAT PAID FOR IT ══════════════
+       The two branches below are a caller's: how many here are waiting to
+       be called, and whether anything on it is still dialled. Both are a
+       worklist's size, on a desk with no worklist and nobody to dial — the
+       page under this card no longer draws the people at all. What the
+       company paying for it came to know is how far the finding has got,
+       which is the same funnel Where it stands draws underneath, said in
+       the one number that is the hand-over. */
+    if (k && mine(k) && isBuyer()) {
+      const members = membersOf(k.id);
+      const reached = members.filter((c) => c.checkpoint !== 'not-called').length;
+      const handed = members.filter((c) => c.checkpoint === 'handed-over').length;
+      const shut = !campOpen(k);
+      return {
+        card: {
+          state: shut ? 'completed' : handed ? 'detected' : 'reading',
+          text: (shut ? 'It closed <b>' + esc(sayWhen(k.to)) + '</b>. ' : '') +
+            (handed
+              ? '<b>' + plural(handed, 'person') + '</b> off it ' +
+                (handed === 1 ? 'has' : 'have') + ' been handed to your team.'
+              : 'Nobody off it has been handed to your team yet.'),
+          evidence: [{ val: commas(reached), cap: 'reached' },
+            { val: commas(members.length), cap: 'on it' }],
+          act: null, q: null,
+        },
+      };
+    }
     if (k && mine(k) && !campOpen(k)) {
       const members = membersOf(k.id);
       return {
@@ -5344,7 +5390,13 @@
        right first sentence for every desk that works a pipeline and an
        empty one for a desk that does not have one. The promises are what
        this reader came for, so the rail says how they stand. */
-    if (isBuyer() && !onPipeline()) {
+    /* ══════════════ AND A CLIENT'S RAIL READS THEIR YEAR ══════════════
+       `!onPipeline` sent the outbound book on to the branch below, which
+       opens "9 deals want something today, out of the 16 we are running
+       for you" — a reading of a set this desk has no surface for, under a
+       figure nobody here can act on. Every client book reads the same
+       thing now, which is the one question all three share. */
+    if (isBuyer()) {
       const y = myYear();
       const scored = y.scored;
       const kept = y.kept;
@@ -5809,10 +5861,22 @@
            They are the same component either way — `calBody` draws the
            month and the day, and the only difference is what it stands in. */
         ? one('today', 'Today', null, cleared()) +
-          /* The URL key stays `deals`: it is in bookmarks, in `backHere`, in
+          /* ══════════════ AND THE PEOPLE ON IT ARE NOT THE CLIENT'S TO WORK ══════════════
+             A client's tab said Contacts and held fifteen named prospects
+             with their call histories, the stage each one is at, and a verb
+             on every card. They bought the finding and the qualifying: the
+             engagement's own line is "we find them and put them in a room
+             with you, what happens in the room is yours". None of the
+             fifteen is theirs to warm-call, and how many times we tried
+             somebody before they answered is our operation, not their
+             delivery. What they bought is answered in the aggregate, on the
+             report, where it was always answered.
+             The URL key stays `deals`: it is in bookmarks, in `backHere`, in
              every `data-go` payload on the page, and renaming a key to match
              a label is a migration for a word. */
-          one('deals', 'Contacts', queue().length, Object.assign(cleared(), { on: 'deals' })) +
+          (isBuyer() ? ''
+            : one('deals', 'Contacts', queue().length,
+                Object.assign(cleared(), { on: 'deals' }))) +
           one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))
         /* ══ ONE WORD FOR ONE SET, AND IT NAMES WHAT IS IN IT ══════════
            The caller's tab said Calls and the manager's said Deals, over the
@@ -7773,7 +7837,10 @@
       '<section class="s-block s-block-wide" aria-label="The diary">' +
         '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
         '<div class="b-diary" id="calPage">' + calBody(CALSEL) + '</div>' +
-        openLoop() +
+        /* What it counts is meetings of OURS that nobody wrote up, and the
+           door beside it opens notes authored by the reader — `parse`
+           refuses that key on this desk already. Both are our process. */
+        (isBuyer() ? '' : openLoop()) +
       '</section>' +
     '</div>';
   }
@@ -12274,6 +12341,12 @@
      What changed is how much room it takes to say so. Five rows of prose
      naming three people each is a digest; this is a briefing. */
   function briefOwed() {
+    /* Every clause it makes is a door onto the board — a deal past its
+       date, a lead waiting on a warm call, a contract renewing on our own
+       customer book. A client's desk has none of those surfaces and none
+       of that work. What IS owed on their year is the promises, and the
+       clause after this one says so. */
+    if (isBuyer()) return '';
     const owed = mgrTasks().filter((t) =>
       t.line && t.id !== 'diary-today' && t.id.indexOf('met:') !== 0);
     if (!owed.length) return '';
@@ -12428,15 +12501,23 @@
       /* A stakeholder was never handed anything and owns no campaign. The
          same two facts are true of his desk said the other way round: what
          has reached the director on the campaigns that sell his product. */
-      const book = all.length
+      /* ══════════════ AND A CLIENT IS NOT COUNTING LEADS ══════════════
+         This said "17 leads have been handed to you, across 3 campaigns we
+         are running for you", which was true and was a count of a set the
+         desk no longer opens — and never should have: the fifteen names
+         behind it are people we approach on their behalf, not a worklist
+         they carry. What is theirs on that row is the campaigns, which
+         they asked for, signed off and can still ask for more of. What the
+         finding PRODUCED is a promise with a number on it, and that is the
+         report's answer rather than a clause in a briefing. */
+      const book = isBuyer()
+        ? (camps.length
+          ? briefN(camps.length, 'campaign', { on: 'camps' }) + ' ' +
+            (camps.length === 1 ? 'is' : 'are') + ' running for you.'
+          : 'No campaign is running for you at the moment.')
+        : all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
-          /* A client WAS handed them, so the first half is already true of
-             this desk — and owns no campaign, so the second half is not.
-             `bookWhose` is the phrase, said once and read here. */
-          (isBuyer()
-            ? ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> ' +
-              esc(bookWhose()) + '.'
-            : isLine()
+          (isLine()
             ? ' been handed over on <b>' + plural(camps.length, 'campaign') + '</b> selling ' +
               esc(sellSay(myLine())) + '.'
             : ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.')
@@ -12676,18 +12757,38 @@
          The third is the page they came for. Financials had one door, in
          the rail, which is the right weight for a desk that visits it and
          the wrong weight for the one desk whose whole reason it is. */
-      const top = all[0];
+      /* ══════════════ AND THE WARM CALL WAS NEVER THEIRS TO MAKE ══════════════
+         The first of these was "Warm-call the next one · Michael Price is
+         top of your deals". Michael Price is somebody we found for them:
+         calling him is the thing they bought rather than the thing they
+         do, and the desk it belongs to is four hundred pixels and one
+         `?as=` away. It went with the Contacts tab it opened.
+         What is left is a row with nothing of ours in it: ask for a
+         campaign, hand us somebody you met, ask what can still be caught,
+         read the year. */
+      const y = myYear();
+      const nBehind = y.behind.length;
+      const run = y.left == null ? 'weeks' : plural(y.left, 'day');
       opens = [
-        { k: 'callnext', label: 'Warm-call the next one',
-          why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
-        /* Three verbs became four, and the fourth is not one of the two
-           this desk lost. Building a campaign and finding leads spend our
-           suppliers' money and operate our floor; saying what you want sold
-           does neither. It sits second because it is the only thing on this
-           row that starts something rather than continuing it. */
+        /* First, because it is the only thing on this row that starts
+           something rather than continuing it. */
         campDoor,
         { k: 'lead', label: 'Add a lead',
-          why: 'somebody you met, straight into your contacts' },
+          why: 'somebody you met, into the campaigns we run for you' },
+        /* The question the report puts under its own ledger, on the page
+           the day opens on — because a client eight days out is asking it
+           before they have scrolled anywhere. */
+        (nBehind
+          ? { k: 'ask:' + commas(nBehind) + ' of my ' + plural(y.scored.length, 'promise') +
+                ' are behind with ' + run + ' to run. Say which of them can still be caught ' +
+                'and what it would take.',
+              label: 'Ask what can still be caught',
+              why: esc(commas(nBehind)) + ' of your ' +
+                esc(plural(y.scored.length, 'promise')) + ' are behind' }
+          : { k: 'ask:Every promise on my year is being kept with ' + run + ' to run. ' +
+                'Say what next year should ask for instead.',
+              label: 'Ask what next year should be',
+              why: 'every promise on your year is being kept' }),
         { k: 'money', label: 'See the year',
           why: 'what was promised, and what has happened against it' },
       ];
@@ -16415,8 +16516,9 @@
         '</div>' +
         campMeta(k) +
         '<div class="s-rec-actions">' +
-          (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
-            esc(k.id) + '">Call the next one</button>' : '') +
+          (all.length && !isBuyer()
+            ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
+              esc(k.id) + '">Call the next one</button>' : '') +
           /* "Call them" is about the people on the page of the queue, so
              it sits with the queue and nowhere else — it was here too, and a
              control repeated is a decision repeated. */
@@ -16439,8 +16541,17 @@
          doing, because nobody scrolls past their own queue to find out. */
       campLead(k) +
 
-      /* THE WORK — or, on a closed campaign, what it left. */
-      (campOpen(k) ? queueBlock(all, counts) :
+      /* ══════════════ THE WORK IS NOT WHAT A CLIENT CAME FOR ══════════════
+         Three blocks on this page are the doing of it: who is left to call,
+         with a verb on every card; what happened, which is a day-by-day of
+         our calls; and the button that starts the next one. A client is not
+         working this campaign, they are reading whether it is working — and
+         every name in those three is somebody they bought access to rather
+         than somebody they manage.
+         What stays is the brief they signed off, where it stands, and what
+         is in the way. Those are the campaign; the rest is the floor. */
+      (isBuyer() ? '' :
+      campOpen(k) ? queueBlock(all, counts) :
         '<section class="s-block s-block-wide" aria-label="To call">' +
           '<div class="s-camp-list-head"><h2 class="s-block-h">To call</h2>' +
             '<span class="s-block-say">nothing — it closed ' + esc(sayWhen(k.to)) + '</span></div>' +
@@ -16463,10 +16574,11 @@
          page would share a page number with the queue above it or need one
          of its own, and both are worse than deciding which of the two lists
          is the reason you came. */
+      (isBuyer() ? '' :
       '<section class="s-block s-block-wide" aria-label="What happened">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What happened</h2></div>' +
         feedBlock(campFeedItems(k.id)) +
-      '</section>' +
+      '</section>') +
     '</div>';
   }
 
@@ -19851,6 +19963,71 @@
   }
   const clockOf = (m) => (m.h == null ? '' : m.h + ':' + String(m.m).padStart(2, '0'));
 
+  /* ══════════════ THE ONLY MEETINGS THIS DESK IS ACTUALLY IN ══════════════
+     Every entry `meetings` builds below hangs off a contact: a phase
+     touchpoint on a prospect, or a next step against one. Those are the
+     rooms we put the client's SALES PEOPLE in — the outbound engagement
+     says so in one line, "we find them and put them in a room with you,
+     what happens in the room is yours" — and the person who signed for it
+     is in none of them. Her diary drew thirty-one of them anyway, and the
+     product offered to brief her for an eleven o'clock she was never
+     going to.
+
+     What she IS in is the account. A term has a shape: it opens, it is
+     checked on a cadence, each floor goes live some weeks in, and it ends
+     in a conversation about whether it runs again. Every date in that
+     shape is already on the deal, so this is derived the way the diary
+     itself is — nothing written down, and moving `since` or `term` moves
+     all of it.
+
+     `free: true`, like the entries somebody types into the calendar: there
+     is no record behind a review to open, and it is also what keeps
+     `unrecorded` off them. A meeting between a client and their account
+     manager is not a meeting somebody here forgot to write up. */
+  const acctMgr = () => {
+    const k = myCamps().filter((c) => c.owner)[0];
+    return REP[(k || {}).owner] || MANAGERS[0];
+  };
+  const ACCT_EXEC = 'hala';
+  function clientMeets(from, to) {
+    const d = myDeal();
+    if (!isBuyer() || !d) return [];
+    const p = periodOf('deal');
+    if (!p.from || !p.end) return [];
+    const mgr = acctMgr();
+    const out = [];
+    const put = (iso, who, title) => {
+      if (!iso || iso < from || iso > to || iso > p.end) return;
+      const held = iso < TODAY_ISO;
+      const kind = held ? 'held' : 'meeting';
+      const t = slotOf(myClient() + '|' + iso, kind);
+      out.push({ con: { id: '', name: who }, iso: iso, h: t.h, m: t.m, set: false,
+        kind: kind, held: held, free: true, title: title });
+    };
+    put(p.from, mgr.name, 'Kickoff');
+    /* Monthly, and every third one is the quarter's. A year of a
+       four-hundred-thousand account is not four conversations. */
+    for (let i = 1; i * 1 < 600; i++) {
+      const iso = monthStep(p.from, i);
+      if (!iso || iso >= p.end) break;
+      put(iso, mgr.name, i % 3 === 0 ? 'Quarterly review' : 'Account check-in');
+    }
+    /* A floor went live some weeks after signing, and `deployedAt` is how
+       many — the same field the report's twelve-week note reads, so the
+       diary and the evidence cannot disagree about when it landed. */
+    engsOf(dealOf(myClient())).forEach((e) => {
+      if (!e.team || !e.team.deployedAt) return;
+      put(isoAdd(p.from, e.team.deployedAt * 7), mgr.name, e.name + ' went live');
+    });
+    /* And the one that is ahead. The notice window has closed by the time
+       anybody reads this, which is the whole point of the sentence the
+       report opens with — so it is not a negotiation, it is the year and
+       what happens to it next, and it is not the account manager's alone. */
+    put(isoAdd(p.end, -5), (REP[ACCT_EXEC] || mgr).name + ' and ' + mgr.name,
+      'The year, and what next');
+    return out;
+  }
+
   /* Everything between two days, held and planned, in the order it happens. */
   /* ══ NOT EVERYTHING IN A CALENDAR IS A DEAL ════════════════════════════
      Every entry here hangs off a contact: a phase touchpoint that happened
@@ -19870,6 +20047,16 @@
         set: e.h != null, kind: e.kind || 'meeting', held: false, free: true,
         title: e.why || 'In the calendar' });
     });
+    /* ══════════════ AND WHOSE DIARY THIS IS ══════════════
+       Everything below is a room somebody from this company is in. On a
+       client's desk that is the wrong set entirely, and `clientMeets` two
+       hundred lines up says why. The entries somebody typed into the
+       calendar stay on both, because those are whoever is reading's. */
+    if (isBuyer()) {
+      clientMeets(from, to).forEach((m) => out.push(m));
+      return out.sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1
+        : (a.h == null ? 1e4 : a.h * 60 + a.m) - (b.h == null ? 1e4 : b.h * 60 + b.m)));
+    }
     queue(null, 'all').forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
@@ -22905,6 +23092,15 @@
      only p1 the desk has. */
   function mgrTasks() {
     const tasks = [];
+    /* ══════════════ AND FOUR OF THESE ARE THE BOARD'S ══════════════
+       A deal past its date, a lead waiting on a warm call, a contract on
+       our own customer book renewing, an account that moved: all four are
+       work, all four open the board, and a client has neither. The three
+       that stay are the ones about them — what is in their diary today,
+       and which promise on their year is furthest from its number.
+       The write-ups above need no guard: a client's meetings are with us
+       and `clientMeets` marks them free, so `unrecorded` finds none. */
+    const board = !isBuyer();
     unrecorded().slice(0, 4).forEach((m) => {
       const days = -daysBetween(TODAY_ISO, m.iso);
       tasks.push({
@@ -22932,7 +23128,7 @@
           soon[0].con.name + '.',
         cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
     }
-    const live = queue(null, 'all').filter(dealLive);
+    const live = board ? queue(null, 'all').filter(dealLive) : [];
     const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
     if (late.length) {
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
@@ -22973,7 +23169,7 @@
        customer with it rather than the difference — which is why it is
        above the openings and why it is the one customer row that names a
        date instead of a count. */
-    const due = customers().map((a) => ({ a: a, r: renewAt(a) }))
+    const due = (board ? customers() : []).map((a) => ({ a: a, r: renewAt(a) }))
       .filter((x) => x.r && x.r.days <= RENEW_SOON)
       .sort((x, y) => x.r.days - y.r.days);
     if (due.length) {
@@ -22988,7 +23184,7 @@
         line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
           ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
     }
-    const moved = openings();
+    const moved = board ? openings() : [];
     if (moved.length) {
       const one = moved[0];
       tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
