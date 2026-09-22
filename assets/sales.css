@@ -6904,6 +6904,19 @@ body.is-calling .overlay-chats { display: none; }
   font-size: var(--fs-base); color: var(--d100);
   line-height: var(--lh-base); margin: 0;
 }
+/* ── AND FOUR STATEMENTS ARE NOT ONE PARAGRAPH ──
+   `margin: 0` is right for the one-line case this block was built for and
+   wrong the moment it holds two. "What we think should change" draws one
+   line per engagement — on the overview that is four verdicts about four
+   different things, measured at 0.0px apart, so a reader met a wall of
+   text and had to find the sentence boundaries themselves.
+
+   8, against the 12 `.slv-head` keeps above the body. Less than the gap
+   to the heading, so the lines still group under it as one answer rather
+   than reading as separate blocks; more than nothing, so each verdict is
+   its own. A third of a line box, which is the smallest break the eye
+   reads as deliberate. */
+.slv-line + .slv-line { margin-top: 8px; }
 /* ── AND THE ONE RUN THAT IS NOT A LINK STOPS OUTWEIGHING THE FIVE THAT ARE ──
    `Three things need you` is a clause, not a figure: it opens nothing. At
    `--d50` extrabold it was the brightest AND heaviest thing in a sentence

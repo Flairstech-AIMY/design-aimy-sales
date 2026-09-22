@@ -10676,6 +10676,52 @@
      the only before-and-after model anywhere in the tree. Here it is said in
      words rather than drawn, because four rows do not make a heatmap and the
      sentence carries the thing a chart would only imply. */
+  /* ══════════════ WHERE THE CONVERSATIONS ARE, SAID ONCE ══════════════
+     A SUGGESTION, NOT A DRILL, AND THE WORDING TURNS ON IT. The two
+     products do not share a corpus: this floor is seeded by `floorOf` on a
+     stream of its own and QA has its own records. A door reading "open
+     these conversations" would promise that the figures on this page
+     decompose on the other side of it, which is the one kind of claim this
+     desk exists not to make. So the line says what is TRUE of both —
+     scoring is what AiMY QA does, this page is what the scoring came to —
+     and invites rather than asserts. Standing at the TOP of the report it
+     is a better sentence than it was under the metrics, because "this
+     page" is now said at the top of the page it is about.
+
+     THE LINK IS A PHRASE, NOT A CHIP. `.slv-line`'s own rule: weight plus
+     underline means pressable, weight alone means important, and the four
+     buttons that used to sit under this paragraph were taken out for
+     repeating what the sentence already linked. `.slv-n` is that mark, and
+     it sets `font-family` and `font-size` to inherit — written for a
+     `<button>`, and neither of them is anything an `<a>` minds.
+
+     `agent-scorecards.html?tbl=agents`, not the front door: that page
+     reads `tbl` on load and drops it from the URL, under a margin giving
+     the reason both builds keep — context is passed, never reconstructed.
+     A reader sent from a sentence about people lands on the people.
+
+     Not the topnav either, which already carries a QA tab: that is the
+     product switcher and the wrong weight. It says the product exists, not
+     that it holds the half of this report that is missing. */
+  function qaLine() {
+    const t = isBuyer() ? (myDeal() || {}).team : null;
+    if (!t) return '';
+    /* The pronoun has to have something to point at. "The desk,
+       conversation by conversation, the goal each of them is losing" reads
+       THEM back to a desk, which is one thing — so the clause carrying
+       the plural carries the pronoun with it, and the desk's own version
+       names the agent instead. */
+    const whose = t.whose === 'ours'
+      ? 'the desk conversation by conversation, the goal each agent is losing'
+      : 'your own people, conversation by conversation, the goal each of them is losing';
+    return '<p class="slv-line">This page is what the scoring came to. ' +
+      '<b>AiMY QA</b> is the scoring — ' + esc(whose) + ', and the reason ' +
+      'under every verdict. ' +
+      '<a class="slv-n" href="' + esc(QA_HOME + 'agent-scorecards.html?tbl=agents') +
+        '" target="_blank" rel="noopener">Keep track of ' +
+        esc(t.whose === 'ours' ? 'the desk' : 'your team') + ' in AiMY QA</a></p>';
+  }
+
   function buyerFloor() {
     const d = myDeal();
     const t = d && d.team;
@@ -10737,47 +10783,17 @@
         '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
         esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
         'swings far enough on its own to turn a promise from kept to behind.</p>' +
-      /* ══════════════ AND WHAT THIS PAGE CANNOT SHOW, IT NAMES ══════════════
-         "Show the 24 people behind it" was here, and the argument under it
-         was sound: an average stated with no way down to the conversation
-         it was taken from is making a claim it cannot support. The roster
-         went to AiMY QA — so the way down goes there too, and says so.
-
-         A SUGGESTION, NOT A DRILL, AND THE WORDING TURNS ON IT. The two
-         products do not share a corpus: this floor is seeded by `floorOf`
-         on a stream of its own and QA has its own records. A door reading
-         "open these conversations" would promise that the figure above
-         decomposes on the other side of it, which is the one kind of claim
-         this desk exists not to make. So the sentence says what is TRUE of
-         both — scoring is what AiMY QA does, this page is what the scoring
-         came to — and invites rather than asserts.
-
-         `agent-scorecards.html?tbl=agents` rather than the front door.
-         That page reads `tbl` on load and drops it from the URL, and its
-         own margin gives the reason: context is passed, never
-         reconstructed. A reader sent from a sentence about people should
-         land on the people rather than re-find them.
-
-         In `switcher`'s topnav there is already a QA tab, which is the
-         product switcher and the wrong weight: it says the product exists,
-         not that it holds the half of this section that is missing. */
-      (function () {
-        /* The pronoun has to have something to point at. "The desk,
-           conversation by conversation, the goal each of them is losing"
-           reads THEM back to a desk, which is one thing — so the clause
-           carrying the plural carries the pronoun with it, and the desk's
-           own version names the agent instead. */
-        const whose = t.whose === 'ours'
-          ? 'the desk conversation by conversation, the goal each agent is losing'
-          : 'your own people, conversation by conversation, the goal each of ' +
-            'them is losing';
-        return aimyBlock({ text: 'This page is what the scoring came to. ' +
-          'The scoring is <b>AiMY QA</b> — ' + esc(whose) +
-          ', and the reason under every verdict.' }, true,
-          '<a class="s-insight-lnk" href="' + esc(QA_HOME + 'agent-scorecards.html?tbl=agents') +
-            '" target="_blank" rel="noopener">Keep track of ' +
-            esc(t.whose === 'ours' ? 'the desk' : 'your team') + ' in AiMY QA</a>');
-      }()) +
+      /* ══════════════ AND THE DOOR IS NOT HERE, IT IS IN THE BLOCK AT THE TOP ══════════════
+         "Show the 24 people behind it" stood here, then the AiMY block that
+         replaced it. Both were right about the argument — an average
+         stated with no way down to the conversation it came from is making
+         a claim it cannot support — and wrong about the place.
+         This page already has an AiMY block, at the top, and it is the one
+         with the mark on it. A second card in the same voice eight hundred
+         pixels below the first is the page speaking twice, and this block's
+         own stylesheet made that call once already: `.slv-signals` was four
+         buttons under that paragraph and went, because a link belongs IN
+         the sentence that earns it. `qaLine` is the clause. */
     '</section>';
   }
 
@@ -11359,6 +11375,13 @@
         '<div class="slv-body">' +
           '<p class="slv-line">' + (isBuyer() ? buyerBrief(now, a, pipe, p)
             : execBrief(now, a, camps, un, deals)) + '</p>' +
+          /* A second line rather than a clause on the first: what the year
+             came to and where the conversations under it are kept are two
+             statements, and `buyerStand` already sets the precedent that
+             this body holds more than one. Empty on every book without a
+             floor, which is the outbound one, the overview and every desk
+             that is not a client's. */
+          qaLine() +
         '</div>' +
       '</section>' +
 
