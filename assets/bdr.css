@@ -232,6 +232,19 @@
   font-variant-numeric: tabular-nums; color: var(--ink-muted);
 }
 .b-switch-btn.is-on .b-switch-n { color: var(--accent-text); }
+/* ══ WHICH BOOK THE ROW IS COUNTING, ABOVE THE ROW ═════════════════
+   A client's desk carries one more control than anybody else's: which of the
+   things they bought every tab in the row is about. It is not a fifth tab,
+   so it does not sit in the row — it changes what the row COUNTS, and a
+   control that changes the meaning of what is under it goes above it.
+
+   `.s-camp-list-head` is a baseline flex row whose first child takes
+   `margin-right: auto`, which is what makes a heading read as a heading
+   rather than as one of the controls beside it. `flex-basis: 100%` hands the
+   chips the whole line above, and the auto-margin has to move with them or a
+   find box at the far end of the tab row lands next to the tabs instead. */
+.s-camp-list-head > .s-tabcuts { flex-basis: 100%; margin-bottom: 0; }
+.s-camp-list-head > .s-tabcuts + .b-switch { margin-right: auto; }
 
 /* ══ 11. THE QUEUE, AS CARDS IN THREE COLUMNS ══════════════════════════════
    A row had space for a name, a line and a button — enough to be ranked by
