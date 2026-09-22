@@ -569,22 +569,80 @@
          asking. */
       deal: { since: '2025-10-01', term: 12, notice: 60,
         engagements: [
-          { k: 'reach', kind: 'outbound', name: 'Outbound', fee: 180000,
-            line: 'We find them, qualify them and put them in a room with you. ' +
-              'What happens in the room is yours.',
+          /* ══ AND LEAD GENERATION IS THE PRODUCT THEY ARE READING ══
+             It was "Outbound", which named the direction we dial in on the
+             desk of somebody who does not dial, and then "Managed lead
+             generation", which is worse: finding and qualifying people is
+             what AiMY Sales IS. A client's contract listing it as a third
+             thing they bought puts the product they are standing in on the
+             invoice beside two others.
+
+             AiMY Talent is the recruiting platform — a recruiter describes
+             a role and gets back ranked, scored candidates — and it is the
+             engagement this client would actually buy. Kestrel SELL test
+             automation and engineering teams: people are the thing they
+             ship, and hiring them is the constraint on everything else on
+             this contract.
+
+             `kind` STAYS `outbound`, and so does `k`. `kind` is what
+             `onPipeline` reads, which is what gives this book a ladder, a
+             set of campaigns and a board — and a hiring pipeline is a
+             pipeline. `k` is what `?eng=` keys off, the same reason the
+             engagements below keep theirs while reading their names out of
+             the catalogue. Neither is a word anybody sees.
+
+             Still no `sell`: nothing in `SELLS` is Talent, and its LENGTH
+             is load bearing — a ninth row re-deals what every campaign in
+             the book is selling. */
+          { k: 'reach', kind: 'outbound', name: 'AiMY Talent',
+            fee: 180000,
+            line: 'We find them, screen them and put them in front of you. ' +
+              'Who you hire is yours.',
+            /* ══ AND THE LADDER IS A HIRING ONE ══
+               The stages are the same six the corpus has always had — a
+               person is sourced, reachable, approached, replies, is seen,
+               and lands — and only the words over them are about selling.
+               On the engagement rather than in a branch, because that is
+               where `metrics` already lives on the two floors below: a
+               second engagement of a different shape brings its own words
+               rather than teaching `buyerFunnel` about engagement keys. */
+            fn: { contacted: 'Approached', met: 'Interviewed', won: 'Hired' },
+            /* ══ AND THE CAMPAIGN PANELS COUNT THE SAME PEOPLE ══
+               `fn` is the ladder's stage names; these are the same book's
+               words in a row of prose, which needs a noun and a verb rather
+               than a heading: "36 candidates · 12 of them interviewed · 2
+               hired". Separate from `fn` because they inflect — `plural`
+               takes `who` and makes it plural — and folding a noun into a
+               table of column headings is how the heading ends up in a
+               sentence.
+               THE MONEY STAYS MONEY. A hire has a fee on it, the panels are
+               ranked by what each campaign gained, and the client asked for
+               that read. Only the people change words. */
+            said: { who: 'candidate', met: 'interviewed', won: 'hired' },
             promises: [
-              { k: 'met', read: 'funnel.met', unit: 'count', to: 30, was: null, ours: true,
-                say: 'Thirty qualified meetings across test and engineering' },
-              { k: 'found', read: 'funnel.reachable', unit: 'count', to: 100, was: null, ours: true,
-                say: 'A hundred people we could actually reach' },
+              /* New `k`s where the SHORT name has to change, because
+                 `PROM_SAY` is keyed by it and three other clients read
+                 `met`, `found` and `arr` out of the same table. `found`
+                 keeps its key: "people we could reach" is the same
+                 sentence about a candidate as about a prospect. */
+              { k: 'intv', read: 'funnel.met', unit: 'count', to: 30, was: null, ours: true,
+                say: 'Thirty candidates through to interview, across test and engineering' },
+              { k: 'found', read: 'funnel.reachable', unit: 'count', to: 100, was: null,
+                ours: true, say: 'A hundred people we could actually reach' },
               { k: 'lines', read: 'lines.live', unit: 'count', to: 2, was: null, ours: true,
-                say: 'Both services in the market, neither left cold' },
+                say: 'Both disciplines being sourced, neither left cold' },
               { k: 'reach', read: 'camps.regions', unit: 'count', to: 3, was: null, ours: true,
-                say: 'Three regions opened, not one' },
-              { k: 'arr', read: 'arr', unit: 'money', to: 200000, was: null, ours: false,
-                say: 'Two hundred thousand signed off the meetings we booked' },
+                say: 'Three regions sourced, not one' },
+              /* The one the whole engagement is judged on, and it is not
+                 ours: we put them in front of you, you decide. It replaced
+                 an `arr` promise — two hundred thousand signed off the
+                 meetings we booked — which is a sales outcome and the one
+                 figure on this contract that could not survive the change
+                 of subject. Nobody signs revenue off a hire. */
+              { k: 'hired', read: 'funnel.won', unit: 'count', to: 10, was: null, ours: false,
+                say: 'Ten of them hired, once you have met them' },
               { k: 'live', read: 'pipe.open', unit: 'count', to: 6, was: null, ours: false,
-                say: 'Six deals still live when the year closes' },
+                say: 'Six still in process when the year closes' },
             ] },
           /* Their own reviewers, our scoring, eight hundred seats. A promise
              to MOVE a number rather than reach one, so every one carries
@@ -639,8 +697,8 @@
              deals an offering to a campaign, so its LENGTH is load bearing
              the way `CLIENTS`'s is, and a ninth row to give one engagement
              a prettier label would re-deal what every campaign in the book
-             is selling. Outbound keeps its own name, which is also the
-             name anybody would use for it. */
+             is selling. The engagement above keeps a `name` of its own for
+             the same reason, and the margin there says what it is now. */
           { k: 'desk', kind: 'service', name: 'Support desk', sell: 'support',
             fee: 140000,
             spend: { was: 138000 },
@@ -3685,6 +3743,25 @@
        either; a bookmark is what reaches them. */
     if (isBuyer()) { S.build = ''; S.list = ''; S.con = ''; S.acc = ''; }
     if (isBuyer() && S.on === 'deals') S.on = '';
+    /* ══════════════ AND THE CLIENT ALREADY HAS A SCOPE CONTROL ══════════════
+       `by` switches the money between two dimensions — what SPENT it and
+       what EARNED it — and it is the right control on the desk it was
+       built for, where there is nothing else scoping the page. This desk
+       has the engagement picker in its header, which rescopes every figure
+       on the page rather than one section of it, and two controls that
+       both answer "which slice am I reading" on one screen is the reader
+       holding two axes at once to locate a number.
+
+       AND THE `svc` HALF PUT OUR COST ON THEIR SCREEN. Its campaign rows
+       read "86 days left — €881 cost", which is what running that campaign
+       costs US. This desk exists on the line that a client pays a fee and
+       not a floor, and the sweep that checked it went over SURFACES — a
+       figure two presses inside a cut of a section was never on the list.
+       Refused here rather than hidden in the panel, the same as `deals`
+       and the lists above: a bookmark into the dimension cannot reach it
+       either. The figure is gated at its own site as well, because one
+       guard for a cost leak is one more than the last count. */
+    if (isBuyer()) S.by = '';
     /* ══ A FLOOR HAS FEWER SURFACES, NOT ONE ══════════════════════
        Contacts, the Diary and Campaigns are all readings of a pipeline. A
        floor has none, and the desk drew them anyway: three tabs reading
@@ -9440,9 +9517,11 @@
   /* ══ WHAT A CLIENT BOUGHT, WHICH IS OFTEN MORE THAN ONE THING ══════════
      A deal written before this existed is one engagement that never needed
      naming, so the three clients with a single line of business are read
-     without being rewritten. */
+     without being rewritten. The name is the seed's, spelled the same way:
+     two places that both stand for the same service and drift the moment
+     one of them is renamed on its own. */
   const engsOf = (d) => (d && d.engagements) ||
-    (d ? [Object.assign({ k: 'only', name: 'Outbound' }, d)] : []);
+    (d ? [Object.assign({ k: 'only', name: 'Managed lead generation' }, d)] : []);
   /* ══════════════ WHAT THEY BOUGHT, IN THE WORDS THEY BOUGHT IT IN ══════════════
      An engagement's `name` is how this deal files it — "Quality tool",
      "Support desk" — and two of the three ARE something in the catalogue
@@ -9566,6 +9645,9 @@
     return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
   function cutChips() {
+    /* Nothing to press for a reader `parse` has already answered for, and
+       a control with one reachable state is a label pretending. */
+    if (isBuyer()) return '';
     return '<div class="s-tabcuts s-cut-by" role="group" aria-label="Cut the money by">' +
       CUTS.map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
         '" type="button" data-by="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
@@ -9863,6 +9945,14 @@
      figure beside a promise that a contract wrote down. A scored
      conversation is still the thing coverage is a promise ABOUT — it is
      just not this product's job to open one. */
+  /* ══ AND THE SIBLING'S ADDRESS IS A CONSTANT ══
+     `index.html`'s topnav already holds it, spelled out in an `href`. One
+     more spelling of a deployed URL is one more thing to miss when it
+     moves, and this build's rule for that is `SELL` and `REPS`: the string
+     lives once and everything reads through it. Trailing slash included,
+     so a caller appends a path rather than remembering to. */
+  const QA_HOME = 'https://aimyqa.nour-ali.workers.dev/';
+
   let FLOOR_CACHE = Object.create(null);
   function floorOf(ckey, ekey) {
     /* Keyed by both, because one client can run two of these — a quality
@@ -10117,7 +10207,12 @@
     if (r.read.indexOf('funnel.') === 0 || r.read.indexOf('lines.') === 0) {
       const cold = bookScope().filter((c) => c.checkpoint === 'not-called').length;
       if (cold) {
-        bits.push('<b>' + commas(cold) + '</b> of the people we found are still to call');
+        /* "still to call" is the verb of one kind of ladder. The stage's
+           own word works for both and needs no table of verbs beside the
+           table of nouns: "have not been approached yet", "have not been
+           called yet". */
+        bits.push('<b>' + commas(cold) + '</b> of the people we found have not been ' +
+          esc((fnSay().contacted || 'Called').toLowerCase()) + ' yet');
       }
     }
     /* ══════════════ AND A FLOOR PROMISE GETS THE ARITHMETIC ══════════════
@@ -10149,6 +10244,10 @@
     (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
     if (r.read === 'funnel.met') return fn.met || 0;
     if (r.read === 'funnel.reachable') return fn.reachable || 0;
+    /* The bottom of the ladder, which no promise read until a hiring
+       engagement needed one: `arr` was how the old outbound contract
+       counted what landed, and money is not how a hire lands. */
+    if (r.read === 'funnel.won') return fn.won || 0;
     if (r.read === 'arr') return now.arr || 0;
     if (r.read === 'pipe.open') return pipe ? pipe.open : 0;
     if (r.read === 'lines.live') return (now.byLine || []).filter((x) => x.meetings > 0).length;
@@ -10198,9 +10297,14 @@
      A map rather than a field on each row, because the short form is the
      same wherever that KIND of promise appears and a per-client spelling of
      it is a per-client way to drift. */
+  /* `met`, `found` and `arr` are three other clients' as well, so the
+     hiring engagement takes keys of its own where the short name has to
+     differ. `lines`, `reach` and `live` are that engagement's alone and
+     are reworded in place. */
   const PROM_SAY = { met: 'qualified meetings', found: 'people we could reach',
-    lines: 'both services in the market', reach: 'regions opened',
-    arr: 'signed revenue', live: 'deals live at the year end',
+    intv: 'candidates interviewed', hired: 'people hired',
+    lines: 'both disciplines being sourced', reach: 'regions sourced',
+    arr: 'signed revenue', live: 'still in process at the year end',
     cover: 'coverage', latency: 'time to a first look',
     quality: 'average quality', resolve: 'time to first resolution',
     volume: 'contacts answered', reply: 'time to a first reply' };
@@ -10225,6 +10329,11 @@
      page has thrown out twice. */
   const BUYER_FN = { sourced: 'Found', reachable: 'Reachable', contacted: 'Called',
     replied: 'Answered', met: 'Met', handed: 'Handed to you', won: 'Signed' };
+  /* An engagement may bring its own words for the same six stages — a
+     hiring pipeline approaches and interviews where a selling one calls
+     and meets. Folded over the default rather than replacing it, so a `fn`
+     naming two stages leaves the other four alone. */
+  const fnSay = () => Object.assign({}, BUYER_FN, (myEng() || {}).fn || {});
   function buyerFunnel(now) {
     const base = (now.funnel || []).filter((r) => r.n != null);
     if (!base.length) return '';
@@ -10248,13 +10357,14 @@
       if (r.k === 'met') rows.push({ k: 'handed', label: 'Handed to you', n: dealBook().length });
     });
     const top = rows[0].n || 1;
+    const say = fnSay();
     let prev = null;
     const draw = (r) => {
       const pct = Math.max(1, Math.round((r.n / top) * 100));
       const conv = prev == null ? null : (prev ? Math.round((r.n / prev) * 100) : 0);
       prev = r.n;
       return '<div class="b-fn-row">' +
-        '<span class="b-fn-name">' + esc(BUYER_FN[r.k] || r.label) + '</span>' +
+        '<span class="b-fn-name">' + esc(say[r.k] || r.label) + '</span>' +
         '<span class="b-fn-bar"><span class="b-fn-fill ' +
           (r.k === 'won' ? 'tone-ok' : 'tone-neutral') +
           '" style="width:' + pct + '%"></span></span>' +
@@ -10403,7 +10513,7 @@
      produced — in the same section shell, so nothing new is drawn. */
   /* What each kind of engagement IS, in the words a client would use about
      it rather than the word the code sorts by. */
-  const ENG_SAY = { outbound: 'we find them and put them in a room with you',
+  const ENG_SAY = { outbound: 'we find them, screen them and put them in front of you',
     software: 'your people, our scoring', service: 'our people, your customers' };
 
   /* ══ THE SWITCH IS A ROW OF CHIPS, NOT A ROW OF DESKS ══════════════════
@@ -10668,6 +10778,55 @@
      the only before-and-after model anywhere in the tree. Here it is said in
      words rather than drawn, because four rows do not make a heatmap and the
      sentence carries the thing a chart would only imply. */
+  /* ══════════════ AND THE DOOR IS ON EVERY BOOK WITH PEOPLE IN IT ══════════════
+     The gate was `team.whose === 'ours'` — a team we staff — on the
+     argument that the client never sees those eighteen people while the
+     other two books are theirs already. It missed the case that arrived
+     one commit later: AiMY Talent has people in it and NO `team` field,
+     because its people are counted along a ladder rather than averaged
+     over a floor. A gate reading one engagement's DATA SHAPE was never
+     reading the thing it meant.
+
+     What it meant is whether there is anybody on this book whose
+     conversations get scored, and every engagement on this contract has
+     some: recruiters screening candidates, a floor being scored, a desk we
+     answer for. The one book with nobody on it is the overview — three
+     contracts summed, with no conversations of its own — and `myEng` is
+     exactly that question, null there and an engagement everywhere else.
+
+     THE LINK IS THE LAST THING ON THE LINE, in `--info`. Everything else
+     pressable in this paragraph is accent-coloured and lands somewhere on
+     this desk; the one blue run with a frame-and-arrow after it is the one
+     that leaves the product. `.slv-line`'s rule is that weight plus
+     underline means pressable, so the name carries the link and there is
+     no second phrase built to be pressed.
+
+     `agent-scorecards.html?tbl=agents`, not the front door: that page
+     reads `tbl` on load and drops it from the URL, under a margin giving
+     the rule both builds keep — context is passed, never reconstructed.
+     And not the topnav, which already carries a QA tab: that is the
+     product switcher, and it says the product exists rather than what it
+     holds. */
+  function qaLine() {
+    const e = isBuyer() ? myEng() : null;
+    if (!e) return '';
+    /* Whose people they are, which is the only word in the sentence that
+       moves. A floor says so on `whose`; a ladder has no floor, and the
+       people on it are the ones working it. */
+    const t = e.team || null;
+    const who = !t ? 'each recruiter'
+      : t.whose === 'ours' ? 'each agent'
+      : 'each of your people';
+    return '<p class="slv-line">Which goal ' + esc(who) + ' is losing, and the ' +
+      'reason under every verdict, is in ' +
+      '<a class="slv-n slv-out" href="' +
+        esc(QA_HOME + 'agent-scorecards.html?tbl=agents') + '" target="_blank" ' +
+        /* The mark is `aria-hidden`, so the fact that this one leaves the
+           product has to be said in words for a reader who cannot see it. */
+        'rel="noopener" aria-label="AiMY QA, opens in a new tab">AiMY QA' +
+        chIcon('external') + '</a></p>';
+  }
+
   function buyerFloor() {
     const d = myDeal();
     const t = d && d.team;
@@ -10729,16 +10888,17 @@
         '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
         esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
         'swings far enough on its own to turn a promise from kept to behind.</p>' +
-      /* ══ AND THE FIGURES DO NOT OPEN HERE ══
-         "Show the 24 people behind it" was here, and the argument under it
-         was sound: an average stated with no way down to the conversation
-         it was taken from is making a claim it cannot support. The way down
-         is AiMY QA, which holds the roster, the goal browser and the record
-         with a verdict on it — so the claim is still supportable and it is
-         still not supported HERE, which is the honest way to say it.
-         What this section can answer for itself it does: the note above
-         names how many weeks, which four, and that `now` is a mean of the
-         last four rather than whichever week fell last. */
+      /* ══════════════ AND THE DOOR IS NOT HERE, IT IS IN THE BLOCK AT THE TOP ══════════════
+         "Show the 24 people behind it" stood here, then the AiMY block that
+         replaced it. Both were right about the argument — an average
+         stated with no way down to the conversation it came from is making
+         a claim it cannot support — and wrong about the place.
+         This page already has an AiMY block, at the top, and it is the one
+         with the mark on it. A second card in the same voice eight hundred
+         pixels below the first is the page speaking twice, and this block's
+         own stylesheet made that call once already: `.slv-signals` was four
+         buttons under that paragraph and went, because a link belongs IN
+         the sentence that earns it. `qaLine` is the clause. */
     '</section>';
   }
 
@@ -10747,10 +10907,27 @@
      promises themselves: where each stands, and where it stood before us. */
   function floorFigs(now, pipe) {
     const d = myDeal();
-    /* Over three books there is no single measure to put in a tile, and
-       three metrics off one of them would be the overview quietly becoming
-       one engagement's page. What every book has in common is promises. */
-    if (d.kind === 'all') {
+    /* ══════════════ THREE METRICS NEEDS A FLOOR TO READ THEM OFF ══════════════
+       The three-tile branch says "was X at signing" under each figure, and
+       `was` is a baseline only a floor promise carries. It used to be the
+       fallthrough for everything that was not the overview, which was safe
+       while the only books here were three engagements and two of them had
+       floors. A hiring engagement has neither a floor nor a `was`, and it
+       would have tiled three of its promises against "was — at signing".
+       So the test is what the book HAS. A floor gets its metrics; anything
+       else — the overview, a pipeline that owes us nothing in euros — gets
+       the two figures every book can answer: how many promises are being
+       kept, and which one is furthest from being one of them. */
+    if (d.team) {
+      return (d.promises || []).slice(0, 3).map((r) => {
+        const got = promiseGot(r, { funnel: [], byLine: [] }, null);
+        if (got == null) return '';
+        return attFig(PROM_SAY[r.k] || r.k, promFig(r, got),
+          'was ' + promFig(r, r.was) + ' at signing',
+          promKept(r, got) ? 'ok' : null);
+      }).join('');
+    }
+    {
       const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
         .filter((x) => x.got != null);
       const kept = scored.filter((x) => promKept(x.r, x.got));
@@ -10764,13 +10941,6 @@
             : 'every promise is being kept',
           behind.length ? null : 'ok');
     }
-    return (d.promises || []).slice(0, 3).map((r) => {
-      const got = promiseGot(r, { funnel: [], byLine: [] }, null);
-      if (got == null) return '';
-      return attFig(PROM_SAY[r.k] || r.k, promFig(r, got),
-        'was ' + promFig(r, r.was) + ' at signing',
-        promKept(r, got) ? 'ok' : null);
-    }).join('');
   }
 
   /* `execBrief`'s four clauses are money against target, late deals, the
@@ -10800,10 +10970,15 @@
        arrived, and this is what became of them. Said as two sentences in
        two places it becomes a claim and a disclaimer. */
     if (onPipeline()) {
+      /* Off `fnSay`, which is the same table the ladder below this
+         paragraph draws its rows from, so the sentence and the picture
+         cannot come to different words for one stage. It read "26 meetings
+         reached your team" over a ladder headed Interviewed. */
+      const say = fnSay();
       bits.push('<b>' + commas(fn.met || 0) + '</b> ' +
-        ((fn.met === 1) ? 'meeting reached your team' : 'meetings reached your team') +
-        ' &mdash; <b>' + commas(pipe ? pipe.open : 0) + '</b> still live and <b>' +
-        commas(fn.won || 0) + '</b> signed.');
+        esc((say.met || 'Met').toLowerCase()) +
+        ' &mdash; <b>' + commas(pipe ? pipe.open : 0) + '</b> still in process and <b>' +
+        commas(fn.won || 0) + '</b> ' + esc((say.won || 'Signed').toLowerCase()) + '.');
     } else if (bookKind() === 'all') {
       /* Over three books the useful second sentence is which of them is
          costing the year, not a figure out of one of them. */
@@ -10939,21 +11114,35 @@
       }
       return out.slice(0, 3);
     }
+    /* ══════════════ AND THE LAST THREE ASK ABOUT THE SAME LADDER ══════════════
+       These are what a reader presses at the foot of the report, and they
+       went into the composer talking about meetings taken, deals live and
+       deals lost, under a page counting candidates interviewed and hired.
+       A question the page cannot recognise is worse than no question: it
+       is the desk asking AiMY about a surface it is not showing.
+       Off `said`, which is undefined on every book without one — so the
+       fallbacks are the strings that were here, not a rewrite of them. */
+    const w = (myEng() || {}).said || {};
     const lo = (now.byLine || []).filter((r) => r.meetings && !r.wins)[0];
     if (lo) {
       out.push({ label: 'Why is ' + sellSay(lo.k) + ' not landing',
-        ask: sellSay(lo.k) + ' has taken ' + plural(lo.meetings, 'meeting') +
-          ' and signed nothing. Is it reaching the wrong people, or losing the ones it reaches?' });
+        ask: sellSay(lo.k) + (w.met
+          ? ' has ' + w.met + ' ' + plural(lo.meetings, w.who || 'person') +
+            ' and ' + w.won + ' nobody.'
+          : ' has taken ' + plural(lo.meetings, 'meeting') + ' and signed nothing.') +
+          ' Is it reaching the wrong people, or losing the ones it reaches?' });
     }
     if (pipe && pipe.open) {
       out.push({ label: 'Which of the open ones will land',
-        ask: 'I have ' + plural(pipe.open, 'deal') + ' still live. Which are most likely to ' +
-          'close before the year ends, and what is holding each of them up?' });
+        ask: 'I have ' + (w.who ? commas(pipe.open) + ' still in process'
+          : plural(pipe.open, 'deal') + ' still live') +
+          '. Which are most likely to land before the year ends, and what is ' +
+          'holding each of them up?' });
     }
     if (loss && loss.n) {
       out.push({ label: 'What happened to the ones we lost',
-        ask: 'We lost ' + plural(loss.n, 'deal') + ' this year. Group them by why, and say ' +
-          'which of those reasons we could do something about.' });
+        ask: 'We lost ' + plural(loss.n, w.who || 'deal') + ' this year. Group them by why, ' +
+          'and say which of those reasons we could do something about.' });
     }
     return out.slice(0, 3);
   }
@@ -11320,15 +11509,32 @@
         '<div class="slv-body">' +
           '<p class="slv-line">' + (isBuyer() ? buyerBrief(now, a, pipe, p)
             : execBrief(now, a, camps, un, deals)) + '</p>' +
+          /* A second line rather than a clause on the first: what the year
+             came to and where the conversations under it are kept are two
+             statements, and `buyerStand` already sets the precedent that
+             this body holds more than one. Empty on every book without a
+             floor, which is the outbound one, the overview and every desk
+             that is not a client's. */
+          qaLine() +
         '</div>' +
       '</section>' +
 
-      /* ══ A BAR WITH NO TARGET IS A BAR WITH NOTHING TO SAY ═══════════
+      /* ══ A BAR WITH NO TARGET IS A BAR WITH NOTHING TO SAY ══
          Booked against target, the shortfall, the forecast and the pace are
          four readings of one number, and a client who bought a tool owes us
-         no number. Drawn where there is a pipeline; where there is not, the
-         ledger below is the headline and does not need a bar to repeat. */
-      (!onPipeline() ? '' :
+         no number.
+         THE READING WAS RIGHT AND THE TEST WAS NOT. It asked whether the
+         book has a PIPELINE, and a pipeline is not a target: `targetFor`
+         reads the `arr` promise and a hiring engagement has none, because
+         nobody signs revenue off a hire. So this drew "€65k of €0 — 0% of
+         target" with the target and the pace markers both at `left: 0%`,
+         the tile under it saying the target was already met, and the one
+         beside that saying 0% of it with 98% of the time gone. One zero,
+         four voices.
+         `a.target` is the number this bar would print, so it is the thing
+         to ask. Nothing about a kind of book: where there is a figure to
+         stand against, the bar stands against it. */
+      (!a.target ? '' :
       '<div class="s-att">' +
         '<div class="s-att-head">' +
           '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
@@ -11409,7 +11615,11 @@
            two numbers, named the same way twice. It said "Still to sell" for
            a while, which is an action with no object on the one tile whose
            whole job is to say what is left of the figure directly above. */
-        (!onPipeline() ? floorFigs(now, pipe) :
+        /* And the same question one line down: with no target there is no
+           shortfall, no pace and no forecast to tile, so the promises are
+           the tiles — which is what `floorFigs` has always drawn for a book
+           that owes us nothing in euros. */
+        (!a.target ? floorFigs(now, pipe) :
         attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
           a.gap ? (done ? 'the window is closed'
             : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
@@ -11671,9 +11881,20 @@
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
               'the ones they reach.')
             : isBuyer()
-              ? secAsk('Which campaign is working', 'Rank my campaigns by what they have ' +
-                'produced — people reached, meetings taken, deals signed — and tell me which ' +
-                'one is worth more of the year and which is not landing.')
+              ? (function () {
+                /* The three steps named in the question are the three the
+                   panels under it count, so they come off the same place
+                   the panels do. Asking about "meetings taken" under cards
+                   reading "12 of them interviewed" is the page asking a
+                   question about a surface it is not showing. */
+                const w = (myEng() || {}).said || {};
+                return secAsk('Which campaign is working', 'Rank my campaigns by what they ' +
+                  'have produced — ' + (w.who ? plural(2, w.who).replace(/^[\d,]+\s/, '') +
+                    ' reached, ' + (w.met || 'met') + ', ' + (w.won || 'signed')
+                    : 'people reached, meetings taken, deals signed') +
+                  ' — and tell me which one is worth more of the year and which is ' +
+                  'not landing.');
+              }())
               : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
                 'against what they have returned, and tell me which one I should stop and what I ' +
                 'would lose by stopping it.')) +
@@ -11784,14 +12005,29 @@
                The hours left this row because they are already stated, with
                their rate, on the People line of the Resources block twelve
                pixels below it. */
-            '<div class="s-pan-facts">' +
-              '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
-              '<span><b>' + c.met + '</b> of them met</span>' +
+            /* ══════════════ AND WHOSE LADDER THIS CAMPAIGN IS ON ══════════════
+               Three steps of a funnel, each countable, and the words for
+               them belong to the book being read rather than to this
+               renderer: a hiring engagement's campaigns produce candidates
+               who are interviewed and hired, and the same panel on the
+               manager's Financials is still people who are met and deals
+               that are signed. `said` is undefined for everybody without
+               one, which is every desk but this client's, so the fallbacks
+               ARE the old strings rather than a rewrite of them. */
+            (function () {
+            const w = (myEng() || {}).said || {};
+            return '<div class="s-pan-facts">' +
+              '<span><b>' + c.members + '</b> ' +
+                esc(w.who ? plural(c.members, w.who).replace(/^[\d,]+\s/, '')
+                  : (c.members === 1 ? 'person' : 'people')) + '</span>' +
+              '<span><b>' + c.met + '</b> of them ' + esc(w.met || 'met') + '</span>' +
               '<span><b>' + c.wins + '</b> ' +
-                plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+                esc(w.won || plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed') +
+                '</span>' +
               (c.open ? '<span><b>' + c.open + '</b> potential, ' +
                 esc(fmtMoney(c.pipeline)) + ' if they land</span>' : '') +
-            '</div>' +
+            '</div>';
+            }()) +
             /* Names, hours and an hourly rate per person, then AiMY's
                compute and the lead generators. The single worst thing this
                page could put in front of somebody being invoiced, and the
@@ -12050,7 +12286,10 @@
                 sold.map((s) => '<span class="s-pan-p">' +
                   '<span class="s-pan-who"><b>' + esc(s.camp.name) + '</b>' +
                     '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
-                      (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
+                      /* Ours, so it goes where every other cost on this
+                         page goes: behind `seesCost`. */
+                      (s.total && seesCost()
+                        ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') +
                     '</span></span>' +
                   /* ══ A DASH SAYS "CANNOT BE SAID". THIS IS A KNOWN ZERO ════
                      The campaign is real, it cost €454, and it has signed
@@ -21652,6 +21891,12 @@
     /* `fwd` points along a row and this points at what opens under it:
        the same stroke, turned a quarter. */
     down: '<path d="m6 9 6 6 6-6"/>',
+    /* The only mark in this set that means a door out of the product.
+       Lucide's `external-link`, which is what the sibling builds draw for
+       the same thing — an arrow leaving a frame, and the frame is the half
+       that makes it read as leaving rather than as `fwd` at an angle. */
+    external: '<path d="M15 3h6v6"/> <path d="M10 14 21 3"/>' +
+      ' <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/>',
     more: '<circle cx="12" cy="12" r="1"/> <circle cx="19" cy="12" r="1"/> <circle cx="5" cy="12" r="1"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one

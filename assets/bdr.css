@@ -2620,7 +2620,36 @@ textarea::placeholder,
    and what share of the step above that is. The last column is the reason
    the block exists, so it is set in the mono face and reads down its own
    edge. */
-.b-funnel { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto auto; gap: 8px 14px; align-items: center; }
+/* ══ AND THE LABEL COLUMN HAD A CEILING IT COULD NOT MEET ══
+   `minmax(96px, 150px) 1fr` was the ladder's: six steps with names like
+   `Reachable` and `Handed to you`, none of which reaches 150. Two other
+   surfaces draw on this grid now and one of them takes its labels from a
+   contract — `Contacts answered a week`, `Time to first resolution` —
+   which want 175 and got 150. So ONE row of the four wrapped, stood at
+   41px against its neighbours' 20, and left its bar floating against the
+   middle of a two-line label. A table where one row is double height is
+   read as two tables.
+
+   And the 389px beside it was the argument: the bar had two and a half
+   times the label column to draw a picture of a figure printed twice to
+   its right, while the row's own subject folded. `max-content` gives the
+   label what it asks for and the bar keeps the rest — 191 and 348 here,
+   every row one line.
+
+   A CEILING AND A FLOOR, BECAUSE THIS LABEL IS NOT ALWAYS A STEP. The
+   campaign funnel's first row takes an account's own name, which is
+   unbounded: stress-tested at a 376px layout with a 51-character one,
+   uncapped the column asked for 331px inside a 308px block and took the
+   table off the card. `22ch` is 191px here, which is wider than every step
+   in the ladder and wider than every metric on a floor, so nothing
+   ordinary is touched by it. And `minmax(96px, ...)` rather than a bare
+   `max-content` so the track can still give ground when the viewport has
+   none; rigid is how a four-column table walks off a phone. */
+.b-funnel {
+  display: grid; grid-template-columns: minmax(96px, max-content) minmax(40px, 1fr) auto auto;
+  gap: 8px 14px; align-items: center;
+}
+.b-fn-name { max-width: 22ch; }
 .b-fn-row { display: contents; }
 .b-fn-head { display: contents; }
 .b-fn-head .b-fn-name, .b-fn-head .b-fn-n, .b-fn-head .b-fn-conv {
@@ -2741,25 +2770,19 @@ textarea::placeholder,
   margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
-@media (max-width: 719.98px) { /* 720 layout px */
-  /* .b-back-row used to stack here. It stacks on its own width now, at any
-     viewport, so the override is gone rather than left to look load-bearing. */
-  /* ══ THE LABEL IS NOT A SHARE OF THE ROW, IT IS THE ROW'S SUBJECT ══════
-     This was `minmax(80px, 1fr) 2fr`, which gave the BAR twice what it gave
-     the step it belongs to: measured at a 620px layout, the label got 114 and
-     `On the record here` folded to two lines while 229px of bar sat beside it
-     saying nothing the row's own figures do not. max-content is what the
-     default tier above already gives this column; the bar keeps the rest. */
-  .b-funnel { grid-template-columns: max-content minmax(40px, 1fr) auto auto; }
-  /* AND max-content NEEDS A CEILING, because this label is not always a step:
-     the first row takes the campaign's or the account's own name, which is
-     unbounded. Stress-tested at a 376px layout with a 51-character one —
-     uncapped the column asked for 331px inside a 308px block and took the
-     table off the card. 22ch wraps that name and is wider than every step in
-     the ladder, so the ordinary row is untouched: measured identical, 117px
-     and one line, with the cap on and off. */
-  .b-fn-name { max-width: 22ch; }
-}
+/* ══ AND THE BREAKPOINT THAT FIXED THIS ONCE IS GONE ══
+   Both of its rules are in the default tier now, where they always
+   belonged, and its own comment is why they were not: "max-content is what
+   the default tier above already gives this column" — which was not true
+   and had not been. The default was `minmax(96px, 150px)`, eight hundred
+   lines further up, and a pass that fixed this column at 720 and wrote
+   down that the wide tier was already right left the wide tier wrong for
+   another year. A comment asserting what a rule elsewhere does is a claim,
+   and it goes stale exactly like a number does.
+   The reading it recorded stands and has moved up with the rules: the
+   label is the row's SUBJECT, not a share of it, and a bar that is given
+   twice its label's width says nothing the figures at the end of the same
+   row do not. */
 
 /* ══ AND BELOW 560 THE BAR IS THE COLUMN THAT GOES ═════════════════════
    Four columns on a 459px layout leave the label 80 of them, which is not a

@@ -402,6 +402,58 @@ which field on a scored conversation they average — `from` — and that is als
 what the generator ramps by, because a second client is where a metric's NAME
 used as a key stops being a name.
 
+**KESTREL'S PIPELINE BOOK IS AiMY TALENT, AND A HIRING PIPELINE IS A
+PIPELINE.** It was "Outbound", which names the direction we dial in on the
+desk of somebody who does not dial, and then "Managed lead generation",
+which is worse: finding and qualifying people is what AiMY Sales IS, so a
+contract listing it put the product the reader is standing in on the
+invoice beside two others. Kestrel sell test automation and engineering
+teams — people are the thing they ship, and hiring them is the constraint
+on the rest of the contract.
+
+`kind` stays `outbound` and `k` stays `reach`: the first is what
+`onPipeline` reads, which is what gives the book a ladder, campaigns and a
+board, and the second is what `?eng=` keys off. Neither is a word anybody
+sees. The ladder's words come off the engagement beside `metrics`, as
+`fn: { contacted: 'Approached', met: 'Interviewed', won: 'Hired' }`, folded
+over `BUYER_FN` so naming three stages leaves the other four alone — and
+`buyerBrief` and `promDoing` read the same table, so the sentence and the
+picture cannot come to different words for one stage.
+
+New promise keys where the SHORT name had to change, because `PROM_SAY` is
+keyed by `k` and three other clients read `met`, `found` and `arr` out of
+it. `found` keeps its key: "people we could reach" is the same sentence
+about a candidate as about a prospect.
+
+**AND `arr` WAS HOLDING UP THE WHOLE MONEY APPARATUS.** `targetFor` reads
+that promise, and a hiring engagement has none — nobody signs revenue off a
+hire — so the attainment bar drew booked against zero: "€65k of €0 — 0% of
+target", both markers at `left: 0%`, one tile saying the target was already
+met and the next saying 0% of it with 98% of the time gone. One zero, four
+voices. The margin over that bar was already right — *a bar with no target
+is a bar with nothing to say* — it just tested for a PIPELINE instead of for
+a target. It asks `a.target` now, which is the number it would print.
+`floorFigs` sorts on what the book HAS for the same reason: its three-tile
+branch says "was X at signing", and `was` is a baseline only a floor promise
+carries.
+
+**AND A CLIENT DOES NOT SCOPE TWICE.** `by` switches the money between what
+spent it and what earned it, which is right on the desk it was built for,
+where nothing else scopes the page. This desk has the engagement picker in
+its header and that rescopes every figure rather than one section, so two
+controls answering "which slice am I reading" is the reader holding two
+axes at once. Refused in `parse` beside `deals` and the lists, so a
+bookmarked `?by=svc` cannot reach it either.
+
+**The `svc` half was also putting our cost on their screen** — its campaign
+rows read "86 days left · €881 cost", which is what running that campaign
+costs US, on the desk whose whole line is that a client pays a fee and not
+a floor. **THE SWEEP THAT CHECKED THIS WENT OVER SURFACES, AND A FIGURE TWO
+PRESSES INSIDE A CUT OF A SECTION WAS NEVER ON THE LIST.** That is the
+lesson worth keeping: a client-scoping check has to enumerate the STATES of
+a surface, not the surfaces. The figure is gated behind `seesCost` at its
+own site as well.
+
 **Lambourne's claim is capacity, not a smaller payroll, and that is a decision
 rather than a softening.** Knowledge's own account of the Nordwind rollout
 sets the standard: reviewer headcount was unchanged, nobody was replaced, and
@@ -452,9 +504,79 @@ week by week, `floorNow` takes the last four of those weeks so one quiet
 week cannot flip a verdict, and `promiseGot` puts the result beside what was
 written down. The report shows four metrics across forty-eight weeks against
 their value at signing. A scored conversation is still what the coverage
-promise is a promise ABOUT — it is just not this product's job to open one,
-and the section that used to offer says so rather than pretending the claim
-needs no support.
+promise is a promise ABOUT — it is just not this product's job to open one.
+
+**SO THE REPORT SAYS WHERE THE OTHER HALF IS.** An average stated with no
+way down to the conversation it came from is making a claim it cannot
+support, and that argument did not go away with the roster — it moved.
+`qaLine` carries it in one sentence, with the door at the end of it:
+*which goal each agent is losing, and the reason under every verdict, is
+in AiMY QA*, linking `agent-scorecards.html?tbl=agents`.
+
+**ON THE DESK WE STAFF, AND NOT ON THE TOOL.** `myDeal().team` was the
+guard and it is true of both floors — but one of them IS AiMY QA. The
+client bought it, their eight hundred seats are on it, and they are in it
+every day; a door from our invoice to the product they already use is a
+link back to where the reader came from, on the one page that is about
+what it cost. `whose` knows the difference: `ours` is a team we staff,
+`yours` is a floor they run. The desk is the engagement with a team in it
+to keep track of — eighteen people the client never sees, and "scored not
+sampled" is a promise on their contract with nothing on this desk behind
+it.
+
+**In the block that already speaks, not a second one.** It was an AiMY
+card under the four metrics for one commit. The report already has an AiMY
+block at the top with the mark on it, so a second card in the same voice
+eight hundred pixels below the first is the page speaking twice — and
+`.slv`'s own stylesheet had made that call before, when `.slv-signals` put
+four buttons under that paragraph and lost them for repeating what the
+sentence already linked. So it is a second `.slv-line`, and the NAME is
+the mark: in this paragraph weight plus underline means pressable and
+weight alone means important, so a phrase built to be pressed would be a
+second way of saying it.
+
+**And this one is blue, because it leaves.** Every other mark in the
+paragraph is accent-coloured and lands somewhere on this desk. `--info`
+is not a new colour — the design system contrast-checked it in both
+themes, and both were measured here: #7ea7ff on the dark card, #067dc2 on
+the light one. `external` joins `ICONS` for it, Lucide's arrow leaving a
+frame, where the frame is the half that stops it reading as `fwd` at an
+angle. Sized in `em`, because a mark inside a sentence is type and moves
+with the type. `nowrap` on the link, because it broke away from the name
+and stood alone at the start of the next line, which reads as a bullet.
+The mark is `aria-hidden`, so the anchor says "opens in a new tab" in
+words.
+
+**A door does not need an argument.** Three sentences stood here for two
+commits: this page is what the scoring came to, the scoring is AiMY QA,
+and a chip under it saying keep track of the desk. All three said one
+thing at descending volume, in a block whose other lines are one verdict
+each.
+
+`.slv-line` carried `margin: 0`, which was right for the one-line case it
+was built for and wrong the moment a block holds two: "What we think
+should change" draws one line per engagement, so the overview stood four
+verdicts about four different things 0.0px apart. 8 now, under the 12
+`.slv-head` keeps above the body, so the lines group beneath the heading
+as one answer and each verdict is still its own.
+
+**AND THE HEDGING WENT WITH THEM.** That wording existed to avoid
+promising that the figures on this page decompose on the other side of
+the link, because the two BUILDS do not share a corpus — this floor is
+seeded by `floorOf` on a stream of its own and QA has its own records.
+That is a fact about the prototype, and it was answering a question
+nobody reading this page is asking. In the PRODUCT, this client bought
+AiMY QA: `sell: 'qa'`, which is why the ledger three blocks up already
+says "AiMY QA is behind on average quality". What that product shows them
+is a plain statement of something they own.
+
+Not the topnav, which already has a QA tab: that is the product switcher
+and the wrong weight. It says the product exists, not that it holds the
+half of this report that is missing. And not the front door either —
+`tbl=agents` lands a reader sent from a sentence about people ON the
+people. QA reads that param once and drops it from the URL, under a margin
+giving the rule both builds keep: context is passed, never reconstructed.
+`QA_HOME` holds the address once, the way `SELL` and `REPS` hold theirs.
 
 `FLOOR_SUBJ` and `FLOOR_CHAN` are drawn and no longer read. `pick` walks
 this floor's stream in order, so removing two draws re-deals every score,
