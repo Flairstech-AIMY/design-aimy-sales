@@ -589,7 +589,18 @@
           /* Their own reviewers, our scoring, eight hundred seats. A promise
              to MOVE a number rather than reach one, so every one carries
              `was` — where their floor stood before us, set at signing. */
-          { k: 'tool', kind: 'software', name: 'Quality tool', fee: 96000, seats: 800,
+          /* ══════════════ AND WHAT THIS ONE IS CALLED IS IN THE CATALOGUE ══════════════
+             `name` is the word this deal files the engagement under —
+             "Quality tool" — and the thing itself is `SELLS`'s `qa`: quality
+             scored on every conversation rather than on a sample, which is
+             this engagement's first promise word for word. A client who
+             signed for AiMY QA should read AiMY QA, not our filing.
+             `sell` and not a rewritten `name`: the internal word is what
+             `?eng=` keys off and what the seed and the floors read, and a
+             product renamed in the catalogue should move this label with
+             it rather than leave two spellings to drift. */
+          { k: 'tool', kind: 'software', name: 'Quality tool', sell: 'qa',
+            fee: 96000, seats: 800,
             line: 'We score every conversation and say why. ' +
               'What you do about a bad one is yours.',
             /* ══ THE TERM, NOT A QUARTER OF IT ═══════════════════════════
@@ -622,7 +633,16 @@
              that did not move — `spend.was` is what it cost them to run it
              themselves, and the two numbers sit side by side because
              neither is derived from the other and nothing divides them. */
-          { k: 'desk', kind: 'service', name: 'Support desk', fee: 140000,
+          /* And this one is `support`: a support team we run for you, in
+             your tone of voice. The outbound engagement above has no entry
+             and gets none — `SELLS` is drawn from by index when the seed
+             deals an offering to a campaign, so its LENGTH is load bearing
+             the way `CLIENTS`'s is, and a ninth row to give one engagement
+             a prettier label would re-deal what every campaign in the book
+             is selling. Outbound keeps its own name, which is also the
+             name anybody would use for it. */
+          { k: 'desk', kind: 'service', name: 'Support desk', sell: 'support',
+            fee: 140000,
             spend: { was: 138000 },
             line: 'We answer every contact, at every hour, and score every one. ' +
               'Anything that needs your own systems comes back to you.',
@@ -9503,6 +9523,17 @@
      without being rewritten. */
   const engsOf = (d) => (d && d.engagements) ||
     (d ? [Object.assign({ k: 'only', name: 'Outbound' }, d)] : []);
+  /* ══════════════ WHAT THEY BOUGHT, IN THE WORDS THEY BOUGHT IT IN ══════════════
+     An engagement's `name` is how this deal files it — "Quality tool",
+     "Support desk" — and two of the three ARE something in the catalogue
+     with a name of its own. Read straight, the chips offered a client a
+     choice between three internal labels for things they signed a contract
+     for under different words.
+     Read through `SELL` where there is a key and off `name` where there is
+     not, so renaming a product in the catalogue carries here and nothing
+     is spelled twice. */
+  const engName = (e) => (e && e.sell && SELL[e.sell] ? SELL[e.sell].name
+    : (e && e.name) || '');
   const myEng = () => {
     const d = isBuyer() ? dealOf(myClient()) : null;
     if (!d) return null;
@@ -10736,7 +10767,7 @@
              the engagement broke onto a centred line of its own and the
              row read as two things. It is one phrase: which promise, on
              which of the three. */
-          '<b>' + esc((PROM_SAY[r.k] || r.say) + (r.eng ? ' · ' + r.eng.name : '')) +
+          '<b>' + esc((PROM_SAY[r.k] || r.say) + (r.eng ? ' · ' + engName(r.eng) : '')) +
             '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
               (kept ? 'kept' : 'behind') + '</span></b>' +
           '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
@@ -10816,7 +10847,7 @@
       ((S.eng || '') === k ? ' active' : ' default') + '" type="button" ' +
       'data-eng="' + esc(k) + '">' + esc(label) + '</button>';
     return '<div class="s-tabcuts" role="group" aria-label="What you bought">' +
-      chip('', 'Everything') + es.map((e) => chip(e.k, e.name)).join('') +
+      chip('', 'Everything') + es.map((e) => chip(e.k, engName(e))).join('') +
     '</div>';
   }
 
@@ -10846,7 +10877,7 @@
         const behind = scored.length - kept;
         return '<button class="s-pan-p s-pan-go" type="button" data-eng="' + esc(e.k) + '">' +
           '<span class="s-pan-who">' +
-            '<b>' + esc(e.name) +
+            '<b>' + esc(engName(e)) +
               '<span class="s-pan-state tone-' + (behind ? 'warn' : 'ok') + '">' +
                 esc(behind ? plural(behind, 'promise') + ' behind' : 'all kept') + '</span></b>' +
             '<span class="s-pan-meta">' + esc(ENG_SAY[e.kind] || '') + ' &middot; ' +
@@ -10909,7 +10940,7 @@
       .filter((x) => x.got != null);
     const behind = scored.filter((x) => !promKept(x.r, x.got));
     const ours = behind.filter((x) => x.r.ours);
-    const name = '<b>' + esc(e.name) + '</b>';
+    const name = '<b>' + esc(engName(e)) + '</b>';
     if (!behind.length) {
       return name + ' kept every promise on it. Renew it as it stands.';
     }
@@ -11154,7 +11185,7 @@
          costing the year, not a figure out of one of them. */
       const byEng = Object.create(null);
       scored.forEach((x) => {
-        const k = x.r.eng ? x.r.eng.name : 'it';
+        const k = x.r.eng ? engName(x.r.eng) : 'it';
         byEng[k] = byEng[k] || { n: 0, bad: 0 };
         byEng[k].n += 1;
         if (!promKept(x.r, x.got)) byEng[k].bad += 1;
@@ -11224,7 +11255,7 @@
       const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
         .filter((x) => x.got != null && !promKept(x.r, x.got));
       const byEng = Object.create(null);
-      scored.forEach((x) => { const k = x.r.eng ? x.r.eng.name : 'it';
+      scored.forEach((x) => { const k = x.r.eng ? engName(x.r.eng) : 'it';
         byEng[k] = (byEng[k] || 0) + 1; });
       const worst = Object.keys(byEng).sort((a, b) => byEng[b] - byEng[a])[0];
       if (worst) {
@@ -20573,7 +20604,7 @@
        diary and the evidence cannot disagree about when it landed. */
     engsOf(dealOf(myClient())).forEach((e) => {
       if (!e.team || !e.team.deployedAt) return;
-      put(isoAdd(p.from, e.team.deployedAt * 7), mgr.name, e.name + ' went live');
+      put(isoAdd(p.from, e.team.deployedAt * 7), mgr.name, engName(e) + ' went live');
     });
     /* And the one that is ahead. The notice window has closed by the time
        anybody reads this, which is the whole point of the sentence the
