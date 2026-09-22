@@ -22878,7 +22878,21 @@
      only p1 the desk has. */
   function mgrTasks() {
     const tasks = [];
-    unrecorded().slice(0, 4).forEach((m) => {
+    /* ══════════════ AND A FLOOR'S BELL HOLDS ONE ROW ══════════════
+       Every row below but the promises is a pipeline fact: a meeting nobody
+       wrote up, a deal past its date, a lead waiting on a warm call, a
+       contract renewing, an account that moved. A client standing in a floor
+       book has none of them — no diary, no board, no customer book — and
+       `parse` refuses the very keys those rows' doors carry, so each one was
+       a sentence about somebody else's deals with a control that landed back
+       on Today.
+
+       It reads the whole client's pipeline, not this book's, which is why it
+       stays on the overview: there is one pipeline however many things were
+       bought, and on the overview it is in view along with everything
+       else. */
+    const pipe = !onFloor();
+    if (pipe) unrecorded().slice(0, 4).forEach((m) => {
       const days = -daysBetween(TODAY_ISO, m.iso);
       tasks.push({
         id: 'met:' + m.con.id + ':' + m.iso,
@@ -22891,7 +22905,7 @@
         ask: 'fill:Had a ' + m.kind + ' with ' + m.con.name + ', ',
       });
     });
-    const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed');
+    const soon = pipe ? meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed') : [];
     if (soon.length) {
       /* ══ TWO COUNTS OF TODAY ON ONE SCREEN ═══════════════════════════
          This said "N things in the diary today" and so does the paragraph
@@ -22905,7 +22919,7 @@
           soon[0].con.name + '.',
         cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
     }
-    const live = queue(null, 'all').filter(dealLive);
+    const live = pipe ? queue(null, 'all').filter(dealLive) : [];
     const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
     if (late.length) {
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
@@ -22946,7 +22960,7 @@
        customer with it rather than the difference — which is why it is
        above the openings and why it is the one customer row that names a
        date instead of a count. */
-    const due = customers().map((a) => ({ a: a, r: renewAt(a) }))
+    const due = (pipe ? customers() : []).map((a) => ({ a: a, r: renewAt(a) }))
       .filter((x) => x.r && x.r.days <= RENEW_SOON)
       .sort((x, y) => x.r.days - y.r.days);
     if (due.length) {
@@ -22961,7 +22975,7 @@
         line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
           ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
     }
-    const moved = openings();
+    const moved = pipe ? openings() : [];
     if (moved.length) {
       const one = moved[0];
       tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
@@ -22989,29 +23003,28 @@
        Which is also the right row to put in a bell. A meeting count slipping
        is a thing to read; the money slipping is a thing to ring about. */
     if (isBuyer() && myDeal()) {
-      const dp = periodOf('deal');
-      const att = bookAttain();
-      const cheap = { arr: att.booked, 'pipe.open': pipelineOf(dealBook()).open };
-      /* A floor's promises cost nothing at all to read — the series is
-         seeded, so the last week of it is an array lookup rather than a
-         pass over anybody. */
-      /* The floor is generated once and cached, so after the first paint
-         this is an array lookup like the two above it. */
-      engsOf(dealOf(myClient())).forEach((e) => {
-        if (!e.team) return;
-        floorSeries(myClient(), e.k).forEach((m) => {
-          const v = floorNow(m.w);
-          if (v != null) cheap['team.' + m.k] = v;
-        });
-      });
-      const behind = myDeal().promises
-        .filter((r) => cheap[r.read] != null && !promKept(r, cheap[r.read]))
-        .map((r) => ({ r: r, got: cheap[r.read] }))
-        .sort((x, y) => (x.got / (x.r.to || 1)) - (y.got / (y.r.to || 1)));
+      /* ══════════════ AND IT WAS READING TWO FLOORS INTO ONE MAP ══════════════
+         This built its own cheap answer to `promiseGot` — the two readings
+         the book alone can settle, plus a walk over every engagement's
+         series — to keep a pass over every person on every campaign out of
+         a function that runs on every paint. Right about the cost, and
+         keyed by the METRIC's name: a quality tool and a support desk both
+         call one of theirs `quality`, so the desk's 83% landed on the
+         tool's promise and the tool's book rang about a number off the
+         other one. The file's own margin warns about this exact trap two
+         thousand lines up, about the same field, in `floorOf`.
+
+         The cost argument is answered rather than worked around now.
+         `myYear` is that pass, derived once a paint and read by the rail
+         and the briefing already, so this row costs an object lookup — and
+         the six funnel promises it could never settle are settled. */
+      const y = myYear();
+      const behind = y.behind.slice()
+        .sort((a, b) => (a.got / (a.r.to || 1)) - (b.got / (b.r.to || 1)));
       if (behind.length) {
         const one = behind[0];
         const said = PROM_SAY[one.r.k] || one.r.say;
-        const leftD = dp.end ? Math.max(0, daysBetween(TODAY_ISO, dp.end)) : null;
+        const leftD = y.left;
         tasks.push({ id: 'promise-behind', sev: 'p2', type: 'Promises',
           when: plural(behind.length, 'promise') + ' behind',
           body: said.charAt(0).toUpperCase() + said.slice(1) + ' is at ' +

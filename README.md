@@ -203,7 +203,7 @@ in full:
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
-| Marit Okonjo, client | `?as=kestrel` | their year, read from the other side of the invoice — and `?eng=` for which of the three things they bought |
+| Marit Okonjo, client | `?as=kestrel` | the same shell, scoped to what they bought — Today, then the pipeline we run for them or the floor we score, with their year a press away; `?eng=` picks which of the three |
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -232,11 +232,37 @@ not sign three different years.
 
 `bookKind` is the split: `outbound` reads a pipeline and gets every surface
 the manager works; `software` and `service` read a floor — people, scored
-conversations, and no campaign anywhere; `all` is the overview and reads
-none of them. So the attainment bar, three of the four tiles, both cuts and
-the losses draw only where there is a pipeline, and what stands in their
-place is the promise ledger, which every book has, plus the twelve weeks or
-the three engagements side by side.
+conversations, and no campaign anywhere; `all` is the overview, which has
+the one pipeline this client has and both floors underneath it. So the
+attainment bar, three of the four tiles, both cuts and the losses draw only
+where there is a pipeline, and what stands in their place is the promise
+ledger, which every book has, plus the twelve weeks or the three
+engagements side by side.
+
+**THE REPORT WAS THE WHOLE DESK, AND IT IS NOT ANY MORE.** Contacts, the
+Diary and Campaigns read a pipeline and two of the three books have none, so
+this desk drew three tabs reading zero and the repair was to give it the
+report instead — no Today, no switcher, no rail door, and the only way to
+re-scope it was the page you were already standing on. Three empty tabs is
+an argument against those three tabs. It is not an argument for the one desk
+belonging to somebody outside the company being the one desk that works
+differently.
+
+A client opens on a briefing now, like everybody else, and the row under it
+is what the book holds: the pipeline's four on the overview and on
+`reach`, Today and People on a floor. `onFloor` is the predicate — a team
+on the engagement, which `myDeal` nulls on the overview, so there is no list
+of kinds to keep in step with the seed. The engagement chips live in
+`switcher` above the row, because they change what every tab in it counts.
+`floorPage` is a tab rather than a page with a way back on it, and the
+report keeps every word it had, reached from the rail and the Start strip
+and called Your year on the desk whose year it is.
+
+`myYear` is the one derivation behind all of it, memoised per paint and
+cleared with the rest of the money. The rail used to answer this question
+with a stub — correct for a floor, silently zero for the six funnel
+promises on the overview — and said 8 behind of 14 four hundred pixels from
+a report saying 5.
 
 A promise on a floor is a promise to MOVE a number rather than reach one, so
 it carries `was` — the baseline, set at signing — and reads down as often as
