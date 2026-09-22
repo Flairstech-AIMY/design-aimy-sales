@@ -607,6 +607,18 @@
                second engagement of a different shape brings its own words
                rather than teaching `buyerFunnel` about engagement keys. */
             fn: { contacted: 'Approached', met: 'Interviewed', won: 'Hired' },
+            /* ══ AND THE CAMPAIGN PANELS COUNT THE SAME PEOPLE ══
+               `fn` is the ladder's stage names; these are the same book's
+               words in a row of prose, which needs a noun and a verb rather
+               than a heading: "36 candidates · 12 of them interviewed · 2
+               hired". Separate from `fn` because they inflect — `plural`
+               takes `who` and makes it plural — and folding a noun into a
+               table of column headings is how the heading ends up in a
+               sentence.
+               THE MONEY STAYS MONEY. A hire has a fee on it, the panels are
+               ranked by what each campaign gained, and the client asked for
+               that read. Only the people change words. */
+            said: { who: 'candidate', met: 'interviewed', won: 'hired' },
             promises: [
               /* New `k`s where the SHORT name has to change, because
                  `PROM_SAY` is keyed by it and three other clients read
@@ -11102,21 +11114,35 @@
       }
       return out.slice(0, 3);
     }
+    /* ══════════════ AND THE LAST THREE ASK ABOUT THE SAME LADDER ══════════════
+       These are what a reader presses at the foot of the report, and they
+       went into the composer talking about meetings taken, deals live and
+       deals lost, under a page counting candidates interviewed and hired.
+       A question the page cannot recognise is worse than no question: it
+       is the desk asking AiMY about a surface it is not showing.
+       Off `said`, which is undefined on every book without one — so the
+       fallbacks are the strings that were here, not a rewrite of them. */
+    const w = (myEng() || {}).said || {};
     const lo = (now.byLine || []).filter((r) => r.meetings && !r.wins)[0];
     if (lo) {
       out.push({ label: 'Why is ' + sellSay(lo.k) + ' not landing',
-        ask: sellSay(lo.k) + ' has taken ' + plural(lo.meetings, 'meeting') +
-          ' and signed nothing. Is it reaching the wrong people, or losing the ones it reaches?' });
+        ask: sellSay(lo.k) + (w.met
+          ? ' has ' + w.met + ' ' + plural(lo.meetings, w.who || 'person') +
+            ' and ' + w.won + ' nobody.'
+          : ' has taken ' + plural(lo.meetings, 'meeting') + ' and signed nothing.') +
+          ' Is it reaching the wrong people, or losing the ones it reaches?' });
     }
     if (pipe && pipe.open) {
       out.push({ label: 'Which of the open ones will land',
-        ask: 'I have ' + plural(pipe.open, 'deal') + ' still live. Which are most likely to ' +
-          'close before the year ends, and what is holding each of them up?' });
+        ask: 'I have ' + (w.who ? commas(pipe.open) + ' still in process'
+          : plural(pipe.open, 'deal') + ' still live') +
+          '. Which are most likely to land before the year ends, and what is ' +
+          'holding each of them up?' });
     }
     if (loss && loss.n) {
       out.push({ label: 'What happened to the ones we lost',
-        ask: 'We lost ' + plural(loss.n, 'deal') + ' this year. Group them by why, and say ' +
-          'which of those reasons we could do something about.' });
+        ask: 'We lost ' + plural(loss.n, w.who || 'deal') + ' this year. Group them by why, ' +
+          'and say which of those reasons we could do something about.' });
     }
     return out.slice(0, 3);
   }
@@ -11855,9 +11881,20 @@
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
               'the ones they reach.')
             : isBuyer()
-              ? secAsk('Which campaign is working', 'Rank my campaigns by what they have ' +
-                'produced — people reached, meetings taken, deals signed — and tell me which ' +
-                'one is worth more of the year and which is not landing.')
+              ? (function () {
+                /* The three steps named in the question are the three the
+                   panels under it count, so they come off the same place
+                   the panels do. Asking about "meetings taken" under cards
+                   reading "12 of them interviewed" is the page asking a
+                   question about a surface it is not showing. */
+                const w = (myEng() || {}).said || {};
+                return secAsk('Which campaign is working', 'Rank my campaigns by what they ' +
+                  'have produced — ' + (w.who ? plural(2, w.who).replace(/^[\d,]+\s/, '') +
+                    ' reached, ' + (w.met || 'met') + ', ' + (w.won || 'signed')
+                    : 'people reached, meetings taken, deals signed') +
+                  ' — and tell me which one is worth more of the year and which is ' +
+                  'not landing.');
+              }())
               : secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
                 'against what they have returned, and tell me which one I should stop and what I ' +
                 'would lose by stopping it.')) +
@@ -11968,14 +12005,29 @@
                The hours left this row because they are already stated, with
                their rate, on the People line of the Resources block twelve
                pixels below it. */
-            '<div class="s-pan-facts">' +
-              '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
-              '<span><b>' + c.met + '</b> of them met</span>' +
+            /* ══════════════ AND WHOSE LADDER THIS CAMPAIGN IS ON ══════════════
+               Three steps of a funnel, each countable, and the words for
+               them belong to the book being read rather than to this
+               renderer: a hiring engagement's campaigns produce candidates
+               who are interviewed and hired, and the same panel on the
+               manager's Financials is still people who are met and deals
+               that are signed. `said` is undefined for everybody without
+               one, which is every desk but this client's, so the fallbacks
+               ARE the old strings rather than a rewrite of them. */
+            (function () {
+            const w = (myEng() || {}).said || {};
+            return '<div class="s-pan-facts">' +
+              '<span><b>' + c.members + '</b> ' +
+                esc(w.who ? plural(c.members, w.who).replace(/^[\d,]+\s/, '')
+                  : (c.members === 1 ? 'person' : 'people')) + '</span>' +
+              '<span><b>' + c.met + '</b> of them ' + esc(w.met || 'met') + '</span>' +
               '<span><b>' + c.wins + '</b> ' +
-                plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+                esc(w.won || plural(c.wins, 'deal').replace(/^\d+\s/, '') + ' signed') +
+                '</span>' +
               (c.open ? '<span><b>' + c.open + '</b> potential, ' +
                 esc(fmtMoney(c.pipeline)) + ' if they land</span>' : '') +
-            '</div>' +
+            '</div>';
+            }()) +
             /* Names, hours and an hourly rate per person, then AiMY's
                compute and the lead generators. The single worst thing this
                page could put in front of somebody being invoiced, and the
