@@ -10101,6 +10101,76 @@
   /* One person on it. Written once because Today shows the top of this list
      and the tab shows all of it, and two spellings of one row is how the two
      surfaces come to draw the same person two ways. */
+  /* ══════════════ THE GOAL COSTING A FLOOR THE MOST ══════════════
+     Three surfaces ask it — the People tab's start strip, the report's
+     position at the foot of the page, and now every promise on the ledger
+     that reads a floor — and it was written out three times. Three
+     spellings of one sweep over two thousand scored conversations is how
+     they come to disagree about which goal it is. */
+  function weakestGoal(f) {
+    if (!f || !f.evals.length) return null;
+    return QA_GOALS.map((g) => {
+      const n = f.evals.filter((e) => e.goals.filter((y) => y.k === g.k && y.pass).length).length;
+      return { g: g, pc: Math.round((n / f.evals.length) * 100) };
+    }).sort((a, b) => a.pc - b.pc)[0];
+  }
+
+  /* ══════════════ AND WHAT IS BEING DONE ABOUT THE ONES BEHIND ══════════════
+     The ledger named fourteen promises, marked five of them behind and
+     said nothing about any of the five. On our own desk that is a ledger
+     doing its job: the reading is elsewhere and the reader owns the work.
+     On the client's it is the defect the campaign's obstacle block had — a
+     status report with no status in it, on the page a client opens to find
+     out whether anybody is on this.
+
+     Derived, never asserted. Four things are on the record about a promise
+     that is short — how far, how long is left, what is holding it and
+     whose book it comes off — and none of them claims work the corpus does
+     not model. Only on the ones we answer for: where the promise moves at
+     their end, the group's own heading says so and a line from us about
+     what we are doing would be us taking credit for their afternoon. */
+  function promDoing(x, p) {
+    const r = x.r;
+    if (!isBuyer() || !r.ours || promKept(r, x.got)) return '';
+    /* A promise to REDUCE a number is not "short" when it is behind, it is
+       over — eleven days against two promised. `was` is the only thing that
+       knows which way a promise runs, which is the same field `promKept`
+       reads for the same reason. */
+    const down = r.was != null && r.to < r.was;
+    const left = p && p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end)) : null;
+    let say = '<b>' + esc(promFig(r, Math.abs(r.to - x.got))) + ' ' +
+      (down ? 'over' : 'short') + '</b>' +
+      (left == null ? '.' : ', with <b>' + esc(plural(left, 'day')) + '</b> to run.');
+    const bits = [];
+    if (r.read.indexOf('funnel.') === 0 || r.read.indexOf('lines.') === 0) {
+      const cold = bookScope().filter((c) => c.checkpoint === 'not-called').length;
+      if (cold) {
+        bits.push('<b>' + commas(cold) + '</b> of the people we found are still to call');
+      }
+    } else if (r.read === 'team.quality') {
+      /* ══════════════ AND THE WEAKEST GOAL IS A QUALITY ANSWER ══════════════
+         Keyed on `team.` it landed under every floor promise, so "sixteen
+         hundred contacts a week" came up 64 short because survey promotion
+         passes on 59% of conversations. One is how many we answer and the
+         other is how well; the goals are a breakdown OF the quality score
+         and explain nothing else. Where the corpus produces no cause the
+         line says the arithmetic and stops — `engStand`'s own margin makes
+         the same call. */
+      const w = weakestGoal(floorOf(myClient(), (r.eng || myEng() || {}).k));
+      if (w) {
+        bits.push('<b>' + esc(w.g.title) + '</b> passes on <b>' + commas(w.pc) +
+          '%</b> of conversations, which is most of it');
+      }
+    }
+    /* Joined structurally rather than by a regex over the finished string:
+       every clause here carries markup, and the last comma a `, ([^,]*)$`
+       could find is inside an attribute. `briefOwed` was bitten by exactly
+       this and says so. */
+    if (!bits.length) return say;
+    const last = bits.pop();
+    return say + ' ' + (bits.length ? bits.join(', ') + ', and ' + last : last) + '.';
+  }
+
   function floorRow(x) {
     return '<button class="s-pan-p s-pan-go" type="button" data-ag="' + esc(x.a.id) + '">' +
       '<span class="s-pan-who">' +
@@ -10489,6 +10559,7 @@
       const due = p.elapsed == null ? null
         : (r.unit === 'money' ? Math.round(r.to * p.elapsed / 500) * 500
           : Math.round(r.to * p.elapsed));
+      const doing = promDoing(x, p);
       let trend = '';
       if (r.was != null) {
         /* A promise to MOVE a number carries three: where it started, where
@@ -10518,6 +10589,15 @@
             '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
               (kept ? 'kept' : 'behind') + '</span></b>' +
           '<span class="s-pan-meta">' + esc(r.say) + trend + '</span>' +
+          /* Under the promise it is about, in the component this build
+             uses everywhere AiMY says something: the mark, the sentence,
+             and no `from` — `bare`, because the block's own heading has
+             already said what the whole section is read off.
+             Guarded HERE and not inside `aimyBlock`, whose own guard is
+             `if (!said)` and takes an object: `{ text: '' }` is truthy, so
+             every one of the nine kept promises drew the mark over an
+             empty sentence. */
+          (doing ? aimyBlock({ text: doing }, true) : '') +
         '</span>' +
         '<span class="s-pan-cost">' +
           esc(r.was != null ? promFig(r, x.got)
@@ -10707,10 +10787,9 @@
     } else {
       const f = floorOf(myClient(), e.k);
       if (f && f.evals.length) {
-        const weak = QA_GOALS.map((g) => {
-          const n = f.evals.filter((x) => x.goals.filter((y) => y.k === g.k && y.pass).length).length;
-          return { g: g, pc: Math.round((n / f.evals.length) * 100) };
-        }).sort((a, b) => a.pc - b.pc)[0];
+        /* The third spelling of this sweep, and the last: `weakestGoal`
+           is the one place that answers it now. */
+        const weak = weakestGoal(f);
         if (weak) {
           why = ' It is one goal doing most of it: ' + esc(weak.g.title.toLowerCase()) +
             ' passes on ' + esc(commas(weak.pc)) + '% of conversations.';
@@ -10954,6 +11033,26 @@
       bits.push('Furthest behind is <b>' + esc(PROM_SAY[worst.r.k] || worst.r.say) +
         '</b>, at ' + esc(promFig(worst.r, worst.got)) + ' of ' +
         esc(promFig(worst.r, worst.r.to)) + '.');
+      /* ══════════════ AND WHOSE THEY ARE, ONCE ══════════════
+         Every behind row on the ledger carried "and Lina Haddad owns it",
+         which on three of them is one name said three times in one column.
+         Whose the year is is a fact about the year, so it is said where
+         the year is summed up and the rows go back to the arithmetic and
+         the cause.
+         Only the ones we answer for: a promise that moves at their end has
+         no owner here, and naming one would be us claiming their work. */
+      const mine2 = short.filter((x) => x.r.ours);
+      const mgr = acctMgr();
+      if (mine2.length && mgr) {
+        /* The all-ours branch printed "owns the we answer for": an empty
+           count between an article and a relative clause that had nothing
+           left to qualify. Two whole sentences, not one with a hole in the
+           middle of it. */
+        bits.push('<b>' + esc(mgr.name) + '</b> owns ' +
+          (mine2.length === short.length
+            ? (short.length === 1 ? 'it' : 'every one of them')
+            : 'the <b>' + esc(commas(mine2.length)) + '</b> we answer for') + '.');
+      }
     }
     return bits.join(' ');
   }
@@ -12787,10 +12886,7 @@
       /* And which goal is doing most of the damage across all of them. The
          person's page asks this of one person; a floor with twenty-four on
          it has one answer, and it is the one worth an afternoon. */
-      const weak = f && f.evals.length ? QA_GOALS.map((g) => {
-        const n = f.evals.filter((e) => e.goals.filter((y) => y.k === g.k && y.pass).length).length;
-        return { g: g, pc: Math.round((n / f.evals.length) * 100) };
-      }).sort((a, b) => a.pc - b.pc)[0] : null;
+      const weak = weakestGoal(f);
       opens = [
         worst
           ? { k: 'ag:' + worst.a.id, label: 'Look at ' + worst.a.name.split(' ')[0],
