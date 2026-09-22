@@ -10367,8 +10367,18 @@
     return '<div class="s-home">' +
       topBrief('floor') +
       '<section class="s-exec-sec s-block-wide">' +
-        '<div class="s-camp-list-head">' + switcher('floor') +
-          '<span class="s-block-say">worst first</span>' + '</div>' +
+        /* ══════════════ AND "WORST FIRST" WENT WITH THE HEADING ══════════════
+           It was the one thing the title and the briefing did not say,
+           which earned it a place while the rest of this head was empty.
+           It stopped earning one when the scope moved onto the row: a
+           caption at caption size between a tab strip and a control, with
+           `.s-block-say`'s -8px pulling it off the line both of them sit
+           on.
+           Nothing is lost. The three rules under it are Wants an
+           afternoon, Worth watching and On track, in that order — the sort
+           IS the headings, and a list that announces an order its own
+           subheadings spell out is saying it twice. */
+        '<div class="s-camp-list-head">' + switcher('floor') + '</div>' +
         lead +
         /* Said where the records are, not in a footnote somewhere else. */
         (f.seen > f.evals.length
