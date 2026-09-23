@@ -1175,6 +1175,11 @@
      does the work; his way into a piece of work is to give it to a manager. */
   const isWhole = () => me().fn === 'ceo';
   const works = () => !isWhole();
+  /* A deal the reader has joined: the one way the CEO's own day fills. Its
+     own field rather than a name on `c.crew`, because `conCrew` derives the
+     crew from who worked the lead until somebody writes an array, and a
+     write would freeze it for everybody else. */
+  const sitsOn = (c) => !!c && Array.isArray(c.joined) && c.joined.indexOf(me().id) >= 0;
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -3652,6 +3657,7 @@
      his desk is a claim about somebody else's work. Written once, because
      three surfaces say it and three spellings would drift. */
   const bookWhose = () => (isBuyer() ? 'we are running for you'
+    : isWhole() ? 'we are running'
     : isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
   /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
      what it sells. The same word for all three, because it is the same
@@ -3663,7 +3669,11 @@
      stakeholder's request is for a product that may not be his line and a
      client's is on a book they cannot otherwise see, so without this clause
      the thing you just asked for would vanish the moment you sent it. */
-  const mine = (c) => (c.by && c.by === me().id) || (isBuyer() ? onClient(c)
+  /* Every campaign is in the CEO's view, which is all "mine" means on his
+     desk: it decides what he may open, and `works` decides that he runs
+     none of it. */
+  const mine = (c) => (c.by && c.by === me().id) || (isWhole() ? true
+    : isBuyer() ? onClient(c)
     : isLine() ? onLine(c)
     /* Or it is a request nobody has taken, which is every manager's to
        take: the briefing lists it for all of them, so the record has to open
@@ -7096,7 +7106,8 @@
     }
     if (cold.length) {
       bits.push('<b>' + commas(cold.length) + '</b> ' + (cold.length === 1 ? 'has' : 'have') +
-        ' been handed to you and never warm-called');
+        (isWhole() ? ' been handed to a manager and never warm-called'
+          : ' been handed to you and never warm-called'));
     }
     const door = (label, q) => '<button class="s-insight-lnk" type="button" data-go="' +
       esc(JSON.stringify(Object.assign(cleared(), { q: q }))) + '">' + esc(label) + '</button>';
@@ -7342,6 +7353,24 @@
     if (hold.length) {
       bits.push('<b>' + commas(hold.length) + '</b> had news about work we already do for them');
     }
+    /* ══════════════ AND HOW MUCH RIDES ON ONE OF THEM ══════════════
+       The CEO's line, because he carries the risk: one account paying over
+       a tenth of what we bill, or five paying over a quarter, is where a
+       public company has to name the customer and where anybody buying the
+       business starts asking. Said only past the line, and only one of the
+       two — the larger fact first. */
+    const lean = (function () {
+      if (!isWhole() || !worth) return '';
+      const top = book.slice().sort((x, y) => custWorth(y) - custWorth(x));
+      const one = top[0] ? custWorth(top[0]) / worth : 0;
+      const five = top.slice(0, 5).reduce((n, a) => n + custWorth(a), 0) / worth;
+      if (one > 0.1) {
+        return '<b>' + esc(top[0].name) + '</b> pays <b>' + Math.round(one * 100) +
+          '%</b> of what we bill. ';
+      }
+      if (five > 0.25) return 'The five largest pay <b>' + Math.round(five * 100) + '%</b> of what we bill. ';
+      return '';
+    }());
     return '<section class="s-insight is-lead s-block-wide" aria-label="Where your accounts stand">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -7351,9 +7380,10 @@
       '<div class="s-lead-line">' +
         '<span class="s-lead-n">' + esc(euro(worth)) + '</span>' +
         '<span class="s-lead-say">a year, across <span class="s-lead-of">' +
-          commas(book.length) + '</span> companies that already buy from you.</span>' +
+          commas(book.length) + '</span> companies that already buy from ' +
+          (isWhole() ? 'us' : 'you') + '.</span>' +
       '</div>' +
-      '<p class="s-lead-deck">' + renewSay +
+      '<p class="s-lead-deck">' + lean + renewSay +
         (bits.length
           ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') +
             '. The rest are quiet, and they are under those.'
@@ -7841,7 +7871,8 @@
     }
     if (gap <= 0) return of + ' — the target is met';
     return of + ' — ' + euro(Math.abs(Math.round(a.paceMoney))) + ' ' +
-      (a.paceMoney >= 0 ? 'ahead of' : 'behind') + ' where you should be today';
+      (a.paceMoney >= 0 ? 'ahead of' : 'behind') +
+      (isWhole() ? ' where we should be today' : ' where you should be today');
   }
 
   /* The promise, at the foot of both cards so the two line up whatever
@@ -9171,7 +9202,20 @@
   /* The ids this desk's book is made of. Two surfaces read it — the money
      and the board — and a second spelling of the same ternary is how they
      would come to disagree about what the book is. */
-  const bookIds = () => (isBuyer() ? DB.byClient[myClient()]
+  /* ══════════════ AND THE WHOLE OF IT, WHICH IS EVERY DESK ADDED UP ══════════════
+     Not a fourth index. `DB.byMgr` already files every handed-over lead
+     under whoever holds it, so the company is that index read whole — the
+     same arithmetic the three manager desks read, which is what makes the
+     company's total and the sum of its managers unable to disagree. Every
+     key and not only `MANAGERS`: a lead a stakeholder added by hand is
+     filed under him, and it is still the company's. */
+  const wholeIds = () => {
+    const out = [];
+    Object.keys(DB.byMgr).forEach((k) => (DB.byMgr[k] || []).forEach((id) => out.push(id)));
+    return out;
+  };
+  const bookIds = () => (isWhole() ? wholeIds()
+    : isBuyer() ? DB.byClient[myClient()]
     : isLine() ? DB.byLine[myLine()]
     : DB.byMgr[me().id]) || [];
   const dealBook = () => bookIds().map((id) => DB.byCon[id]).filter(Boolean);
@@ -9690,6 +9734,14 @@
        promised us nothing in euros and we promised them nothing in euros;
        zero is the honest answer and `bookSay` draws the promises instead. */
     if (isBuyer()) return 0;
+    /* The company's number is the eight lines added up, which the margin on
+       `TARGET_LINE` says is also the three desks at €300k each: one pot, and
+       this is the one desk that reads all of it. Still set by finance, and
+       still read rather than written here. */
+    if (isWhole()) {
+      return Object.keys(TARGET_LINE).reduce((n, k) => n + TARGET_LINE[k], 0) *
+        (PERIOD_QUARTERS[p.k] || 1);
+    }
     return (isLine() && TARGET_LINE[myLine()] != null
       ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
   };
@@ -9898,7 +9950,16 @@
        revenue at a sensible price. A sales manager is not asked that. He is
        asked whether he is going to make the number, so the number leads and
        the spend becomes a clause about it. */
-    const money = 'You gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
+    /* ══════════════ AND ON THE DESK THAT READS ALL OF IT, HIS ORDERING ══════════════
+       The page's first reader again, so the cost goes beside the money in
+       one breath: whether the company is buying its revenue at a sensible
+       price is his question, and a figure that rose on its own would be
+       half a fact. Plain words and no percentages — the bar says the
+       proportion. */
+    const money = isWhole()
+      ? 'We gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' + esc(fmtMoney(a.target)) +
+        '</b> and spent <b>' + esc(fmtMoney(now.spend.total)) + '</b> doing it'
+      : 'You gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
       esc(fmtMoney(a.target)) + '</b>';
     /* Three tenses, and the paragraph has to be in the right one. A window
        still running is judged on pace; a finished one is judged on what it
@@ -9906,6 +9967,12 @@
     const shut = a.elapsed != null && a.elapsed >= 1;
     const short = a.target - a.booked;
     const pace = a.pc == null ? '.'
+      : isWhole()
+      ? (a.paceMoney == null || shut
+        ? (short > 0 ? ', <b>' + esc(fmtMoney(short)) + '</b> short.'
+          : short < 0 ? ', <b>' + esc(fmtMoney(-short)) + '</b> over.' : '.')
+        : '. That is <b>' + esc(fmtMoney(Math.abs(a.paceMoney))) + ' ' +
+          (a.paceMoney >= 0 ? 'ahead of' : 'behind') + '</b> where we should be today.')
       : a.paceMoney == null
       ? ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target.'
       : shut
@@ -11819,7 +11886,9 @@
                   : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
                 ' &middot; to ' +
                 esc(sayDay(periodOf('deal').end))
-              : 'Everything &middot; ' +
+              /* True of this reader again, and only of him: the page he
+                 reads counts every campaign the company runs. */
+              : (isWhole() ? 'FlairsTech' : 'Everything') + ' &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
           /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
@@ -11960,7 +12029,8 @@
             esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + '</span>') +
           '<span class="s-att-key is-target">Target</span>' +
           (done || pacePc == null ? ''
-            : '<span class="s-att-key is-pace">Where you should be today</span>') +
+            : '<span class="s-att-key is-pace">Where ' + (isWhole() ? 'we' : 'you') +
+              ' should be today</span>') +
         '</div>' +
       '</div>') +
 
@@ -13136,9 +13206,37 @@
             esc(first.con.name) + '</b>' : '') + '.';
       /* A line each: the day, the book, what has slipped, the year. The
          unwritten meetings stay on the day's line — they are the diary's. */
+      /* ══════════════ AND THE CEO'S OPENS ON THE NUMBER ══════════════
+         Three lines, in the order he would ask: are we going to make it,
+         what needs me, and my day — the last only if there is anything in
+         it. A count of every lead in the company is not a fact he acts on. */
+      if (isWhole()) return [wholeLine(), briefOwed(), (on.length ? diary : '') + owed];
       return [diary + owed, book, briefOwed(), yearClause()];
     }
     return openerText(counts, all, camps);
+  }
+
+  /* ══════════════ THE NUMBER, IN THE WORDS HE WOULD SAY IT IN ══════════════
+     "€612k of €900k" is the sentence somebody says in a meeting; a
+     percentage and a pace in points are the report's, a press away. What
+     AiMY expects is said apart from what was gained and never added to it,
+     for the reason `attainment` keeps its forecast apart: a forecast printed
+     as an achievement is the oldest lie in sales reporting. Same formula as
+     the report's, so the line and the page cannot disagree. */
+  function wholeLine() {
+    const p = periodOf(S.period);
+    const a = bookAttain();
+    const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
+    const got = '<button class="slv-n" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
+      esc(euro(a.booked)) + '</button>';
+    const head = 'We gained ' + got + (a.target
+      ? ' of the <b>' + esc(euro(a.target)) + '</b> ' + esc(when) + (p.whole ? ' needed.' : ' needs.')
+      : ' ' + esc(when) + '.');
+    if (p.whole || p.elapsed == null || p.elapsed >= 1) return head;
+    const more = Math.round(pipelineOf(dealBook()).weighted * Math.max(0, 1 - p.elapsed));
+    return head + (more > 0 ? ' AiMY expects <b>' + esc(euro(more)) + '</b> more by the end of the ' +
+      (p.k === 'y' ? 'year' : 'quarter') + '.' : '');
   }
 
   /* ══ EVERY FIGURE IS THE WAY INTO THE SET IT COUNTS ════════════════════
@@ -20835,7 +20933,11 @@
       return out.sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1
         : (a.h == null ? 1e4 : a.h * 60 + a.m) - (b.h == null ? 1e4 : b.h * 60 + b.m)));
     }
-    queue(null, 'all').forEach((c) => {
+    /* ══════════════ AND THE CEO'S DAY IS THE ROOMS HE IS IN ══════════════
+       Everybody else's diary is their book's, because they are in those
+       rooms. Every room in the company is not his day; the deals he has
+       joined are, and the company's week is on Contacts and in Financials. */
+    (isWhole() ? dealBook().filter(sitsOn) : queue(null, 'all')).forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
         if (iso < from || iso > to) return;
