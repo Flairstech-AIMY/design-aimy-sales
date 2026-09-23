@@ -7026,3 +7026,50 @@ textarea::placeholder,
   font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--d50);
   font-variant-numeric: tabular-nums; text-align: right;
 }
+
+/* ══ 94. ASSIGN IT TO A MANAGER ════════════════════════════════════════════
+   The CEO's one verb, drawn wherever there is something to assign: the
+   Assign menu (the hand-over menu's own component) and, beside it, AiMY's
+   suggestion as a sentence ending in its own press, all on one line that
+   wraps. No existing rule is a control with a sentence at its end, which is
+   why this is here rather than borrowed.
+
+   Under a `.b-owed` row it starts at the row's text column — 12px of row
+   padding, the 6px dot and the 12px gap — so the verbs sit under the thing
+   they act on rather than under the dot. The reason is set at the body's
+   size and ink, never quieter: it is the sentence that decides the press. */
+/* `.b-join` is the same strip holding the one verb Join it, under a deal
+   on "Where you are needed" — the same place under the row, for the same
+   reason: the row opens the deal and the verb acts on it. */
+.b-give, .b-join {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin: 0 0 12px;
+}
+.b-owed .b-give, .b-owed .b-join { margin: -2px 0 10px 30px; }
+/* A line of its own, above the Assign button, and running text rather
+   than a flex row: the press is the sentence's last words, so it has to
+   wrap with the words around it instead of dropping to a line as a block. */
+.b-give-why {
+  display: block; flex: 0 0 100%; min-width: 0;
+  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+}
+.b-give-why svg { vertical-align: -2px; margin-right: 6px; }
+/* A link in the sentence: the product's link ink and weight (`.b-net-link`),
+   underlined so it reads as pressable in the middle of prose, where colour
+   alone is too little to go on. */
+.b-give-lnk {
+  display: inline; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-weight: var(--fw-semibold); color: var(--accent-label);
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  transition: color var(--t-fast);
+}
+.b-give-lnk:hover { color: var(--accent); }
+.b-give-lnk:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+.b-give-lnk[disabled] { cursor: not-allowed; text-decoration: none; }
+
+/* ══ 95. A MANAGER'S QUARTER, IN A ROW ══════════════════════════════════════
+   The rail card's bar — gained against a mark at the target — at the width
+   a row can give it. Capped, because a bar the width of the page reads as a
+   progress bar for the page rather than a figure for one person, and the
+   three of them are compared by position, which needs them the same length. */
+.b-mgr-bar { display: block; max-width: 360px; margin: 10px 0 4px; }

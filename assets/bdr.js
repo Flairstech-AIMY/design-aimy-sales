@@ -304,7 +304,8 @@
      the record as touchpoints because that is what they are, and both need
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
-  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand' };
+  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand',
+    given: 'Assigned to another manager' };
 
   /* ══ WHAT IS IN THE CORPUS, AND WHEN IT GOES OUT ══════════════════════
      Four kinds of document sit behind a campaign. The name says which one
@@ -993,12 +994,10 @@
      of BDRs, and the ratio is the whole reason a team block needs a way to
      hold more names than it can show.
 
-     ONE MANAGER STILL. `owner: pick(r, MANAGERS)` sets who a campaign
-     belongs to, and `mine()` on that desk is `owner === me().id` — so a
-     second manager would silently take half of Lina's campaigns off her own
-     page. That is a change to a desk rather than to a roster, and it is not
-     this one. The multi-manager branch in the hand-over control stays where
-     it is, guarded and unused, exactly as it was.
+     THREE MANAGERS NOW, dealt by the seats below so Lina keeps most of the
+     book, and the multi-manager branch in the hand-over control is live.
+     Which of them takes a request or a lead is the CEO's to give — see
+     `giveTo` — and any of them may still take an unassigned request.
 
      The faces come off the id, so nobody here needed drawing. */
   const REPS = [
@@ -1039,7 +1038,7 @@
        the margin above: `BDRS`, `MANAGERS`, `workingHeads`, `payrollRows`
        and the seed's callers all name a function and this is not one of
        them, so the seed cursor does not move and no count in the corpus
-       changes. She has no desk either — `DESKS` is four and stays four. */
+       changes. She has no desk either — `DESKS` did not grow for her. */
     { id: 'hala',   name: 'Hala Mansour',  initials: 'HM', fn: 'exec' },
     /* ══ AND ONE WHO DOES NOT WORK FOR US ═══════════════════════════════
        The three above read this book from our side and differ only in what
@@ -1061,6 +1060,17 @@
        three faces of one reading. What differs between them was never the
        reading, it was the book — so it is a row of chips on the report and
        not a row of people in the switcher. */
+    /* ══════════════ AND ONE WHO READS ALL OF IT ══════════════
+       The four desks above each read one slice — a queue, the deals handed
+       to one manager, one product line, one client's purchase — and nobody
+       read the company. The CEO reads every one of them at once, across the
+       three managers, which is the one axis no other desk has and the one
+       his decisions need: who should own the next piece of work.
+
+       APPENDED FOR THE REASON THE ROWS ABOVE ARE. No reader of this array
+       names `ceo`: the seed cursor does not move and no count in the corpus
+       changes. */
+    { id: 'rami', name: 'Rami Fahim', initials: 'RF', fn: 'ceo' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -1110,7 +1120,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina', 'sherif', 'kestrel'];
+  const DESKS = ['engy', 'lina', 'sherif', 'kestrel', 'rami'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -1151,6 +1161,27 @@
      and a figure that forgets one is then a grep rather than a reading. */
   const seesCost = () => !isBuyer();
   const seesGrade = () => !isBuyer();
+  /* ══════════════ AND THE READING THAT HOLDS ALL THE OTHERS ══════════════
+     Named for the reading, the way the three above are: the book read
+     whole. `bookScope` says why a manager's desk narrowed Financials to his
+     own deals — a total over half a book is a wrong total — and that
+     argument is exactly why this desk reads all of it.
+
+     `works` is the refusal, spelled separately for the reason `seesCost`
+     is: whoever reads a guard next needs to know which rule it keeps. The
+     CEO reads every record and operates none of them. Calling, moving a
+     stage, running a campaign, sourcing and crews are the verbs of whoever
+     does the work; his way into a piece of work is to give it to a manager. */
+  const isWhole = () => me().fn === 'ceo';
+  const works = () => !isWhole();
+  /* A deal the reader has joined: the one way the CEO's own day fills. Its
+     own field rather than a name on `c.crew`, because `conCrew` derives the
+     crew from who worked the lead until somebody writes an array, and a
+     write would freeze it for everybody else. */
+  const sitsOn = (c) => !!c && Array.isArray(c.joined) && c.joined.indexOf(me().id) >= 0;
+  /* A queue is a caller's; on the CEO's desk nobody queues for him, and the
+     same fact about a list is whether anybody is calling the people on it. */
+  const inQueue = () => (isWhole() ? 'being called' : 'in your queue');
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -3449,6 +3480,7 @@
       } catch (e) { /* a delta we cannot read is a delta we do not apply. */ }
     }
     reindex();
+    seedJoins();
   }
 
   /* ══ A SAVED DEMO GOES STALE AND THE CORPUS DOES NOT ═══════════════════
@@ -3628,6 +3660,7 @@
      his desk is a claim about somebody else's work. Written once, because
      three surfaces say it and three spellings would drift. */
   const bookWhose = () => (isBuyer() ? 'we are running for you'
+    : isWhole() ? 'we are running'
     : isLine() ? 'selling ' + sellSay(myLine()) : 'you are running');
   /* A BDR is on a campaign; a manager owns it; a stakeholder is answering for
      what it sells. The same word for all three, because it is the same
@@ -3639,7 +3672,11 @@
      stakeholder's request is for a product that may not be his line and a
      client's is on a book they cannot otherwise see, so without this clause
      the thing you just asked for would vanish the moment you sent it. */
-  const mine = (c) => (c.by && c.by === me().id) || (isBuyer() ? onClient(c)
+  /* Every campaign is in the CEO's view, which is all "mine" means on his
+     desk: it decides what he may open, and `works` decides that he runs
+     none of it. */
+  const mine = (c) => (c.by && c.by === me().id) || (isWhole() ? true
+    : isBuyer() ? onClient(c)
     : isLine() ? onLine(c)
     /* Or it is a request nobody has taken, which is every manager's to
        take: the briefing lists it for all of them, so the record has to open
@@ -3691,13 +3728,15 @@
      announced a manager who did not know it existed.
 
      So `owner` is empty until it is run, and running it is what claims it.
-     That is the truth of the thing and it is also the smaller change when
-     the CEO's desk arrives: he writes `owner` earlier, and every predicate
-     below already reads "or nobody has it". */
+     That is the truth of the thing, and it made the CEO's desk the small
+     change it was: `campGive` writes `owner` earlier, and every predicate
+     below already read "or nobody has it". */
   const campFree = (k) => isAsked(k) && !k.owner;
   /* The desks that ask rather than run. Not `!isMgr()`: a BDR is neither,
      and a BDR has no door to a campaign at all. */
-  const asksOnly = () => isLine() || isBuyer();
+  /* The CEO runs no floor either, so his campaign door is the request —
+     with the one field only he fills in, which manager takes it. */
+  const asksOnly = () => isLine() || isBuyer() || isWhole();
   /* \u2550\u2550 WHO FILLS IT IN, WHICH IS NOT WHOSE IT IS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
      A blank one is filled in by whoever started it, and that is true of a
      request before it is sent: the stakeholder typing it is answering his
@@ -3746,7 +3785,7 @@
      a comment saying exactly this; it is a function now, so the two desks
      cannot drift apart again. */
   const ringable = (c) => !!c.phone && !c.dnc;
-  const canRing = (c) => (onBook() ? ringable(c) : callable(c));
+  const canRing = (c) => works() && (onBook() ? ringable(c) : callable(c));
 
   /* ══ A MEETING THAT HAS PASSED IS A QUESTION ═══════════════════════════
      Once a meeting is booked they leave the queue; once its day has gone
@@ -3874,6 +3913,8 @@
        either. The figure is gated at its own site as well, because one
        guard for a cost leak is one more than the last count. */
     if (isBuyer()) S.by = '';
+    /* And the managers' cut, which no other desk has. */
+    if (S.by === 'mgr' && !isWhole()) S.by = '';
     /* ══ A FLOOR HAS FEWER SURFACES, NOT ONE ══════════════════════
        Contacts, the Diary and Campaigns are all readings of a pipeline. A
        floor has none, and the desk drew them anyway: three tabs reading
@@ -4688,7 +4729,7 @@
        but the RECORD is that account, so the same fallback there is a
        button that goes where you already are. The caller decides by asking
        whether anybody was found. */
-    return who
+    return who && works()
       ? { who: who, label: 'Call ' + who.name.split(' ')[0],
           attr: 'data-call="' + esc(who.id) + '"' }
       : { who: null, label: 'Open the account', attr: 'data-acc="' + esc(a.id) + '"' };
@@ -5198,14 +5239,19 @@
            one answer on a request and it is nobody, whatever the field says.
            When the CEO assigns one, "assigned to" is a different fact from
            "whose campaign this is" and wants saying differently. */
-        (isAsked(k) ? ''
+        /* Given is a different fact from whose, and says so. It tests the
+           field only the CEO writes, never `owner` — the placeholder trap
+           this row has fallen into once already. */
+        (isAsked(k) ? (k.givenBy && REP[k.owner]
+            ? '<span class="b-qcard-num b-fact">' + chIcon('user') +
+              '<span>Assigned to ' + esc(REP[k.owner].name) + '</span></span>' : '')
           : '<span class="b-qcard-num b-fact">' + chIcon('user') +
             '<span>' + esc(actor(k.owner).name) + '</span></span>') +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' +
-          (isAsked(k) ? (campFills(k) ? 'Open it' : 'See it')
+          (isAsked(k) ? (campFills(k) ? 'Open it' : isWhole() && !k.givenBy ? 'Assign it' : 'See it')
             /* Work it is the verb of the desk that runs it. */
-            : isBuyer() ? 'See it'
+            : isBuyer() || (isWhole() && !isDraft(k)) ? 'See it'
             : isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
@@ -5350,7 +5396,7 @@
          off a campaign shows the campaign reading and the shortfall is
          still true underneath it. */
       aimyBlock(listSays(l, people, call, !!camp), false,
-        people.some((c) => !c.phone)
+        works() && people.some((c) => !c.phone)
           ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
             'Fill in what is missing</button>'
           : '') +
@@ -5383,10 +5429,11 @@
       const on = people.filter((c) => c.camps.some((k) => DB.byCamp[k] && mine(DB.byCamp[k]))).length;
       if (on) {
         return { text: '<b>' + commas(people.length - on) + '</b> of the ' + commas(people.length) +
-          ' are on no campaign, so they are not in your queue. The ' + commas(on) + ' already on one of yours are.',
+          ' are on no campaign, so they are not ' + inQueue() + '. The ' + commas(on) + ' already on one of ' +
+          (isWhole() ? 'ours' : 'yours') + ' are.',
           from: 'the list having no campaign' };
       }
-      return { text: 'Nobody on this list is in your queue until it is on a campaign.',
+      return { text: 'Nobody on this list is ' + inQueue() + ' until it is on a campaign.',
         from: 'the list having no campaign' };
     }
     /* WHAT IT SAYS IS WHAT IT COUNTS. This was people minus the callable,
@@ -5590,15 +5637,17 @@
     const a = S.acc && DB.byAcc[S.acc];
     if (a) {
       const people = consAt(a.id);
-      const call = people.filter(callable);
+      /* Who can be rung here is the caller's reading; on the CEO's rail the
+         company is its people and nothing about his phone. */
+      const call = works() ? people.filter(callable) : [];
       const sig = signalOf(a);
       return {
         card: {
           state: sig ? 'detected' : 'reading',
           text: sig
             ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' · seen ' + esc(sayWhen(sig.at)) + '.'
-            : '<b>' + plural(people.length, 'person') + '</b> on the record here, ' +
-              (call.length ? '<b>' + commas(call.length) + '</b> you can call now.' : 'nobody you can call now.'),
+            : '<b>' + plural(people.length, 'person') + '</b> on the record here' + (!works() ? '.'
+              : ', ' + (call.length ? '<b>' + commas(call.length) + '</b> you can call now.' : 'nobody you can call now.')),
           evidence: [{ val: people.length, cap: 'here' }, { val: call.length, cap: 'to call' }].filter((e) => e.val),
           act: null, q: null,
         },
@@ -5618,8 +5667,8 @@
             : (function () {
                 const inQ = people.filter((c) => campsOf(c).some(mine)).length;
                 return inQ
-                  ? '<b>' + commas(people.length) + '</b> people and no campaign; <b>' + commas(inQ) + '</b> of them are in your queue through another.'
-                  : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is in your queue.';
+                  ? '<b>' + commas(people.length) + '</b> people and no campaign; <b>' + commas(inQ) + '</b> of them are ' + inQueue() + ' through another.'
+                  : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is ' + inQueue() + '.';
               })(),
           evidence: [{ val: people.length, cap: 'people' }, { val: withNum, cap: 'with a number' }].filter((e) => e.val),
           act: null, q: null,
@@ -5669,7 +5718,9 @@
       const week = meetings(TODAY_ISO, dayAdd(7)).length;
       return {
         card: {
-          state: now.length ? 'staged' : 'detected',
+          /* Awaiting whoever holds them. On the CEO's desk the deals are
+             not waiting on him, so the reading is one AiMY found. */
+          state: now.length && works() ? 'staged' : 'detected',
           text: now.length
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
               ' something today, out of the <b>' + commas(live.length) + '</b> ' + bookWhose() + '.'
@@ -5825,6 +5876,9 @@
   }
 
   function mgrMenu(conId, label) {
+    /* Not the CEO's. His way into a lead is to give it to a manager, which
+       is its own control and says so. */
+    if (!works()) return '';
     /* WHICH MANAGER IS ONLY A QUESTION IF THERE ARE SEVERAL. With one desk
        on the other side the menu would open on a single row, which is a
        question with one answer — so the verb does the thing instead. */
@@ -5962,23 +6016,355 @@
     const c = DB.byCon[conId];
     const m = REP[mgrId];
     if (!c || !m) return;
-    const before = { checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, manager: c.manager || null };
+    const before = { checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, manager: c.manager || null,
+      givenBy: c.givenBy || null, givenAt: c.givenAt || null };
     const now = new Date().toISOString();
+    /* The CEO hands over too — it is how he gives a lead nobody holds yet —
+       and the record says who gave it rather than that it was handed. */
+    const gave = isWhole();
     const t = {
       id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint', proposals: [], objections: [], openings: [],
-      note: 'Handed to ' + m.name + '.',
+      note: gave ? me().name + ' assigned this to ' + m.name + '.' : 'Handed to ' + m.name + '.',
       lines: [], next: null, moved: [c.checkpoint, 'handed-over'], called: 'handed-over',
     };
-    patchCon(c, { checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id });
+    patchCon(c, Object.assign({ checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id },
+      gave ? { givenBy: me().id, givenAt: TODAY_ISO } : {}));
     addTouch(t);
+    /* ══ AND THE MANAGER'S DESK HEARS ABOUT IT ════════════════════════════
+       `DB.byMgr` is built in `reindex`, and a hand-over without one left
+       the lead off the desk it was handed to until the next reload. */
+    reindex();
     paint();
-    toast(c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
+    toast(gave ? 'Assigned to ' + m.name : c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
       dropTouch(t.id);
       patchCon(c, before);
+      reindex();
       paint();
     });
+  }
+
+  /* ══════════════ ASSIGN IT TO A MANAGER ══════════════
+     The CEO's one verb, on five kinds of thing: a request somebody asked
+     for, one he is writing himself, a connection of his, a contact nobody
+     holds yet, and a deal another manager holds. One control wherever it
+     appears, in the shape Nour asked for on 23 Sep: an Assign button whose
+     menu holds every manager with what they already carry, and AiMY's
+     suggestion beside it as a sentence wired to its own press — "Lina
+     holds the most QA and test automation deals, 4 of them. Assign to
+     Lina". Accepting the suggestion is one press; choosing somebody else
+     is two. No confirm: every assignment is undone from the toast.
+
+     A reason and not a score. The research on trust in AI is blunt that an
+     explanation raises acceptance whether it is right or wrong, so the
+     sentence is a fact off the corpus ("already runs two campaigns for
+     Kestrel Labs") that a reader can disagree with, never a rating.
+
+     A held deal gets no pick. Moving somebody's deal is the exception, and
+     a recommendation to do it would make it look like the routine. */
+  const firstOf = (p) => (p && p.name ? p.name.split(' ')[0] : '');
+  const runningOf = (id) => DB.camp.filter((k) => k.owner === id && k.state === 'running').length;
+  /* Deals a manager holds on one product line: the same two indexes the
+     manager's desk and the stakeholder's read, crossed. */
+  const heldOn = (id, line) => {
+    const on = Object.create(null);
+    (DB.byLine[line] || []).forEach((cid) => (on[cid] = 1));
+    return (DB.byMgr[id] || []).filter((cid) => on[cid]).length;
+  };
+  function giveTo(kind, x) {
+    if (kind === 'deal' || !MANAGERS.length) return null;
+    const best = (score) => {
+      const rows = MANAGERS.map((m) => ({ m: m, n: score(m) })).filter((r) => r.n > 0)
+        .sort((a, b) => b.n - a.n);
+      return rows[0] || null;
+    };
+    /* 1. Whoever already holds it: the client's campaigns, the campaign the
+       person is on, a deal at the same company. */
+    if ((kind === 'req' || kind === 'draft') && x.client && CLIENT[x.client]) {
+      const r = best((m) => DB.camp.filter((k) => k.client === x.client && k.owner === m.id &&
+        !isDraft(k)).length);
+      if (r) {
+        return { id: r.m.id, why: firstOf(r.m) + ' already runs ' + plural(r.n, 'campaign') +
+          ' for ' + CLIENT[x.client].name + '.' };
+      }
+    }
+    if (kind === 'con') {
+      const k = DB.byCamp[campFor(x)];
+      if (k && REP[k.owner] && REP[k.owner].fn === 'sales-manager') {
+        return { id: k.owner, why: firstOf(REP[k.owner]) + ' runs ' + campName(k) + ', which they are on.' };
+      }
+    }
+    const co = kind === 'con' ? ((accOf(x) || {}).name || '') : (x.co || '');
+    if (co && kind !== 'req' && kind !== 'draft') {
+      const lower = co.toLowerCase();
+      const r = best((m) => (DB.byMgr[m.id] || []).filter((cid) => {
+        const a = accOf(DB.byCon[cid]);
+        return a && a.name.toLowerCase() === lower;
+      }).length);
+      if (r) return { id: r.m.id, why: firstOf(r.m) + ' already holds a deal at ' + co + '.' };
+    }
+    /* 2. Whoever sells the most of what it is for. */
+    const line = kind === 'net' ? reachKey(x)
+      : kind === 'con' ? lineOf(firstCamp(x))
+      : kind === 'lead' ? x.sell : (x.sells || [])[0];
+    if (line && SELL[line]) {
+      const r = best((m) => heldOn(m.id, line));
+      if (r) {
+        return { id: r.m.id, why: firstOf(r.m) + ' holds the most ' + SELL[line].name + ' deals, ' +
+          commas(r.n) + ' of them.' };
+      }
+    }
+    /* 3. Whoever has the most room. */
+    const room = MANAGERS.slice().sort((a, b) => runningOf(a.id) - runningOf(b.id))[0];
+    return { id: room.id, why: firstOf(room) + ' runs the fewest campaigns right now, ' +
+      commas(runningOf(room.id)) + '.' };
+  }
+  /* A span, not a div, because two of the places it stands are inside a
+     row of other controls. `off` greys both presses for the reason the
+     draft page greys Request it: something the manager needs is missing.
+
+     The menu is the hand-over menu's own shape — a ghost pill, a caption,
+     a face and a name a row — with the second line every "Looking as" row
+     has, here what each manager already carries, which is what the choice
+     is made on. AiMY's pick heads it and says so. On something a manager
+     already holds it is Reassign, and the holder is in it, lit, unpressable,
+     "Has it now": the menu says who has it rather than leaving it to be
+     guessed from who is missing. */
+  function giveStrip(kind, id, x, off) {
+    if (!isWhole()) return '';
+    const held = kind === 'deal' ? mgrOf(x) : ((kind === 'req' && x.givenBy) ? x.owner : null);
+    const pick = held ? null : giveTo(kind, x);
+    const dis = off ? ' disabled aria-disabled="true"' : '';
+    const attr = (m) => 'data-give="' + esc(kind + '|' + id + '|' + m.id) + '"';
+    const load = (m) => {
+      const open = (DB.byMgr[m.id] || []).filter((cid) => DB.byCon[cid] && dealLive(DB.byCon[cid])).length;
+      return plural(runningOf(m.id), 'campaign') + ' running \u00b7 ' + plural(open, 'open deal');
+    };
+    const first = held || (pick && pick.id);
+    const order = MANAGERS.filter((m) => m.id === first).concat(MANAGERS.filter((m) => m.id !== first));
+    const rows = order.map((m) => {
+      const now = m.id === held;
+      return '<button class="b-menu-item' + (now ? ' is-on' : '') + '" type="button" role="menuitem"' +
+        (now ? ' aria-disabled="true"' : ' ' + attr(m)) + '>' + faceOf(m.id, 24) +
+        '<span class="b-menu-line"><span class="b-menu-name">' + esc(m.name) + '</span>' +
+          '<span class="b-menu-sub">' + esc(now ? 'Has it now'
+            : (pick && m.id === pick.id ? 'AiMY suggests \u00b7 ' : '') + load(m)) + '</span></span>' +
+      '</button>';
+    }).join('');
+    const menuId = 'give-' + kind + '-' + id;
+    return '<span class="b-give" role="group" aria-label="Assign to a manager">' +
+      /* AiMY's reading on its own line, and the press it argues for is the
+         sentence's own last words: a link in the text, not a button. */
+      (pick ? '<span class="b-give-why">' + aiMark() + esc(pick.why) + ' ' +
+        '<button class="b-give-lnk" type="button" ' + attr(REP[pick.id]) + dis + '>' +
+          'Assign to ' + esc(firstOf(REP[pick.id])) + '</button>' +
+      '</span>' : '') +
+      '<span class="b-menu-wrap">' +
+        '<button class="b-ghost b-menu-open" type="button" data-pickopen="' + esc(menuId) + '" ' +
+          'aria-haspopup="menu"' + dis + '>' + (held ? 'Reassign' : 'Assign') + '</button>' +
+        '<div class="b-menu" id="' + esc(menuId) + '" role="menu" hidden>' +
+          '<span class="b-menu-cap">' + (held ? 'Reassign to' : 'Assign to') + '</span>' + rows +
+        '</div>' +
+      '</span>' +
+    '</span>';
+  }
+  function give(kind, id, mgrId) {
+    if (!isWhole() || !REP[mgrId] || REP[mgrId].fn !== 'sales-manager') return;
+    if (kind === 'req') campGive(DB.byCamp[id], mgrId);
+    else if (kind === 'draft') campAskGive(DB.byCamp[id], mgrId);
+    else if (kind === 'net') netGive(id, mgrId);
+    else if (kind === 'con') handover(id, mgrId);
+    else if (kind === 'deal') regive(id, mgrId);
+  }
+  function campGive(k, mgrId) {
+    if (!k || !isAsked(k)) return;
+    const was = { owner: k.owner || '', givenBy: k.givenBy || null, givenAt: k.givenAt || null };
+    campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
+    paint();
+    toast('Assigned to ' + REP[mgrId].name, () => { campSet(k, was); paint(); });
+  }
+  /* His own request, sent and given in the one press — `campAsk` with the
+     owner written in, and undone the way `campAsk` is: back to a draft. */
+  function campAskGive(k, mgrId) {
+    if (!k || !isDraft(k) || isAsked(k)) return;
+    const patch = campFill(k);
+    Object.assign(patch, { state: 'asked', by: me().id, askedAt: TODAY_ISO,
+      owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
+    campSet(k, patch);
+    go(Object.assign(cleared(), { camp: k.id }));
+    toast('Assigned to ' + REP[mgrId].name, () => {
+      campSet(k, { state: 'draft', askedAt: null, owner: '', givenBy: null, givenAt: null });
+      go(Object.assign(cleared(), { camp: k.id }));
+    });
+  }
+  /* A connection of his becomes a lead on the manager's desk, through the
+     path that already puts a stranger into somebody's contacts. The note
+     is the whole brief: who gave it, and the way in — which is HIS way in,
+     because `reachOf` reads the network of whoever is looking. */
+  function netGive(nid, mgrId) {
+    const n = (DB.net || []).filter((x) => x.id === nid)[0];
+    const m = REP[mgrId];
+    if (!n || !m) return;
+    const r = reachOf(n);
+    const way = r && r.k !== 'first' && r.via
+      ? ' Ask ' + me().name + ' for an introduction through ' + r.via.name + ', ' + r.via.title +
+        ' at ' + r.via.co + '.'
+      : ' They are one of ' + me().name + '’s own connections.';
+    const c = addLead({ name: n.name, title: n.title, co: n.co, sell: reachKey(n), manager: m.id,
+      note: me().name + ' assigned this to ' + m.name + '.' + way,
+      givenBy: me().id, stay: true, toast: 'Assigned to ' + m.name });
+    /* What the index knew about their company comes with them. The list he
+       gave it off said "software at 3,200 staff" and the manager's card said
+       "industry not known". Only onto an account the lead itself made. */
+    const a = c && accOf(c);
+    if (a && a.id.charAt(0) === 'x' && !a.industry) {
+      Object.assign(a, { industry: n.industry, city: n.city, country: n.country, size: n.size });
+      save();
+    }
+  }
+  /* ══════════════ AND A DEAL THAT IS ALREADY SOMEBODY'S ══════════════
+     Nour's call: the CEO may move a deal from one manager to another, and
+     the one who loses it is told. `manager` is the only field it writes —
+     the stage, the history and the value stay — so the deal's money moves
+     from one row to the other and the company's total does not move at
+     all. The touch is the record of it: who, when, to whom, and whose it
+     was, which is the audit trail an owner change on a live deal needs. */
+  function regive(conId, mgrId) {
+    const c = DB.byCon[conId];
+    const m = REP[mgrId];
+    if (!c || !m || c.checkpoint !== 'handed-over') return;
+    const was = mgrOf(c);
+    if (was === m.id) return;
+    const before = { manager: c.manager || null, givenBy: c.givenBy || null, givenAt: c.givenAt || null };
+    const t = {
+      id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: campFor(c), by: me().id, at: new Date().toISOString(), secs: 0,
+      outcome: 'given', proposals: [], objections: [], openings: [],
+      note: me().name + ' assigned this to ' + m.name + '. It was ' + actor(was).name + '’s.',
+      lines: [], next: null, moved: null, called: c.checkpoint, to: m.id, was: was,
+    };
+    patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO });
+    addTouch(t);
+    reindex();
+    paint();
+    toast('Assigned to ' + m.name, () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      reindex();
+      paint();
+    }, actor(was).name + ' is told.');
+  }
+
+  /* ══════════════ JOIN IT: THE EXECUTIVE IN THE ROOM ══════════════
+     The research on executives who sell is blunt in both directions. The
+     ones who grew their accounts were briefed, coordinated with whoever
+     owned the account, and selective; the ones who turned up unbriefed and
+     around the owner did measurable harm. So joining a deal is three things
+     at once: its meetings land in his diary with Prepare me on them, the
+     manager who holds it is told, and the list that suggests deals to join
+     is short and stops suggesting at eight.
+
+     Its own field, not the crew: `conCrew` derives the crew from who worked
+     the lead until an array is written, and a write would freeze it. The
+     stage stays the manager's — joining gives him the notes and the room,
+     not the forecast. */
+  const SITS_MAX = 8;
+  function joinDeal(conId) {
+    const c = DB.byCon[conId];
+    if (!c || !isWhole() || c.checkpoint !== 'handed-over') return;
+    const had = (c.joined || []).slice();
+    const at = c.joinedAt || null;
+    const on = had.indexOf(me().id) >= 0;
+    patchCon(c, { joined: on ? had.filter((id) => id !== me().id) : had.concat([me().id]),
+      joinedAt: on ? at : TODAY_ISO });
+    paint();
+    const a = accOf(c);
+    const what = 'the ' + (a ? a.name : c.name) + ' deal';
+    toast(on ? 'You left ' + what : 'You are on ' + what, () => {
+      patchCon(c, { joined: had, joinedAt: at });
+      paint();
+    }, on ? null : directorOf(c).name + ' is told' +
+      (c.next ? ', and ' + c.next.what.toLowerCase() + ' ' + sayWhen(c.next.due) + ' is in your diary.' : '.'));
+  }
+  /* The deals worth an executive's hour: late in the ladder — Shown or
+     Priced, where a senior voice changes a decision rather than a first
+     impression — and in trouble, past their date or a week without a word,
+     and worth more than the middle of the book. Largest first, three at
+     most. Null, not empty, when he already sits on as many as one person
+     can carry well: the block says so rather than going quiet. */
+  function needFor() {
+    if (!isWhole()) return [];
+    const book = dealBook();
+    if (book.filter(sitsOn).length >= SITS_MAX) return null;
+    const live = book.filter((c) => dealLive(c));
+    const vals = live.map((c) => acvOf(c).value).sort((x, y) => x - y);
+    const mid = vals.length ? vals[Math.floor(vals.length / 2)] : 0;
+    return live.filter((c) => {
+      if (sitsOn(c) || acvOf(c).value < mid) return false;
+      const st = stageOf(c);
+      return (st === 'proof' || st === 'commercial') && (needLate(c) || needQuiet(c) != null);
+    }).sort((x, y) => acvOf(y).value - acvOf(x).value).slice(0, 3);
+  }
+  const needLate = (c) => daysBetween(TODAY_ISO, closeBy(c)) < 0;
+  const needQuiet = (c) => {
+    const at = lastActivity(c);
+    const d = at ? daysBetween(at, TODAY_ISO) : null;
+    return d != null && d >= 7 ? d : null;
+  };
+  function needBlock() {
+    const deals = needFor();
+    if (deals === null) {
+      return '<section class="s-block s-block-wide" aria-label="Where you are needed">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Where you are needed</h2></div>' +
+        aimyBlock({ text: 'You sit on <b>' + SITS_MAX + ' deals</b>, which is as many as one person ' +
+          'can carry well. Leave one to join another.', from: '' }, true) +
+      '</section>';
+    }
+    if (!deals.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="Where you are needed">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Where you are needed</h2>' +
+        '<span class="s-block-say">' + esc(plural(deals.length, 'deal')) +
+          ' \u00b7 largest first</span>' +
+      '</div>' +
+      '<div class="b-owed">' + deals.map((c, i) => {
+        const a = accOf(c);
+        const st = DEAL_STAGE[stageOf(c)];
+        const q = needQuiet(c);
+        const why = [euro(acvOf(c).value), st ? st.label.toLowerCase() : null,
+          needLate(c) ? 'past its date' : q != null ? 'nobody has spoken to them in ' + plural(q, 'day') : null]
+          .filter(Boolean).join(', ');
+        return '<button class="b-owed-row" type="button" data-con="' + esc(c.id) + '" ' +
+          'style="--i:' + Math.min(i, 8) + '">' +
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(a ? a.name : c.name) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(why) + '. ' + esc(directorOf(c).name) + '’s deal with ' +
+              esc(c.name) + '.</span>' +
+          '</span>' +
+          '<span class="b-owed-go">See it</span>' +
+        '</button>' +
+        '<span class="b-join"><button class="s-inline-btn" type="button" data-join="' + esc(c.id) + '">' +
+          'Join it</button></span>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
+  /* ══════════════ AND TWO HE ALREADY SITS ON, DEALT RATHER THAN ROLLED ══════════════
+     A demo of this desk with an empty day shows the verb and not what it
+     is for. So the two largest open deals at Priced carry him from the
+     start — chosen by value off the corpus, not by a draw, so no other
+     figure moves — and ten days ago, so no manager's bell announces a join
+     nobody made in this session. A delta that has left one keeps it left. */
+  function seedJoins() {
+    const ceo = REPS.filter((r) => r.fn === 'ceo')[0];
+    if (!ceo) return;
+    DB.con.filter((c) => isDeal(c) && dealLive(c) && stageOf(c) === 'commercial')
+      .sort((x, y) => (acvOf(y).value - acvOf(x).value) || (x.id < y.id ? -1 : 1))
+      .slice(0, 2)
+      .forEach((c) => { if (!('joined' in c)) { c.joined = [ceo.id]; c.joinedAt = dayAdd(-10); } });
   }
 
   /* ══ OPENING A DOCUMENT ════════════════════════════════════════════════
@@ -6858,22 +7244,24 @@
      row component for a list of eight would be a second thing to learn for
      no second meaning.
 
-     \u2550\u2550 AND THE OWNER TEST IS THE LINE THE CEO WILL MOVE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     `campOwner` puts every request on `MANAGERS[0]` because nobody is being
-     asked yet which manager should take it. When the CEO's desk arrives it
-     answers that, this filter goes on reading `owner`, and the only thing
-     that changes is who wrote the field. */
+     \u2550\u2550 AND THE OWNER TEST IS THE LINE THE CEO MOVED \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A request arrives owned by nobody, and `campGive` is the CEO writing
+     `owner` before anybody runs it. This filter goes on reading `owner`
+     unchanged — a given request is on its manager's briefing only — and the
+     only new thing is who wrote the field. */
   const campAsks = () =>
-    DB.camp.filter((k) => isAsked(k) && (!k.owner || k.owner === me().id))
+    DB.camp.filter((k) => isAsked(k) && (isWhole() || !k.owner || k.owner === me().id))
     /* Longest waiting first, which is the order every other list of things
-       owed on this page uses: what was missed first. */
-    .sort((a, b) => ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
+       owed on this page uses: what was missed first. On the CEO's desk the
+       ones still waiting for a manager go above the ones he has given. */
+    .sort((a, b) => (isWhole() ? (a.givenBy ? 1 : 0) - (b.givenBy ? 1 : 0) : 0) ||
+      ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
 
   function reqBlock() {
     /* A stakeholder and a client read this same home page. They see their
        own requests on their own campaigns list, where a card says Requested;
        what they must not see is the pile on somebody's desk. */
-    if (!isMgr()) return '';
+    if (!isMgr() && !isWhole()) return '';
     const asks = campAsks();
     /* Nothing arrived means no section. A heading over "no requests" every
        morning teaches the eye to skip the place a request will appear. */
@@ -6889,8 +7277,16 @@
     return '<section class="s-block s-block-wide" aria-label="Requests">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Requests</h2>' +
-        '<span class="s-block-say">' + esc(plural(asks.length, 'campaign')) +
-          ' asked for \u00b7 longest waiting first</span>' +
+        '<span class="s-block-say">' + (isWhole()
+          ? (function () {
+            /* "0 requests waiting" is a count of nothing said out loud. */
+            const free = asks.filter((k) => !k.givenBy).length;
+            const given = asks.length - free;
+            return (free ? esc(plural(free, 'request')) + ' waiting for a manager' : 'None waiting') +
+              (given ? ' \u00b7 ' + esc(commas(given)) + ' assigned' : '');
+          }())
+          : esc(plural(asks.length, 'campaign')) + ' asked for') +
+          ' \u00b7 longest waiting first</span>' +
       '</div>' +
       '<div class="b-owed">' + asks.map((k, i) =>
         '<button class="b-owed-row" type="button" data-camp="' + esc(k.id) + '" ' +
@@ -6906,12 +7302,19 @@
                 (k.askedAt ? ' \u00b7 ' + esc(sayWhen(k.askedAt)) : '') + '</span>' +
             '</span>' +
             '<span class="b-owed-body">' + esc(what(k)) +
-              '. ' + campGoalSay(k) + '</span>' +
+              '. ' + campGoalSay(k) +
+              /* On the desk it was assigned to, who assigned it. */
+              (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' assigned it to you.</b>' : '') +
+              /* And on the CEO's, to whom — the Reassign under the row says
+                 it can move, and this says where it is. */
+              (k.givenBy && isWhole() && REP[k.owner]
+                ? ' <b>Assigned to ' + esc(REP[k.owner].name) + '.</b>' : '') +
+              '</span>' +
           '</span>' +
           /* It opens as the page a draft opens as, with the two fields this
              desk is the only one who can answer still empty. */
-          '<span class="b-owed-go">Open it</span>' +
-        '</button>').join('') + '</div>' +
+          '<span class="b-owed-go">' + (isWhole() ? 'See it' : 'Open it') + '</span>' +
+        '</button>' + giveStrip('req', k.id, k)).join('') + '</div>' +
     '</section>';
   }
 
@@ -6983,8 +7386,170 @@
           '</span>' +
           '<span class="b-owed-go">' +
             (h.r.k === 'first' ? 'Write the message' : 'Write the ask') + '</span>' +
-        '</button>').join('') + '</div>' +
+        '</button>' + giveStrip('net', h.c.id, h.c)).join('') + '</div>' +
     '</section>';
+  }
+
+  /* ══════════════ THE MANAGERS, READ THE WAY THEIR OWN DESKS READ THEM ══════════════
+     One row per manager on the CEO's Today, and one card per manager on
+     his Financials. What was gained and what it is measured against come
+     off the same index and target the manager's own desk uses — `DB.byMgr`
+     and `TARGET_QUARTER` — so "Lina, €152k of €300k" here is the figure on
+     Lina's own rail card, not a second estimate of it.
+
+     What AiMY expects does not, and on purpose. `oddsLadder` learns from
+     whichever desk is looking, so here every manager's open deals are read
+     at the company's odds rather than each at their own: three desks
+     compared on one yardstick, and a small book's odds do not swing on a
+     single deal. */
+  function mgrRead(m, p) {
+    const deals = (DB.byMgr[m.id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+    const booked = deals.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); })
+      .reduce((n, c) => n + acvOf(c).value, 0);
+    const target = TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
+    const open = !p.whole && p.elapsed != null && p.elapsed < 1;
+    return { m: m, booked: booked, target: target,
+      /* The report's own formula for what AiMY expects, per desk. */
+      more: open ? Math.round(pipelineOf(deals).weighted * Math.max(0, 1 - p.elapsed)) : 0,
+      paceMoney: open && target ? booked - target * p.elapsed : null,
+      camps: DB.camp.filter((k) => k.owner === m.id && k.state === 'running').length,
+      given: DB.camp.filter((k) => isAsked(k) && k.owner === m.id).length };
+  }
+  /* A verdict on a manager's quarter, in the words the product-line cards
+     use for theirs. Ten points behind the calendar is still on pace — a
+     quarter's deals do not land evenly — and past thirty it is far enough
+     behind that the open deals rarely close it. */
+  const MGR_VERDICT = {
+    met: { say: 'target met', tone: 'ok' }, ahead: { say: 'ahead', tone: 'ok' },
+    on: { say: 'on pace', tone: 'ok' }, behind: { say: 'behind', tone: 'warn' },
+    far: { say: 'far behind', tone: 'err' }, short: { say: 'short', tone: 'err' },
+  };
+  function mgrVerdict(booked, target, p) {
+    if (!target) return MGR_VERDICT.on;
+    if (booked >= target) return MGR_VERDICT.met;
+    if (p.whole || p.elapsed == null || p.elapsed >= 1) return MGR_VERDICT.short;
+    const pace = booked / target - p.elapsed;
+    return pace >= 0 ? MGR_VERDICT.ahead : pace >= -0.1 ? MGR_VERDICT.on
+      : pace >= -0.3 ? MGR_VERDICT.behind : MGR_VERDICT.far;
+  }
+
+  /* ══════════════ AND ON TODAY, ONE ROW EACH ══════════════
+     The reading the assignment needs: who is short, by how much, and what
+     they already carry. Furthest behind first, which is the order a CEO
+     reads a room in. One sentence for the block rather than one per row —
+     three sentences saying three managers are behind is a paragraph, and
+     the rows already say it in figures.
+
+     The bar is the rail card's, at the width a row can give it: what was
+     gained against a mark where the target sits. The page's one chart. */
+  function mgrBlock() {
+    if (!isWhole() || !MANAGERS.length) return '';
+    const p = periodOf(S.period);
+    const rows = MANAGERS.map((m) => mgrRead(m, p)).sort((a, b) =>
+      (a.paceMoney == null ? 1e12 : a.paceMoney) - (b.paceMoney == null ? 1e12 : b.paceMoney));
+    const worst = rows[0];
+    const behind = rows.filter((r) => r.paceMoney != null && r.paceMoney < 0);
+    const said = !behind.length
+      ? (rows.every((r) => r.paceMoney != null) ? 'Every manager is where the quarter should be today.'
+        : 'The window has closed; the rows say where each desk finished.')
+      : '<b>' + esc(worst.m.name) + '</b> is <b>' + esc(euro(-worst.paceMoney)) +
+        '</b> behind where the quarter should be today' +
+        (worst.more ? ', and AiMY expects <b>' + esc(euro(worst.more)) + '</b> more from the open deals.' : '.');
+    const door = esc(JSON.stringify(Object.assign(cleared(), { on: 'money', by: 'mgr' })));
+    return '<section class="s-block s-block-wide" aria-label="Managers">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Managers</h2>' +
+        '<span class="s-block-say">' + esc(plural(rows.length, 'manager')) +
+          ' \u00b7 furthest behind first</span>' +
+      '</div>' +
+      aimyBlock({ text: said, from: 'each desk’s own figures' }) +
+      '<div class="b-owed">' + rows.map((r, i) => {
+        const v = mgrVerdict(r.booked, r.target, p);
+        const scale = Math.max(r.target * 1.2, r.booked) || 1;
+        const won = Math.max(0, Math.min(100, (r.booked / scale) * 100));
+        const at = Math.max(0, Math.min(100, (r.target / scale) * 100));
+        /* The figure leads the body, in the body's ink: it is the reason
+           the row exists, and the head's quiet slot is for a date. The
+           verdict is the status tag every campaign head already wears. */
+        const facts = [
+          euro(r.booked) + ' of ' + euro(r.target),
+          r.more ? 'AiMY expects ' + euro(r.more) + ' more' : null,
+          r.camps ? plural(r.camps, 'campaign') + ' running' : null,
+          r.given ? plural(r.given, 'request') + ' given' : null,
+        ].filter(Boolean);
+        return '<button class="b-owed-row" type="button" data-go="' + door + '" ' +
+          'style="--i:' + Math.min(i, 8) + '">' +
+          /* The quiet dot: the tag beside the name already carries the
+             tone, and a red dot beside a red tag is one fact said twice. */
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(r.m.name) + '</span>' +
+              '<span class="s-meta-st tone-' + esc(v.tone) + '">' + esc(v.say) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(facts.join(' \u00b7 ')) + '</span>' +
+            '<span class="b-mgr-bar"><span class="b-door-bar">' +
+              (r.booked ? '<span class="b-door-seg is-won" style="width:' + won.toFixed(1) + '%"></span>' : '') +
+              '<span class="b-door-mark" style="left:' + at.toFixed(1) + '%"></span>' +
+            '</span></span>' +
+          '</span>' +
+          '<span class="b-owed-go">See it</span>' +
+        '</button>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
+
+  /* ══════════════ AND ON FINANCIALS, AS THE SAME CARD ══════════════
+     The third cut, on the one desk that reads all of them. Same card as a
+     campaign and a product line — a name, a verdict, what it gained against
+     what it cost, and the facts it is judged on — because a switcher that
+     changes the card changes what the reader has to learn. The cost is what
+     the manager's campaigns cost, the same rows the campaign cut prints,
+     so the three cuts add up to one page. */
+  function mgrPans(now, camps, p) {
+    const rows = now.byMgr.filter((r) => REP[r.k]);
+    if (!rows.length) return '<p class="s-none">Nothing has moved on any desk this window.</p>';
+    const target = TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
+    return '<div class="s-pans">' + rows.map((r, i) => {
+      const m = REP[r.k];
+      const v = mgrVerdict(r.arr, target, p);
+      const theirs = camps.filter((s) => s.camp.owner === r.k);
+      const cost = theirs.reduce((n, s) => n + s.total, 0);
+      return '<div class="s-pan" style="--i:' + i + '">' +
+        '<div class="s-pan-head">' +
+          '<span class="s-pan-name">' + esc(m.name) +
+            '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
+          '<span class="s-pan-figs">' +
+            '<span class="s-pan-fig">' +
+              '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
+                esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
+              '<span class="s-pan-unit">of ' + esc(fmtMoney(target)) + '</span>' +
+            '</span>' +
+            (cost ? '<span class="s-pan-fig">' +
+              '<span class="s-pan-spent">' + esc(fmtMoney(cost)) + '</span>' +
+              '<span class="s-pan-unit">cost</span>' +
+            '</span>' : '') +
+          '</span>' +
+        '</div>' +
+        '<div class="s-pan-facts">' +
+          (theirs.length ? '<span><b>' + theirs.length + '</b> ' +
+            (theirs.length === 1 ? 'campaign' : 'campaigns') + '</span>' : '') +
+          '<span><b>' + r.meetings + '</b> ' + (r.meetings === 1 ? 'person met' : 'people met') + '</span>' +
+          '<span><b>' + r.wins + '</b> ' + plural(r.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+          '<span><b>' + r.open + '</b> potential, ' + esc(fmtMoney(r.pipeline)) + ' if they land</span>' +
+        '</div>' +
+        (theirs.length ? '<div class="s-pan-crew">' +
+          '<div class="s-pan-restitle">Campaigns</div>' +
+          theirs.map((s) => '<span class="s-pan-p">' +
+            '<span class="s-pan-who"><b>' + esc(s.camp.name) + '</b>' +
+              '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
+                (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') + '</span></span>' +
+            '<span class="s-pan-cost' + (s.arr ? '' : ' is-none') + '">' +
+              esc(s.arr ? fmtMoney(s.arr) : 'Nothing') + '</span>' +
+          '</span>').join('') +
+        '</div>' : '') +
+      '</div>';
+    }).join('') + '</div>';
   }
 
   function mgrHome() {
@@ -7004,6 +7569,12 @@
          been late for three days, because nobody else can move it and it is
          one press. */
       reqBlock() +
+      /* The CEO's reading of the room, under the requests he assigns from
+         it: who is short and what they already carry. */
+      mgrBlock() +
+      /* And the deals where an executive in the room could change the
+         answer, three at most. */
+      needBlock() +
       /* \u2550\u2550 THE TWO THAT CAME FROM OUTSIDE THIS DESK, TOGETHER \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          It sat under "What wants you" on the argument that what is owed is
          read before what is possible. True of a morning, and it buried the
@@ -7072,7 +7643,8 @@
     }
     if (cold.length) {
       bits.push('<b>' + commas(cold.length) + '</b> ' + (cold.length === 1 ? 'has' : 'have') +
-        ' been handed to you and never warm-called');
+        (isWhole() ? ' been handed to a manager and never warm-called'
+          : ' been handed to you and never warm-called'));
     }
     const door = (label, q) => '<button class="s-insight-lnk" type="button" data-go="' +
       esc(JSON.stringify(Object.assign(cleared(), { q: q }))) + '">' + esc(label) + '</button>';
@@ -7125,9 +7697,15 @@
     const st = stageOf(c);
     const a = accOf(c);
     const first = (c.name || '').split(' ')[0];
-    const call = c.phone && !c.dnc
+    /* ══════════════ AND ON THE CEO'S DESK THE SAME SENTENCE, ABOUT SOMEBODY ELSE ══════════════
+       Every "you" on this card is the manager holding the deal, so on his
+       desk the card names them, and the verb is to open it: he calls
+       nobody from here. */
+    const whose = isWhole() ? esc(directorOf(c).name) + ' ' : 'you ';
+    const open = { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' };
+    const call = works() && c.phone && !c.dnc
       ? { label: 'Call ' + first, attr: 'data-call="' + esc(c.id) + '"' }
-      : { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' };
+      : open;
 
     if (st === 'won') {
       const exp = expansionsOf(c.acc)[0];
@@ -7150,23 +7728,24 @@
     }
     if (st === 'later') {
       const due = c.next ? daysBetween(TODAY_ISO, c.next.due) : null;
+      const parked = isWhole() ? 'the date set when it was parked' : 'the date you set when you parked it';
       return due != null && due <= 0
         ? { text: 'Rescheduled, and the day to pick it back up has come.',
-            from: 'the date you set when you parked it', act: call }
-        : { text: 'Rescheduled. Back with you ' +
+            from: parked, act: call }
+        : { text: 'Rescheduled. Back with ' + whose +
             esc(c.next ? sayWhen(c.next.due) : 'when you say so') + '.',
-            from: 'the date you set when you parked it',
-            act: { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' } };
+            from: parked, act: open };
     }
     /* A meeting that has been and gone with nothing written up is the one
        thing on this desk that costs money by sitting still. */
     if (MGR_UNREC[c.id]) {
       const m = MGR_UNREC[c.id];
-      return { text: 'You met them <b>' + esc(sayWhen(m.iso)) +
+      return { text: (isWhole() ? esc(directorOf(c).name) + ' met them <b>' : 'You met them <b>') +
+          esc(sayWhen(m.iso)) +
           '</b> and nothing here says how it went.',
         from: 'the diary against the record',
-        act: { label: 'Say how it went',
-          attr: 'data-fill="' + esc('Had a ' + m.kind + ' with ' + c.name + ', ') + '"' } };
+        act: works() ? { label: 'Say how it went',
+          attr: 'data-fill="' + esc('Had a ' + m.kind + ' with ' + c.name + ', ') + '"' } : open };
     }
     if (c.next && daysBetween(TODAY_ISO, c.next.due) < 0) {
       return { text: '<b>' + esc(c.next.what) + '</b> was due ' +
@@ -7174,7 +7753,9 @@
         from: 'the step you set', act: call };
     }
     if (st === 'qual') {
-      return { text: 'Handed to you ' + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
+      return { text: (c.givenBy && !isWhole()
+          ? esc(actor(c.givenBy).name) + ' assigned it to you ' + esc(sayWhen(c.givenAt || (c.checkpointAt || '').slice(0, 10)))
+          : 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10)))) +
           ' and still never warm-called.',
         from: 'the hand-over', act: call };
     }
@@ -7210,7 +7791,8 @@
     }
     if (c.next) {
       return { text: went + '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
-        act: { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } };
+        act: works() || sitsOn(c)
+          ? { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } : open };
     }
     return { text: went + 'Running, and nothing is owed on it today.', act: call };
   }
@@ -7318,6 +7900,24 @@
     if (hold.length) {
       bits.push('<b>' + commas(hold.length) + '</b> had news about work we already do for them');
     }
+    /* ══════════════ AND HOW MUCH RIDES ON ONE OF THEM ══════════════
+       The CEO's line, because he carries the risk: one account paying over
+       a tenth of what we bill, or five paying over a quarter, is where a
+       public company has to name the customer and where anybody buying the
+       business starts asking. Said only past the line, and only one of the
+       two — the larger fact first. */
+    const lean = (function () {
+      if (!isWhole() || !worth) return '';
+      const top = book.slice().sort((x, y) => custWorth(y) - custWorth(x));
+      const one = top[0] ? custWorth(top[0]) / worth : 0;
+      const five = top.slice(0, 5).reduce((n, a) => n + custWorth(a), 0) / worth;
+      if (one > 0.1) {
+        return '<b>' + esc(top[0].name) + '</b> pays <b>' + Math.round(one * 100) +
+          '%</b> of what we bill. ';
+      }
+      if (five > 0.25) return 'The five largest pay <b>' + Math.round(five * 100) + '%</b> of what we bill. ';
+      return '';
+    }());
     return '<section class="s-insight is-lead s-block-wide" aria-label="Where your accounts stand">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -7327,9 +7927,10 @@
       '<div class="s-lead-line">' +
         '<span class="s-lead-n">' + esc(euro(worth)) + '</span>' +
         '<span class="s-lead-say">a year, across <span class="s-lead-of">' +
-          commas(book.length) + '</span> companies that already buy from you.</span>' +
+          commas(book.length) + '</span> companies that already buy from ' +
+          (isWhole() ? 'us' : 'you') + '.</span>' +
       '</div>' +
-      '<p class="s-lead-deck">' + renewSay +
+      '<p class="s-lead-deck">' + lean + renewSay +
         (bits.length
           ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') +
             '. The rest are quiet, and they are under those.'
@@ -7817,7 +8418,8 @@
     }
     if (gap <= 0) return of + ' — the target is met';
     return of + ' — ' + euro(Math.abs(Math.round(a.paceMoney))) + ' ' +
-      (a.paceMoney >= 0 ? 'ahead of' : 'behind') + ' where you should be today';
+      (a.paceMoney >= 0 ? 'ahead of' : 'behind') +
+      (isWhole() ? ' where we should be today' : ' where you should be today');
   }
 
   /* The promise, at the foot of both cards so the two line up whatever
@@ -9095,7 +9697,11 @@
      is sorted newest first at load, so this is the head of the list. */
   function lastActivity(c) {
     const ids = DB.touchesOf[c.id] || [];
-    for (let i = 0; i < ids.length; i++) { if (TOUCH[ids[i]]) return TOUCH[ids[i]].at.slice(0, 10); }
+    /* A deal given from one manager to another has not heard from anybody,
+       and counting the move would hide exactly the quiet it may be for. */
+    for (let i = 0; i < ids.length; i++) {
+      if (TOUCH[ids[i]] && TOUCH[ids[i]].outcome !== 'given') return TOUCH[ids[i]].at.slice(0, 10);
+    }
     return c.checkpointAt ? c.checkpointAt.slice(0, 10) : null;
   }
   function dealAge(deals) {
@@ -9147,7 +9753,20 @@
   /* The ids this desk's book is made of. Two surfaces read it — the money
      and the board — and a second spelling of the same ternary is how they
      would come to disagree about what the book is. */
-  const bookIds = () => (isBuyer() ? DB.byClient[myClient()]
+  /* ══════════════ AND THE WHOLE OF IT, WHICH IS EVERY DESK ADDED UP ══════════════
+     Not a fourth index. `DB.byMgr` already files every handed-over lead
+     under whoever holds it, so the company is that index read whole — the
+     same arithmetic the three manager desks read, which is what makes the
+     company's total and the sum of its managers unable to disagree. Every
+     key and not only `MANAGERS`: a lead a stakeholder added by hand is
+     filed under him, and it is still the company's. */
+  const wholeIds = () => {
+    const out = [];
+    Object.keys(DB.byMgr).forEach((k) => (DB.byMgr[k] || []).forEach((id) => out.push(id)));
+    return out;
+  };
+  const bookIds = () => (isWhole() ? wholeIds()
+    : isBuyer() ? DB.byClient[myClient()]
     : isLine() ? DB.byLine[myLine()]
     : DB.byMgr[me().id]) || [];
   const dealBook = () => bookIds().map((id) => DB.byCon[id]).filter(Boolean);
@@ -9185,7 +9804,7 @@
     const spend = { src: 0, enrich: 0, human: 0, aimy: 0, team: 0, total: 0 };
     const wins = [];
     const stage = { sourced: 0, reachable: 0, contacted: 0, replied: 0, met: 0, won: 0 };
-    const bySrc = Object.create(null), byLine = Object.create(null);
+    const bySrc = Object.create(null), byLine = Object.create(null), byMgr = Object.create(null);
 
     scope.forEach((c) => {
       const s = spendOn(c, p);
@@ -9245,6 +9864,21 @@
            concrete thing in it. */
         else if (isDeal(c) && dealLive(c)) { lr.pipeline += acvOf(c).value; lr.open += 1; }
       }
+      /* ══ AND THE SAME POT CUT A THIRD WAY: WHO HOLDS IT ═════════════════
+         A deal is the manager's it was handed to, which is `DB.byMgr`'s own
+         key; before the hand-over a person is the campaign owner's work,
+         because that is whose floor is calling them. So a lead's spend lands
+         on the desk that spent it and a deal's money on the desk that closed
+         it, and the rows sum to the book the way `byLine`'s do. */
+      const mk = isDeal(c) ? mgrOf(c) : (k && k.owner) || null;
+      if (mk) {
+        const mr = byMgr[mk] || (byMgr[mk] =
+          { k: mk, arr: 0, meetings: 0, wins: 0, spend: 0, pipeline: 0, open: 0 });
+        mr.spend += s.total;
+        if (met) mr.meetings += 1;
+        if (won) { mr.arr += acvOf(c).value; mr.wins += 1; }
+        else if (isDeal(c) && dealLive(c)) { mr.pipeline += acvOf(c).value; mr.open += 1; }
+      }
     });
 
     /* == THE HOURS WERE COUNTED TWICE ==================================
@@ -9284,6 +9918,9 @@
           per1k: r.leads ? (r.meetings / r.leads) * 1000 : null }, r))
         .sort((a, b) => b.leads - a.leads),
       byLine: Object.keys(byLine).map((x) => byLine[x])
+        .filter((r) => r.meetings || r.arr || r.pipeline)
+        .sort((a, b) => b.arr - a.arr || b.pipeline - a.pipeline),
+      byMgr: Object.keys(byMgr).map((x) => byMgr[x])
         .filter((r) => r.meetings || r.arr || r.pipeline)
         .sort((a, b) => b.arr - a.arr || b.pipeline - a.pipeline),
     };
@@ -9666,6 +10303,14 @@
        promised us nothing in euros and we promised them nothing in euros;
        zero is the honest answer and `bookSay` draws the promises instead. */
     if (isBuyer()) return 0;
+    /* The company's number is the eight lines added up, which the margin on
+       `TARGET_LINE` says is also the three desks at €300k each: one pot, and
+       this is the one desk that reads all of it. Still set by finance, and
+       still read rather than written here. */
+    if (isWhole()) {
+      return Object.keys(TARGET_LINE).reduce((n, k) => n + TARGET_LINE[k], 0) *
+        (PERIOD_QUARTERS[p.k] || 1);
+    }
     return (isLine() && TARGET_LINE[myLine()] != null
       ? TARGET_LINE[myLine()] : TARGET_QUARTER) * (PERIOD_QUARTERS[p.k] || 1);
   };
@@ -9753,15 +10398,18 @@
      the page; the chips name the two things you can look at, and the heading
      above them already says what is being asked of each. */
   const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services & Products' }];
+  /* The third cut is who holds the money, which is a question only the
+     desk that reads all of the managers can ask. */
+  const cutsFor = () => (isWhole() ? CUTS.concat([{ k: 'mgr', label: 'Managers' }]) : CUTS);
   function cutBy() {
-    return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
+    return cutsFor().filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
   function cutChips() {
     /* Nothing to press for a reader `parse` has already answered for, and
        a control with one reachable state is a label pretending. */
     if (isBuyer()) return '';
     return '<div class="s-tabcuts s-cut-by" role="group" aria-label="Cut the money by">' +
-      CUTS.map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
+      cutsFor().map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
         '" type="button" data-by="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
     '</div>';
   }
@@ -9802,6 +10450,13 @@
        explain a product it had not mentioned. */
     const top = now.byLine.filter((r) => r.arr && r.meetings)[0] || now.byLine.filter((r) => r.arr)[0];
     const out = [];
+    /* The CEO's quarter ends in a board meeting, and the page it needs is
+       the one this report already holds, said in the order a board reads. */
+    if (isWhole()) {
+      out.push({ label: 'Write the board’s sales page',
+        ask: 'Write the sales page for the board: what we gained against target, what it cost, ' +
+          'the largest open deals, who is behind, and how much rides on our largest accounts.' });
+    }
 
     if (cheap && best && cheap.k !== best.k) {
       out.push({ label: 'Is the cheap source worth it',
@@ -9829,7 +10484,9 @@
           'few people or losing the ones they reach.' });
     }
     if (pipe.tier.modelled > pipe.tier.comparable) {
-      out.push({ label: 'How real is the pipeline',
+      /* "Pipeline" is our word for it, not the reader's: the chip says what
+         the ask underneath already says, open deals. */
+      out.push({ label: 'How real are the open deals',
         ask: 'Most of my ' + fmtMoney(pipe.all) + ' of open deals is valued off the price list ' +
           'rather than off deals we have actually won. Which of them would make that number ' +
           'trustworthy fastest?' });
@@ -9874,7 +10531,16 @@
        revenue at a sensible price. A sales manager is not asked that. He is
        asked whether he is going to make the number, so the number leads and
        the spend becomes a clause about it. */
-    const money = 'You gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
+    /* ══════════════ AND ON THE DESK THAT READS ALL OF IT, HIS ORDERING ══════════════
+       The page's first reader again, so the cost goes beside the money in
+       one breath: whether the company is buying its revenue at a sensible
+       price is his question, and a figure that rose on its own would be
+       half a fact. Plain words and no percentages — the bar says the
+       proportion. */
+    const money = isWhole()
+      ? 'We gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' + esc(fmtMoney(a.target)) +
+        '</b> and spent <b>' + esc(fmtMoney(now.spend.total)) + '</b> doing it'
+      : 'You gained <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
       esc(fmtMoney(a.target)) + '</b>';
     /* Three tenses, and the paragraph has to be in the right one. A window
        still running is judged on pace; a finished one is judged on what it
@@ -9882,6 +10548,12 @@
     const shut = a.elapsed != null && a.elapsed >= 1;
     const short = a.target - a.booked;
     const pace = a.pc == null ? '.'
+      : isWhole()
+      ? (a.paceMoney == null || shut
+        ? (short > 0 ? ', <b>' + esc(fmtMoney(short)) + '</b> short.'
+          : short < 0 ? ', <b>' + esc(fmtMoney(-short)) + '</b> over.' : '.')
+        : '. That is <b>' + esc(fmtMoney(Math.abs(a.paceMoney))) + ' ' +
+          (a.paceMoney >= 0 ? 'ahead of' : 'behind') + '</b> where we should be today.')
       : a.paceMoney == null
       ? ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target.'
       : shut
@@ -11795,7 +12467,9 @@
                   : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
                 ' &middot; to ' +
                 esc(sayDay(periodOf('deal').end))
-              : 'Everything &middot; ' +
+              /* True of this reader again, and only of him: the page he
+                 reads counts every campaign the company runs. */
+              : (isWhole() ? 'FlairsTech' : 'Everything') + ' &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
           /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
@@ -11936,7 +12610,8 @@
             esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + '</span>') +
           '<span class="s-att-key is-target">Target</span>' +
           (done || pacePc == null ? ''
-            : '<span class="s-att-key is-pace">Where you should be today</span>') +
+            : '<span class="s-att-key is-pace">Where ' + (isWhole() ? 'we' : 'you') +
+              ' should be today</span>') +
         '</div>' +
       '</div>') +
 
@@ -12205,9 +12880,14 @@
                cost column is not on this desk — so on a client's the
                heading asks the question the panels below actually answer. */
             (cutBy() === 'svc' ? 'What sells and what does not'
+              : cutBy() === 'mgr' ? 'Who is making the number'
               : isBuyer() ? 'Which campaigns worked' : 'Which campaigns paid off') +
           '</h2>' +
-          (cutBy() === 'svc'
+          (cutBy() === 'mgr'
+            ? secAsk('Who needs help closing', 'Rank my managers by how far they are from their ' +
+              'target, and for the one furthest behind, show me which open deals can still close ' +
+              'this quarter and what is holding them.')
+            : cutBy() === 'svc'
             ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
               'the ones they reach.')
@@ -12243,7 +12923,8 @@
            by them. Its own row, at the left edge, where neither heading is
            able to move it. */
         cutChips() +
-        (cutBy() === 'svc' ? '' :
+        (cutBy() === 'mgr' ? mgrPans(now, camps, p) : '') +
+        (cutBy() !== 'camp' ? '' :
         /* ══ AND THIS IS WHERE THE THREE COST LINES ARE DEFINED ════════
            Each row inside a panel carried its own definition — "finding the
            people and filling them in" under Suppliers, "the calls it made
@@ -13045,8 +13726,8 @@
       const off = looseOff(loose);
       return plural(DB.list.length, 'list') + ' holding <b>' + commas(people) + '</b> people' +
         (parked ? ', and <b>' + plural(parked, 'of them is', 'of them are') +
-          '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is in your queue'
-            : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
+          '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is ' + inQueue()
+            : '<b>' + commas(off.n) + '</b> of their people are not ' + inQueue()) : ', all of them on a campaign') + '.';
     }
     if (onBook()) {
       /* ══ A DESK THAT IS IN MEETINGS ALL DAY IS TOLD ABOUT THE MEETINGS ══
@@ -13112,9 +13793,37 @@
             esc(first.con.name) + '</b>' : '') + '.';
       /* A line each: the day, the book, what has slipped, the year. The
          unwritten meetings stay on the day's line — they are the diary's. */
+      /* ══════════════ AND THE CEO'S OPENS ON THE NUMBER ══════════════
+         Three lines, in the order he would ask: are we going to make it,
+         what needs me, and my day — the last only if there is anything in
+         it. A count of every lead in the company is not a fact he acts on. */
+      if (isWhole()) return [wholeLine(), briefOwed(), (on.length ? diary : '') + owed];
       return [diary + owed, book, briefOwed(), yearClause()];
     }
     return openerText(counts, all, camps);
+  }
+
+  /* ══════════════ THE NUMBER, IN THE WORDS HE WOULD SAY IT IN ══════════════
+     "€612k of €900k" is the sentence somebody says in a meeting; a
+     percentage and a pace in points are the report's, a press away. What
+     AiMY expects is said apart from what was gained and never added to it,
+     for the reason `attainment` keeps its forecast apart: a forecast printed
+     as an achievement is the oldest lie in sales reporting. Same formula as
+     the report's, so the line and the page cannot disagree. */
+  function wholeLine() {
+    const p = periodOf(S.period);
+    const a = bookAttain();
+    const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
+    const got = '<button class="slv-n" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
+      esc(euro(a.booked)) + '</button>';
+    const head = 'We gained ' + got + (a.target
+      ? ' of the <b>' + esc(euro(a.target)) + '</b> ' + esc(when) + (p.whole ? ' needed.' : ' needs.')
+      : ' ' + esc(when) + '.');
+    if (p.whole || p.elapsed == null || p.elapsed >= 1) return head;
+    const more = Math.round(pipelineOf(dealBook()).weighted * Math.max(0, 1 - p.elapsed));
+    return head + (more > 0 ? ' AiMY expects <b>' + esc(euro(more)) + '</b> more by the end of the ' +
+      (p.k === 'y' ? 'year' : 'quarter') + '.' : '');
   }
 
   /* ══ EVERY FIGURE IS THE WAY INTO THE SET IT COUNTS ════════════════════
@@ -13328,6 +14037,31 @@
               why: 'every promise on your year is being kept' }),
         { k: 'money', label: 'See the year',
           why: 'what was promised, and what has happened against it' },
+      ];
+    } else if (isWhole()) {
+      /* ══════════════ FOUR WAYS IN, AND NONE OF THEM IS THE PHONE ══════════════
+         The manager's four operate the machine: the phone, the builder, a
+         lead, the finder. The CEO's are the one decision only he makes and
+         the questions he opens the week on. Both questions go into the bar
+         and wait for the press, which is what `ask:` already means. */
+      const a = bookAttain();
+      const p = periodOf(S.period);
+      const gap = Math.max(0, a.target - a.booked);
+      const left = !p.whole && p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : 0;
+      opens = [
+        { k: 'newcamp', label: 'Assign a campaign',
+          why: 'what to sell, to whom, and which manager runs it' },
+        { k: 'ask:What moved since Monday? Which deals did we win, lose, or let slip past ' +
+            'their date, and where does each manager stand against their target?',
+          label: 'Prepare the weekly call', why: 'what was won, lost and slipped since Monday' },
+        gap > 0 && left
+          ? { k: 'ask:We need ' + euro(gap) + ' more with ' + plural(left, 'day') + ' left. ' +
+                'Which open deals can close it, and whose are they?',
+              label: 'Ask what can still be caught',
+              why: esc(euro(gap)) + ' still needed, ' + esc(plural(left, 'day')) + ' left' }
+          : { k: 'ask:Which open deals will shape next quarter most, and whose are they?',
+              label: 'Ask what comes next', why: 'the deals that shape next quarter' },
+        { k: 'money', label: 'See Financials', why: 'what we gained, against what it cost' },
       ];
     } else if (onBook()) {
       /* Four verbs, and every one of them is something this desk actually
@@ -13711,7 +14445,10 @@
          so the one figure the chips add up to read as a control. */
       (S.camp
         ? '<p class="b-tocall">' + (onBook()
-            ? '<b>' + commas(all.length) + '</b> handed to you on this campaign'
+            /* The CEO was handed nothing: on his desk it is how many the
+               campaign has handed over, to whichever manager. */
+            ? '<b>' + commas(all.length) + '</b> ' +
+              (isWhole() ? 'handed over on this campaign' : 'handed to you on this campaign')
             : S.q === 'after'
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
               : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
@@ -14153,7 +14890,13 @@
      same two refusals; what changes is how many come back. */
   function reachAll() {
     const out = [];
+    /* Somebody already added by hand — a give off this list, or a lead typed
+       into the bar — is in the contacts, and suggesting them again is the
+       one thing this list exists not to do. */
+    const had = Object.create(null);
+    DB.con.forEach((c) => { if (c.id.charAt(0) === 'y') had[c.name + '|' + ((accOf(c) || {}).name || '')] = 1; });
     (DB.net || []).forEach((n) => {
+      if (had[n.name + '|' + n.co]) return;
       const h = reachHit(n);
       if (h) out.push(h);
     });
@@ -14541,7 +15284,8 @@
        whichever page you are looking at, which is the page's job done from
        the wrong place. Split by what they call, the pair reads: work the
        list, or work what is in front of you. */
-    const phone = first
+    const phone = !works() ? ''
+      : first
       ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
           '">Call the next one on this list</button>' +
         (call.length > 1
@@ -14558,6 +15302,7 @@
     const onward = camp.length
       ? camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
           '">Open ' + esc(campName(x)) + '</button>').join('')
+      : !works() ? ''
       : campMenu({ id: 'listCampPick', opts: campOpts(),
           cls: first ? 's-inline-btn' : 's-insight-lnk primary',
           label: 'Put it on a campaign', cap: 'Put it on', go: 'list:' + l.id });
@@ -14653,7 +15398,7 @@
             '<h2 class="s-block-h">Who is on it</h2>' +
             /* One left to call is the card's own button, six rows down and
                already naming them. */
-            (now.length > 1
+            (works() && now.length > 1
               ? '<button class="b-ghost" type="button" data-callall="' +
                 esc(now.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
                 'Call all ' + commas(now.length) + '</button>'
@@ -14780,7 +15525,7 @@
        higher says it louder, and one control drawn twice on one screen is
        two controls to learn. This is not that. It is the only place the
        shortfall can be fixed from. */
-    const door = people.some((c) => !c.phone)
+    const door = works() && people.some((c) => !c.phone)
       ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
         'Fill in what is missing</button>'
       : '';
@@ -16782,6 +17527,10 @@
             (editing
               ? '<button class="s-insight-lnk primary" type="button" data-cdone="' + esc(k.id) + '"' +
                 (miss.length ? ' disabled aria-disabled="true"' : '') + '>Done</button>'
+              : asking && isWhole()
+              /* The CEO's request is sent and given in one press, so the
+                 press names the manager. Greyed by the same list. */
+              ? giveStrip('draft', k.id, k, miss.length > 0)
               : asking
               /* Greyed by the same list, minus the one line about a team
                  nobody at this desk picks. */
@@ -16968,11 +17717,20 @@
              here would say somebody has it on exactly the records where that
              is least true \u2014 the ones saved before the field stopped carrying
              a placeholder. */
-          ? 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
+          ? (k.givenBy && REP[k.owner]
+            ? '<b>' + esc(actor(k.givenBy).name) + '</b> assigned it to <b>' + esc(REP[k.owner].name) +
+              '</b>' + (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. ' +
+              esc(firstOf(REP[k.owner])) + ' puts a team and the lists on it and starts it, ' +
+              'and then it turns into a campaign on this page.'
+            : isWhole()
+            ? 'Nobody has it yet. Assign it to a manager, or any of them can take it from ' +
+              'their briefing.'
+            : 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
             'and the lists on it and starts it, and it turns into a campaign on this ' +
-            'page when they do.'
+            'page when they do.')
           : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
             'asked for it yet.') + '</p>' +
+        (sent ? giveStrip('req', k.id, k) : '') +
         campMeta(k) +
       '</section>' +
     '</div>';
@@ -17084,7 +17842,7 @@
         '</div>' +
         campMeta(k) +
         '<div class="s-rec-actions">' +
-          (all.length && !isBuyer()
+          (all.length && !isBuyer() && works()
             ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
               esc(k.id) + '">Call the next one</button>' : '') +
           /* "Call them" is about the people on the page of the queue, so
@@ -17096,7 +17854,7 @@
           /* The closed line stays for everybody — it is a fact about their
              campaign. The finder does not: it is us spending a supplier. */
           (campOpen(k)
-            ? (seesCost()
+            ? (seesCost() && works()
               ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
                 '">Find more for this campaign</button>'
               : '')
@@ -17181,7 +17939,7 @@
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
   const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR',
-    stakeholder: 'Stakeholder', client: 'Client' };
+    stakeholder: 'Stakeholder', client: 'Client', ceo: 'CEO' };
   /* "Stakeholder" names a job and not a book, and on the one desk where the
      book IS the job that is half a label. The product goes with it wherever a
      person is introduced — the bar, and the row you press to get there. */
@@ -17696,7 +18454,10 @@
        door goes to a queue this desk does not draw, and what to say is
        ours. They get the pace instead, which is the same question a client
        is asking of a campaign with sixty-five days on it. */
-    const fresh0 = !isBuyer() && !myCalls.length;
+    /* "You have not called anyone yet" is a first visit for somebody who
+       calls; the CEO never does, so on his desk the reading goes straight
+       to how the campaign stands against its goal. */
+    const fresh0 = works() && !isBuyer() && !myCalls.length;
     /* ══ THREE FIGURES ON A ROW, NONE OF THEM MEASURED ═════════════════
        "Today: 14 calls · 3 got through · 1 meetings set" — dot-separated,
        so nothing said the three were a chain, and the second and third were
@@ -17761,13 +18522,13 @@
         /* Both are cuts of the queue, and `parse` sends `on=deals` back to
            Today on this desk — so on a client's copy they are two buttons
            that land where they were pressed. */
-        (back && campOpen(k) && !isBuyer()
+        (back && campOpen(k) && !isBuyer() && works()
           ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
             'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) && !isBuyer()
           ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
             'Show the ' + commas(fresh) + ' never called</button>' : '') +
-        (all.length || !campOpen(k) || !seesCost() ? '' :
+        (all.length || !campOpen(k) || !seesCost() || !works() ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
           '">Nobody left to call — find more</button>') +
       '</div>' +
@@ -17906,7 +18667,7 @@
          finder is what puts it right. */
       const wrong = stepCounts(st.members)['wrong-number'] || 0;
       rs.push({ text: exits,
-        door: (wrong && seesCost()) ? { attr: 'data-bopen="' + esc(k.id) + '"',
+        door: (wrong && seesCost() && works()) ? { attr: 'data-bopen="' + esc(k.id) + '"',
           say: 'Find more for this campaign' } : null });
     }
     /* ══ THE MANAGER'S COLUMN IS NOT A READING FOR THIS DESK ══════════════
@@ -18285,7 +19046,7 @@
         beats: 'AiMY finds numbers overnight; the finder brings people who already have one.',
         ours: 'We are finding numbers for them overnight, and the next list we pull '
           + 'for you only brings people who already have one.',
-        door: seesCost()
+        door: seesCost() && works()
           ? { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' } : null,
       });
     }
@@ -19005,13 +19766,13 @@
         ? { label: 'Reached before', tone: 'ok' }
         : { label: 'Nobody reached yet', tone: 'neutral' };
 
-    const chips = free.length
+    const chips = free.length && works()
       ? '<div class="b-camps-row" id="accCamps">' +
           campMenu({ id: 'accCampPick', opts: free.map((k) => ({ id: k.id, name: k.name })),
             label: 'Put everybody here on a campaign', cap: 'Put them on', go: 'acc:' + a.id }) +
         '</div>'
       : '';
-    const callFirst = call.length
+    const callFirst = call.length && works()
       ? '<button class="s-inline-btn" type="button" data-call="' + esc(call[0].id) + '">Call ' +
         esc(call[0].name.split(' ')[0]) + '</button>'
       : '';
@@ -19073,9 +19834,10 @@
               : '') +
             fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
             fact('role', esc(plural(people.length, 'person')) + ' here') +
-            fact('phone', (call.length
+            /* Who can be rung is a caller's and a manager's fact. */
+            (works() ? fact('phone', (call.length
               ? '<b>' + commas(call.length) + '</b> you can call now'
-              : 'nobody with a number you can call now')) +
+              : 'nobody with a number you can call now')) : '') +
           '</div>' +
           /* Rank two: our record of them. */
           '<div>' +
@@ -19152,10 +19914,10 @@
 
              So the record keeps the one call it can name and the rows
              below keep theirs. The runs live where the set was chosen. */
-          (call.length
+          (call.length && works()
             ? '<button class="s-insight-lnk primary" type="button" data-call="' +
                 esc(call[0].id) + '">Call ' + esc(call[0].name.split(' ')[0]) + '</button>'
-            : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
+            : works() ? '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>' : '') +
           accHandBtn(people) +
         '</div>' +
       '</section>' +
@@ -19335,6 +20097,9 @@
           esc(act.label) + '</button>';
       }
     }
+    /* The reading stands on every desk; the door under it is somebody's
+       work, and on the CEO's desk nobody's. */
+    if (!works()) door = '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this company">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -19645,7 +20410,9 @@
      them \u2014 so the test is simply whether you are on it. `isMgr` stays as a
      floor rather than a gate: without it, a manager who stripped the team to
      nobody would have locked the note against themselves. */
-  const conWrites = (c) => isMgr() || conCrew(c).indexOf(me().id) >= 0;
+  /* And whoever has joined it: the CEO in the room learns things too, and
+     a deal he sits on is one he works. */
+  const conWrites = (c) => isMgr() || conCrew(c).indexOf(me().id) >= 0 || sitsOn(c);
 
   /* What we know about this person that no call log holds. `remember` is the
      one line a caller is shown before dialling and belongs to the next call;
@@ -19665,7 +20432,10 @@
   function conTeam(c) {
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const own = isMgr();
-    const ids = conCrew(c);
+    /* Whoever joined it is on it too, last, and nobody's cross takes them
+       off: they joined themselves and leave the same way. */
+    const joined = (c.joined || []).filter((id) => REP[id] && conCrew(c).indexOf(id) < 0);
+    const ids = conCrew(c).concat(joined);
     /* ══ THE TEAM ON A LEAD IS THE CAMPAIGN'S TEAM ══════════════════════
        A first cut showed only the people who had already touched the
        record, so on a lead one caller had been working alone it was one
@@ -19695,6 +20465,7 @@
       '<div class="b-team b-team-rec">' +
         (function () {
           const say = (id) => {
+            if (joined.indexOf(id) >= 0) return (JOB[REP[id].fn] || 'On the team') + ' · joined';
             const theirs = hist.filter((t) => t.by === id);
             const calls = callsIn(theirs).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
@@ -19728,7 +20499,7 @@
             return '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>';
           }
           return teamFaces(ids, (id, x) => mateRow(id, say(id), x),
-            { sub: say, off: own ? ((id) => conOff(c, id)) : (() => '') });
+            { sub: say, off: own ? ((id) => (joined.indexOf(id) >= 0 ? '' : conOff(c, id))) : (() => '') });
         })() +
       '</div>' +
     '</section>';
@@ -19940,6 +20711,8 @@
      same gate, same undo — only the words differ, because the two acts are
      the same act at different points of the same story. */
   function endGate(c) {
+    /* Closing a deal is the verdict of whoever holds it. */
+    if (!works()) return '';
     const mgr = onBook() && c.checkpoint === 'handed-over';
     const endable = mgr ? dealLive(c)
       : (!isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
@@ -19975,14 +20748,14 @@
     const first = c.name.split(' ')[0];
     /* No call on somebody who opted out: the number is on the page, the
        verb is not. */
-    const call = c.phone && !c.dnc
+    const call = works() && c.phone && !c.dnc
       ? { html: 'Call ' + esc(first) +
           /* a parked callback or a meeting still ahead: the call is early, and says so */
           (c.checkpoint === 'callback' && c.next && c.next.due > TODAY_ISO ? ' early'
             : c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO ? ' to confirm' : ''),
         attr: 'data-call="' + esc(c.id) + '"' } : null;
     /* no number, or a number that is not theirs: the verb is the supplier */
-    const find = (seesCost() && !c.dnc &&
+    const find = (works() && seesCost() && !c.dnc &&
       (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
       ? { html: 'Find a number', attr: 'data-enrichcon="' + esc(c.id) + '"' } : null;
     /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
@@ -19997,7 +20770,7 @@
        than a line under the verbs. `askBlock` draws it. What a STEP did
        stays here: a caller records one on every call, so it is part of the
        row rather than news. */
-    const moves = (onBook() && c.checkpoint === 'handed-over')
+    const moves = (!works() || (onBook() && c.checkpoint === 'handed-over'))
       ? []
       : movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
         .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
@@ -20023,9 +20796,14 @@
            The brief stands beside the phone because a manager walks into a
            meeting far more often than they dial. */
         const prep = { html: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' };
+        /* The CEO's pair: join it, and once he is in, the brief before the
+           room — with Leave it beside it rather than in its place. */
+        const join = { html: sitsOn(c) ? 'Leave it' : 'Join it', attr: 'data-join="' + esc(c.id) + '"' };
         /* A lead added by hand has no number, so the supplier is the verb
            before the phone can be — the same door the caller's desk offers. */
-        list = dealLive(c) ? (call ? [call, prep] : find ? [find, prep] : [prep]) : [];
+        list = !dealLive(c) ? []
+          : isWhole() ? (sitsOn(c) ? [prep, join] : [join])
+          : (call ? [call, prep] : find ? [find, prep] : [prep]);
         quiet = dealLive(c) ? [] : call ? [call] : [];
         /* Where a deal ended is a statement, and `stateBlock` makes it
            one under the masthead. Nothing about it belongs in a row of
@@ -20078,6 +20856,11 @@
       quiet.map((b) => '<button class="s-inline-btn" type="button" ' + b.attr + '>' + b.html + '</button>').join('') +
       /* the hand-over belongs with the verbs, not after the way out */
       (warm ? mgrMenu(c.id, 'Handover') : '') +
+      /* His one verb on a record: to a manager if nobody holds it, to a
+         different one if somebody does and it is still live. */
+      (!isWhole() ? ''
+        : c.checkpoint === 'handed-over' ? (dealLive(c) ? giveStrip('deal', c.id, c) : '')
+        : isExit(c.checkpoint) ? '' : giveStrip('con', c.id, c)) +
       (next
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
@@ -20154,7 +20937,7 @@
     if (k === 'won' || k === 'lost' || k === 'later') {
       /* At the caller's desk the news is that somebody else was running it,
          so the sentence opens on their name. */
-      const who = mine ? '' : esc(directorOf(c).name) + ' had it. ';
+      const who = mine && works() ? '' : esc(directorOf(c).name) + ' had it. ';
       const word = k === 'won' ? 'They signed' : k === 'lost' ? 'They said no' : 'Rescheduled';
       /* The half a label cannot carry. A lost deal has a reason on the
          record and it is the thing a manager reads next; a rescheduled one
@@ -20180,6 +20963,18 @@
     const moves = dealMoves(c);
     if (!moves.length) return '';
     const met = PHASE[last.phase];
+    /* ══════════════ AND TO THE CEO IT IS NEWS, NOT A QUESTION ══════════════
+       The four answers are the manager's to give, because it was his room.
+       What the CEO can use is the fact that it has not been given — the
+       kind of exception he reads for — so the same block says whose it is
+       and asks him nothing. */
+    if (!works()) {
+      return stateWrap('is-ask', nmClock(),
+        '<p class="b-state-say"><b>' + esc(directorOf(c).name) + '</b> had a <b>' +
+          esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
+          esc(sayDay(last.at.slice(0, 10))) + '</b> and has not said how it went.</p>',
+        'What happened at the meeting');
+    }
     return stateWrap('is-ask', nmClock(),
       '<p class="b-state-say">You had a <b>' +
         esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
@@ -20244,6 +21039,7 @@
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'Call ' + esc(c.name.split(' ')[0]) + '</button>';
     }
+    if (!works()) door = '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -20811,7 +21607,11 @@
       return out.sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1
         : (a.h == null ? 1e4 : a.h * 60 + a.m) - (b.h == null ? 1e4 : b.h * 60 + b.m)));
     }
-    queue(null, 'all').forEach((c) => {
+    /* ══════════════ AND THE CEO'S DAY IS THE ROOMS HE IS IN ══════════════
+       Everybody else's diary is their book's, because they are in those
+       rooms. Every room in the company is not his day; the deals he has
+       joined are, and the company's week is on Contacts and in Financials. */
+    (isWhole() ? dealBook().filter(sitsOn) : queue(null, 'all')).forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
         if (iso < from || iso > to) return;
@@ -21228,9 +22028,13 @@
     const done = c.checkpoint === 'handed-over' || isExit(c.checkpoint);
     const next = c.checkpoint === 'handed-over' ? esc(dealLine(c))
       : isExit(c.checkpoint) ? esc('That is where it ended. Nothing is owed.')
-      : esc(plainNext + (quiet ? ' ' + quietSay(quiet, c) : ''));
+      /* A lead's next step is the caller's, and to the CEO it is a fact
+         about the lead rather than an instruction to him. */
+      : esc((isWhole() ? 'The caller’s next step: ' + plainNext.charAt(0).toLowerCase() + plainNext.slice(1)
+        : plainNext) + (quiet ? ' ' + quietSay(quiet, c) : ''));
     const hand = done ? '' :
-      'Your part ends at <b>Interested</b> — ' + esc(d.name) + ' takes it from there.';
+      (isWhole() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
+      esc(d.name) + ' takes it from there.';
     return {
       now: now, steps: storyTrim(steps),
       next: next, hand: hand, due: done ? null : due, done: done,
@@ -21279,7 +22083,8 @@
       now: now, steps: storyTrim(steps),
       next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
-        ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
+        ? (isWhole() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
+          esc(directorOf(top).name) + ' takes it from there.' : '',
       /* ══ THE HEAD SAID WHAT THE MASTHEAD HAD JUST SAID ══════════════
          "Valencia · Retail", forty pixels under an eyebrow reading COMPANY ·
          RETAIL · VALENCIA, ES. A `cite` names the set a story was read from,
@@ -22360,6 +23165,13 @@
   function startCall(id, sess) {
     const c = DB.byCon[id];
     if (!c) return;
+    /* Every door to the phone is already absent on the CEO's desk; this is
+       the one a typed "call Ava" and a bookmark still reach. */
+    if (!works()) {
+      toast(c.name + ' is ' + (c.checkpoint === 'handed-over' ? directorOf(c).name + '’s to call.'
+        : 'called by the campaign’s callers.'));
+      return;
+    }
     if (!c.phone) { toast('No number on file for ' + c.name + '. Nothing to dial.'); return; }
     if (c.dnc) { toast(c.name + ' asked not to be called again.'); return; }
     clearCallTimers();
@@ -22705,6 +23517,7 @@
      disposition; only the tick differs, so a session is not a second call
      model and not a page of its own. */
   function callAll(ids) {
+    if (!works()) return;
     const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
     if (!live.length) { toast('Nobody in this set has a number to call.'); return; }
     const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
@@ -23853,6 +24666,14 @@
      walked out of a room and the record never heard about it. That is the
      reason they still carry a notebook, so it is the first row and it is the
      only p1 the desk has. */
+  /* A set of deals said by whose they are: "12 Lina Haddad's, 6 Hazem
+     Saad's". The CEO chases a manager, not a contact. */
+  const whoseSay = (list) => {
+    const n = Object.create(null);
+    list.forEach((c) => { const k = mgrOf(c); n[k] = (n[k] || 0) + 1; });
+    return Object.keys(n).sort((a, b) => n[b] - n[a])
+      .map((k) => commas(n[k]) + ' ' + (REP[k] ? REP[k].name : 'nobody') + '’s').join(', ');
+  };
   function mgrTasks() {
     const tasks = [];
     /* ══════════════ AND FOUR OF THESE ARE THE BOARD'S ══════════════
@@ -23864,7 +24685,8 @@
        The write-ups above need no guard: a client's meetings are with us
        and `clientMeets` marks them free, so `unrecorded` finds none. */
     const board = !isBuyer();
-    unrecorded().slice(0, 4).forEach((m) => {
+    /* The write-up is the manager's, whoever else was in the room. */
+    (isWhole() ? [] : unrecorded().slice(0, 4)).forEach((m) => {
       const days = -daysBetween(TODAY_ISO, m.iso);
       tasks.push({
         id: 'met:' + m.con.id + ':' + m.iso,
@@ -23891,13 +24713,49 @@
           soon[0].con.name + '.',
         cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
     }
+    /* ══════════════ THE CEO'S TWO, AHEAD OF THE REST ══════════════
+       What only he can move — a request nobody has taken — and the reading
+       his desk exists for: a manager behind with the quarter half gone. The
+       request leads Today's paragraph, which reads the first rows of this
+       list in order; the manager does not, because the block under the
+       paragraph says it in figures and saying it twice is saying it once
+       too often. */
+    if (isWhole()) {
+      const free = campAsks().filter((k) => !k.givenBy);
+      if (free.length) {
+        tasks.push({ id: 'req-free', sev: 'p2', type: 'Requests', when: plural(free.length, 'request'),
+          body: plural(free.length, 'request') + (free.length === 1 ? ' is' : ' are') +
+            ' waiting for a manager, the oldest ' + (free[0].askedAt ? sayWhen(free[0].askedAt) : 'today') +
+            ': ' + campName(free[0]) + '.',
+          cta: 'Assign them', ask: 'go:' + JSON.stringify({}),
+          line: '<b>' + esc(plural(free.length, 'request')) + '</b> ' + (free.length === 1 ? 'is' : 'are') +
+            ' waiting for a manager' });
+      }
+      const pq = periodOf(S.period);
+      if (!pq.whole && pq.elapsed != null && pq.elapsed >= 0.5) {
+        const worst = MANAGERS.map((m) => mgrRead(m, pq))
+          .filter((r) => r.paceMoney != null && r.paceMoney < 0)
+          .sort((a, b) => a.paceMoney - b.paceMoney)[0];
+        const leftD = pq.span && pq.days != null ? Math.max(0, pq.span - pq.days - 1) : null;
+        if (worst) {
+          tasks.push({ id: 'mgr-behind', sev: 'p2', type: 'Managers',
+            when: euro(-worst.paceMoney) + ' behind',
+            body: worst.m.name + ' is ' + euro(-worst.paceMoney) + ' behind where the quarter should be' +
+              (leftD != null ? ', with ' + plural(leftD, 'day') + ' left' : '') + '.',
+            cta: 'See the managers', ask: 'go:' + JSON.stringify({ on: 'money', by: 'mgr' }) });
+        }
+      }
+    }
     const live = board ? queue(null, 'all').filter(dealLive) : [];
     const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
     if (late.length) {
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
+        /* On the CEO's desk, whose they are rather than who they are with:
+           the names are the managers' to chase. */
         body: plural(late.length, 'deal') + ' owed something before today: ' +
-          namesSay(late) + '.',
-        cta: 'Show my deals', ask: 'How do my deals stand?',
+          (isWhole() ? whoseSay(late) : namesSay(late)) + '.',
+        cta: isWhole() ? 'Show them' : 'Show my deals',
+        ask: isWhole() ? 'go:' + JSON.stringify({ on: 'deals' }) : 'How do my deals stand?',
         /* The same fact the row stated, at the length a clause has: the
            figure and what is true of it, with the names left to the board
            the figure opens. */
@@ -23906,7 +24764,8 @@
     }
     const cold = live.filter((c) => stageOf(c) === 'qual' &&
       daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
-    if (cold.length) {
+    /* A warm call is a manager's verb. */
+    if (cold.length && !isWhole()) {
       tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
         body: plural(cold.length, 'lead') + (cold.length === 1 ? ' has' : ' have') +
           ' waited two days or more without a warm call: ' + namesSay(cold) + '.',
@@ -23942,12 +24801,14 @@
         body: one.a.name + ' renews ' + SELL[one.r.sub.sell].name + ' in ' +
           plural(one.r.days, 'day') + ', worth ' + euro(one.r.sub.acv) + ' a year' +
           (due.length > 1 ? ', and ' + plural(due.length - 1, 'other') + ' follow' : '') + '.',
-        cta: 'Show the book',
+        cta: 'Show the accounts',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
         line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
           ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
     }
-    const moved = board ? openings() : [];
+    /* News at an account is the next thing to sell there, which is a
+       manager's to act on and not a row for the CEO's day. */
+    const moved = board && !isWhole() ? openings() : [];
     if (moved.length) {
       const one = moved[0];
       tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
@@ -23958,7 +24819,7 @@
             ? '. ' + plural(moved.length - 1, 'other') +
               (moved.length === 2 ? ' opened' : ' opened') + ' something too'
             : '') + '.',
-        cta: 'Show the book',
+        cta: 'Show the accounts',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
         line: briefN(moved.length, 'account', { on: 'deals', q: 'won' }) +
           ' moved this week' });
@@ -24014,11 +24875,41 @@
     if (quiet.length) {
       tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
         body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
-          'for a week: ' + namesSay(quiet) + '.',
-        cta: 'Show my deals', ask: 'How do my deals stand?',
+          'for a week: ' + (isWhole() ? whoseSay(quiet) : namesSay(quiet)) + '.',
+        cta: isWhole() ? 'Show them' : 'Show my deals',
+        ask: isWhole() ? 'go:' + JSON.stringify({ on: 'deals', q: 'commercial' }) : 'How do my deals stand?',
         line: briefN(quiet.length, 'deal', { on: 'deals' }) +
           (quiet.length === 1 ? ' has' : ' have') +
           ' a price on the table and nothing said for a week' });
+    }
+    /* ══════════════ AND WHO JOINED ONE OF THIS DESK'S DEALS ══════════════
+       The other half of joining around nobody: the manager hears it the
+       day it happens, and for a week, one row a deal. */
+    if (isMgr()) {
+      dealBook().filter((c) => c.joinedAt && daysBetween(c.joinedAt, TODAY_ISO) <= 7 &&
+        (c.joined || []).some((id) => REP[id] && REP[id].fn === 'ceo')).forEach((c) => {
+        const who = REP[(c.joined || []).filter((id) => REP[id] && REP[id].fn === 'ceo')[0]];
+        const a = accOf(c);
+        tasks.push({ id: 'ceo-joins:' + c.id, sev: 'p3', type: 'Joined', when: sayWhen(c.joinedAt),
+          body: who.name + ' joined the ' + (a ? a.name : c.name) + ' deal.',
+          cta: 'Open it', ask: 'go:' + JSON.stringify({ con: c.id }) });
+      });
+    }
+    /* ══════════════ AND WHAT THE CEO MOVED OFF THIS DESK ══════════════
+       Nour's condition on moving a held deal: the manager who loses it is
+       told. A week, and one row each, read off the touch that moved it. */
+    if (isMgr()) {
+      DB.touch.filter((t) => t.outcome === 'given' && t.was === me().id &&
+        daysBetween(t.at.slice(0, 10), TODAY_ISO) <= 7).forEach((t) => {
+        const c = DB.byCon[t.con];
+        if (!c) return;
+        const a = accOf(c);
+        tasks.push({ id: 'ceo-moved:' + t.id, sev: 'p2', type: 'Moved',
+          when: sayWhen(t.at.slice(0, 10)),
+          body: actor(t.by).name + ' assigned the ' + (a ? a.name : c.name) + ' deal to ' +
+            actor(t.to).name + '.',
+          cta: 'Open it', ask: 'go:' + JSON.stringify({ con: c.id }) });
+      });
     }
     return tasks;
   }
@@ -24752,8 +25643,8 @@
          exists and now carries what the lead is for. */
       opts: [
         { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
-        { k: 'add', label: 'Add them to my contacts', quiet: true },
-      ] });
+        works() ? { k: 'add', label: 'Add them to my contacts', quiet: true } : null,
+      ].filter(Boolean) });
     paintThread();
   }
   function openCanvas() {
@@ -26225,6 +27116,9 @@
          between the button and the record. */
       sell: f.sell || null,
     };
+    /* Given by the CEO rather than met by the manager: said on the record,
+       so the desk it lands on can say who sent it. */
+    if (f.givenBy) { c.givenBy = f.givenBy; c.givenAt = TODAY_ISO; }
     const t = {
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
       outcome: 'added', proposals: [], objections: [], openings: [],
@@ -26236,9 +27130,11 @@
     DELTA.made = (DELTA.made || []).concat([{ list: tag, acc: madeAcc, con: [c] }]);
     reindex();
     addTouch(t);
-    go({ con: c.id });
-    toast(esc(c.name) + ' is in your contacts' +
-      (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said', () => {
+    /* `stay` for a give off a list: the CEO is going down his shortlist,
+       and the record he just filled belongs on somebody else's desk. */
+    if (f.stay) paint(); else go({ con: c.id });
+    toast(f.toast || (esc(c.name) + ' is in your contacts' +
+      (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said'), () => {
       dropTouch(t.id);
       DB.con = DB.con.filter((x) => x.id !== c.id);
       DB.acc = DB.acc.filter((x) => madeAcc.indexOf(x) < 0);
@@ -26246,7 +27142,7 @@
       reindex();
       save();
       go(cleared());
-    });
+    }, f.sub);
     /* The record it made, for a caller that has to log a call against it
        the moment it exists. Nothing else reads this. */
     return c;
@@ -26419,6 +27315,19 @@
         return;
       }
       hideCanvas();
+      /* The CEO holds no contacts, so a lead he adds is given in the same
+         press, to AiMY's pick, with the reason under the toast. Moving it
+         to somebody else is one more press, on the record it lands on. */
+      if (isWhole()) {
+        const pick = giveTo('lead', f);
+        const m = pick && REP[pick.id];
+        if (m) {
+          addLead(Object.assign({}, f, { manager: m.id, givenBy: me().id,
+            note: me().name + ' assigned this to ' + m.name + '.', toast: 'Assigned to ' + m.name,
+            sub: pick.why }));
+          return;
+        }
+      }
       addLead(f);
       return;
     }
@@ -26456,7 +27365,7 @@
          about a phone: "had a demo with Kate, they want pricing" is a
          meeting, and reading it as a call would write a touchpoint that
          says a phone call happened. */
-      if (onBook()) {
+      if (onBook() && works()) {
         /* Booking first: "add to calendar" is unambiguous and `readMeet`
            would otherwise take the same sentence and guess a stage from it. */
         const bk = readBook(t);
@@ -26464,8 +27373,8 @@
         const mt = readMeet(t);
         if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
       }
-      const read = readCall(t);
-      if (read.disp || read.props.length || read.objs.length) {
+      const read = works() ? readCall(t) : null;
+      if (read && (read.disp || read.props.length || read.objs.length)) {
         if (logBySentence(t, read)) return;
       }
     }
@@ -26518,8 +27427,122 @@
      `MGR_BUCKETS`, and `lastActivity` against `checkinDays`, which is the
      rule every deal card already states in its own words. One derivation,
      two readers, so the bar and the board cannot disagree. */
+  /* ══════════════ THE CEO'S FOUR QUESTIONS, ANSWERED OFF THE BOOK ══════════════
+     His Start row and his Financials stage four questions in the bar: the
+     weekly call, what can still be caught, who needs help, and the board's
+     page. Each is answered here from the same derivations the page draws —
+     `mgrRead`, `bookAttain`, `oddsOf`, `acvOf` — so an answer and the figure
+     it explains cannot disagree. The code computes; the sentence only says
+     it, which is the division the research on trusting AI numbers asks for.
+     Short on purpose: Nour's rule for this desk is to the point. */
+  function ceoAnswer(q) {
+    const p = periodOf(S.period);
+    const book = dealBook();
+    const doors = (html) => '<div class="b-cuts">' + html + '</div>';
+    const door = (label, over) => '<button class="s-insight-lnk" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), over))) + '">' + esc(label) + '</button>';
+    const coOf = (c) => (accOf(c) || {}).name || c.name;
+    const few = (xs, say) => xs.slice(0, 3).map(say).join(', ') +
+      (xs.length > 3 ? ' and ' + plural(xs.length - 3, 'more') : '');
+    const worth = (xs) => euro(xs.reduce((n, c) => n + acvOf(c).value, 0));
+    const left = p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : null;
+    const rows = MANAGERS.map((m) => mgrRead(m, p)).sort((a, b) =>
+      (a.paceMoney == null ? 1e12 : a.paceMoney) - (b.paceMoney == null ? 1e12 : b.paceMoney));
+    const standing = rows.map((r) => '<b>' + esc(r.m.name) + '</b> ' + esc(euro(r.booked)) +
+      ' of ' + esc(euro(r.target))).join(', ');
+
+    if (/since monday|weekly call|what moved/.test(q)) {
+      const dow = (TODAY.getDay() + 6) % 7;
+      const mon = isoAdd(TODAY_ISO, -dow);
+      const endAt = (c) => { const ph = phasesOf(c); return ph.length ? ph[ph.length - 1].at.slice(0, 10) : ''; };
+      const won = book.filter((c) => { const w = wonAt(c); return w && w >= mon; });
+      const lost = book.filter((c) => stageOf(c) === 'lost' && endAt(c) >= mon);
+      const slip = book.filter((c) => dealLive(c) && closeBy(c) >= mon && closeBy(c) < TODAY_ISO);
+      const bits = [];
+      bits.push(won.length ? '<b>' + plural(won.length, 'deal') + '</b> signed, worth <b>' + esc(worth(won)) +
+        '</b>: ' + esc(few(won, (c) => coOf(c) + ' (' + directorOf(c).name + ')')) + '.'
+        : 'Nothing signed since Monday.');
+      if (lost.length) {
+        bits.push('<b>' + plural(lost.length, 'deal') + '</b> lost: ' +
+          esc(few(lost, (c) => coOf(c) + ' (' + directorOf(c).name + ')')) + '.');
+      }
+      if (slip.length) {
+        bits.push('<b>' + plural(slip.length, 'deal') + '</b> slipped past their date, worth <b>' +
+          esc(worth(slip)) + '</b>.');
+      }
+      bits.push('Against target: ' + standing + '.');
+      return bits.join(' ') + doors(door('See the managers', { on: 'money', by: 'mgr' }));
+    }
+
+    if (/still be caught|close it|still needed|comes next|shape next quarter/.test(q)) {
+      const a = bookAttain();
+      const gap = Math.max(0, a.target - a.booked);
+      const cand = book.filter((c) => dealLive(c) &&
+        (stageOf(c) === 'proof' || stageOf(c) === 'commercial'))
+        .map((c) => ({ c: c, v: acvOf(c).value, o: oddsOf(c).p }))
+        .sort((x, y) => y.v * y.o - x.v * x.o).slice(0, 5);
+      if (!cand.length) return 'No open deal is at Shown or Priced, so nothing can close this quarter.';
+      const all = cand.reduce((n, x) => n + x.v, 0);
+      const odds = Math.round(cand.reduce((n, x) => n + x.v * x.o, 0));
+      return (gap ? '<b>' + esc(euro(gap)) + '</b> is still needed' +
+          (left != null ? ' with <b>' + plural(left, 'day') + '</b> left' : '') + '. '
+        : 'The target is met. ') +
+        'The five most likely to sign: ' + cand.map((x) => '<b>' + esc(coOf(x.c)) + '</b> ' +
+          esc(euro(x.v)) + ', ' + esc(directorOf(x.c).name)).join('; ') + '. ' +
+        'All five are <b>' + esc(euro(all)) + '</b> if they sign; at their odds, about <b>' +
+        esc(euro(odds)) + '</b>' + (gap && all < gap ? ', so the gap cannot be closed in full this quarter.' : '.') +
+        doors(door('Show the deals', { on: 'deals', q: 'commercial' }));
+    }
+
+    if (/manager|who needs help|furthest|rank my/.test(q)) {
+      const worst = rows[0];
+      const theirs = book.filter((c) => dealLive(c) && mgrOf(c) === worst.m.id &&
+        (stageOf(c) === 'proof' || stageOf(c) === 'commercial'))
+        .sort((x, y) => acvOf(y).value - acvOf(x).value);
+      return 'Furthest behind first: ' + standing + '. ' +
+        (theirs.length
+          ? '<b>' + esc(worst.m.name) + '</b> has ' + plural(theirs.length, 'deal') +
+            ' at Shown or Priced, worth <b>' + esc(worth(theirs)) + '</b>: ' +
+            esc(few(theirs, (c) => coOf(c) + ' ' + euro(acvOf(c).value))) + '.'
+          : '<b>' + esc(worst.m.name) + '</b> has no deal at Shown or Priced.') +
+        doors(door('See the managers', { on: 'money', by: 'mgr' }));
+    }
+
+    if (/board/.test(q)) {
+      const a = bookAttain();
+      const now = bookMoney(bookScope(), p, workingHeads());
+      const more = p.whole || p.elapsed == null ? 0
+        : Math.round(pipelineOf(book).weighted * Math.max(0, 1 - p.elapsed));
+      const big = book.filter(dealLive).sort((x, y) => acvOf(y).value - acvOf(x).value).slice(0, 5);
+      const cust = customers();
+      const bill = cust.reduce((n, x) => n + custWorth(x), 0);
+      const five = bill ? cust.slice().sort((x, y) => custWorth(y) - custWorth(x)).slice(0, 5)
+        .reduce((n, x) => n + custWorth(x), 0) / bill : 0;
+      const worst = rows[0];
+      return '<b>Sales, ' + esc((PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase()) +
+        '.</b> We gained <b>' + esc(euro(a.booked)) + '</b> of the <b>' + esc(euro(a.target)) + '</b> target' +
+        (more ? ', and AiMY expects <b>' + esc(euro(more)) + '</b> more by the end' : '') + '. ' +
+        'It cost <b>' + esc(euro(now.spend.total)) + '</b> to sign' +
+        (now.wins.length ? ', <b>' + esc(euro(now.spend.total / now.wins.length)) + '</b> a deal' : '') + '. ' +
+        'The largest open deals: ' + esc(big.map((c) => coOf(c) + ' ' + euro(acvOf(c).value)).join(', ')) + '. ' +
+        (worst && worst.paceMoney != null && worst.paceMoney < 0
+          ? 'Furthest behind: <b>' + esc(worst.m.name) + '</b> at ' + esc(euro(worst.booked)) + ' of ' +
+            esc(euro(worst.target)) + '. ' : '') +
+        (five ? 'The five largest accounts pay <b>' + Math.round(five * 100) + '%</b> of what we bill.' : '') +
+        doors(door('Open Financials', { on: 'money' }));
+    }
+    return null;
+  }
+
   function answer(text) {
     const q = text.toLowerCase();
+    /* The CEO's four questions go first: "what moved since Monday" would
+       otherwise be read as a question about account news, and "what can
+       still be caught" as one about how many are left to call. */
+    if (isWhole()) {
+      const said = ceoAnswer(q);
+      if (said) return said;
+    }
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
@@ -26635,7 +27658,7 @@
       if (!quiet.length) return 'Nobody you called or reached has gone quiet under four touches.';
       return '<b>' + plural(quiet.length, 'person') + '</b> went quiet before the fourth touch. They are first in their cuts now.' +
         '<div class="b-cuts">' +
-          '<button class="s-insight-lnk" type="button" data-call="' + esc(quiet[0].id) + '">Call ' + esc(quiet[0].name.split(' ')[0]) + '</button>' +
+          (works() ? '<button class="s-insight-lnk" type="button" data-call="' + esc(quiet[0].id) + '">Call ' + esc(quiet[0].name.split(' ')[0]) + '</button>' : '') +
           quiet.slice(0, 6).map((c) =>
           door(c.name + ' · ' + quietUnderFour(c) + ' of ' + TOUCH_RULE, Object.assign(cleared(), { con: c.id }))).join('') +
         '</div>';
@@ -28284,12 +29307,10 @@
      `me()` a request from Kestrel would have named its owner as the person
      who is waiting on it.
 
-     \u2550\u2550 AND THIS IS THE LINE THE CEO WILL MOVE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     `MANAGERS[0]` is where every ownerless campaign in this build already
-     falls, and it is a placeholder for a decision nobody is being asked to
-     make yet: which manager takes this one. When the CEO's desk arrives it
-     is the desk that answers that, and a request will arrive owned by
-     nobody until he does. One field, one function, one change. */
+     \u2550\u2550 AND THIS IS THE LINE THE CEO MOVED \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     Which manager takes a request is the CEO's to answer, with `campGive`,
+     and a request stays owned by nobody until he does or a manager runs it.
+     One field, one function, one change. */
   const campOwner = () => (isMgr() ? me().id : '');
   function emptyCamp() {
     const id = 'k' + Date.now().toString(36);
@@ -28680,7 +29701,7 @@
     lbuildSpend();
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
-    toast(ask ? 'Requested \u2014 waiting for a sales manager'
+    toast(ask ? (isWhole() ? 'Written \u2014 now assign it to a manager' : 'Requested \u2014 waiting for a sales manager')
       : k.name + ' is running \u2014 nobody is on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
@@ -29366,6 +30387,9 @@
     if (cset) {
       const k = DB.byCamp[S.camp];
       if (!k) return;
+      /* The renderer draws no field the CEO may not set; this is the same
+         rule at the handler — his own unsent request and nothing else. */
+      if (!works() && !(isDraft(k) && k.by === me().id)) return;
       const bits = String(cset.getAttribute('data-cset')).split('|');
       const f = bits[0];
       const v = bits.slice(1).join('|');
@@ -29939,8 +30963,19 @@
       return;
     }
 
+    const jn = t.closest('[data-join]');
+    if (jn) { joinDeal(jn.getAttribute('data-join')); return; }
+
+    const gv = t.closest('[data-give]');
+    if (gv) {
+      const b = String(gv.getAttribute('data-give')).split('|');
+      give(b[0], b[1], b[2]);
+      return;
+    }
+
     const hto = t.closest('[data-handto]');
     if (hto) {
+      if (!works()) return;
       const v = hto.getAttribute('data-handto');
       handover(v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1));
       return;
@@ -29983,16 +31018,17 @@
 
     const dl = t.closest('[data-deal]');
     if (dl) {
+      if (!works()) return;
       const p = dl.getAttribute('data-deal').split(':');
       setStage(p[0], p[1]);
       return;
     }
 
     const dc = t.closest('[data-decide]');
-    if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
+    if (dc) { if (works()) setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
 
     const mv = t.closest('[data-move]');
-    if (mv) { setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
+    if (mv) { if (works()) setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
 
     const when = t.closest('[data-when]');
     if (when && DB.call) {
