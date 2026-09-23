@@ -7026,3 +7026,25 @@ textarea::placeholder,
   font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--d50);
   font-variant-numeric: tabular-nums; text-align: right;
 }
+
+/* ══ 94. GIVE IT TO A MANAGER ══════════════════════════════════════════════
+   The CEO's one verb, drawn wherever there is something to give. Not a row
+   and not a menu: AiMY's pick as the primary, the other managers beside it
+   as plain buttons, and the reason after them, all on one line that wraps.
+   No existing rule is a row of buttons with a sentence at its end, which is
+   why this is here rather than borrowed.
+
+   Under a `.b-owed` row it starts at the row's text column — 12px of row
+   padding, the 6px dot and the 12px gap — so the verbs sit under the thing
+   they act on rather than under the dot. The reason is set at the body's
+   size and ink, never quieter: it is the sentence that decides the press. */
+.b-give {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin: 0 0 12px;
+}
+.b-owed .b-give { margin: -2px 0 10px 30px; }
+.b-give-why {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+}
+.b-give-why svg { flex: none; }

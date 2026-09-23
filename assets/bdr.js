@@ -304,7 +304,8 @@
      the record as touchpoints because that is what they are, and both need
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
-  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand' };
+  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand',
+    given: 'Given to another manager' };
 
   /* ══ WHAT IS IN THE CORPUS, AND WHEN IT GOES OUT ══════════════════════
      Four kinds of document sit behind a campaign. The name says which one
@@ -5234,12 +5235,17 @@
            one answer on a request and it is nobody, whatever the field says.
            When the CEO assigns one, "assigned to" is a different fact from
            "whose campaign this is" and wants saying differently. */
-        (isAsked(k) ? ''
+        /* Given is a different fact from whose, and says so. It tests the
+           field only the CEO writes, never `owner` — the placeholder trap
+           this row has fallen into once already. */
+        (isAsked(k) ? (k.givenBy && REP[k.owner]
+            ? '<span class="b-qcard-num b-fact">' + chIcon('user') +
+              '<span>Given to ' + esc(REP[k.owner].name) + '</span></span>' : '')
           : '<span class="b-qcard-num b-fact">' + chIcon('user') +
             '<span>' + esc(actor(k.owner).name) + '</span></span>') +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' +
-          (isAsked(k) ? (campFills(k) ? 'Open it' : 'See it')
+          (isAsked(k) ? (campFills(k) ? 'Open it' : isWhole() && !k.givenBy ? 'Give it' : 'See it')
             /* Work it is the verb of the desk that runs it. */
             : isBuyer() || (isWhole() && !isDraft(k)) ? 'See it'
             : isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
@@ -6001,23 +6007,223 @@
     const c = DB.byCon[conId];
     const m = REP[mgrId];
     if (!c || !m) return;
-    const before = { checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, manager: c.manager || null };
+    const before = { checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, manager: c.manager || null,
+      givenBy: c.givenBy || null, givenAt: c.givenAt || null };
     const now = new Date().toISOString();
+    /* The CEO hands over too — it is how he gives a lead nobody holds yet —
+       and the record says who gave it rather than that it was handed. */
+    const gave = isWhole();
     const t = {
       id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint', proposals: [], objections: [], openings: [],
-      note: 'Handed to ' + m.name + '.',
+      note: gave ? me().name + ' gave this to ' + m.name + '.' : 'Handed to ' + m.name + '.',
       lines: [], next: null, moved: [c.checkpoint, 'handed-over'], called: 'handed-over',
     };
-    patchCon(c, { checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id });
+    patchCon(c, Object.assign({ checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id },
+      gave ? { givenBy: me().id, givenAt: TODAY_ISO } : {}));
     addTouch(t);
+    /* ══ AND THE MANAGER'S DESK HEARS ABOUT IT ════════════════════════════
+       `DB.byMgr` is built in `reindex`, and a hand-over without one left
+       the lead off the desk it was handed to until the next reload. */
+    reindex();
     paint();
-    toast(c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
+    toast(gave ? 'Given to ' + m.name : c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
       dropTouch(t.id);
       patchCon(c, before);
+      reindex();
       paint();
     });
+  }
+
+  /* ══════════════ GIVE IT TO A MANAGER ══════════════
+     The CEO's one verb, on five kinds of thing: a request somebody asked
+     for, one he is writing himself, a connection of his, a contact nobody
+     holds yet, and a deal another manager holds. One control wherever it
+     appears — AiMY's pick as the primary, with the reason in words he can
+     check, and the other managers beside it at full size — so accepting
+     is one press and choosing somebody else is one press too. No menu and
+     no confirm: every give is undone from the toast.
+
+     A reason and not a score. The research on trust in AI is blunt that an
+     explanation raises acceptance whether it is right or wrong, so the
+     sentence is a fact off the corpus ("already runs two campaigns for
+     Kestrel Labs") that a reader can disagree with, never a rating.
+
+     A held deal gets no pick. Moving somebody's deal is the exception, and
+     a recommendation to do it would make it look like the routine. */
+  const firstOf = (p) => (p && p.name ? p.name.split(' ')[0] : '');
+  const runningOf = (id) => DB.camp.filter((k) => k.owner === id && k.state === 'running').length;
+  /* Deals a manager holds on one product line: the same two indexes the
+     manager's desk and the stakeholder's read, crossed. */
+  const heldOn = (id, line) => {
+    const on = Object.create(null);
+    (DB.byLine[line] || []).forEach((cid) => (on[cid] = 1));
+    return (DB.byMgr[id] || []).filter((cid) => on[cid]).length;
+  };
+  function giveTo(kind, x) {
+    if (kind === 'deal' || !MANAGERS.length) return null;
+    const best = (score) => {
+      const rows = MANAGERS.map((m) => ({ m: m, n: score(m) })).filter((r) => r.n > 0)
+        .sort((a, b) => b.n - a.n);
+      return rows[0] || null;
+    };
+    /* 1. Whoever already holds it: the client's campaigns, the campaign the
+       person is on, a deal at the same company. */
+    if ((kind === 'req' || kind === 'draft') && x.client && CLIENT[x.client]) {
+      const r = best((m) => DB.camp.filter((k) => k.client === x.client && k.owner === m.id &&
+        !isDraft(k)).length);
+      if (r) {
+        return { id: r.m.id, why: firstOf(r.m) + ' already runs ' + plural(r.n, 'campaign') +
+          ' for ' + CLIENT[x.client].name + '.' };
+      }
+    }
+    if (kind === 'con') {
+      const k = DB.byCamp[campFor(x)];
+      if (k && REP[k.owner] && REP[k.owner].fn === 'sales-manager') {
+        return { id: k.owner, why: firstOf(REP[k.owner]) + ' runs ' + campName(k) + ', which they are on.' };
+      }
+    }
+    const co = kind === 'con' ? ((accOf(x) || {}).name || '') : (x.co || '');
+    if (co && kind !== 'req' && kind !== 'draft') {
+      const lower = co.toLowerCase();
+      const r = best((m) => (DB.byMgr[m.id] || []).filter((cid) => {
+        const a = accOf(DB.byCon[cid]);
+        return a && a.name.toLowerCase() === lower;
+      }).length);
+      if (r) return { id: r.m.id, why: firstOf(r.m) + ' already holds a deal at ' + co + '.' };
+    }
+    /* 2. Whoever sells the most of what it is for. */
+    const line = kind === 'net' ? reachKey(x)
+      : kind === 'con' ? lineOf(firstCamp(x))
+      : kind === 'lead' ? x.sell : (x.sells || [])[0];
+    if (line && SELL[line]) {
+      const r = best((m) => heldOn(m.id, line));
+      if (r) {
+        return { id: r.m.id, why: firstOf(r.m) + ' holds the most ' + SELL[line].name + ' deals, ' +
+          commas(r.n) + ' of them.' };
+      }
+    }
+    /* 3. Whoever has the most room. */
+    const room = MANAGERS.slice().sort((a, b) => runningOf(a.id) - runningOf(b.id))[0];
+    return { id: room.id, why: firstOf(room) + ' runs the fewest campaigns right now, ' +
+      commas(runningOf(room.id)) + '.' };
+  }
+  /* A span, not a div, because two of the places it stands are inside a
+     row of other controls. `off` greys every button for the reason the
+     draft page greys Request it: something the manager needs is missing.
+
+     `seq` is a list's memory of the reason it last printed. Four rows that
+     all go to Lina for the same reason said it four times; said once, the
+     rows under it read as "and these too", and a row with a different
+     reason still says its own. */
+  function giveStrip(kind, id, x, off, seq, quiet) {
+    if (!isWhole()) return '';
+    const held = kind === 'deal' ? mgrOf(x) : ((kind === 'req' && x.givenBy) ? x.owner : null);
+    const pick = held ? null : giveTo(kind, x);
+    const dis = off ? ' disabled aria-disabled="true"' : '';
+    const btn = (m, primary) => '<button class="' + (primary ? 's-insight-lnk primary' : 's-inline-btn') +
+      '" type="button" data-give="' + esc(kind + '|' + id + '|' + m.id) + '"' + dis + '>' +
+      (primary || !pick ? 'Give it to ' : '') + esc(firstOf(m)) + '</button>';
+    const others = MANAGERS.filter((m) => m.id !== held && (!pick || m.id !== pick.id));
+    let why = '';
+    if (pick && !(seq && seq.last === pick.why)) {
+      if (seq) seq.last = pick.why;
+      why = '<span class="b-give-why">' + aiMark() + '<span>' + esc(pick.why) + '</span></span>';
+    } else if (!pick && held && kind === 'req' && !quiet) {
+      why = '<span class="b-give-why"><span>Given to ' + esc(actor(held).name) +
+        (x.givenAt ? ' ' + esc(sayWhen(x.givenAt)) : '') + '.</span></span>';
+    }
+    return '<span class="b-give" role="group" aria-label="Give it to a manager">' +
+      (pick ? btn(REP[pick.id], true) : '') +
+      others.map((m) => btn(m, false)).join('') + why +
+    '</span>';
+  }
+  function give(kind, id, mgrId) {
+    if (!isWhole() || !REP[mgrId] || REP[mgrId].fn !== 'sales-manager') return;
+    if (kind === 'req') campGive(DB.byCamp[id], mgrId);
+    else if (kind === 'draft') campAskGive(DB.byCamp[id], mgrId);
+    else if (kind === 'net') netGive(id, mgrId);
+    else if (kind === 'con') handover(id, mgrId);
+    else if (kind === 'deal') regive(id, mgrId);
+  }
+  function campGive(k, mgrId) {
+    if (!k || !isAsked(k)) return;
+    const was = { owner: k.owner || '', givenBy: k.givenBy || null, givenAt: k.givenAt || null };
+    campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
+    paint();
+    toast('Given to ' + REP[mgrId].name, () => { campSet(k, was); paint(); });
+  }
+  /* His own request, sent and given in the one press — `campAsk` with the
+     owner written in, and undone the way `campAsk` is: back to a draft. */
+  function campAskGive(k, mgrId) {
+    if (!k || !isDraft(k) || isAsked(k)) return;
+    const patch = campFill(k);
+    Object.assign(patch, { state: 'asked', by: me().id, askedAt: TODAY_ISO,
+      owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
+    campSet(k, patch);
+    go(Object.assign(cleared(), { camp: k.id }));
+    toast('Given to ' + REP[mgrId].name, () => {
+      campSet(k, { state: 'draft', askedAt: null, owner: '', givenBy: null, givenAt: null });
+      go(Object.assign(cleared(), { camp: k.id }));
+    });
+  }
+  /* A connection of his becomes a lead on the manager's desk, through the
+     path that already puts a stranger into somebody's contacts. The note
+     is the whole brief: who gave it, and the way in — which is HIS way in,
+     because `reachOf` reads the network of whoever is looking. */
+  function netGive(nid, mgrId) {
+    const n = (DB.net || []).filter((x) => x.id === nid)[0];
+    const m = REP[mgrId];
+    if (!n || !m) return;
+    const r = reachOf(n);
+    const way = r && r.k !== 'first' && r.via
+      ? ' Ask ' + me().name + ' for an introduction through ' + r.via.name + ', ' + r.via.title +
+        ' at ' + r.via.co + '.'
+      : ' They are one of ' + me().name + '’s own connections.';
+    const c = addLead({ name: n.name, title: n.title, co: n.co, sell: reachKey(n), manager: m.id,
+      note: me().name + ' gave this to ' + m.name + '.' + way,
+      givenBy: me().id, stay: true, toast: 'Given to ' + m.name });
+    /* What the index knew about their company comes with them. The list he
+       gave it off said "software at 3,200 staff" and the manager's card said
+       "industry not known". Only onto an account the lead itself made. */
+    const a = c && accOf(c);
+    if (a && a.id.charAt(0) === 'x' && !a.industry) {
+      Object.assign(a, { industry: n.industry, city: n.city, country: n.country, size: n.size });
+      save();
+    }
+  }
+  /* ══════════════ AND A DEAL THAT IS ALREADY SOMEBODY'S ══════════════
+     Nour's call: the CEO may move a deal from one manager to another, and
+     the one who loses it is told. `manager` is the only field it writes —
+     the stage, the history and the value stay — so the deal's money moves
+     from one row to the other and the company's total does not move at
+     all. The touch is the record of it: who, when, to whom, and whose it
+     was, which is the audit trail an owner change on a live deal needs. */
+  function regive(conId, mgrId) {
+    const c = DB.byCon[conId];
+    const m = REP[mgrId];
+    if (!c || !m || c.checkpoint !== 'handed-over') return;
+    const was = mgrOf(c);
+    if (was === m.id) return;
+    const before = { manager: c.manager || null, givenBy: c.givenBy || null, givenAt: c.givenAt || null };
+    const t = {
+      id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: campFor(c), by: me().id, at: new Date().toISOString(), secs: 0,
+      outcome: 'given', proposals: [], objections: [], openings: [],
+      note: me().name + ' gave this to ' + m.name + '. It was ' + actor(was).name + '’s.',
+      lines: [], next: null, moved: null, called: c.checkpoint, to: m.id, was: was,
+    };
+    patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO });
+    addTouch(t);
+    reindex();
+    paint();
+    toast('Given to ' + m.name, () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      reindex();
+      paint();
+    }, actor(was).name + ' is told.');
   }
 
   /* ══ OPENING A DOCUMENT ════════════════════════════════════════════════
@@ -6903,16 +7109,18 @@
      answers that, this filter goes on reading `owner`, and the only thing
      that changes is who wrote the field. */
   const campAsks = () =>
-    DB.camp.filter((k) => isAsked(k) && (!k.owner || k.owner === me().id))
+    DB.camp.filter((k) => isAsked(k) && (isWhole() || !k.owner || k.owner === me().id))
     /* Longest waiting first, which is the order every other list of things
-       owed on this page uses: what was missed first. */
-    .sort((a, b) => ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
+       owed on this page uses: what was missed first. On the CEO's desk the
+       ones still waiting for a manager go above the ones he has given. */
+    .sort((a, b) => (isWhole() ? (a.givenBy ? 1 : 0) - (b.givenBy ? 1 : 0) : 0) ||
+      ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
 
   function reqBlock() {
     /* A stakeholder and a client read this same home page. They see their
        own requests on their own campaigns list, where a card says Requested;
        what they must not see is the pile on somebody's desk. */
-    if (!isMgr()) return '';
+    if (!isMgr() && !isWhole()) return '';
     const asks = campAsks();
     /* Nothing arrived means no section. A heading over "no requests" every
        morning teaches the eye to skip the place a request will appear. */
@@ -6925,11 +7133,20 @@
         REGION[k.region] && REGION[k.region].label].filter(Boolean).join(' in ');
       return [x ? x.name : null, mk || null].filter(Boolean).join(' \u00b7 ');
     };
+    const seq = { last: '' };
     return '<section class="s-block s-block-wide" aria-label="Requests">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Requests</h2>' +
-        '<span class="s-block-say">' + esc(plural(asks.length, 'campaign')) +
-          ' asked for \u00b7 longest waiting first</span>' +
+        '<span class="s-block-say">' + (isWhole()
+          ? (function () {
+            /* "0 requests waiting" is a count of nothing said out loud. */
+            const free = asks.filter((k) => !k.givenBy).length;
+            const given = asks.length - free;
+            return (free ? esc(plural(free, 'request')) + ' waiting for a manager' : 'None waiting') +
+              (given ? ' \u00b7 ' + esc(commas(given)) + ' given' : '');
+          }())
+          : esc(plural(asks.length, 'campaign')) + ' asked for') +
+          ' \u00b7 longest waiting first</span>' +
       '</div>' +
       '<div class="b-owed">' + asks.map((k, i) =>
         '<button class="b-owed-row" type="button" data-camp="' + esc(k.id) + '" ' +
@@ -6945,12 +7162,15 @@
                 (k.askedAt ? ' \u00b7 ' + esc(sayWhen(k.askedAt)) : '') + '</span>' +
             '</span>' +
             '<span class="b-owed-body">' + esc(what(k)) +
-              '. ' + campGoalSay(k) + '</span>' +
+              '. ' + campGoalSay(k) +
+              /* On the desk it was given to, who gave it. */
+              (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' gave it to you.</b>' : '') +
+              '</span>' +
           '</span>' +
           /* It opens as the page a draft opens as, with the two fields this
              desk is the only one who can answer still empty. */
-          '<span class="b-owed-go">Open it</span>' +
-        '</button>').join('') + '</div>' +
+          '<span class="b-owed-go">' + (isWhole() ? 'See it' : 'Open it') + '</span>' +
+        '</button>' + giveStrip('req', k.id, k, false, seq)).join('') + '</div>' +
     '</section>';
   }
 
@@ -6988,6 +7208,7 @@
        out loud rather than a total quietly cut. */
     const hits = reachAll().slice(0, 4);
     if (!hits.length) return '';
+    const seq = { last: '' };
     return '<section class="s-block s-block-wide" aria-label="Connections">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Connections</h2>' +
@@ -7022,7 +7243,7 @@
           '</span>' +
           '<span class="b-owed-go">' +
             (h.r.k === 'first' ? 'Write the message' : 'Write the ask') + '</span>' +
-        '</button>').join('') + '</div>' +
+        '</button>' + giveStrip('net', h.c.id, h.c, false, seq)).join('') + '</div>' +
     '</section>';
   }
 
@@ -7220,7 +7441,9 @@
         from: 'the step you set', act: call };
     }
     if (st === 'qual') {
-      return { text: 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
+      return { text: (c.givenBy && !isWhole()
+          ? esc(actor(c.givenBy).name) + ' gave it to you ' + esc(sayWhen(c.givenAt || (c.checkpointAt || '').slice(0, 10)))
+          : 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10)))) +
           ' and still never warm-called.',
         from: 'the hand-over', act: call };
     }
@@ -9162,7 +9385,11 @@
      is sorted newest first at load, so this is the head of the list. */
   function lastActivity(c) {
     const ids = DB.touchesOf[c.id] || [];
-    for (let i = 0; i < ids.length; i++) { if (TOUCH[ids[i]]) return TOUCH[ids[i]].at.slice(0, 10); }
+    /* A deal given from one manager to another has not heard from anybody,
+       and counting the move would hide exactly the quiet it may be for. */
+    for (let i = 0; i < ids.length; i++) {
+      if (TOUCH[ids[i]] && TOUCH[ids[i]].outcome !== 'given') return TOUCH[ids[i]].at.slice(0, 10);
+    }
     return c.checkpointAt ? c.checkpointAt.slice(0, 10) : null;
   }
   function dealAge(deals) {
@@ -14314,7 +14541,13 @@
      same two refusals; what changes is how many come back. */
   function reachAll() {
     const out = [];
+    /* Somebody already added by hand — a give off this list, or a lead typed
+       into the bar — is in the contacts, and suggesting them again is the
+       one thing this list exists not to do. */
+    const had = Object.create(null);
+    DB.con.forEach((c) => { if (c.id.charAt(0) === 'y') had[c.name + '|' + ((accOf(c) || {}).name || '')] = 1; });
     (DB.net || []).forEach((n) => {
+      if (had[n.name + '|' + n.co]) return;
       const h = reachHit(n);
       if (h) out.push(h);
     });
@@ -16945,6 +17178,10 @@
             (editing
               ? '<button class="s-insight-lnk primary" type="button" data-cdone="' + esc(k.id) + '"' +
                 (miss.length ? ' disabled aria-disabled="true"' : '') + '>Done</button>'
+              : asking && isWhole()
+              /* The CEO's request is sent and given in one press, so the
+                 press names the manager. Greyed by the same list. */
+              ? giveStrip('draft', k.id, k, miss.length > 0)
               : asking
               /* Greyed by the same list, minus the one line about a team
                  nobody at this desk picks. */
@@ -17131,11 +17368,21 @@
              here would say somebody has it on exactly the records where that
              is least true \u2014 the ones saved before the field stopped carrying
              a placeholder. */
-          ? 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
+          ? (k.givenBy && REP[k.owner]
+            ? '<b>' + esc(actor(k.givenBy).name) + '</b> gave it to <b>' + esc(REP[k.owner].name) +
+              '</b>' + (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. ' +
+              esc(firstOf(REP[k.owner])) + ' puts a team and the lists on it and starts it, ' +
+              'and then it turns into a campaign on this page.'
+            : isWhole()
+            ? 'Nobody has it yet. Give it to a manager, or any of them can take it from ' +
+              'their briefing.'
+            : 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
             'and the lists on it and starts it, and it turns into a campaign on this ' +
-            'page when they do.'
+            'page when they do.')
           : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
             'asked for it yet.') + '</p>' +
+        /* Quiet: the sentence above already says whose it is. */
+        (sent ? giveStrip('req', k.id, k, false, null, true) : '') +
         campMeta(k) +
       '</section>' +
     '</div>';
@@ -20246,6 +20493,11 @@
       quiet.map((b) => '<button class="s-inline-btn" type="button" ' + b.attr + '>' + b.html + '</button>').join('') +
       /* the hand-over belongs with the verbs, not after the way out */
       (warm ? mgrMenu(c.id, 'Handover') : '') +
+      /* His one verb on a record: to a manager if nobody holds it, to a
+         different one if somebody does and it is still live. */
+      (!isWhole() ? ''
+        : c.checkpoint === 'handed-over' ? (dealLive(c) ? giveStrip('deal', c.id, c) : '')
+        : isExit(c.checkpoint) ? '' : giveStrip('con', c.id, c)) +
       (next
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
@@ -24213,6 +24465,22 @@
           (quiet.length === 1 ? ' has' : ' have') +
           ' a price on the table and nothing said for a week' });
     }
+    /* ══════════════ AND WHAT THE CEO MOVED OFF THIS DESK ══════════════
+       Nour's condition on moving a held deal: the manager who loses it is
+       told. A week, and one row each, read off the touch that moved it. */
+    if (isMgr()) {
+      DB.touch.filter((t) => t.outcome === 'given' && t.was === me().id &&
+        daysBetween(t.at.slice(0, 10), TODAY_ISO) <= 7).forEach((t) => {
+        const c = DB.byCon[t.con];
+        if (!c) return;
+        const a = accOf(c);
+        tasks.push({ id: 'ceo-moved:' + t.id, sev: 'p2', type: 'Moved',
+          when: sayWhen(t.at.slice(0, 10)),
+          body: actor(t.by).name + ' gave the ' + (a ? a.name : c.name) + ' deal to ' +
+            actor(t.to).name + '.',
+          cta: 'Open it', ask: 'go:' + JSON.stringify({ con: c.id }) });
+      });
+    }
     return tasks;
   }
 
@@ -26418,6 +26686,9 @@
          between the button and the record. */
       sell: f.sell || null,
     };
+    /* Given by the CEO rather than met by the manager: said on the record,
+       so the desk it lands on can say who sent it. */
+    if (f.givenBy) { c.givenBy = f.givenBy; c.givenAt = TODAY_ISO; }
     const t = {
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
       outcome: 'added', proposals: [], objections: [], openings: [],
@@ -26429,9 +26700,11 @@
     DELTA.made = (DELTA.made || []).concat([{ list: tag, acc: madeAcc, con: [c] }]);
     reindex();
     addTouch(t);
-    go({ con: c.id });
-    toast(esc(c.name) + ' is in your contacts' +
-      (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said', () => {
+    /* `stay` for a give off a list: the CEO is going down his shortlist,
+       and the record he just filled belongs on somebody else's desk. */
+    if (f.stay) paint(); else go({ con: c.id });
+    toast(f.toast || (esc(c.name) + ' is in your contacts' +
+      (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said'), () => {
       dropTouch(t.id);
       DB.con = DB.con.filter((x) => x.id !== c.id);
       DB.acc = DB.acc.filter((x) => madeAcc.indexOf(x) < 0);
@@ -26439,7 +26712,7 @@
       reindex();
       save();
       go(cleared());
-    });
+    }, f.sub);
     /* The record it made, for a caller that has to log a call against it
        the moment it exists. Nothing else reads this. */
     return c;
@@ -26612,6 +26885,19 @@
         return;
       }
       hideCanvas();
+      /* The CEO holds no contacts, so a lead he adds is given in the same
+         press, to AiMY's pick, with the reason under the toast. Moving it
+         to somebody else is one more press, on the record it lands on. */
+      if (isWhole()) {
+        const pick = giveTo('lead', f);
+        const m = pick && REP[pick.id];
+        if (m) {
+          addLead(Object.assign({}, f, { manager: m.id, givenBy: me().id,
+            note: me().name + ' gave this to ' + m.name + '.', toast: 'Given to ' + m.name,
+            sub: pick.why }));
+          return;
+        }
+      }
       addLead(f);
       return;
     }
@@ -28873,7 +29159,7 @@
     lbuildSpend();
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
-    toast(ask ? 'Requested \u2014 waiting for a sales manager'
+    toast(ask ? (isWhole() ? 'Written \u2014 now give it to a manager' : 'Requested \u2014 waiting for a sales manager')
       : k.name + ' is running \u2014 nobody is on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
@@ -30132,6 +30418,13 @@
     if (doc) {
       const v = doc.getAttribute('data-doc');
       openDoc(v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1));
+      return;
+    }
+
+    const gv = t.closest('[data-give]');
+    if (gv) {
+      const b = String(gv.getAttribute('data-give')).split('|');
+      give(b[0], b[1], b[2]);
       return;
     }
 
