@@ -2909,6 +2909,83 @@
       c.next.due = dayAdd(-(1 + ((h >> 7) % room)));
     });
 
+    /* ══ AND EVERY DIARY HAS A TODAY AND A TOMORROW ═══════════════════════
+       The slip above does its job by emptying the days ahead: seven in ten of
+       the meetings still to come are moved behind, so the manager's desk
+       opened on "Nothing is in the diary today" with nothing tomorrow either,
+       and the stakeholder's had a today only by luck of the hash.
+
+       So each book is topped up to two things today and two tomorrow, and to
+       eight meetings behind it with nothing written up. A book is what a
+       desk reads — `mgrOf`'s answer for a manager, the first thing the
+       campaign sells for a stakeholder — so a deal can serve two of them at
+       once, and that is fine: it is one meeting in two diaries.
+
+       Where the days ahead come from, in order: a meeting already booked
+       further out, brought forward; then a live deal that owes nothing yet,
+       given one. The ones behind only ever come from the second, so the
+       top-up never takes a meeting off a day it was already drawn on. The
+       floor the slip keeps — after the last phase written, and after the
+       hand-over — is kept here too. Off the ids' own salts; no draw spent. */
+    const decidedCon = Object.create(null);
+    touch.forEach((t) => { if (t.decision) decidedCon[t.con] = true; });
+    const campById = Object.create(null);
+    camp.forEach((k) => (campById[k.id] = k));
+    const firstCamp = (c) => campById[c.camps[0]] || null;
+    const dirOfSeed = (c) => c.manager || (firstCamp(c) || {}).owner || MANAGERS[0].id;
+    const lineOfSeed = (c) => { const k = firstCamp(c); return (k && k.sells && k.sells[0]) || null; };
+    const seedLines = Object.keys(REP).map((id) => REP[id])
+      .filter((r) => r.fn === 'stakeholder' && r.sell).map((r) => r.sell);
+    const MEET_WHAT = ['Meeting with them', 'Demo for them', 'Dinner with them'];
+    const isMeetNext = (c) => !!c.next && /\b(meeting|demo|dinner)\b/i.test(c.next.what);
+    const floorOf = (c) => {
+      const handed = (c.checkpointAt || '').slice(0, 10);
+      const ph = lastPhase[c.id] || '';
+      return ph > handed ? ph : handed;
+    };
+    const books = Object.create(null);
+    con.forEach((c) => {
+      if (c.checkpoint !== 'handed-over' || decidedCon[c.id]) return;
+      if (c.next && !isMeetNext(c)) return;
+      const line = lineOfSeed(c);
+      ['dir:' + dirOfSeed(c), seedLines.indexOf(line) >= 0 ? 'line:' + line : null]
+        .forEach((b) => { if (b) (books[b] = books[b] || []).push(c); });
+    });
+    const AHEAD_WANT = 2;
+    const BEHIND_WANT = 8;
+    Object.keys(books).sort().forEach((b) => {
+      const g = books[b].slice().sort((x, y) => hash(x.id + ':anchor') - hash(y.id + ':anchor'));
+      [0, 1].forEach((d) => {
+        const iso = dayAdd(d);
+        let have = g.filter((c) => c.next && c.next.due === iso).length;
+        /* A small book can run out of both — a stakeholder's line held nine
+           live deals, every one of them owing something — so tomorrow may
+           also borrow what today holds above its two. */
+        const spare = d === 1 ? g.filter((c) => c.next && c.next.due === TODAY_ISO)
+          .slice(AHEAD_WANT) : [];
+        const pool = g.filter((c) => isMeetNext(c) && c.next.due > dayAdd(1))
+          .concat(g.filter((c) => !c.next), spare);
+        for (let i = 0; have < AHEAD_WANT && i < pool.length; i++, have++) {
+          const c = pool[i];
+          c.next = {
+            what: c.next ? c.next.what : MEET_WHAT[Math.abs(hash(c.id + ':anchorwhat')) % MEET_WHAT.length],
+            due: iso,
+          };
+        }
+      });
+      let behind = g.filter((c) => isMeetNext(c) && c.next.due < TODAY_ISO &&
+        c.next.due > floorOf(c)).length;
+      g.filter((c) => !c.next).forEach((c) => {
+        if (behind >= BEHIND_WANT) return;
+        const floor = floorOf(c);
+        const room = Math.min(SLIP_BACK, floor ? daysBetween(floor, TODAY_ISO) - 1 : SLIP_BACK);
+        if (room < 1) return;
+        const h = Math.abs(hash(c.id + ':behind'));
+        c.next = { what: MEET_WHAT[h % MEET_WHAT.length], due: dayAdd(-(1 + ((h >> 5) % room))) };
+        behind++;
+      });
+    });
+
     /* ══ AND THE CALLS THAT CAME THE OTHER WAY ═════════════════════
        Every touchpoint above is one we MADE. A phone also rings, and when it
        rings while you are in a room with somebody else nobody picks it up —
@@ -2934,10 +3011,20 @@
        `by` is whose phone it was, which is `mgrOf`'s question and so it is
        `mgrOf`'s answer: whoever the lead was handed to, else whoever owns the
        campaign it is on. Before the hand-over it is the caller's. */
-    /* One in seven of the eligible — the share that puts a readable handful on
-       each desk rather than a page nobody can finish. Measured, then tuned
-       against the measurement, the way the shares above it were. */
-    const MISSED_SHARE = 14;
+    /* One in five of the eligible. It was one in seven, which left the log a
+       short list a reader cleared before the kettle boiled — a page for
+       working a backlog needs enough rows to be worked. Still a readable
+       handful rather than a page nobody can finish. */
+    const MISSED_SHARE = 20;
+    /* And the stakeholder's own phone. He answers for a product wherever it
+       is sold, so a prospect on one of his line's deals rings him as well as
+       the manager holding it — its own salt, so none of the manager's rows
+       move to him. */
+    const LINE_MISSED_SHARE = 12;
+    const lineOwner = Object.create(null);
+    Object.keys(REP).forEach((id) => {
+      if (REP[id].fn === 'stakeholder' && REP[id].sell) lineOwner[REP[id].sell] = id;
+    });
     const MISSED_NOTE = [
       'They called. Nobody picked up.',
       'Missed their call.',
@@ -3016,6 +3103,31 @@
            number correlates the message with all three — every overdue lead
            getting the same length of message is the kind of pattern that
            reads as a bug before anybody works out it is a hash. */
+        vm: vm % 100 < 70
+          ? { secs: 8 + ((vm >> 7) % 27), text: vmSay(c, accById[c.acc], vm >> 3) }
+          : null,
+        lines: [], next: null, moved: null, called: c.checkpoint,
+      });
+    });
+    /* The stakeholder's, in the same shape and under the same rules as the
+       rows above: a deal on his line, a number, no opt-out, never before the
+       last call we made, inside a fortnight. */
+    con.forEach((c) => {
+      if (!c.phone || c.dnc || c.checkpoint !== 'handed-over') return;
+      const kk = c.camps.length ? camp.filter((x) => x.id === c.camps[0])[0] : null;
+      const by = kk && kk.sells && kk.sells.length ? lineOwner[kk.sells[0]] : null;
+      if (!by) return;
+      const h = Math.abs(hash(c.id + ':rang-line'));
+      if (h % 100 >= LINE_MISSED_SHARE) return;
+      const vm = Math.abs(hash(c.id + ':vm-line'));
+      const gap = c.lastCallAt ? daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) : 13;
+      const at = dayOf(-Math.max(0, Math.min((h >> 7) % 14, gap)));
+      at.setHours(9 + ((h >> 3) % 9), (h >> 11) % 60, 0, 0);
+      touch.push({
+        id: 'ti' + mId++, con: c.id, camp: c.camps[0] || null, by: by,
+        at: at.toISOString(), secs: 0, outcome: 'no-answer', dir: 'in',
+        proposals: [], objections: [], openings: [],
+        note: MISSED_NOTE[(h >> 5) % MISSED_NOTE.length],
         vm: vm % 100 < 70
           ? { secs: 8 + ((vm >> 7) % 27), text: vmSay(c, accById[c.acc], vm >> 3) }
           : null,
@@ -20437,6 +20549,16 @@
        what happens to it next, and it is not the account manager's alone. */
     put(isoAdd(p.end, -5), (REP[ACCT_EXEC] || mgr).name + ' and ' + mgr.name,
       'The year, and what next');
+    /* ══ AND THIS WEEK ══════════════════════════════════════════════
+       The cadence above is monthly, so on most days this desk opened on
+       an empty diary and nothing tomorrow — true of the shape and useless
+       for the page. The corpus is built relative to today everywhere else
+       (the callbacks due, the meetings that slipped), and so is this: the
+       account manager's call on how the campaigns ran this week, and
+       tomorrow the brief for the next one, which is what the Start row's
+       "Request a campaign" leads to. */
+    put(TODAY_ISO, mgr.name, 'This week’s campaigns');
+    put(dayAdd(1), mgr.name, 'Brief for the next campaign');
     return out;
   }
 
