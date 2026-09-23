@@ -10440,7 +10440,7 @@
      denominator named in the header — not the ratio of money to money this
      page has thrown out twice. */
   const BUYER_FN = { sourced: 'Found', reachable: 'Reachable', contacted: 'Called',
-    replied: 'Answered', met: 'Met', handed: 'Handed to you', won: 'Signed' };
+    replied: 'Answered', met: 'Met', handed: 'Sent to you', won: 'Signed' };
   /* An engagement may bring its own words for the same six stages — a
      hiring pipeline approaches and interviews where a selling one calls
      and meets. Folded over the default rather than replacing it, so a `fn`
@@ -10466,7 +10466,7 @@
     const rows = [];
     base.forEach((r) => {
       rows.push(r);
-      if (r.k === 'met') rows.push({ k: 'handed', label: 'Handed to you', n: dealBook().length });
+      if (r.k === 'met') rows.push({ k: 'handed', label: 'Sent to you', n: dealBook().length });
     });
     /* ══ FOUR WIDGETS, ONE PER STEP, THE WAY THE FLOOR IS DRAWN ═════════
        This was seven rows under a header — Got this far · people · of the
@@ -10476,39 +10476,49 @@
        their way down it to find where people fell out.
 
        Now it is the four steps a person goes through, each a widget: the
-       stages in it as bars on ONE scale across all four, so the narrowing
-       still reads left to right and top to bottom; whose part the step is,
+       stages in it as bars out of the count the step started with; whose part the step is,
        which is the sentence that used to sit between the blocks; and AiMY's
        one plain sentence about where people went. Each step opens on the
        count the one before it ended on, so a widget can be read alone. */
-    const top = rows[0].n || 1;
     const say = fnSay();
     const by = Object.create(null);
     rows.forEach((r) => (by[r.k] = r.n));
     const verb = (k) => String(say[k] || BUYER_FN[k] || k).toLowerCase();
     const has = (ks) => ks.every((k) => by[k] != null);
+    /* ══ AND EACH WIDGET IS OUT OF ITS OWN FIRST NUMBER ══════════════════
+       The bars were on one scale across all four — out of everybody found —
+       so "Handed to you 17 · Hired 2" drew as two stubs and nothing on the
+       widget said the 2 were out of the 17; the reader got it from AiMY's
+       sentence. Now the step's starting count is said in words under its
+       name, it is the TRACK of every bar in the widget, and the fill is
+       how many of them got that far. The starting row is not drawn as a
+       bar of its own: it would be a full bar saying "all of them". */
     const STEPS = [
       { name: 'Finding them', ours: true, keys: ['sourced', 'reachable'],
+        base: (n) => 'Out of the ' + commas(n) + ' people we found',
         say: () => (by.reachable >= by.sourced ? 'Every person we found can be reached.'
           : commas(by.sourced - by.reachable) + ' of the ' + commas(by.sourced) +
             ' people we found cannot be reached.') },
       { name: 'Reaching them', ours: true, keys: ['reachable', 'contacted', 'replied'],
+        base: (n) => 'Out of the ' + commas(n) + ' people we could reach',
         say: () => (by.reachable > by.contacted
           ? commas(by.reachable - by.contacted) + ' people we could reach have not been ' +
             verb('contacted') + ' yet.'
           : commas(by.replied) + ' of the ' + commas(by.contacted) + ' people we ' +
             verb('contacted') + ' answered.') },
-      { name: 'Handing them over', ours: true, keys: ['replied', 'met', 'handed'],
-        say: () => 'We handed you ' + commas(by.handed) + ' of the ' + commas(by.met) +
+      { name: 'Sending them to you', ours: true, keys: ['replied', 'met', 'handed'],
+        base: (n) => 'Out of the ' + commas(n) + ' people who ' + verb('replied'),
+        say: () => 'We sent you ' + commas(by.handed) + ' of the ' + commas(by.met) +
           ' people we ' + verb('met') + '.' },
       { name: 'Your decision', ours: false, keys: ['handed', 'won'],
+        base: (n) => 'Out of the ' + commas(n) + ' people we sent you',
         say: () => 'You have ' + verb('won') + ' ' + commas(by.won) + ' of the ' +
-          commas(by.handed) + ' people we handed you.' },
+          commas(by.handed) + ' people we sent you.' },
     ].filter((s) => has(s.keys));
     if (!STEPS.length) return '';
-    const bar = (k) => '<span class="b-step-name">' + esc(say[k] || k) + '</span>' +
+    const bar = (k, of) => '<span class="b-step-name">' + esc(say[k] || k) + '</span>' +
       '<span class="b-fn-bar"><span class="b-fn-fill tone-neutral" style="width:' +
-        Math.max(1, Math.round((by[k] / top) * 100)) + '%"></span></span>' +
+        Math.max(1, Math.round((by[k] / (of || 1)) * 100)) + '%"></span></span>' +
       '<span class="b-step-n">' + commas(by[k]) + '</span>';
     return '<div class="b-wids">' + STEPS.map((s) =>
       '<div class="s-pan b-wid">' +
@@ -10516,7 +10526,9 @@
           '<span class="b-wid-name">' + esc(s.name) + '</span>' +
           '<span class="s-pan-state">' + (s.ours ? 'Our part' : 'Your part') + '</span>' +
         '</div>' +
-        '<div class="b-steps">' + s.keys.map(bar).join('') + '</div>' +
+        '<span class="b-wid-sub">' + esc(s.base(by[s.keys[0]])) + '</span>' +
+        '<div class="b-steps">' +
+          s.keys.slice(1).map((k) => bar(k, by[s.keys[0]])).join('') + '</div>' +
         aimyBlock({ text: esc(s.say()) }, true) +
       '</div>').join('') + '</div>';
   }
