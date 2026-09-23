@@ -6154,6 +6154,12 @@
     }).join('');
     const menuId = 'give-' + kind + '-' + id;
     return '<span class="b-give" role="group" aria-label="Assign to a manager">' +
+      /* AiMY's reading on its own line, and the press it argues for is the
+         sentence's own last words: a link in the text, not a button. */
+      (pick ? '<span class="b-give-why">' + aiMark() + esc(pick.why) + ' ' +
+        '<button class="b-give-lnk" type="button" ' + attr(REP[pick.id]) + dis + '>' +
+          'Assign to ' + esc(firstOf(REP[pick.id])) + '</button>' +
+      '</span>' : '') +
       '<span class="b-menu-wrap">' +
         '<button class="b-ghost b-menu-open" type="button" data-pickopen="' + esc(menuId) + '" ' +
           'aria-haspopup="menu"' + dis + '>' + (held ? 'Reassign' : 'Assign') + '</button>' +
@@ -6161,11 +6167,6 @@
           '<span class="b-menu-cap">' + (held ? 'Reassign to' : 'Assign to') + '</span>' + rows +
         '</div>' +
       '</span>' +
-      /* AiMY's reading, and the press it argues for, in one line. */
-      (pick ? '<span class="b-give-why">' + aiMark() + '<span>' + esc(pick.why) + '</span>' +
-        '<button class="s-insight-lnk" type="button" ' + attr(REP[pick.id]) + dis + '>' +
-          'Assign to ' + esc(firstOf(REP[pick.id])) + '</button>' +
-      '</span>' : '') +
     '</span>';
   }
   function give(kind, id, mgrId) {

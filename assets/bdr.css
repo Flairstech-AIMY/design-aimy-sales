@@ -7046,13 +7046,26 @@ textarea::placeholder,
   margin: 0 0 12px;
 }
 .b-owed .b-give, .b-owed .b-join { margin: -2px 0 10px 30px; }
-/* Wraps, because the press rides at the end of the sentence and a long
-   reason on a narrow row would otherwise push it off the edge. */
+/* A line of its own, above the Assign button, and running text rather
+   than a flex row: the press is the sentence's last words, so it has to
+   wrap with the words around it instead of dropping to a line as a block. */
 .b-give-why {
-  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0;
+  display: block; flex: 0 0 100%; min-width: 0;
   font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
 }
-.b-give-why svg { flex: none; }
+.b-give-why svg { vertical-align: -2px; margin-right: 6px; }
+/* A link in the sentence: the product's link ink and weight (`.b-net-link`),
+   underlined so it reads as pressable in the middle of prose, where colour
+   alone is too little to go on. */
+.b-give-lnk {
+  display: inline; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-weight: var(--fw-semibold); color: var(--accent-label);
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  transition: color var(--t-fast);
+}
+.b-give-lnk:hover { color: var(--accent); }
+.b-give-lnk:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+.b-give-lnk[disabled] { cursor: not-allowed; text-decoration: none; }
 
 /* ══ 95. A MANAGER'S QUARTER, IN A ROW ══════════════════════════════════════
    The rail card's bar — gained against a mark at the target — at the width
