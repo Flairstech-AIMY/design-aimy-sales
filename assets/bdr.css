@@ -7048,3 +7048,10 @@ textarea::placeholder,
   font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
 }
 .b-give-why svg { flex: none; }
+
+/* ══ 95. A MANAGER'S QUARTER, IN A ROW ══════════════════════════════════════
+   The rail card's bar — gained against a mark at the target — at the width
+   a row can give it. Capped, because a bar the width of the page reads as a
+   progress bar for the page rather than a figure for one person, and the
+   three of them are compared by position, which needs them the same length. */
+.b-mgr-bar { display: block; max-width: 360px; margin: 10px 0 4px; }

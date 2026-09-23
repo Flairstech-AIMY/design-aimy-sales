@@ -3911,6 +3911,8 @@
        either. The figure is gated at its own site as well, because one
        guard for a cost leak is one more than the last count. */
     if (isBuyer()) S.by = '';
+    /* And the managers' cut, which no other desk has. */
+    if (S.by === 'mgr' && !isWhole()) S.by = '';
     /* ══ A FLOOR HAS FEWER SURFACES, NOT ONE ══════════════════════
        Contacts, the Diary and Campaigns are all readings of a pipeline. A
        floor has none, and the desk drew them anyway: three tabs reading
@@ -7247,6 +7249,162 @@
     '</section>';
   }
 
+  /* ══════════════ THE MANAGERS, READ THE WAY THEIR OWN DESKS READ THEM ══════════════
+     One row per manager on the CEO's Today, and one card per manager on
+     his Financials. Every figure comes off the same index and the same
+     target the manager's own desk uses — `DB.byMgr` and `TARGET_QUARTER` —
+     so "Lina, €152k of €300k" here is the figure on Lina's own rail card,
+     not a second estimate of it. */
+  function mgrRead(m, p) {
+    const deals = (DB.byMgr[m.id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+    const booked = deals.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); })
+      .reduce((n, c) => n + acvOf(c).value, 0);
+    const target = TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
+    const open = !p.whole && p.elapsed != null && p.elapsed < 1;
+    return { m: m, booked: booked, target: target,
+      /* The report's own formula for what AiMY expects, per desk. */
+      more: open ? Math.round(pipelineOf(deals).weighted * Math.max(0, 1 - p.elapsed)) : 0,
+      paceMoney: open && target ? booked - target * p.elapsed : null,
+      camps: DB.camp.filter((k) => k.owner === m.id && k.state === 'running').length,
+      given: DB.camp.filter((k) => isAsked(k) && k.owner === m.id).length };
+  }
+  /* A verdict on a manager's quarter, in the words the product-line cards
+     use for theirs. Ten points behind the calendar is still on pace — a
+     quarter's deals do not land evenly — and past thirty it is far enough
+     behind that the open deals rarely close it. */
+  const MGR_VERDICT = {
+    met: { say: 'target met', tone: 'ok' }, ahead: { say: 'ahead', tone: 'ok' },
+    on: { say: 'on pace', tone: 'ok' }, behind: { say: 'behind', tone: 'warn' },
+    far: { say: 'far behind', tone: 'err' }, short: { say: 'short', tone: 'err' },
+  };
+  function mgrVerdict(booked, target, p) {
+    if (!target) return MGR_VERDICT.on;
+    if (booked >= target) return MGR_VERDICT.met;
+    if (p.whole || p.elapsed == null || p.elapsed >= 1) return MGR_VERDICT.short;
+    const pace = booked / target - p.elapsed;
+    return pace >= 0 ? MGR_VERDICT.ahead : pace >= -0.1 ? MGR_VERDICT.on
+      : pace >= -0.3 ? MGR_VERDICT.behind : MGR_VERDICT.far;
+  }
+
+  /* ══════════════ AND ON TODAY, ONE ROW EACH ══════════════
+     The reading the assignment needs: who is short, by how much, and what
+     they already carry. Furthest behind first, which is the order a CEO
+     reads a room in. One sentence for the block rather than one per row —
+     three sentences saying three managers are behind is a paragraph, and
+     the rows already say it in figures.
+
+     The bar is the rail card's, at the width a row can give it: what was
+     gained against a mark where the target sits. The page's one chart. */
+  function mgrBlock() {
+    if (!isWhole() || !MANAGERS.length) return '';
+    const p = periodOf(S.period);
+    const rows = MANAGERS.map((m) => mgrRead(m, p)).sort((a, b) =>
+      (a.paceMoney == null ? 1e12 : a.paceMoney) - (b.paceMoney == null ? 1e12 : b.paceMoney));
+    const worst = rows[0];
+    const behind = rows.filter((r) => r.paceMoney != null && r.paceMoney < 0);
+    const said = !behind.length
+      ? (rows.every((r) => r.paceMoney != null) ? 'Every manager is where the quarter should be today.'
+        : 'The window has closed; the rows say where each desk finished.')
+      : '<b>' + esc(worst.m.name) + '</b> is <b>' + esc(euro(-worst.paceMoney)) +
+        '</b> behind where the quarter should be today' +
+        (worst.more ? ', and AiMY expects <b>' + esc(euro(worst.more)) + '</b> more from the open deals.' : '.');
+    const door = esc(JSON.stringify(Object.assign(cleared(), { on: 'money', by: 'mgr' })));
+    return '<section class="s-block s-block-wide" aria-label="Managers">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Managers</h2>' +
+        '<span class="s-block-say">' + esc(plural(rows.length, 'manager')) +
+          ' \u00b7 furthest behind first</span>' +
+      '</div>' +
+      aimyBlock({ text: said, from: 'each desk’s own figures' }) +
+      '<div class="b-owed">' + rows.map((r, i) => {
+        const v = mgrVerdict(r.booked, r.target, p);
+        const scale = Math.max(r.target * 1.2, r.booked) || 1;
+        const won = Math.max(0, Math.min(100, (r.booked / scale) * 100));
+        const at = Math.max(0, Math.min(100, (r.target / scale) * 100));
+        /* The figure leads the body, in the body's ink: it is the reason
+           the row exists, and the head's quiet slot is for a date. The
+           verdict is the status tag every campaign head already wears. */
+        const facts = [
+          euro(r.booked) + ' of ' + euro(r.target),
+          r.more ? 'AiMY expects ' + euro(r.more) + ' more' : null,
+          r.camps ? plural(r.camps, 'campaign') + ' running' : null,
+          r.given ? plural(r.given, 'request') + ' given' : null,
+        ].filter(Boolean);
+        return '<button class="b-owed-row" type="button" data-go="' + door + '" ' +
+          'style="--i:' + Math.min(i, 8) + '">' +
+          /* The quiet dot: the tag beside the name already carries the
+             tone, and a red dot beside a red tag is one fact said twice. */
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(r.m.name) + '</span>' +
+              '<span class="s-meta-st tone-' + esc(v.tone) + '">' + esc(v.say) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(facts.join(' \u00b7 ')) + '</span>' +
+            '<span class="b-mgr-bar"><span class="b-door-bar">' +
+              (r.booked ? '<span class="b-door-seg is-won" style="width:' + won.toFixed(1) + '%"></span>' : '') +
+              '<span class="b-door-mark" style="left:' + at.toFixed(1) + '%"></span>' +
+            '</span></span>' +
+          '</span>' +
+          '<span class="b-owed-go">See it</span>' +
+        '</button>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
+
+  /* ══════════════ AND ON FINANCIALS, AS THE SAME CARD ══════════════
+     The third cut, on the one desk that reads all of them. Same card as a
+     campaign and a product line — a name, a verdict, what it gained against
+     what it cost, and the facts it is judged on — because a switcher that
+     changes the card changes what the reader has to learn. The cost is what
+     the manager's campaigns cost, the same rows the campaign cut prints,
+     so the three cuts add up to one page. */
+  function mgrPans(now, camps, p) {
+    const rows = now.byMgr.filter((r) => REP[r.k]);
+    if (!rows.length) return '<p class="s-none">Nothing has moved on any desk this window.</p>';
+    const target = TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
+    return '<div class="s-pans">' + rows.map((r, i) => {
+      const m = REP[r.k];
+      const v = mgrVerdict(r.arr, target, p);
+      const theirs = camps.filter((s) => s.camp.owner === r.k);
+      const cost = theirs.reduce((n, s) => n + s.total, 0);
+      return '<div class="s-pan" style="--i:' + i + '">' +
+        '<div class="s-pan-head">' +
+          '<span class="s-pan-name">' + esc(m.name) +
+            '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
+          '<span class="s-pan-figs">' +
+            '<span class="s-pan-fig">' +
+              '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
+                esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
+              '<span class="s-pan-unit">of ' + esc(fmtMoney(target)) + '</span>' +
+            '</span>' +
+            (cost ? '<span class="s-pan-fig">' +
+              '<span class="s-pan-spent">' + esc(fmtMoney(cost)) + '</span>' +
+              '<span class="s-pan-unit">cost</span>' +
+            '</span>' : '') +
+          '</span>' +
+        '</div>' +
+        '<div class="s-pan-facts">' +
+          (theirs.length ? '<span><b>' + theirs.length + '</b> ' +
+            (theirs.length === 1 ? 'campaign' : 'campaigns') + '</span>' : '') +
+          '<span><b>' + r.meetings + '</b> ' + (r.meetings === 1 ? 'person met' : 'people met') + '</span>' +
+          '<span><b>' + r.wins + '</b> ' + plural(r.wins, 'deal').replace(/^\d+\s/, '') + ' signed</span>' +
+          '<span><b>' + r.open + '</b> potential, ' + esc(fmtMoney(r.pipeline)) + ' if they land</span>' +
+        '</div>' +
+        (theirs.length ? '<div class="s-pan-crew">' +
+          '<div class="s-pan-restitle">Campaigns</div>' +
+          theirs.map((s) => '<span class="s-pan-p">' +
+            '<span class="s-pan-who"><b>' + esc(s.camp.name) + '</b>' +
+              '<span class="s-pan-meta">' + esc(campStateSay(s.camp)) +
+                (s.total ? ' &middot; ' + esc(fmtMoney(s.total)) + ' cost' : '') + '</span></span>' +
+            '<span class="s-pan-cost' + (s.arr ? '' : ' is-none') + '">' +
+              esc(s.arr ? fmtMoney(s.arr) : 'Nothing') + '</span>' +
+          '</span>').join('') +
+        '</div>' : '') +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
   function mgrHome() {
     /* ══════════════ ONE PAGE, AND THE BOOK ADDS TO IT ══════════════
        This had three bodies for a commit — one for a floor, one for the
@@ -7264,6 +7422,9 @@
          been late for three days, because nobody else can move it and it is
          one press. */
       reqBlock() +
+      /* The CEO's reading of the room, under the requests he assigns from
+         it: who is short and what they already carry. */
+      mgrBlock() +
       /* \u2550\u2550 THE TWO THAT CAME FROM OUTSIDE THIS DESK, TOGETHER \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          It sat under "What wants you" on the argument that what is owed is
          read before what is possible. True of a morning, and it buried the
@@ -9492,7 +9653,7 @@
     const spend = { src: 0, enrich: 0, human: 0, aimy: 0, team: 0, total: 0 };
     const wins = [];
     const stage = { sourced: 0, reachable: 0, contacted: 0, replied: 0, met: 0, won: 0 };
-    const bySrc = Object.create(null), byLine = Object.create(null);
+    const bySrc = Object.create(null), byLine = Object.create(null), byMgr = Object.create(null);
 
     scope.forEach((c) => {
       const s = spendOn(c, p);
@@ -9552,6 +9713,21 @@
            concrete thing in it. */
         else if (isDeal(c) && dealLive(c)) { lr.pipeline += acvOf(c).value; lr.open += 1; }
       }
+      /* ══ AND THE SAME POT CUT A THIRD WAY: WHO HOLDS IT ═════════════════
+         A deal is the manager's it was handed to, which is `DB.byMgr`'s own
+         key; before the hand-over a person is the campaign owner's work,
+         because that is whose floor is calling them. So a lead's spend lands
+         on the desk that spent it and a deal's money on the desk that closed
+         it, and the rows sum to the book the way `byLine`'s do. */
+      const mk = isDeal(c) ? mgrOf(c) : (k && k.owner) || null;
+      if (mk) {
+        const mr = byMgr[mk] || (byMgr[mk] =
+          { k: mk, arr: 0, meetings: 0, wins: 0, spend: 0, pipeline: 0, open: 0 });
+        mr.spend += s.total;
+        if (met) mr.meetings += 1;
+        if (won) { mr.arr += acvOf(c).value; mr.wins += 1; }
+        else if (isDeal(c) && dealLive(c)) { mr.pipeline += acvOf(c).value; mr.open += 1; }
+      }
     });
 
     /* == THE HOURS WERE COUNTED TWICE ==================================
@@ -9591,6 +9767,9 @@
           per1k: r.leads ? (r.meetings / r.leads) * 1000 : null }, r))
         .sort((a, b) => b.leads - a.leads),
       byLine: Object.keys(byLine).map((x) => byLine[x])
+        .filter((r) => r.meetings || r.arr || r.pipeline)
+        .sort((a, b) => b.arr - a.arr || b.pipeline - a.pipeline),
+      byMgr: Object.keys(byMgr).map((x) => byMgr[x])
         .filter((r) => r.meetings || r.arr || r.pipeline)
         .sort((a, b) => b.arr - a.arr || b.pipeline - a.pipeline),
     };
@@ -10068,15 +10247,18 @@
      the page; the chips name the two things you can look at, and the heading
      above them already says what is being asked of each. */
   const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services & Products' }];
+  /* The third cut is who holds the money, which is a question only the
+     desk that reads all of the managers can ask. */
+  const cutsFor = () => (isWhole() ? CUTS.concat([{ k: 'mgr', label: 'Managers' }]) : CUTS);
   function cutBy() {
-    return CUTS.filter((r) => r.k === S.by)[0] ? S.by : 'camp';
+    return cutsFor().filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
   function cutChips() {
     /* Nothing to press for a reader `parse` has already answered for, and
        a control with one reachable state is a label pretending. */
     if (isBuyer()) return '';
     return '<div class="s-tabcuts s-cut-by" role="group" aria-label="Cut the money by">' +
-      CUTS.map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
+      cutsFor().map((r) => '<button class="chip' + (cutBy() === r.k ? ' active' : ' default') +
         '" type="button" data-by="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
     '</div>';
   }
@@ -12540,9 +12722,14 @@
                cost column is not on this desk — so on a client's the
                heading asks the question the panels below actually answer. */
             (cutBy() === 'svc' ? 'What sells and what does not'
+              : cutBy() === 'mgr' ? 'Who is making the number'
               : isBuyer() ? 'Which campaigns worked' : 'Which campaigns paid off') +
           '</h2>' +
-          (cutBy() === 'svc'
+          (cutBy() === 'mgr'
+            ? secAsk('Who needs help closing', 'Rank my managers by how far they are from their ' +
+              'target, and for the one furthest behind, show me which open deals can still close ' +
+              'this quarter and what is holding them.')
+            : cutBy() === 'svc'
             ? secAsk('Why are these not landing', 'Some of my product lines have taken meetings ' +
               'and closed nothing. Show me whether they are reaching the wrong people or losing ' +
               'the ones they reach.')
@@ -12578,7 +12765,8 @@
            by them. Its own row, at the left edge, where neither heading is
            able to move it. */
         cutChips() +
-        (cutBy() === 'svc' ? '' :
+        (cutBy() === 'mgr' ? mgrPans(now, camps, p) : '') +
+        (cutBy() !== 'camp' ? '' :
         /* ══ AND THIS IS WHERE THE THREE COST LINES ARE DEFINED ════════
            Each row inside a panel carried its own definition — "finding the
            people and filling them in" under Suppliers, "the calls it made
