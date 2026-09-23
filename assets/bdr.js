@@ -1179,6 +1179,9 @@
      crew from who worked the lead until somebody writes an array, and a
      write would freeze it for everybody else. */
   const sitsOn = (c) => !!c && Array.isArray(c.joined) && c.joined.indexOf(me().id) >= 0;
+  /* A queue is a caller's; on the CEO's desk nobody queues for him, and the
+     same fact about a list is whether anybody is calling the people on it. */
+  const inQueue = () => (isWhole() ? 'being called' : 'in your queue');
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -5426,10 +5429,11 @@
       const on = people.filter((c) => c.camps.some((k) => DB.byCamp[k] && mine(DB.byCamp[k]))).length;
       if (on) {
         return { text: '<b>' + commas(people.length - on) + '</b> of the ' + commas(people.length) +
-          ' are on no campaign, so they are not in your queue. The ' + commas(on) + ' already on one of yours are.',
+          ' are on no campaign, so they are not ' + inQueue() + '. The ' + commas(on) + ' already on one of ' +
+          (isWhole() ? 'ours' : 'yours') + ' are.',
           from: 'the list having no campaign' };
       }
-      return { text: 'Nobody on this list is in your queue until it is on a campaign.',
+      return { text: 'Nobody on this list is ' + inQueue() + ' until it is on a campaign.',
         from: 'the list having no campaign' };
     }
     /* WHAT IT SAYS IS WHAT IT COUNTS. This was people minus the callable,
@@ -5633,15 +5637,17 @@
     const a = S.acc && DB.byAcc[S.acc];
     if (a) {
       const people = consAt(a.id);
-      const call = people.filter(callable);
+      /* Who can be rung here is the caller's reading; on the CEO's rail the
+         company is its people and nothing about his phone. */
+      const call = works() ? people.filter(callable) : [];
       const sig = signalOf(a);
       return {
         card: {
           state: sig ? 'detected' : 'reading',
           text: sig
             ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' · seen ' + esc(sayWhen(sig.at)) + '.'
-            : '<b>' + plural(people.length, 'person') + '</b> on the record here, ' +
-              (call.length ? '<b>' + commas(call.length) + '</b> you can call now.' : 'nobody you can call now.'),
+            : '<b>' + plural(people.length, 'person') + '</b> on the record here' + (!works() ? '.'
+              : ', ' + (call.length ? '<b>' + commas(call.length) + '</b> you can call now.' : 'nobody you can call now.')),
           evidence: [{ val: people.length, cap: 'here' }, { val: call.length, cap: 'to call' }].filter((e) => e.val),
           act: null, q: null,
         },
@@ -5661,8 +5667,8 @@
             : (function () {
                 const inQ = people.filter((c) => campsOf(c).some(mine)).length;
                 return inQ
-                  ? '<b>' + commas(people.length) + '</b> people and no campaign; <b>' + commas(inQ) + '</b> of them are in your queue through another.'
-                  : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is in your queue.';
+                  ? '<b>' + commas(people.length) + '</b> people and no campaign; <b>' + commas(inQ) + '</b> of them are ' + inQueue() + ' through another.'
+                  : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is ' + inQueue() + '.';
               })(),
           evidence: [{ val: people.length, cap: 'people' }, { val: withNum, cap: 'with a number' }].filter((e) => e.val),
           act: null, q: null,
@@ -13695,8 +13701,8 @@
       const off = looseOff(loose);
       return plural(DB.list.length, 'list') + ' holding <b>' + commas(people) + '</b> people' +
         (parked ? ', and <b>' + plural(parked, 'of them is', 'of them are') +
-          '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is in your queue'
-            : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
+          '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is ' + inQueue()
+            : '<b>' + commas(off.n) + '</b> of their people are not ' + inQueue()) : ', all of them on a campaign') + '.';
     }
     if (onBook()) {
       /* ══ A DESK THAT IS IN MEETINGS ALL DAY IS TOLD ABOUT THE MEETINGS ══
@@ -14414,7 +14420,10 @@
          so the one figure the chips add up to read as a control. */
       (S.camp
         ? '<p class="b-tocall">' + (onBook()
-            ? '<b>' + commas(all.length) + '</b> handed to you on this campaign'
+            /* The CEO was handed nothing: on his desk it is how many the
+               campaign has handed over, to whichever manager. */
+            ? '<b>' + commas(all.length) + '</b> ' +
+              (isWhole() ? 'handed over on this campaign' : 'handed to you on this campaign')
             : S.q === 'after'
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
               : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
@@ -18421,7 +18430,10 @@
        door goes to a queue this desk does not draw, and what to say is
        ours. They get the pace instead, which is the same question a client
        is asking of a campaign with sixty-five days on it. */
-    const fresh0 = !isBuyer() && !myCalls.length;
+    /* "You have not called anyone yet" is a first visit for somebody who
+       calls; the CEO never does, so on his desk the reading goes straight
+       to how the campaign stands against its goal. */
+    const fresh0 = works() && !isBuyer() && !myCalls.length;
     /* ══ THREE FIGURES ON A ROW, NONE OF THEM MEASURED ═════════════════
        "Today: 14 calls · 3 got through · 1 meetings set" — dot-separated,
        so nothing said the three were a chain, and the second and third were
@@ -19798,9 +19810,10 @@
               : '') +
             fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
             fact('role', esc(plural(people.length, 'person')) + ' here') +
-            fact('phone', (call.length
+            /* Who can be rung is a caller's and a manager's fact. */
+            (works() ? fact('phone', (call.length
               ? '<b>' + commas(call.length) + '</b> you can call now'
-              : 'nobody with a number you can call now')) +
+              : 'nobody with a number you can call now')) : '') +
           '</div>' +
           /* Rank two: our record of them. */
           '<div>' +
@@ -21991,9 +22004,13 @@
     const done = c.checkpoint === 'handed-over' || isExit(c.checkpoint);
     const next = c.checkpoint === 'handed-over' ? esc(dealLine(c))
       : isExit(c.checkpoint) ? esc('That is where it ended. Nothing is owed.')
-      : esc(plainNext + (quiet ? ' ' + quietSay(quiet, c) : ''));
+      /* A lead's next step is the caller's, and to the CEO it is a fact
+         about the lead rather than an instruction to him. */
+      : esc((isWhole() ? 'The caller’s next step: ' + plainNext.charAt(0).toLowerCase() + plainNext.slice(1)
+        : plainNext) + (quiet ? ' ' + quietSay(quiet, c) : ''));
     const hand = done ? '' :
-      'Your part ends at <b>Interested</b> — ' + esc(d.name) + ' takes it from there.';
+      (isWhole() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
+      esc(d.name) + ' takes it from there.';
     return {
       now: now, steps: storyTrim(steps),
       next: next, hand: hand, due: done ? null : due, done: done,
@@ -22042,7 +22059,8 @@
       now: now, steps: storyTrim(steps),
       next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
-        ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
+        ? (isWhole() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
+          esc(directorOf(top).name) + ' takes it from there.' : '',
       /* ══ THE HEAD SAID WHAT THE MASTHEAD HAD JUST SAID ══════════════
          "Valencia · Retail", forty pixels under an eyebrow reading COMPANY ·
          RETAIL · VALENCIA, ES. A `cite` names the set a story was read from,
