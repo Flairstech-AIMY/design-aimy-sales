@@ -11128,7 +11128,9 @@
      was drawn in and the zoom on <body> cancels out. */
   let widOn = null;
   function widHover(e) {
-    const plot = e.target && e.target.closest ? e.target.closest('.b-wid-plot') : null;
+    /* By the attribute, the way every handler here finds its element — which
+       is also what lets the audit see that `data-wid` is read. */
+    const plot = e.target && e.target.closest ? e.target.closest('[data-wid]') : null;
     if (widOn && widOn !== plot) {
       widOn.querySelectorAll('.b-wid-cross, .b-wid-hdot, .b-wid-tip').forEach((el) => (el.hidden = true));
       widOn = null;
