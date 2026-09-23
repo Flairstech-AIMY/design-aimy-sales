@@ -17704,9 +17704,9 @@
        inches to its left, and the reader was asked to make the link.
 
        They ARE a chain, and it is the same chain the ladder at the foot of
-       this page draws under the heading "of the step before": calls, of those
-       the ones that connected, of those the ones that booked. Written as a
-       sentence it says so without a column head to explain it.
+       this page draws: calls, of those the ones that connected, of those the
+       ones that booked. Written as a sentence it says so without a column
+       head to explain it.
 
        The last one also read "1 meetings set", from a raw `.length` beside
        a hard-coded plural. Every count on this line goes through `plural`
@@ -18069,21 +18069,22 @@
   function funnelOf(members, topLabel, held) {
     const ever = everAt(members);
     const total = members.length || 1;
-    let prev = null;
+    /* ══ AND NO RATE COLUMN ═══════════════════════════════════════════
+       A fourth column said what share of the step before reached each
+       step — 32%, 61% — beside the count it was computed from and a bar
+       already drawing the narrowing. Three ways of saying one thing, and
+       the third one needed its heading explained. The counts carry it. */
     const rows = FUNNEL_STEPS.map((k) => {
       const n = ever[k];
       if (!n && k !== 'not-called') return '';
       const rg = called[k];
       const pct = Math.max(1, Math.round((n / total) * 100));
-      const conv = prev == null ? null : (prev ? Math.round((n / prev) * 100) : 0);
-      prev = n;
       return '<div class="b-fn-row">' +
         '<span class="b-fn-name">' + esc(k === 'not-called' ? (topLabel || 'On the campaign')
           : FUNNEL_SAY[k] || rg.label) + '</span>' +
         '<span class="b-fn-bar"><span class="b-fn-fill ' + (FN_TONE[rg.tone] || 'tone-neutral') + '" ' +
           'style="width:' + pct + '%"></span></span>' +
         '<span class="b-fn-n">' + commas(n) + '</span>' +
-        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
       '</div>';
     }).join('');
     return '<div class="b-funnel">' +
@@ -18094,7 +18095,7 @@
            any more. A class nothing styles is a class the next reader has to
            go looking for. */
         '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span></span>' +
-          '<span class="b-fn-n">people</span><span class="b-fn-conv">of the step before</span></div>' +
+          '<span class="b-fn-n">people</span></div>' +
         rows + '</div>' +
       /* The campaign page holds this back and reads it out in the block
          under the bars; the company page has no such block and keeps it. */
