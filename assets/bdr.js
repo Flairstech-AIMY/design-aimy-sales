@@ -10939,67 +10939,248 @@
         chIcon('external') + '</a></p>';
   }
 
+  /* ══ ONE WIDGET PER METRIC, AND THE WEEKS ARE THE POINT OF IT ═══════════
+     This was a four-row table: a name, a bar, "now" and "at signing". It was
+     unreadable for a reason the table could not fix. The bar measured how far
+     each metric had got towards its PROMISE, and the promise was nowhere on
+     the row — so "2 days" drew a full bar beside "11 days" and three of the
+     four bars sat at 100% saying nothing a reader could decode. The columns
+     either side of it repeated the tiles at the top of the page, which
+     already say "now, and was X at signing" for the same metrics.
+
+     What nothing else on this page holds is the forty-eight weeks in
+     between, and that is what each widget draws: the weekly line in the
+     quiet ink, the last four weeks — exactly the stretch the big figure
+     averages — in the accent, and the promise as a dashed line to be above
+     or below. Kept or behind is said in the word the ledger uses, never by
+     the line's colour. One line per widget, each on its own scale, because
+     days and percentages on one axis is two charts pretending to be one.
+
+     The SVG is stretched to the widget (`preserveAspectRatio="none"`, the
+     strokes non-scaling), and everything that must stay round or readable —
+     the end dot, the promise line and its tag, the crosshair — is HTML laid
+     over it in the same 0–100 space, as percentages. That keeps the plot one
+     fixed height across the grid whatever the column width, and keeps the
+     hover in fractions of the plot, so the body's zoom never enters it. */
+  /* ══ ONE LINE PER WIDGET, READ OFF ITS OWN WEEKS ═════════════════════
+     A paragraph sat under the four and said three things about all of them:
+     that nothing moved until go-live, what the engagement is, and that the
+     figure is four weeks averaged. Only the first was an insight, and it was
+     the same sentence for a metric that landed in week six as for one still
+     short in week forty-eight. So each widget says its own:
+
+       · kept, and held every week since — WHEN it got there, counted from
+         go-live, which is the paragraph's first sentence made specific;
+       · kept, but noisy — how many of the last twelve weeks missed it on
+         their own, which is the "one week swings" caveat said on the one
+         widget it is true of rather than on all four;
+       · behind — how far it has come and how far is left.
+
+     The averaging moved to the axis, as the key to the stretch drawn in
+     colour, and the engagement's line is the "What you bought" panel's. */
+  /* ══ AND IT IS SAID THE WAY A PERSON WOULD SAY IT ══════════════════
+     The first cut was shorthand — "Held since week 12, 10 weeks after
+     go-live", "Up 17 points since signing, 4 points to go" — which is how
+     somebody who built the chart talks, not somebody reading it. Each line
+     is now one plain sentence: whether the promise is being kept, and the
+     one fact that says how. "Promise" rather than "target", because the
+     chip, the sub-line and the tag on the chart all say promise, and a
+     second word for the same thing reads as a second thing.
+
+     The direction matters to the wording. On a promise to go DOWN — days,
+     minutes — the gap is "over the promise"; on one to go up it is
+     "below". Getting that backwards would tell a client their resolution
+     time is too short. */
+  function floorSay(m, prom, now) {
+    const n = m.w.length;
+    const firstI = m.w.findIndex((v) => v != null);
+    const from0 = prom && prom.was != null ? prom.was : m.w[firstI];
+    const unit = prom || { unit: m.unit };
+    const amt = (v) => promFig(unit, Math.abs(Math.round(v)));
+    if (!prom) {
+      return (now >= from0 ? 'Up from ' : 'Down from ') + promFig(unit, from0) +
+        (m.w[firstI] === from0 ? ' in the first week.' : ' when you signed.');
+    }
+    const down = promDown(prom);
+    const ok = (v) => (down ? v <= prom.to : v >= prom.to);
+    if (!promKept(prom, now)) {
+      const better = down ? now < from0 : now > from0;
+      return (better ? 'Better than when you signed, but still ' : 'Worse than when you signed, and ') +
+        amt(prom.to - now) + (down ? ' over' : ' below') + ' the promise.';
+    }
+    /* The earliest week from which every reviewed week kept it. "Every week
+       since", not "met in": a noisy line touches the promise weeks before it
+       stays there, and the week named is the one it stayed from. */
+    let since = -1;
+    for (let i = n - 1; i >= 0; i--) {
+      if (m.w[i] == null) continue;
+      if (ok(m.w[i])) since = i; else break;
+    }
+    if (since >= 0 && n - since >= 8) {
+      return 'Kept the promise every week since week ' + (since + 1) + '.';
+    }
+    const last = m.w.slice(-12).filter((v) => v != null);
+    const missed = last.filter((v) => !ok(v)).length;
+    return 'Keeping the promise, but ' + missed + ' of the last ' + last.length +
+      ' weeks fell short.';
+  }
+
+  function floorWidget(m, prom) {
+    const now = floorNow(m.w);
+    if (now == null) return '';
+    const n = m.w.length;
+    const firstI = m.w.findIndex((v) => v != null);
+    /* `was` is the contract's, not the corpus's. Week one is what the
+       generator happened to produce for a floor nobody was reviewing, and
+       on two per cent coverage that is four conversations — a sample too
+       thin to put next to a promise. */
+    const was = prom && prom.was != null ? prom.was : m.w[firstI];
+    const unit = prom || { unit: m.unit };
+    const fig = (v) => promFig(unit, v);
+    const vals = m.w.filter((v) => v != null);
+    const ends = vals.concat([was], prom ? [prom.to] : []);
+    const lo0 = Math.min.apply(null, ends);
+    const hi0 = Math.max.apply(null, ends);
+    const pad = (hi0 - lo0) * 0.14 || 1;
+    let lo = lo0 - pad, hi = hi0 + pad;
+    /* The tag goes on the side of the dashed line the week-one value is NOT
+       on, which is where the line has room: a promise is a promise to move,
+       so the left end of the plot is where the data sits furthest from it. */
+    const tagBelow = !!prom && m.w[firstI] > prom.to;
+    /* And that side is stretched to hold it. A promise that is also the
+       lowest value on the plot put the dashed line on the floor and its tag
+       on top of the axis under it; the scale gives the tag a fifth of the
+       plot to sit in instead. */
+    if (prom) {
+      const at = (hi - prom.to) / (hi - lo);
+      if (tagBelow && at > 0.78) lo = (prom.to - 0.22 * hi) / 0.78;
+      if (!tagBelow && at < 0.22) hi = lo + (prom.to - lo) / 0.78;
+    }
+    const x = (i) => (n <= 1 ? 50 : (i / (n - 1)) * 100);
+    const y = (v) => (1 - (v - lo) / (hi - lo)) * 100;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    const pathOf = (from) => {
+      let d = '', pen = false;
+      for (let i = from; i < n; i++) {
+        const v = m.w[i];
+        if (v == null) { pen = false; continue; }
+        d += (pen ? 'L' : 'M') + r1(x(i)) + ' ' + r1(y(v));
+        pen = true;
+      }
+      return d;
+    };
+    /* The weeks `floorNow` averaged, found the way it finds them. */
+    const nowIs = [];
+    for (let i = n - 1; i >= 0 && nowIs.length < FLOOR_NOW_WEEKS; i--) {
+      if (m.w[i] != null) nowIs.unshift(i);
+    }
+    const lastI = nowIs[nowIs.length - 1];
+    const kept = prom ? promKept(prom, now) : null;
+    const goalY = prom ? r1(y(prom.to)) : null;
+    const hover = JSON.stringify({
+      x: m.w.map((v, i) => (v == null ? null : r1(x(i)))),
+      y: m.w.map((v) => (v == null ? null : r1(y(v)))),
+      t: m.w.map((v) => (v == null ? null : fig(v))),
+    });
+    const said = m.label + ': ' + fig(was) + (prom && prom.was != null ? ' at signing' : ' in week one') +
+      ', ' + fig(now) + ' now across the last ' + plural(nowIs.length, 'week') +
+      (prom ? ', ' + fig(prom.to) + ' promised, ' + (kept ? 'kept' : 'behind') : '') + '.';
+    return '<div class="s-pan b-wid">' +
+      '<div class="b-wid-head">' +
+        '<span class="b-wid-name">' + esc(m.label) + '</span>' +
+        (prom ? '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
+          (kept ? 'kept' : 'behind') + '</span>' : '') +
+      '</div>' +
+      '<span class="b-wid-fig">' + esc(fig(now)) + '</span>' +
+      '<span class="b-wid-sub">' + esc(fig(was)) +
+        (prom && prom.was != null ? ' at signing' : ' in week one') +
+        (prom ? ' &middot; ' + esc(fig(prom.to)) + ' promised' : '') + '</span>' +
+      '<div class="b-wid-plot" role="img" aria-label="' + esc(said) + '" data-wid="' + esc(hover) + '">' +
+        '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' +
+          '<path class="b-wid-line" d="' + pathOf(firstI) + '"/>' +
+          '<path class="b-wid-now" d="' + pathOf(nowIs[0]) + '"/>' +
+        '</svg>' +
+        (prom
+          ? '<span class="b-wid-goal" style="top:' + goalY + '%"></span>' +
+            '<span class="b-wid-goal-tag' + (tagBelow ? ' is-below' : '') + '" style="top:' + goalY + '%">' +
+              'promised</span>'
+          : '') +
+        '<span class="b-wid-dot" style="left:' + r1(x(lastI)) + '%;top:' + r1(y(m.w[lastI])) + '%"></span>' +
+        '<span class="b-wid-cross" hidden></span>' +
+        '<span class="b-wid-hdot" hidden></span>' +
+        '<span class="b-wid-tip" hidden></span>' +
+      '</div>' +
+      /* The right end is the key to the stretch in colour: a swatch of the
+         accent, and in words what that stretch is and why the figure above
+         is its average rather than the last week alone. */
+      '<div class="b-wid-axis" aria-hidden="true"><span>Signing</span>' +
+        '<span class="b-wid-key">Now &middot; ' + esc(plural(FLOOR_NOW_WEEKS, 'week')) +
+          ' averaged</span></div>' +
+      /* AiMY's reading of the widget, in the component AiMY speaks in
+         everywhere else: the mark, then the sentence. */
+      aimyBlock({ text: esc(floorSay(m, prom, now)) }, true) +
+    '</div>';
+  }
+
+  /* Reads a week off the line under the pointer. Fractions of the plot on
+     both sides — the pointer's offset over the plot's own width, both in
+     the same visual pixels — so the answer is in the 0–100 space the plot
+     was drawn in and the zoom on <body> cancels out. */
+  let widOn = null;
+  function widHover(e) {
+    const plot = e.target && e.target.closest ? e.target.closest('.b-wid-plot') : null;
+    if (widOn && widOn !== plot) {
+      widOn.querySelectorAll('.b-wid-cross, .b-wid-hdot, .b-wid-tip').forEach((el) => (el.hidden = true));
+      widOn = null;
+    }
+    if (!plot) return;
+    let w;
+    try { w = JSON.parse(plot.getAttribute('data-wid')); } catch (err) { return; }
+    const r = plot.getBoundingClientRect();
+    if (!r.width) return;
+    const f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const n = w.x.length;
+    let i = Math.round(f * (n - 1));
+    /* A week nobody reviewed has no point; take the nearest one that does. */
+    for (let k = 0; k < n; k++) {
+      if (w.x[i - k] != null) { i = i - k; break; }
+      if (w.x[i + k] != null) { i = i + k; break; }
+    }
+    if (w.x[i] == null) return;
+    const cross = plot.querySelector('.b-wid-cross');
+    const dot = plot.querySelector('.b-wid-hdot');
+    const tip = plot.querySelector('.b-wid-tip');
+    cross.style.left = w.x[i] + '%';
+    dot.style.left = w.x[i] + '%';
+    dot.style.top = w.y[i] + '%';
+    tip.textContent = 'Week ' + (i + 1) + ' · ' + w.t[i];
+    tip.style.left = w.x[i] + '%';
+    tip.classList.toggle('is-start', w.x[i] < 18);
+    tip.classList.toggle('is-end', w.x[i] > 82);
+    cross.hidden = false; dot.hidden = false; tip.hidden = false;
+    widOn = plot;
+  }
+
   function buyerFloor() {
     const d = myDeal();
     const t = d && d.team;
     if (!t) return '';
-    const rows = floorSeries(myClient(), (myEng() || {}).k).map((m) => {
-      const prom0 = (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0];
-      /* `was` is the contract's, not the corpus's. Week one is what the
-         generator happened to produce for a floor nobody was reviewing, and
-         on two per cent coverage that is four conversations — a sample too
-         thin to put next to a promise. */
-      const was = prom0 && prom0.was != null ? prom0.was : m.w[0];
-      const now = floorNow(m.w);
-      const prom = prom0;
-      const unit = prom || { unit: m.unit };
-      const to = prom ? prom.to : now;
-      if (now == null) return '';
-      const span = Math.abs(to - was) || 1;
-      const pct = Math.max(2, Math.min(100, Math.round((Math.abs(now - was) / span) * 100)));
-      const done = prom ? promKept(prom, now) : true;
-      return '<div class="b-fn-row">' +
-        '<span class="b-fn-name">' + esc(m.label) + '</span>' +
-        '<span class="b-fn-bar"><span class="b-fn-fill ' +
-          (done ? 'tone-ok' : 'tone-neutral') + '" style="width:' + pct + '%"></span></span>' +
-        '<span class="b-fn-n">' + esc(promFig(unit, now)) + '</span>' +
-        '<span class="b-fn-conv">' + esc(promFig(unit, was)) + '</span>' +
-      '</div>';
-    }).join('');
+    const rows = floorSeries(myClient(), (myEng() || {}).k).map((m) =>
+      floorWidget(m, (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0] || null)).join('');
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
         '<h2 class="s-exec-eyebrow">' +
           (t.whose === 'ours' ? 'What the desk did' : 'What your floor did') + '</h2>' +
       '</div>' +
-      '<div class="b-funnel">' +
-        /* ══ WHICH TWELVE WEEKS, AND WHEN "BEFORE US" WAS ══════════════
-           This said "Over twelve weeks · now · before us" on a contract
-           fifty weeks old, under a note explaining that nothing moved for
-           the first two weeks because that is how long it took to go live.
-           Read together those say the tool went live ten weeks ago, on a
-           relationship approaching its first renewal. They are the FIRST
-           twelve weeks — the rollout, which is the only stretch where a
-           before-and-after has anything to show — and the baseline beside
-           them is the contract's, not week one's.
-
-           Naming both removes the reading where "before us" means "twelve
-           weeks ago". The figures are unchanged; every one of them was
-           already the thing these words now say it is. */
-        /* "The first twelve weeks" was right while the chart was twelve
-           weeks of fifty. It covers the term now, so the last column is
-           today again and the first is the whole of it. */
-        '<div class="b-fn-head"><span class="b-fn-name">Across ' +
-            esc(plural(t.weeks || 12, 'week')) + '</span>' +
-          '<span></span><span class="b-fn-n">now</span>' +
-          '<span class="b-fn-conv">at signing</span></div>' +
+      '<div class="b-wids">' +
+        /* The widget's own axis says where its line starts and ends —
+           signing on the left, now and which week that is on the right —
+           which is what the "Across 48 weeks · now · at signing" header row
+           was for. The whole term, not the first twelve weeks of it. */
         rows +
       '</div>' +
-      '<p class="s-exec-note">Nothing moved for the first ' +
-        esc(plural(t.deployedAt, 'week')) + ' &mdash; ' +
-        esc(t.whose === 'ours' ? 'that is how long the handover took' : 'that is how long it took to go live') +
-        '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
-        esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
-        'swings far enough on its own to turn a promise from kept to behind.</p>' +
+      /* The paragraph that stood here is on the widgets now, a line each —
+         `floorSay` says where every part of it went. */
       /* ══════════════ AND THE DOOR IS NOT HERE, IT IS IN THE BLOCK AT THE TOP ══════════════
          "Show the 24 people behind it" stood here, then the AiMY block that
          replaced it. Both were right about the argument — an average
@@ -30129,6 +30310,10 @@
   document.addEventListener('pointerdown', peekAway, true);
   document.addEventListener('pointerdown', peekDragStart);
   document.addEventListener('pointermove', peekDragMove);
+  /* The floor widgets' week reader: a move reads the week, and a press
+     does too, because a finger on a phone presses without moving. */
+  document.addEventListener('pointermove', widHover);
+  document.addEventListener('pointerdown', widHover);
   document.addEventListener('pointerup', (e) => peekDragEnd(e, false));
   document.addEventListener('pointercancel', (e) => peekDragEnd(e, true));
   document.addEventListener('click', (e) => {

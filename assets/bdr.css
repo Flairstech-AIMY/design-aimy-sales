@@ -6915,3 +6915,96 @@ textarea::placeholder,
    `.tc-summary + .b-qcard-where`, not `:first-of-type`: the summary is a `<p>`
    too, so first-of-type is the summary and the rule lands on nothing. */
 .b-qcard .tc-summary + .b-qcard-where { padding-top: 8px; }
+
+/* ══ WHAT YOUR FLOOR DID, AS FOUR WIDGETS ════════════════════════════════
+   Each metric is its own card — `.s-pan`, the surface "What you bought"
+   already uses on this page — so the four read as four answers rather than
+   four rows of one table. The argument for drawing the weeks is at
+   `floorWidget`.
+
+   The rank inside a card is built from size and weight, never dimness: the
+   figure at the figure step, the name at meta and semibold, the sub-line and
+   the axis at meta and 2xs in `--d200`, which is the floor for type here. */
+/* The bottom margin is the one the paragraph under the grid used to give the
+   page: without it the next block sat 10px under the widgets. */
+.b-wids {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px; margin: 16px 0 24px;
+}
+@media (max-width: 619.98px) { /* 620 layout px, where `.s-starts` goes to one */
+  .b-wids { grid-template-columns: minmax(0, 1fr); }
+}
+.b-wid { padding: 16px 20px 14px; }
+.b-wid-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.b-wid-name { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--d100); min-width: 0; }
+.b-wid-head .s-pan-state { margin-top: 0; flex: none; }
+.b-wid-fig {
+  margin-top: 6px;
+  font-family: var(--font-display); font-size: var(--t-figure); font-weight: var(--fw-bold);
+  line-height: 1.1; letter-spacing: var(--ls-tight); color: var(--d50);
+}
+.b-wid-sub { margin-top: 4px; font-size: var(--ty-meta); line-height: var(--lh-base); color: var(--d200); }
+
+/* The plot is a fixed height whatever the column width, so four widgets in a
+   grid line up. The strokes do not scale with the stretch; everything that
+   has to stay round or legible is HTML over it, placed in percentages. */
+.b-wid-plot { position: relative; height: 88px; margin-top: 16px; cursor: crosshair; }
+.b-wid-plot svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.b-wid-line, .b-wid-now {
+  fill: none; stroke-width: 2; vector-effect: non-scaling-stroke;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+.b-wid-line { stroke: var(--d300); }
+.b-wid-now { stroke: var(--accent); stroke-width: 2.5; }
+.b-wid-goal {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1px dashed var(--d200); pointer-events: none;
+}
+/* Semibold, because it names a MARK and the axis under it names a position:
+   at one weight the two read as one kind of label, and a widget built of
+   12px regular was most of what failed the flatness test. */
+.b-wid-goal-tag {
+  position: absolute; left: 0; transform: translateY(calc(-100% - 3px));
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); line-height: 1;
+  color: var(--d200); pointer-events: none;
+}
+.b-wid-goal-tag.is-below { transform: translateY(4px); }
+.b-wid-dot, .b-wid-hdot {
+  position: absolute; width: 10px; height: 10px; border-radius: 50%;
+  transform: translate(-50%, -50%); pointer-events: none;
+  box-shadow: 0 0 0 2px var(--card-bg);
+}
+.b-wid-dot { background: var(--accent); }
+.b-wid-hdot { background: var(--d50); }
+.b-wid-cross {
+  position: absolute; top: 0; bottom: 0; width: 0;
+  border-left: 1px solid var(--d300); pointer-events: none;
+}
+.b-wid-tip {
+  position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%);
+  padding: 4px 8px; border-radius: var(--r-md);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); line-height: 1.3;
+  color: var(--d50); white-space: nowrap; pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+.b-wid-tip.is-start { transform: none; }
+.b-wid-tip.is-end { transform: translateX(-100%); }
+.b-wid-cross[hidden], .b-wid-hdot[hidden], .b-wid-tip[hidden] { display: none; }
+.b-wid-axis {
+  display: flex; justify-content: space-between; gap: 12px; margin-top: 10px;
+  font-size: var(--fs-2xs); color: var(--d200);
+}
+/* The key: a swatch of the stroke it explains, in the stroke's own colour
+   and weight, and the words in ink — text never wears the series colour. */
+.b-wid-key { display: inline-flex; align-items: center; gap: 6px; text-align: right; }
+.b-wid-key::before {
+  content: ''; flex: none; width: 12px; height: 2.5px; border-radius: 2px;
+  background: var(--accent);
+}
+/* The widget's one reading is AiMY's, so it is `.b-aimy` — the mark and the
+   sentence on the accent ground, the way AiMY speaks on every other surface.
+   What the component brings from a queue card is a card's margins and a
+   `flex: 1` that stretches it to fill the row; here it sits at the foot of
+   the widget at its own height, with the widget's own gap above it. */
+.b-wid .b-aimy { flex: none; margin: 14px 0 0; }
