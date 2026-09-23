@@ -2909,6 +2909,83 @@
       c.next.due = dayAdd(-(1 + ((h >> 7) % room)));
     });
 
+    /* ══ AND EVERY DIARY HAS A TODAY AND A TOMORROW ═══════════════════════
+       The slip above does its job by emptying the days ahead: seven in ten of
+       the meetings still to come are moved behind, so the manager's desk
+       opened on "Nothing is in the diary today" with nothing tomorrow either,
+       and the stakeholder's had a today only by luck of the hash.
+
+       So each book is topped up to two things today and two tomorrow, and to
+       eight meetings behind it with nothing written up. A book is what a
+       desk reads — `mgrOf`'s answer for a manager, the first thing the
+       campaign sells for a stakeholder — so a deal can serve two of them at
+       once, and that is fine: it is one meeting in two diaries.
+
+       Where the days ahead come from, in order: a meeting already booked
+       further out, brought forward; then a live deal that owes nothing yet,
+       given one. The ones behind only ever come from the second, so the
+       top-up never takes a meeting off a day it was already drawn on. The
+       floor the slip keeps — after the last phase written, and after the
+       hand-over — is kept here too. Off the ids' own salts; no draw spent. */
+    const decidedCon = Object.create(null);
+    touch.forEach((t) => { if (t.decision) decidedCon[t.con] = true; });
+    const campById = Object.create(null);
+    camp.forEach((k) => (campById[k.id] = k));
+    const firstCamp = (c) => campById[c.camps[0]] || null;
+    const dirOfSeed = (c) => c.manager || (firstCamp(c) || {}).owner || MANAGERS[0].id;
+    const lineOfSeed = (c) => { const k = firstCamp(c); return (k && k.sells && k.sells[0]) || null; };
+    const seedLines = Object.keys(REP).map((id) => REP[id])
+      .filter((r) => r.fn === 'stakeholder' && r.sell).map((r) => r.sell);
+    const MEET_WHAT = ['Meeting with them', 'Demo for them', 'Dinner with them'];
+    const isMeetNext = (c) => !!c.next && /\b(meeting|demo|dinner)\b/i.test(c.next.what);
+    const floorOf = (c) => {
+      const handed = (c.checkpointAt || '').slice(0, 10);
+      const ph = lastPhase[c.id] || '';
+      return ph > handed ? ph : handed;
+    };
+    const books = Object.create(null);
+    con.forEach((c) => {
+      if (c.checkpoint !== 'handed-over' || decidedCon[c.id]) return;
+      if (c.next && !isMeetNext(c)) return;
+      const line = lineOfSeed(c);
+      ['dir:' + dirOfSeed(c), seedLines.indexOf(line) >= 0 ? 'line:' + line : null]
+        .forEach((b) => { if (b) (books[b] = books[b] || []).push(c); });
+    });
+    const AHEAD_WANT = 2;
+    const BEHIND_WANT = 8;
+    Object.keys(books).sort().forEach((b) => {
+      const g = books[b].slice().sort((x, y) => hash(x.id + ':anchor') - hash(y.id + ':anchor'));
+      [0, 1].forEach((d) => {
+        const iso = dayAdd(d);
+        let have = g.filter((c) => c.next && c.next.due === iso).length;
+        /* A small book can run out of both — a stakeholder's line held nine
+           live deals, every one of them owing something — so tomorrow may
+           also borrow what today holds above its two. */
+        const spare = d === 1 ? g.filter((c) => c.next && c.next.due === TODAY_ISO)
+          .slice(AHEAD_WANT) : [];
+        const pool = g.filter((c) => isMeetNext(c) && c.next.due > dayAdd(1))
+          .concat(g.filter((c) => !c.next), spare);
+        for (let i = 0; have < AHEAD_WANT && i < pool.length; i++, have++) {
+          const c = pool[i];
+          c.next = {
+            what: c.next ? c.next.what : MEET_WHAT[Math.abs(hash(c.id + ':anchorwhat')) % MEET_WHAT.length],
+            due: iso,
+          };
+        }
+      });
+      let behind = g.filter((c) => isMeetNext(c) && c.next.due < TODAY_ISO &&
+        c.next.due > floorOf(c)).length;
+      g.filter((c) => !c.next).forEach((c) => {
+        if (behind >= BEHIND_WANT) return;
+        const floor = floorOf(c);
+        const room = Math.min(SLIP_BACK, floor ? daysBetween(floor, TODAY_ISO) - 1 : SLIP_BACK);
+        if (room < 1) return;
+        const h = Math.abs(hash(c.id + ':behind'));
+        c.next = { what: MEET_WHAT[h % MEET_WHAT.length], due: dayAdd(-(1 + ((h >> 5) % room))) };
+        behind++;
+      });
+    });
+
     /* ══ AND THE CALLS THAT CAME THE OTHER WAY ═════════════════════
        Every touchpoint above is one we MADE. A phone also rings, and when it
        rings while you are in a room with somebody else nobody picks it up —
@@ -2934,10 +3011,20 @@
        `by` is whose phone it was, which is `mgrOf`'s question and so it is
        `mgrOf`'s answer: whoever the lead was handed to, else whoever owns the
        campaign it is on. Before the hand-over it is the caller's. */
-    /* One in seven of the eligible — the share that puts a readable handful on
-       each desk rather than a page nobody can finish. Measured, then tuned
-       against the measurement, the way the shares above it were. */
-    const MISSED_SHARE = 14;
+    /* One in five of the eligible. It was one in seven, which left the log a
+       short list a reader cleared before the kettle boiled — a page for
+       working a backlog needs enough rows to be worked. Still a readable
+       handful rather than a page nobody can finish. */
+    const MISSED_SHARE = 20;
+    /* And the stakeholder's own phone. He answers for a product wherever it
+       is sold, so a prospect on one of his line's deals rings him as well as
+       the manager holding it — its own salt, so none of the manager's rows
+       move to him. */
+    const LINE_MISSED_SHARE = 12;
+    const lineOwner = Object.create(null);
+    Object.keys(REP).forEach((id) => {
+      if (REP[id].fn === 'stakeholder' && REP[id].sell) lineOwner[REP[id].sell] = id;
+    });
     const MISSED_NOTE = [
       'They called. Nobody picked up.',
       'Missed their call.',
@@ -3016,6 +3103,31 @@
            number correlates the message with all three — every overdue lead
            getting the same length of message is the kind of pattern that
            reads as a bug before anybody works out it is a hash. */
+        vm: vm % 100 < 70
+          ? { secs: 8 + ((vm >> 7) % 27), text: vmSay(c, accById[c.acc], vm >> 3) }
+          : null,
+        lines: [], next: null, moved: null, called: c.checkpoint,
+      });
+    });
+    /* The stakeholder's, in the same shape and under the same rules as the
+       rows above: a deal on his line, a number, no opt-out, never before the
+       last call we made, inside a fortnight. */
+    con.forEach((c) => {
+      if (!c.phone || c.dnc || c.checkpoint !== 'handed-over') return;
+      const kk = c.camps.length ? camp.filter((x) => x.id === c.camps[0])[0] : null;
+      const by = kk && kk.sells && kk.sells.length ? lineOwner[kk.sells[0]] : null;
+      if (!by) return;
+      const h = Math.abs(hash(c.id + ':rang-line'));
+      if (h % 100 >= LINE_MISSED_SHARE) return;
+      const vm = Math.abs(hash(c.id + ':vm-line'));
+      const gap = c.lastCallAt ? daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) : 13;
+      const at = dayOf(-Math.max(0, Math.min((h >> 7) % 14, gap)));
+      at.setHours(9 + ((h >> 3) % 9), (h >> 11) % 60, 0, 0);
+      touch.push({
+        id: 'ti' + mId++, con: c.id, camp: c.camps[0] || null, by: by,
+        at: at.toISOString(), secs: 0, outcome: 'no-answer', dir: 'in',
+        proposals: [], objections: [], openings: [],
+        note: MISSED_NOTE[(h >> 5) % MISSED_NOTE.length],
         vm: vm % 100 < 70
           ? { secs: 8 + ((vm >> 7) % 27), text: vmSay(c, accById[c.acc], vm >> 3) }
           : null,
@@ -10328,7 +10440,7 @@
      denominator named in the header — not the ratio of money to money this
      page has thrown out twice. */
   const BUYER_FN = { sourced: 'Found', reachable: 'Reachable', contacted: 'Called',
-    replied: 'Answered', met: 'Met', handed: 'Handed to you', won: 'Signed' };
+    replied: 'Answered', met: 'Met', handed: 'Sent to you', won: 'Signed' };
   /* An engagement may bring its own words for the same six stages — a
      hiring pipeline approaches and interviews where a selling one calls
      and meets. Folded over the default rather than replacing it, so a `fn`
@@ -10354,35 +10466,71 @@
     const rows = [];
     base.forEach((r) => {
       rows.push(r);
-      if (r.k === 'met') rows.push({ k: 'handed', label: 'Handed to you', n: dealBook().length });
+      if (r.k === 'met') rows.push({ k: 'handed', label: 'Sent to you', n: dealBook().length });
     });
-    const top = rows[0].n || 1;
+    /* ══ FOUR WIDGETS, ONE PER STEP, THE WAY THE FLOOR IS DRAWN ═════════
+       This was seven rows under a header — Got this far · people · of the
+       one above — with the conversion in a column of mono figures and Hired
+       on a separate strip scaled to everybody found, which drew the one
+       stage the client does as a two-pixel sliver. The reader had to divide
+       their way down it to find where people fell out.
+
+       Now it is the four steps a person goes through, each a widget: the
+       stages in it as bars out of the count the step started with; whose part the step is,
+       which is the sentence that used to sit between the blocks; and AiMY's
+       one plain sentence about where people went. Each step opens on the
+       count the one before it ended on, so a widget can be read alone. */
     const say = fnSay();
-    let prev = null;
-    const draw = (r) => {
-      const pct = Math.max(1, Math.round((r.n / top) * 100));
-      const conv = prev == null ? null : (prev ? Math.round((r.n / prev) * 100) : 0);
-      prev = r.n;
-      return '<div class="b-fn-row">' +
-        '<span class="b-fn-name">' + esc(say[r.k] || r.label) + '</span>' +
-        '<span class="b-fn-bar"><span class="b-fn-fill ' +
-          (r.k === 'won' ? 'tone-ok' : 'tone-neutral') +
-          '" style="width:' + pct + '%"></span></span>' +
-        '<span class="b-fn-n">' + commas(r.n) + '</span>' +
-        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
-      '</div>';
-    };
-    const head = '<div class="b-fn-head"><span class="b-fn-name">Got this far</span>' +
-      '<span></span><span class="b-fn-n">people</span>' +
-      '<span class="b-fn-conv">of the one above</span></div>';
-    /* Handing over is the last thing we do, so it belongs above the line
-       with everything else that is ours. */
-    const ours = rows.filter((r) => r.k !== 'won');
-    const theirs = rows.filter((r) => r.k === 'won');
-    const d = myDeal();
-    return '<div class="b-funnel">' + head + ours.map(draw).join('') + '</div>' +
-      (d && d.line ? '<p class="s-exec-note">' + esc(d.line) + '</p>' : '') +
-      (theirs.length ? '<div class="b-funnel">' + theirs.map(draw).join('') + '</div>' : '');
+    const by = Object.create(null);
+    rows.forEach((r) => (by[r.k] = r.n));
+    const verb = (k) => String(say[k] || BUYER_FN[k] || k).toLowerCase();
+    const has = (ks) => ks.every((k) => by[k] != null);
+    /* ══ AND EACH WIDGET IS OUT OF ITS OWN FIRST NUMBER ══════════════════
+       The bars were on one scale across all four — out of everybody found —
+       so "Handed to you 17 · Hired 2" drew as two stubs and nothing on the
+       widget said the 2 were out of the 17; the reader got it from AiMY's
+       sentence. Now the step's starting count is said in words under its
+       name, it is the TRACK of every bar in the widget, and the fill is
+       how many of them got that far. The starting row is not drawn as a
+       bar of its own: it would be a full bar saying "all of them". */
+    const STEPS = [
+      { name: 'Finding them', ours: true, keys: ['sourced', 'reachable'],
+        base: (n) => 'Out of the ' + commas(n) + ' people we found',
+        say: () => (by.reachable >= by.sourced ? 'Every person we found can be reached.'
+          : commas(by.sourced - by.reachable) + ' of the ' + commas(by.sourced) +
+            ' people we found cannot be reached.') },
+      { name: 'Reaching them', ours: true, keys: ['reachable', 'contacted', 'replied'],
+        base: (n) => 'Out of the ' + commas(n) + ' people we could reach',
+        say: () => (by.reachable > by.contacted
+          ? commas(by.reachable - by.contacted) + ' people we could reach have not been ' +
+            verb('contacted') + ' yet.'
+          : commas(by.replied) + ' of the ' + commas(by.contacted) + ' people we ' +
+            verb('contacted') + ' answered.') },
+      { name: 'Sending them to you', ours: true, keys: ['replied', 'met', 'handed'],
+        base: (n) => 'Out of the ' + commas(n) + ' people who ' + verb('replied'),
+        say: () => 'We sent you ' + commas(by.handed) + ' of the ' + commas(by.met) +
+          ' people we ' + verb('met') + '.' },
+      { name: 'Your decision', ours: false, keys: ['handed', 'won'],
+        base: (n) => 'Out of the ' + commas(n) + ' people we sent you',
+        say: () => 'You have ' + verb('won') + ' ' + commas(by.won) + ' of the ' +
+          commas(by.handed) + ' people we sent you.' },
+    ].filter((s) => has(s.keys));
+    if (!STEPS.length) return '';
+    const bar = (k, of) => '<span class="b-step-name">' + esc(say[k] || k) + '</span>' +
+      '<span class="b-fn-bar"><span class="b-fn-fill tone-neutral" style="width:' +
+        Math.max(1, Math.round((by[k] / (of || 1)) * 100)) + '%"></span></span>' +
+      '<span class="b-step-n">' + commas(by[k]) + '</span>';
+    return '<div class="b-wids">' + STEPS.map((s) =>
+      '<div class="s-pan b-wid">' +
+        '<div class="b-wid-head">' +
+          '<span class="b-wid-name">' + esc(s.name) + '</span>' +
+          '<span class="s-pan-state">' + (s.ours ? 'Our part' : 'Your part') + '</span>' +
+        '</div>' +
+        '<span class="b-wid-sub">' + esc(s.base(by[s.keys[0]])) + '</span>' +
+        '<div class="b-steps">' +
+          s.keys.slice(1).map((k) => bar(k, by[s.keys[0]])).join('') + '</div>' +
+        aimyBlock({ text: esc(s.say()) }, true) +
+      '</div>').join('') + '</div>';
   }
 
   /* ══ WHAT A PROMISE IS COMPARED AGAINST, AND WHY IT IS NOT LAST YEAR ═══
@@ -10827,67 +10975,250 @@
         chIcon('external') + '</a></p>';
   }
 
+  /* ══ ONE WIDGET PER METRIC, AND THE WEEKS ARE THE POINT OF IT ═══════════
+     This was a four-row table: a name, a bar, "now" and "at signing". It was
+     unreadable for a reason the table could not fix. The bar measured how far
+     each metric had got towards its PROMISE, and the promise was nowhere on
+     the row — so "2 days" drew a full bar beside "11 days" and three of the
+     four bars sat at 100% saying nothing a reader could decode. The columns
+     either side of it repeated the tiles at the top of the page, which
+     already say "now, and was X at signing" for the same metrics.
+
+     What nothing else on this page holds is the forty-eight weeks in
+     between, and that is what each widget draws: the weekly line in the
+     quiet ink, the last four weeks — exactly the stretch the big figure
+     averages — in the accent, and the promise as a dashed line to be above
+     or below. Kept or behind is said in the word the ledger uses, never by
+     the line's colour. One line per widget, each on its own scale, because
+     days and percentages on one axis is two charts pretending to be one.
+
+     The SVG is stretched to the widget (`preserveAspectRatio="none"`, the
+     strokes non-scaling), and everything that must stay round or readable —
+     the end dot, the promise line and its tag, the crosshair — is HTML laid
+     over it in the same 0–100 space, as percentages. That keeps the plot one
+     fixed height across the grid whatever the column width, and keeps the
+     hover in fractions of the plot, so the body's zoom never enters it. */
+  /* ══ ONE LINE PER WIDGET, READ OFF ITS OWN WEEKS ═════════════════════
+     A paragraph sat under the four and said three things about all of them:
+     that nothing moved until go-live, what the engagement is, and that the
+     figure is four weeks averaged. Only the first was an insight, and it was
+     the same sentence for a metric that landed in week six as for one still
+     short in week forty-eight. So each widget says its own:
+
+       · kept, and held every week since — WHEN it got there, counted from
+         go-live, which is the paragraph's first sentence made specific;
+       · kept, but noisy — how many of the last twelve weeks missed it on
+         their own, which is the "one week swings" caveat said on the one
+         widget it is true of rather than on all four;
+       · behind — how far it has come and how far is left.
+
+     The averaging moved to the axis, as the key to the stretch drawn in
+     colour, and the engagement's line is the "What you bought" panel's. */
+  /* ══ AND IT IS SAID THE WAY A PERSON WOULD SAY IT ══════════════════
+     The first cut was shorthand — "Held since week 12, 10 weeks after
+     go-live", "Up 17 points since signing, 4 points to go" — which is how
+     somebody who built the chart talks, not somebody reading it. Each line
+     is now one plain sentence: whether the promise is being kept, and the
+     one fact that says how. "Promise" rather than "target", because the
+     chip, the sub-line and the tag on the chart all say promise, and a
+     second word for the same thing reads as a second thing.
+
+     The direction matters to the wording. On a promise to go DOWN — days,
+     minutes — the gap is "over the promise"; on one to go up it is
+     "below". Getting that backwards would tell a client their resolution
+     time is too short. */
+  function floorSay(m, prom, now) {
+    const n = m.w.length;
+    const firstI = m.w.findIndex((v) => v != null);
+    const from0 = prom && prom.was != null ? prom.was : m.w[firstI];
+    const unit = prom || { unit: m.unit };
+    const amt = (v) => promFig(unit, Math.abs(Math.round(v)));
+    if (!prom) {
+      return (now >= from0 ? 'Up from ' : 'Down from ') + promFig(unit, from0) +
+        (m.w[firstI] === from0 ? ' in the first week.' : ' when you signed.');
+    }
+    const down = promDown(prom);
+    const ok = (v) => (down ? v <= prom.to : v >= prom.to);
+    if (!promKept(prom, now)) {
+      const better = down ? now < from0 : now > from0;
+      return (better ? 'Better than when you signed, but still ' : 'Worse than when you signed, and ') +
+        amt(prom.to - now) + (down ? ' over' : ' below') + ' the promise.';
+    }
+    /* The earliest week from which every reviewed week kept it. "Every week
+       since", not "met in": a noisy line touches the promise weeks before it
+       stays there, and the week named is the one it stayed from. */
+    let since = -1;
+    for (let i = n - 1; i >= 0; i--) {
+      if (m.w[i] == null) continue;
+      if (ok(m.w[i])) since = i; else break;
+    }
+    if (since >= 0 && n - since >= 8) {
+      return 'Kept the promise every week since week ' + (since + 1) + '.';
+    }
+    const last = m.w.slice(-12).filter((v) => v != null);
+    const missed = last.filter((v) => !ok(v)).length;
+    return 'Keeping the promise, but ' + missed + ' of the last ' + last.length +
+      ' weeks fell short.';
+  }
+
+  function floorWidget(m, prom) {
+    const now = floorNow(m.w);
+    if (now == null) return '';
+    const n = m.w.length;
+    const firstI = m.w.findIndex((v) => v != null);
+    /* `was` is the contract's, not the corpus's. Week one is what the
+       generator happened to produce for a floor nobody was reviewing, and
+       on two per cent coverage that is four conversations — a sample too
+       thin to put next to a promise. */
+    const was = prom && prom.was != null ? prom.was : m.w[firstI];
+    const unit = prom || { unit: m.unit };
+    const fig = (v) => promFig(unit, v);
+    const vals = m.w.filter((v) => v != null);
+    const ends = vals.concat([was], prom ? [prom.to] : []);
+    const lo0 = Math.min.apply(null, ends);
+    const hi0 = Math.max.apply(null, ends);
+    const pad = (hi0 - lo0) * 0.14 || 1;
+    let lo = lo0 - pad, hi = hi0 + pad;
+    /* The tag goes on the side of the dashed line the week-one value is NOT
+       on, which is where the line has room: a promise is a promise to move,
+       so the left end of the plot is where the data sits furthest from it. */
+    const tagBelow = !!prom && m.w[firstI] > prom.to;
+    /* And that side is stretched to hold it. A promise that is also the
+       lowest value on the plot put the dashed line on the floor and its tag
+       on top of the axis under it; the scale gives the tag a fifth of the
+       plot to sit in instead. */
+    if (prom) {
+      const at = (hi - prom.to) / (hi - lo);
+      if (tagBelow && at > 0.78) lo = (prom.to - 0.22 * hi) / 0.78;
+      if (!tagBelow && at < 0.22) hi = lo + (prom.to - lo) / 0.78;
+    }
+    const x = (i) => (n <= 1 ? 50 : (i / (n - 1)) * 100);
+    const y = (v) => (1 - (v - lo) / (hi - lo)) * 100;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    const pathOf = (from) => {
+      let d = '', pen = false;
+      for (let i = from; i < n; i++) {
+        const v = m.w[i];
+        if (v == null) { pen = false; continue; }
+        d += (pen ? 'L' : 'M') + r1(x(i)) + ' ' + r1(y(v));
+        pen = true;
+      }
+      return d;
+    };
+    /* The weeks `floorNow` averaged, found the way it finds them. */
+    const nowIs = [];
+    for (let i = n - 1; i >= 0 && nowIs.length < FLOOR_NOW_WEEKS; i--) {
+      if (m.w[i] != null) nowIs.unshift(i);
+    }
+    const lastI = nowIs[nowIs.length - 1];
+    const kept = prom ? promKept(prom, now) : null;
+    const goalY = prom ? r1(y(prom.to)) : null;
+    const hover = JSON.stringify({
+      x: m.w.map((v, i) => (v == null ? null : r1(x(i)))),
+      y: m.w.map((v) => (v == null ? null : r1(y(v)))),
+      t: m.w.map((v) => (v == null ? null : fig(v))),
+    });
+    const said = m.label + ': ' + fig(was) + (prom && prom.was != null ? ' at signing' : ' in week one') +
+      ', ' + fig(now) + ' now across the last ' + plural(nowIs.length, 'week') +
+      (prom ? ', ' + fig(prom.to) + ' promised, ' + (kept ? 'kept' : 'behind') : '') + '.';
+    return '<div class="s-pan b-wid">' +
+      '<div class="b-wid-head">' +
+        '<span class="b-wid-name">' + esc(m.label) + '</span>' +
+        (prom ? '<span class="s-pan-state tone-' + (kept ? 'ok' : 'warn') + '">' +
+          (kept ? 'kept' : 'behind') + '</span>' : '') +
+      '</div>' +
+      '<span class="b-wid-fig">' + esc(fig(now)) + '</span>' +
+      '<span class="b-wid-sub">' + esc(fig(was)) +
+        (prom && prom.was != null ? ' at signing' : ' in week one') +
+        (prom ? ' &middot; ' + esc(fig(prom.to)) + ' promised' : '') + '</span>' +
+      '<div class="b-wid-plot" role="img" aria-label="' + esc(said) + '" data-wid="' + esc(hover) + '">' +
+        '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' +
+          '<path class="b-wid-line" d="' + pathOf(firstI) + '"/>' +
+          '<path class="b-wid-now" d="' + pathOf(nowIs[0]) + '"/>' +
+        '</svg>' +
+        (prom
+          ? '<span class="b-wid-goal" style="top:' + goalY + '%"></span>' +
+            '<span class="b-wid-goal-tag' + (tagBelow ? ' is-below' : '') + '" style="top:' + goalY + '%">' +
+              'promised</span>'
+          : '') +
+        '<span class="b-wid-dot" style="left:' + r1(x(lastI)) + '%;top:' + r1(y(m.w[lastI])) + '%"></span>' +
+        '<span class="b-wid-cross" hidden></span>' +
+        '<span class="b-wid-hdot" hidden></span>' +
+        '<span class="b-wid-tip" hidden></span>' +
+      '</div>' +
+      /* The right end is the key to the stretch in colour: a swatch of the
+         accent, and in words what that stretch is and why the figure above
+         is its average rather than the last week alone. */
+      '<div class="b-wid-axis" aria-hidden="true"><span>Signing</span>' +
+        '<span class="b-wid-key">Now &middot; ' + esc(plural(FLOOR_NOW_WEEKS, 'week')) +
+          ' averaged</span></div>' +
+      /* AiMY's reading of the widget, in the component AiMY speaks in
+         everywhere else: the mark, then the sentence. */
+      aimyBlock({ text: esc(floorSay(m, prom, now)) }, true) +
+    '</div>';
+  }
+
+  /* Reads a week off the line under the pointer. Fractions of the plot on
+     both sides — the pointer's offset over the plot's own width, both in
+     the same visual pixels — so the answer is in the 0–100 space the plot
+     was drawn in and the zoom on <body> cancels out. */
+  let widOn = null;
+  function widHover(e) {
+    /* By the attribute, the way every handler here finds its element — which
+       is also what lets the audit see that `data-wid` is read. */
+    const plot = e.target && e.target.closest ? e.target.closest('[data-wid]') : null;
+    if (widOn && widOn !== plot) {
+      widOn.querySelectorAll('.b-wid-cross, .b-wid-hdot, .b-wid-tip').forEach((el) => (el.hidden = true));
+      widOn = null;
+    }
+    if (!plot) return;
+    let w;
+    try { w = JSON.parse(plot.getAttribute('data-wid')); } catch (err) { return; }
+    const r = plot.getBoundingClientRect();
+    if (!r.width) return;
+    const f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const n = w.x.length;
+    let i = Math.round(f * (n - 1));
+    /* A week nobody reviewed has no point; take the nearest one that does. */
+    for (let k = 0; k < n; k++) {
+      if (w.x[i - k] != null) { i = i - k; break; }
+      if (w.x[i + k] != null) { i = i + k; break; }
+    }
+    if (w.x[i] == null) return;
+    const cross = plot.querySelector('.b-wid-cross');
+    const dot = plot.querySelector('.b-wid-hdot');
+    const tip = plot.querySelector('.b-wid-tip');
+    cross.style.left = w.x[i] + '%';
+    dot.style.left = w.x[i] + '%';
+    dot.style.top = w.y[i] + '%';
+    tip.textContent = 'Week ' + (i + 1) + ' · ' + w.t[i];
+    tip.style.left = w.x[i] + '%';
+    tip.classList.toggle('is-start', w.x[i] < 18);
+    tip.classList.toggle('is-end', w.x[i] > 82);
+    cross.hidden = false; dot.hidden = false; tip.hidden = false;
+    widOn = plot;
+  }
+
   function buyerFloor() {
     const d = myDeal();
     const t = d && d.team;
     if (!t) return '';
-    const rows = floorSeries(myClient(), (myEng() || {}).k).map((m) => {
-      const prom0 = (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0];
-      /* `was` is the contract's, not the corpus's. Week one is what the
-         generator happened to produce for a floor nobody was reviewing, and
-         on two per cent coverage that is four conversations — a sample too
-         thin to put next to a promise. */
-      const was = prom0 && prom0.was != null ? prom0.was : m.w[0];
-      const now = floorNow(m.w);
-      const prom = prom0;
-      const unit = prom || { unit: m.unit };
-      const to = prom ? prom.to : now;
-      if (now == null) return '';
-      const span = Math.abs(to - was) || 1;
-      const pct = Math.max(2, Math.min(100, Math.round((Math.abs(now - was) / span) * 100)));
-      const done = prom ? promKept(prom, now) : true;
-      return '<div class="b-fn-row">' +
-        '<span class="b-fn-name">' + esc(m.label) + '</span>' +
-        '<span class="b-fn-bar"><span class="b-fn-fill ' +
-          (done ? 'tone-ok' : 'tone-neutral') + '" style="width:' + pct + '%"></span></span>' +
-        '<span class="b-fn-n">' + esc(promFig(unit, now)) + '</span>' +
-        '<span class="b-fn-conv">' + esc(promFig(unit, was)) + '</span>' +
-      '</div>';
-    }).join('');
+    const rows = floorSeries(myClient(), (myEng() || {}).k).map((m) =>
+      floorWidget(m, (d.promises || []).filter((x) => x.read === 'team.' + m.k)[0] || null)).join('');
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
         '<h2 class="s-exec-eyebrow">' +
           (t.whose === 'ours' ? 'What the desk did' : 'What your floor did') + '</h2>' +
       '</div>' +
-      '<div class="b-funnel">' +
-        /* ══ WHICH TWELVE WEEKS, AND WHEN "BEFORE US" WAS ══════════════
-           This said "Over twelve weeks · now · before us" on a contract
-           fifty weeks old, under a note explaining that nothing moved for
-           the first two weeks because that is how long it took to go live.
-           Read together those say the tool went live ten weeks ago, on a
-           relationship approaching its first renewal. They are the FIRST
-           twelve weeks — the rollout, which is the only stretch where a
-           before-and-after has anything to show — and the baseline beside
-           them is the contract's, not week one's.
-
-           Naming both removes the reading where "before us" means "twelve
-           weeks ago". The figures are unchanged; every one of them was
-           already the thing these words now say it is. */
-        /* "The first twelve weeks" was right while the chart was twelve
-           weeks of fifty. It covers the term now, so the last column is
-           today again and the first is the whole of it. */
-        '<div class="b-fn-head"><span class="b-fn-name">Across ' +
-            esc(plural(t.weeks || 12, 'week')) + '</span>' +
-          '<span></span><span class="b-fn-n">now</span>' +
-          '<span class="b-fn-conv">at signing</span></div>' +
+      '<div class="b-wids">' +
+        /* The widget's own axis says where its line starts and ends —
+           signing on the left, now and which week that is on the right —
+           which is what the "Across 48 weeks · now · at signing" header row
+           was for. The whole term, not the first twelve weeks of it. */
         rows +
       '</div>' +
-      '<p class="s-exec-note">Nothing moved for the first ' +
-        esc(plural(t.deployedAt, 'week')) + ' &mdash; ' +
-        esc(t.whose === 'ours' ? 'that is how long the handover took' : 'that is how long it took to go live') +
-        '. ' + esc(d.line) + ' Every figure under <b>now</b> is the last ' +
-        esc(plural(FLOOR_NOW_WEEKS, 'week')) + ' meaned, because one week ' +
-        'swings far enough on its own to turn a promise from kept to behind.</p>' +
+      /* The paragraph that stood here is on the widgets now, a line each —
+         `floorSay` says where every part of it went. */
       /* ══════════════ AND THE DOOR IS NOT HERE, IT IS IN THE BLOCK AT THE TOP ══════════════
          "Show the 24 people behind it" stood here, then the AiMY block that
          replaced it. Both were right about the argument — an average
@@ -12512,8 +12843,17 @@
         '<h1 class="slv-title">Today</h1>' +
         '<span class="slv-time">' + esc(sayDay(TODAY_ISO)) + '</span>' +
       '</div>' +
-      '<div class="slv-body"><p class="slv-line">' +
-        briefSentence(here, counts, all, camps) + '</p></div>' +
+      /* ══ ONE FACT TO A LINE ════════════════════════════════════════
+         This was one paragraph, and on a caller's desk it ran three facts
+         of three kinds together — what is late, what there is to call, and
+         who decided this week — so the reader found the sentence boundaries
+         themselves. Each is its own line now, in the order they were said,
+         and `.slv-line + .slv-line` already spaces them. */
+      '<div class="slv-body">' +
+        [].concat(briefSentence(here, counts, all, camps))
+          .map((l) => String(l || '').trim()).filter(Boolean)
+          .map((l) => '<p class="slv-line">' + l + '</p>').join('') +
+      '</div>' +
       /* ══ AND THE LOG IS NOT A WAY TO START ════════════════════════
          A door onto the call log sat on this caption's row, wearing the
          count as a badge: four ways to START, and beside them the one
@@ -12766,14 +13106,13 @@
          under eighty — and the last of those three was a coaching count
          with no surface left behind it. What the coverage is worth is on
          the report, beside the promise that asked for it. */
-      if (!on.length) {
-        return 'Nothing is in the diary today.' + owed + ' ' + book + briefOwed() +
-          yearClause();
-      }
-      return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
-        (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
-          esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book + briefOwed() +
-        yearClause();
+      const diary = !on.length ? 'Nothing is in the diary today.'
+        : '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
+          (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
+            esc(first.con.name) + '</b>' : '') + '.';
+      /* A line each: the day, the book, what has slipped, the year. The
+         unwritten meetings stay on the day's line — they are the diary's. */
+      return [diary + owed, book, briefOwed(), yearClause()];
     }
     return openerText(counts, all, camps);
   }
@@ -12873,9 +13212,13 @@
           ' can be called.'
         : 'Nobody on your ' + campDoor + ' can be called today.';
 
-    const decided = decidedLately();
-    return (owed.length ? owed.join(', ').replace(/, ([^,]*)$/, ' and $1') + '. ' : '') +
-      book + (decided ? ' ' + decided : '');
+    /* Three lines, not one paragraph: what is owed, what there is, and what
+       came back. `topBrief` drops the ones that are empty. */
+    return [
+      owed.length ? owed.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' : '',
+      book,
+      decidedLately(),
+    ];
   }
 
   /* ══ THE LOOP CLOSES WHERE THE FLOWCHART CLOSES ═══════════════════════
@@ -12976,10 +13319,9 @@
                 (nBehind === 1 ? ' is' : ' are') +
                 ' behind with ' + run + ' to run. Say which of them can still be caught ' +
                 'and what it would take.',
-              label: 'Ask what can still be caught',
-              why: esc(commas(nBehind)) + ' of your ' +
-                esc(plural(y.scored.length, 'promise')) +
-                (nBehind === 1 ? ' is behind' : ' are behind') }
+              label: 'Ask what can still be caught', n: nBehind,
+              why: 'behind, of the ' + esc(plural(y.scored.length, 'promise')) +
+                ' on your year' }
           : { k: 'ask:Every promise on my year is being kept with ' + run + ' to run. ' +
                 'Say what next year should ask for instead.',
               label: 'Ask what next year should be',
@@ -12994,7 +13336,7 @@
          his own leads as well as taking the ones handed up. */
       const top = all[0];
       opens = [
-        { k: 'callnext', label: 'Warm-call the next one',
+        { k: 'callnext', label: 'Warm-call the next one', n: all.length,
           why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
         /* ══ THE BRIEF IS NOT A WAY TO START ═══════════════════════════
            "Prepare me" sat here offering the brief on whoever is top of the
@@ -13022,11 +13364,12 @@
       const soonest = camps.filter((k) => k.to >= TODAY_ISO).sort((a, b) => (a.to < b.to ? -1 : 1))[0];
       opens = [
         busiest ? { k: 'camp:' + busiest.id, label: 'Work ' + busiest.name,
-          why: plural(queue(busiest.id).length, 'person') + ' left to call on it' } : null,
+          n: queue(busiest.id).length, why: 'the most people left to call' } : null,
         soonest && soonest.id !== (busiest && busiest.id)
-          ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name, why: closesIn(soonest) }
+          ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name,
+              n: queue(soonest.id).length, why: closesIn(soonest) }
           : null,
-        { k: 'callnext', label: 'Call the next one',
+        { k: 'callnext', label: 'Call the next one', n: all.length,
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
         findLeads,
       ].filter(Boolean);
@@ -13034,16 +13377,16 @@
       const parked = DB.list.filter(listLoose)[0];
       opens = [
         findLeads,
-        parked ? { k: 'list:' + parked.id, label: 'Put a list to work',
+        parked ? { k: 'list:' + parked.id, label: 'Put a list to work', n: parked.has.length,
           why: esc(parked.name) + ' is on no campaign yet' } : null,
-        { k: 'callnext', label: 'Call the next one',
+        { k: 'callnext', label: 'Call the next one', n: all.length,
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
-        { k: 'camps', label: 'Pick a campaign',
-          why: plural(camps.length, 'campaign') + ' are yours to work' },
+        { k: 'camps', label: 'Pick a campaign', n: camps.length,
+          why: camps.length ? 'yours to work' : 'you are on none yet' },
       ].filter(Boolean);
     } else {
       opens = [
-        { k: 'callnext', label: 'Call the next one',
+        { k: 'callnext', label: 'Call the next one', n: all.length,
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
         /* ══ THE DOOR SAYS WHAT IS OWED, THE PARAGRAPH SAYS HOW MANY ══════
            Two of these four read back a clause the paragraph six pixels above
@@ -13064,7 +13407,7 @@
            silence has run. Both are computed here rather than read off an
            order — `queue` ranks by what is owed, not by date, so the oldest
            is found by looking at all of them. */
-        { k: 'callback', label: 'Work the callbacks',
+        { k: 'callback', label: 'Work the callbacks', n: counts.callback,
           why: (function () {
             if (!counts.callback) return 'nobody asked for one';
             const cb = queue(null, 'callback');
@@ -13084,22 +13427,41 @@
         /* A meeting that passed outranks a stranger: the door to say what
            happened takes the third slot while there is anything to say. */
         counts.after
-          ? { k: 'after', label: 'Say what happened',
+          ? { k: 'after', label: 'Say what happened', n: counts.after,
               why: (function () {
                 const aft = queue(null, 'after').filter((c) => c.next && c.next.due);
                 if (!aft.length) return 'nothing to report yet';
                 const oldest = aft.reduce((m, c) => (c.next.due < m ? c.next.due : m), aft[0].next.due);
                 return 'the oldest passed ' + esc(sayWhen(oldest));
               })() }
-          : { k: 'not-called', label: 'Call somebody new',
-              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been called'
+          : { k: 'not-called', label: 'Call somebody new', n: counts['not-called'],
+              why: counts['not-called'] ? 'nobody has called them yet'
                 : 'everyone has been tried' },
         findLeads,
       ];
     }
+    /* ══ A DOOR THAT OPENS ONTO A SET SAYS HOW BIG IT IS ═══════════════
+       `n` is the size of what is behind the door — the queue you would
+       work down, the callbacks, the meetings to write up — set as a figure
+       beside the verb so the four read at a glance as "how much of each".
+       It is not the paragraph's number said twice: the paragraph says what
+       is LATE, the door says how much there is to do. Doors that start
+       something from nothing (find leads, build a campaign, add a lead)
+       have no set yet and carry no figure; a 0 is left off too, because a
+       door whose reason already says "nobody asked for one" does not need
+       the digit to say it again.
+
+       A door without one still gets the slot, holding a zero-width space:
+       the row sits on the figure's baseline, and Poppins' tall ascent at
+       20px puts that 2px lower than the verb's own, so a bare door set its
+       verb visibly higher than the door beside it. */
     return '<div class="s-starts" role="group" aria-label="Ways to start">' +
       opens.map((o) => '<button class="s-start" type="button" data-start="' + esc(o.k) + '">' +
-        '<span class="s-start-label">' + esc(o.label) + '</span>' +
+        '<span class="s-start-top">' +
+          '<span class="s-start-label">' + esc(o.label) + '</span>' +
+          (o.n ? '<span class="s-start-n">' + commas(o.n) + '</span>'
+            : '<span class="s-start-n" aria-hidden="true">​</span>') +
+        '</span>' +
         '<span class="s-start-why">' + o.why + '</span>' +
       '</button>').join('') + '</div>';
   }
@@ -17342,9 +17704,9 @@
        inches to its left, and the reader was asked to make the link.
 
        They ARE a chain, and it is the same chain the ladder at the foot of
-       this page draws under the heading "of the one above": calls, of those
-       the ones that connected, of those the ones that booked. Written as a
-       sentence it says so without a column head to explain it.
+       this page draws: calls, of those the ones that connected, of those the
+       ones that booked. Written as a sentence it says so without a column
+       head to explain it.
 
        The last one also read "1 meetings set", from a raw `.length` beside
        a hard-coded plural. Every count on this line goes through `plural`
@@ -17707,21 +18069,22 @@
   function funnelOf(members, topLabel, held) {
     const ever = everAt(members);
     const total = members.length || 1;
-    let prev = null;
+    /* ══ AND NO RATE COLUMN ═══════════════════════════════════════════
+       A fourth column said what share of the step before reached each
+       step — 32%, 61% — beside the count it was computed from and a bar
+       already drawing the narrowing. Three ways of saying one thing, and
+       the third one needed its heading explained. The counts carry it. */
     const rows = FUNNEL_STEPS.map((k) => {
       const n = ever[k];
       if (!n && k !== 'not-called') return '';
       const rg = called[k];
       const pct = Math.max(1, Math.round((n / total) * 100));
-      const conv = prev == null ? null : (prev ? Math.round((n / prev) * 100) : 0);
-      prev = n;
       return '<div class="b-fn-row">' +
         '<span class="b-fn-name">' + esc(k === 'not-called' ? (topLabel || 'On the campaign')
           : FUNNEL_SAY[k] || rg.label) + '</span>' +
         '<span class="b-fn-bar"><span class="b-fn-fill ' + (FN_TONE[rg.tone] || 'tone-neutral') + '" ' +
           'style="width:' + pct + '%"></span></span>' +
         '<span class="b-fn-n">' + commas(n) + '</span>' +
-        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
       '</div>';
     }).join('');
     return '<div class="b-funnel">' +
@@ -17732,7 +18095,7 @@
            any more. A class nothing styles is a class the next reader has to
            go looking for. */
         '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span></span>' +
-          '<span class="b-fn-n">people</span><span class="b-fn-conv">of the one above</span></div>' +
+          '<span class="b-fn-n">people</span></div>' +
         rows + '</div>' +
       /* The campaign page holds this back and reads it out in the block
          under the bars; the company page has no such block and keeps it. */
@@ -20406,6 +20769,16 @@
        what happens to it next, and it is not the account manager's alone. */
     put(isoAdd(p.end, -5), (REP[ACCT_EXEC] || mgr).name + ' and ' + mgr.name,
       'The year, and what next');
+    /* ══ AND THIS WEEK ══════════════════════════════════════════════
+       The cadence above is monthly, so on most days this desk opened on
+       an empty diary and nothing tomorrow — true of the shape and useless
+       for the page. The corpus is built relative to today everywhere else
+       (the callbacks due, the meetings that slipped), and so is this: the
+       account manager's call on how the campaigns ran this week, and
+       tomorrow the brief for the next one, which is what the Start row's
+       "Request a campaign" leads to. */
+    put(TODAY_ISO, mgr.name, 'This week’s campaigns');
+    put(dayAdd(1), mgr.name, 'Brief for the next campaign');
     return out;
   }
 
@@ -29976,6 +30349,10 @@
   document.addEventListener('pointerdown', peekAway, true);
   document.addEventListener('pointerdown', peekDragStart);
   document.addEventListener('pointermove', peekDragMove);
+  /* The floor widgets' week reader: a move reads the week, and a press
+     does too, because a finger on a phone presses without moving. */
+  document.addEventListener('pointermove', widHover);
+  document.addEventListener('pointerdown', widHover);
   document.addEventListener('pointerup', (e) => peekDragEnd(e, false));
   document.addEventListener('pointercancel', (e) => peekDragEnd(e, true));
   document.addEventListener('click', (e) => {
