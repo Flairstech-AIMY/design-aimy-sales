@@ -7046,6 +7046,9 @@ textarea::placeholder,
   margin: 0 0 12px;
 }
 .b-owed .b-give, .b-owed .b-join { margin: -2px 0 10px 30px; }
+/* In a row of buttons the row spaces them, and a bottom margin on one flex
+   item in a centred row lifts it: Reassign sat 6px above Join it. */
+.s-rec-actions .b-give, .b-draft-acts .b-give { margin: 0; }
 /* A line of its own, above the Assign button, and running text rather
    than a flex row: the press is the sentence's last words, so it has to
    wrap with the words around it instead of dropping to a line as a block. */
