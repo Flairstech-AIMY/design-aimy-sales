@@ -7038,11 +7038,14 @@ textarea::placeholder,
    padding, the 6px dot and the 12px gap — so the verbs sit under the thing
    they act on rather than under the dot. The reason is set at the body's
    size and ink, never quieter: it is the sentence that decides the press. */
-.b-give {
+/* `.b-join` is the same strip holding the one verb Join it, under a deal
+   on "Where you are needed" — the same place under the row, for the same
+   reason: the row opens the deal and the verb acts on it. */
+.b-give, .b-join {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
   margin: 0 0 12px;
 }
-.b-owed .b-give { margin: -2px 0 10px 30px; }
+.b-owed .b-give, .b-owed .b-join { margin: -2px 0 10px 30px; }
 .b-give-why {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0;
   font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);

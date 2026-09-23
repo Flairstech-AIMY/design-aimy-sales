@@ -3479,6 +3479,7 @@
       } catch (e) { /* a delta we cannot read is a delta we do not apply. */ }
     }
     reindex();
+    seedJoins();
   }
 
   /* ══ A SAVED DEMO GOES STALE AND THE CORPUS DOES NOT ═══════════════════
@@ -6228,6 +6229,117 @@
     }, actor(was).name + ' is told.');
   }
 
+  /* ══════════════ JOIN IT: THE EXECUTIVE IN THE ROOM ══════════════
+     The research on executives who sell is blunt in both directions. The
+     ones who grew their accounts were briefed, coordinated with whoever
+     owned the account, and selective; the ones who turned up unbriefed and
+     around the owner did measurable harm. So joining a deal is three things
+     at once: its meetings land in his diary with Prepare me on them, the
+     manager who holds it is told, and the list that suggests deals to join
+     is short and stops suggesting at eight.
+
+     Its own field, not the crew: `conCrew` derives the crew from who worked
+     the lead until an array is written, and a write would freeze it. The
+     stage stays the manager's — joining gives him the notes and the room,
+     not the forecast. */
+  const SITS_MAX = 8;
+  function joinDeal(conId) {
+    const c = DB.byCon[conId];
+    if (!c || !isWhole() || c.checkpoint !== 'handed-over') return;
+    const had = (c.joined || []).slice();
+    const at = c.joinedAt || null;
+    const on = had.indexOf(me().id) >= 0;
+    patchCon(c, { joined: on ? had.filter((id) => id !== me().id) : had.concat([me().id]),
+      joinedAt: on ? at : TODAY_ISO });
+    paint();
+    const a = accOf(c);
+    const what = 'the ' + (a ? a.name : c.name) + ' deal';
+    toast(on ? 'You left ' + what : 'You are on ' + what, () => {
+      patchCon(c, { joined: had, joinedAt: at });
+      paint();
+    }, on ? null : directorOf(c).name + ' is told' +
+      (c.next ? ', and ' + c.next.what.toLowerCase() + ' ' + sayWhen(c.next.due) + ' is in your diary.' : '.'));
+  }
+  /* The deals worth an executive's hour: late in the ladder — Shown or
+     Priced, where a senior voice changes a decision rather than a first
+     impression — and in trouble, past their date or a week without a word,
+     and worth more than the middle of the book. Largest first, three at
+     most. Null, not empty, when he already sits on as many as one person
+     can carry well: the block says so rather than going quiet. */
+  function needFor() {
+    if (!isWhole()) return [];
+    const book = dealBook();
+    if (book.filter(sitsOn).length >= SITS_MAX) return null;
+    const live = book.filter((c) => dealLive(c));
+    const vals = live.map((c) => acvOf(c).value).sort((x, y) => x - y);
+    const mid = vals.length ? vals[Math.floor(vals.length / 2)] : 0;
+    return live.filter((c) => {
+      if (sitsOn(c) || acvOf(c).value < mid) return false;
+      const st = stageOf(c);
+      return (st === 'proof' || st === 'commercial') && (needLate(c) || needQuiet(c) != null);
+    }).sort((x, y) => acvOf(y).value - acvOf(x).value).slice(0, 3);
+  }
+  const needLate = (c) => daysBetween(TODAY_ISO, closeBy(c)) < 0;
+  const needQuiet = (c) => {
+    const at = lastActivity(c);
+    const d = at ? daysBetween(at, TODAY_ISO) : null;
+    return d != null && d >= 7 ? d : null;
+  };
+  function needBlock() {
+    const deals = needFor();
+    if (deals === null) {
+      return '<section class="s-block s-block-wide" aria-label="Where you are needed">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Where you are needed</h2></div>' +
+        aimyBlock({ text: 'You sit on <b>' + SITS_MAX + ' deals</b>, which is as many as one person ' +
+          'can carry well. Leave one to join another.', from: '' }, true) +
+      '</section>';
+    }
+    if (!deals.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="Where you are needed">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Where you are needed</h2>' +
+        '<span class="s-block-say">' + esc(plural(deals.length, 'deal')) +
+          ' \u00b7 largest first</span>' +
+      '</div>' +
+      '<div class="b-owed">' + deals.map((c, i) => {
+        const a = accOf(c);
+        const st = DEAL_STAGE[stageOf(c)];
+        const q = needQuiet(c);
+        const why = [euro(acvOf(c).value), st ? st.label.toLowerCase() : null,
+          needLate(c) ? 'past its date' : q != null ? 'nobody has spoken to them in ' + plural(q, 'day') : null]
+          .filter(Boolean).join(', ');
+        return '<button class="b-owed-row" type="button" data-con="' + esc(c.id) + '" ' +
+          'style="--i:' + Math.min(i, 8) + '">' +
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(a ? a.name : c.name) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(why) + '. ' + esc(directorOf(c).name) + '’s deal with ' +
+              esc(c.name) + '.</span>' +
+          '</span>' +
+          '<span class="b-owed-go">See it</span>' +
+        '</button>' +
+        '<span class="b-join"><button class="s-inline-btn" type="button" data-join="' + esc(c.id) + '">' +
+          'Join it</button></span>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
+  /* ══════════════ AND TWO HE ALREADY SITS ON, DEALT RATHER THAN ROLLED ══════════════
+     A demo of this desk with an empty day shows the verb and not what it
+     is for. So the two largest open deals at Priced carry him from the
+     start — chosen by value off the corpus, not by a draw, so no other
+     figure moves — and ten days ago, so no manager's bell announces a join
+     nobody made in this session. A delta that has left one keeps it left. */
+  function seedJoins() {
+    const ceo = REPS.filter((r) => r.fn === 'ceo')[0];
+    if (!ceo) return;
+    DB.con.filter((c) => isDeal(c) && dealLive(c) && stageOf(c) === 'commercial')
+      .sort((x, y) => (acvOf(y).value - acvOf(x).value) || (x.id < y.id ? -1 : 1))
+      .slice(0, 2)
+      .forEach((c) => { if (!('joined' in c)) { c.joined = [ceo.id]; c.joinedAt = dayAdd(-10); } });
+  }
+
   /* ══ OPENING A DOCUMENT ════════════════════════════════════════════════
      The corpus holds it; the canvas is where anything from the corpus is
      read. So the chip opens it there — what it is, when it goes out, and
@@ -7425,6 +7537,9 @@
       /* The CEO's reading of the room, under the requests he assigns from
          it: who is short and what they already carry. */
       mgrBlock() +
+      /* And the deals where an executive in the room could change the
+         answer, three at most. */
+      needBlock() +
       /* \u2550\u2550 THE TWO THAT CAME FROM OUTSIDE THIS DESK, TOGETHER \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          It sat under "What wants you" on the argument that what is owed is
          read before what is possible. True of a morning, and it buried the
@@ -7590,7 +7705,8 @@
        thing on this desk that costs money by sitting still. */
     if (MGR_UNREC[c.id]) {
       const m = MGR_UNREC[c.id];
-      return { text: 'You met them <b>' + esc(sayWhen(m.iso)) +
+      return { text: (isWhole() ? esc(directorOf(c).name) + ' met them <b>' : 'You met them <b>') +
+          esc(sayWhen(m.iso)) +
           '</b> and nothing here says how it went.',
         from: 'the diary against the record',
         act: works() ? { label: 'Say how it went',
@@ -20246,7 +20362,9 @@
      them \u2014 so the test is simply whether you are on it. `isMgr` stays as a
      floor rather than a gate: without it, a manager who stripped the team to
      nobody would have locked the note against themselves. */
-  const conWrites = (c) => isMgr() || conCrew(c).indexOf(me().id) >= 0;
+  /* And whoever has joined it: the CEO in the room learns things too, and
+     a deal he sits on is one he works. */
+  const conWrites = (c) => isMgr() || conCrew(c).indexOf(me().id) >= 0 || sitsOn(c);
 
   /* What we know about this person that no call log holds. `remember` is the
      one line a caller is shown before dialling and belongs to the next call;
@@ -20266,7 +20384,10 @@
   function conTeam(c) {
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const own = isMgr();
-    const ids = conCrew(c);
+    /* Whoever joined it is on it too, last, and nobody's cross takes them
+       off: they joined themselves and leave the same way. */
+    const joined = (c.joined || []).filter((id) => REP[id] && conCrew(c).indexOf(id) < 0);
+    const ids = conCrew(c).concat(joined);
     /* ══ THE TEAM ON A LEAD IS THE CAMPAIGN'S TEAM ══════════════════════
        A first cut showed only the people who had already touched the
        record, so on a lead one caller had been working alone it was one
@@ -20296,6 +20417,7 @@
       '<div class="b-team b-team-rec">' +
         (function () {
           const say = (id) => {
+            if (joined.indexOf(id) >= 0) return (JOB[REP[id].fn] || 'On the team') + ' · joined';
             const theirs = hist.filter((t) => t.by === id);
             const calls = callsIn(theirs).length;
             const mets = theirs.filter((t) => t.outcome === 'phase').length;
@@ -20329,7 +20451,7 @@
             return '<p class="b-cmeta-p b-draft-none">Nobody on it yet.</p>';
           }
           return teamFaces(ids, (id, x) => mateRow(id, say(id), x),
-            { sub: say, off: own ? ((id) => conOff(c, id)) : (() => '') });
+            { sub: say, off: own ? ((id) => (joined.indexOf(id) >= 0 ? '' : conOff(c, id))) : (() => '') });
         })() +
       '</div>' +
     '</section>';
@@ -20626,9 +20748,14 @@
            The brief stands beside the phone because a manager walks into a
            meeting far more often than they dial. */
         const prep = { html: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' };
+        /* The CEO's pair: join it, and once he is in, the brief before the
+           room — with Leave it beside it rather than in its place. */
+        const join = { html: sitsOn(c) ? 'Leave it' : 'Join it', attr: 'data-join="' + esc(c.id) + '"' };
         /* A lead added by hand has no number, so the supplier is the verb
            before the phone can be — the same door the caller's desk offers. */
-        list = dealLive(c) ? (call ? [call, prep] : find ? [find, prep] : [prep]) : [];
+        list = !dealLive(c) ? []
+          : isWhole() ? (sitsOn(c) ? [prep, join] : [join])
+          : (call ? [call, prep] : find ? [find, prep] : [prep]);
         quiet = dealLive(c) ? [] : call ? [call] : [];
         /* Where a deal ended is a statement, and `stateBlock` makes it
            one under the masthead. Nothing about it belongs in a row of
@@ -24652,6 +24779,19 @@
         line: briefN(quiet.length, 'deal', { on: 'deals' }) +
           (quiet.length === 1 ? ' has' : ' have') +
           ' a price on the table and nothing said for a week' });
+    }
+    /* ══════════════ AND WHO JOINED ONE OF THIS DESK'S DEALS ══════════════
+       The other half of joining around nobody: the manager hears it the
+       day it happens, and for a week, one row a deal. */
+    if (isMgr()) {
+      dealBook().filter((c) => c.joinedAt && daysBetween(c.joinedAt, TODAY_ISO) <= 7 &&
+        (c.joined || []).some((id) => REP[id] && REP[id].fn === 'ceo')).forEach((c) => {
+        const who = REP[(c.joined || []).filter((id) => REP[id] && REP[id].fn === 'ceo')[0]];
+        const a = accOf(c);
+        tasks.push({ id: 'ceo-joins:' + c.id, sev: 'p3', type: 'Joined', when: sayWhen(c.joinedAt),
+          body: who.name + ' joined the ' + (a ? a.name : c.name) + ' deal.',
+          cta: 'Open it', ask: 'go:' + JSON.stringify({ con: c.id }) });
+      });
     }
     /* ══════════════ AND WHAT THE CEO MOVED OFF THIS DESK ══════════════
        Nour's condition on moving a held deal: the manager who loses it is
@@ -30608,6 +30748,9 @@
       openDoc(v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1));
       return;
     }
+
+    const jn = t.closest('[data-join]');
+    if (jn) { joinDeal(jn.getAttribute('data-join')); return; }
 
     const gv = t.closest('[data-give]');
     if (gv) {
