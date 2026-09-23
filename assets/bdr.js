@@ -12512,8 +12512,17 @@
         '<h1 class="slv-title">Today</h1>' +
         '<span class="slv-time">' + esc(sayDay(TODAY_ISO)) + '</span>' +
       '</div>' +
-      '<div class="slv-body"><p class="slv-line">' +
-        briefSentence(here, counts, all, camps) + '</p></div>' +
+      /* ══ ONE FACT TO A LINE ════════════════════════════════════════
+         This was one paragraph, and on a caller's desk it ran three facts
+         of three kinds together — what is late, what there is to call, and
+         who decided this week — so the reader found the sentence boundaries
+         themselves. Each is its own line now, in the order they were said,
+         and `.slv-line + .slv-line` already spaces them. */
+      '<div class="slv-body">' +
+        [].concat(briefSentence(here, counts, all, camps))
+          .map((l) => String(l || '').trim()).filter(Boolean)
+          .map((l) => '<p class="slv-line">' + l + '</p>').join('') +
+      '</div>' +
       /* ══ AND THE LOG IS NOT A WAY TO START ════════════════════════
          A door onto the call log sat on this caption's row, wearing the
          count as a badge: four ways to START, and beside them the one
@@ -12766,14 +12775,13 @@
          under eighty — and the last of those three was a coaching count
          with no surface left behind it. What the coverage is worth is on
          the report, beside the promise that asked for it. */
-      if (!on.length) {
-        return 'Nothing is in the diary today.' + owed + ' ' + book + briefOwed() +
-          yearClause();
-      }
-      return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
-        (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
-          esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book + briefOwed() +
-        yearClause();
+      const diary = !on.length ? 'Nothing is in the diary today.'
+        : '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
+          (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
+            esc(first.con.name) + '</b>' : '') + '.';
+      /* A line each: the day, the book, what has slipped, the year. The
+         unwritten meetings stay on the day's line — they are the diary's. */
+      return [diary + owed, book, briefOwed(), yearClause()];
     }
     return openerText(counts, all, camps);
   }
@@ -12873,9 +12881,13 @@
           ' can be called.'
         : 'Nobody on your ' + campDoor + ' can be called today.';
 
-    const decided = decidedLately();
-    return (owed.length ? owed.join(', ').replace(/, ([^,]*)$/, ' and $1') + '. ' : '') +
-      book + (decided ? ' ' + decided : '');
+    /* Three lines, not one paragraph: what is owed, what there is, and what
+       came back. `topBrief` drops the ones that are empty. */
+    return [
+      owed.length ? owed.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' : '',
+      book,
+      decidedLately(),
+    ];
   }
 
   /* ══ THE LOOP CLOSES WHERE THE FLOWCHART CLOSES ═══════════════════════
@@ -12976,10 +12988,9 @@
                 (nBehind === 1 ? ' is' : ' are') +
                 ' behind with ' + run + ' to run. Say which of them can still be caught ' +
                 'and what it would take.',
-              label: 'Ask what can still be caught',
-              why: esc(commas(nBehind)) + ' of your ' +
-                esc(plural(y.scored.length, 'promise')) +
-                (nBehind === 1 ? ' is behind' : ' are behind') }
+              label: 'Ask what can still be caught', n: nBehind,
+              why: 'behind, of the ' + esc(plural(y.scored.length, 'promise')) +
+                ' on your year' }
           : { k: 'ask:Every promise on my year is being kept with ' + run + ' to run. ' +
                 'Say what next year should ask for instead.',
               label: 'Ask what next year should be',
@@ -12994,7 +13005,7 @@
          his own leads as well as taking the ones handed up. */
       const top = all[0];
       opens = [
-        { k: 'callnext', label: 'Warm-call the next one',
+        { k: 'callnext', label: 'Warm-call the next one', n: all.length,
           why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
         /* ══ THE BRIEF IS NOT A WAY TO START ═══════════════════════════
            "Prepare me" sat here offering the brief on whoever is top of the
@@ -13022,11 +13033,12 @@
       const soonest = camps.filter((k) => k.to >= TODAY_ISO).sort((a, b) => (a.to < b.to ? -1 : 1))[0];
       opens = [
         busiest ? { k: 'camp:' + busiest.id, label: 'Work ' + busiest.name,
-          why: plural(queue(busiest.id).length, 'person') + ' left to call on it' } : null,
+          n: queue(busiest.id).length, why: 'the most people left to call' } : null,
         soonest && soonest.id !== (busiest && busiest.id)
-          ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name, why: closesIn(soonest) }
+          ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name,
+              n: queue(soonest.id).length, why: closesIn(soonest) }
           : null,
-        { k: 'callnext', label: 'Call the next one',
+        { k: 'callnext', label: 'Call the next one', n: all.length,
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
         findLeads,
       ].filter(Boolean);
@@ -13034,16 +13046,16 @@
       const parked = DB.list.filter(listLoose)[0];
       opens = [
         findLeads,
-        parked ? { k: 'list:' + parked.id, label: 'Put a list to work',
+        parked ? { k: 'list:' + parked.id, label: 'Put a list to work', n: parked.has.length,
           why: esc(parked.name) + ' is on no campaign yet' } : null,
-        { k: 'callnext', label: 'Call the next one',
+        { k: 'callnext', label: 'Call the next one', n: all.length,
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
-        { k: 'camps', label: 'Pick a campaign',
-          why: plural(camps.length, 'campaign') + ' are yours to work' },
+        { k: 'camps', label: 'Pick a campaign', n: camps.length,
+          why: camps.length ? 'yours to work' : 'you are on none yet' },
       ].filter(Boolean);
     } else {
       opens = [
-        { k: 'callnext', label: 'Call the next one',
+        { k: 'callnext', label: 'Call the next one', n: all.length,
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
         /* ══ THE DOOR SAYS WHAT IS OWED, THE PARAGRAPH SAYS HOW MANY ══════
            Two of these four read back a clause the paragraph six pixels above
@@ -13064,7 +13076,7 @@
            silence has run. Both are computed here rather than read off an
            order — `queue` ranks by what is owed, not by date, so the oldest
            is found by looking at all of them. */
-        { k: 'callback', label: 'Work the callbacks',
+        { k: 'callback', label: 'Work the callbacks', n: counts.callback,
           why: (function () {
             if (!counts.callback) return 'nobody asked for one';
             const cb = queue(null, 'callback');
@@ -13084,22 +13096,41 @@
         /* A meeting that passed outranks a stranger: the door to say what
            happened takes the third slot while there is anything to say. */
         counts.after
-          ? { k: 'after', label: 'Say what happened',
+          ? { k: 'after', label: 'Say what happened', n: counts.after,
               why: (function () {
                 const aft = queue(null, 'after').filter((c) => c.next && c.next.due);
                 if (!aft.length) return 'nothing to report yet';
                 const oldest = aft.reduce((m, c) => (c.next.due < m ? c.next.due : m), aft[0].next.due);
                 return 'the oldest passed ' + esc(sayWhen(oldest));
               })() }
-          : { k: 'not-called', label: 'Call somebody new',
-              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been called'
+          : { k: 'not-called', label: 'Call somebody new', n: counts['not-called'],
+              why: counts['not-called'] ? 'nobody has called them yet'
                 : 'everyone has been tried' },
         findLeads,
       ];
     }
+    /* ══ A DOOR THAT OPENS ONTO A SET SAYS HOW BIG IT IS ═══════════════
+       `n` is the size of what is behind the door — the queue you would
+       work down, the callbacks, the meetings to write up — set as a figure
+       beside the verb so the four read at a glance as "how much of each".
+       It is not the paragraph's number said twice: the paragraph says what
+       is LATE, the door says how much there is to do. Doors that start
+       something from nothing (find leads, build a campaign, add a lead)
+       have no set yet and carry no figure; a 0 is left off too, because a
+       door whose reason already says "nobody asked for one" does not need
+       the digit to say it again.
+
+       A door without one still gets the slot, holding a zero-width space:
+       the row sits on the figure's baseline, and Poppins' tall ascent at
+       20px puts that 2px lower than the verb's own, so a bare door set its
+       verb visibly higher than the door beside it. */
     return '<div class="s-starts" role="group" aria-label="Ways to start">' +
       opens.map((o) => '<button class="s-start" type="button" data-start="' + esc(o.k) + '">' +
-        '<span class="s-start-label">' + esc(o.label) + '</span>' +
+        '<span class="s-start-top">' +
+          '<span class="s-start-label">' + esc(o.label) + '</span>' +
+          (o.n ? '<span class="s-start-n">' + commas(o.n) + '</span>'
+            : '<span class="s-start-n" aria-hidden="true">​</span>') +
+        '</span>' +
         '<span class="s-start-why">' + o.why + '</span>' +
       '</button>').join('') + '</div>';
   }
