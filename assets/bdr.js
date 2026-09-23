@@ -1061,6 +1061,17 @@
        three faces of one reading. What differs between them was never the
        reading, it was the book — so it is a row of chips on the report and
        not a row of people in the switcher. */
+    /* ══════════════ AND ONE WHO READS ALL OF IT ══════════════
+       The four desks above each read one slice — a queue, the deals handed
+       to one manager, one product line, one client's purchase — and nobody
+       read the company. The CEO reads every one of them at once, across the
+       three managers, which is the one axis no other desk has and the one
+       his decisions need: who should own the next piece of work.
+
+       APPENDED FOR THE REASON THE ROWS ABOVE ARE. No reader of this array
+       names `ceo`: the seed cursor does not move and no count in the corpus
+       changes. */
+    { id: 'rami', name: 'Rami Fahim', initials: 'RF', fn: 'ceo' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -1110,7 +1121,7 @@
      names are on the calls in every history. `BDRS`, `MANAGERS`,
      `workingHeads` and the seed all still read the whole roster. What is
      removed is the claim that you can BE one of them. */
-  const DESKS = ['engy', 'lina', 'sherif', 'kestrel'];
+  const DESKS = ['engy', 'lina', 'sherif', 'kestrel', 'rami'];
   const me = () => REP[S.as] || REP[DEFAULT_ME];
   /* Two jobs work this product and they want opposite halves of it: a caller
      works a queue of people nobody has spoken to, a manager works the leads
@@ -1151,6 +1162,19 @@
      and a figure that forgets one is then a grep rather than a reading. */
   const seesCost = () => !isBuyer();
   const seesGrade = () => !isBuyer();
+  /* ══════════════ AND THE READING THAT HOLDS ALL THE OTHERS ══════════════
+     Named for the reading, the way the three above are: the book read
+     whole. `bookScope` says why a manager's desk narrowed Financials to his
+     own deals — a total over half a book is a wrong total — and that
+     argument is exactly why this desk reads all of it.
+
+     `works` is the refusal, spelled separately for the reason `seesCost`
+     is: whoever reads a guard next needs to know which rule it keeps. The
+     CEO reads every record and operates none of them. Calling, moving a
+     stage, running a campaign, sourcing and crews are the verbs of whoever
+     does the work; his way into a piece of work is to give it to a manager. */
+  const isWhole = () => me().fn === 'ceo';
+  const works = () => !isWhole();
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -17181,7 +17205,7 @@
      dressed as a fact about a person, and the same three words on every
      campaign they are on. */
   const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR',
-    stakeholder: 'Stakeholder', client: 'Client' };
+    stakeholder: 'Stakeholder', client: 'Client', ceo: 'CEO' };
   /* "Stakeholder" names a job and not a book, and on the one desk where the
      book IS the job that is half a label. The product goes with it wherever a
      person is introduced — the bar, and the row you press to get there. */
