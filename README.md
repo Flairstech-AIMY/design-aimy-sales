@@ -195,7 +195,7 @@ deleted.
 
 **The manager's, the stakeholder's and the client's desks are not cut, and
 this section used to say all three were.** `?as=` is still described below as
-a prototype control, and it is the switch between four desks that all render
+a prototype control, and it is the switch between five desks that all render
 in full:
 
 | desk | `?as=` | what it opens |
@@ -204,6 +204,32 @@ in full:
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
 | Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and every figure on the desk is read out of that one |
+| Rami Fahim, CEO | `?as=rami` | every desk's figures at once, read across the three managers — Today, Contacts, the diary of the deals he sits on, Campaigns, Lists, and Financials with a Managers cut — and four verbs: give it to a manager, give a manager a campaign, join a deal, ask AiMY |
+
+**The CEO's desk reads all of it and operates none of it.** `isWhole()` is the
+reading: the book is `DB.byMgr` read whole, the same index the managers read,
+so the company's total and the sum of its managers cannot disagree, and the
+target is the eight product lines added up, €900k a quarter (the audit checks
+that it is still three managers at `TARGET_QUARTER`). `works()` is the
+refusal: no phone, no stage moves, no closing, no running or editing a
+campaign, no crews, no sourcing — gated where each verb is drawn and again at
+its handler.
+
+His one verb is **Give it to <manager>**, on a campaign request, a connection
+of his, a contact nobody holds yet, and a deal another manager holds — that
+manager is told in their bell. AiMY's pick is the primary button with the
+reason as a fact the reader can check; the other managers sit beside it;
+every give is undone from the toast. Managers still take unassigned requests
+themselves. **Join it** puts him on a deal (`c.joined`, not the crew): its
+meetings land in his diary with Prepare me, the manager is told, and "Where
+you are needed" suggests at most three and stops at eight. The stage stays
+the manager's.
+
+Everything on the desk is said in words he would say out loud — "€612k of
+€900k", "AiMY expects €57k more" — and where a shared sentence failed that
+rule it changed on every desk rather than growing a CEO dialect. What he does
+not get is somebody else's product: how each person performs is AiMY QA's,
+delivery cost per client is AiMY Finance's, and targets stay finance's.
 
 Financials, the odds ladder, funnel analytics, the campaign builder and the
 meetings calendar are live behind `onBook()`, not `isMgr()` — a stakeholder
@@ -464,7 +490,7 @@ longer there. It also keeps the build out of cost per ticket, headcount
 avoided and FTE saved — unmodelled everywhere in this ecosystem, and not
 things to invent for a customer's screen.
 
-Four desks and three books means every question about a figure has six
+Five desks and three books means every question about a figure has seven
 answers. Check all of them, and on the client's check what is NOT there: a
 sweep over 45 of its surfaces, one per engagement, is the only reason to
 believe it.

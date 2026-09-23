@@ -994,12 +994,10 @@
      of BDRs, and the ratio is the whole reason a team block needs a way to
      hold more names than it can show.
 
-     ONE MANAGER STILL. `owner: pick(r, MANAGERS)` sets who a campaign
-     belongs to, and `mine()` on that desk is `owner === me().id` — so a
-     second manager would silently take half of Lina's campaigns off her own
-     page. That is a change to a desk rather than to a roster, and it is not
-     this one. The multi-manager branch in the hand-over control stays where
-     it is, guarded and unused, exactly as it was.
+     THREE MANAGERS NOW, dealt by the seats below so Lina keeps most of the
+     book, and the multi-manager branch in the hand-over control is live.
+     Which of them takes a request or a lead is the CEO's to give — see
+     `giveTo` — and any of them may still take an unassigned request.
 
      The faces come off the id, so nobody here needed drawing. */
   const REPS = [
@@ -1040,7 +1038,7 @@
        the margin above: `BDRS`, `MANAGERS`, `workingHeads`, `payrollRows`
        and the seed's callers all name a function and this is not one of
        them, so the seed cursor does not move and no count in the corpus
-       changes. She has no desk either — `DESKS` is four and stays four. */
+       changes. She has no desk either — `DESKS` did not grow for her. */
     { id: 'hala',   name: 'Hala Mansour',  initials: 'HM', fn: 'exec' },
     /* ══ AND ONE WHO DOES NOT WORK FOR US ═══════════════════════════════
        The three above read this book from our side and differ only in what
@@ -3727,9 +3725,9 @@
      announced a manager who did not know it existed.
 
      So `owner` is empty until it is run, and running it is what claims it.
-     That is the truth of the thing and it is also the smaller change when
-     the CEO's desk arrives: he writes `owner` earlier, and every predicate
-     below already reads "or nobody has it". */
+     That is the truth of the thing, and it made the CEO's desk the small
+     change it was: `campGive` writes `owner` earlier, and every predicate
+     below already read "or nobody has it". */
   const campFree = (k) => isAsked(k) && !k.owner;
   /* The desks that ask rather than run. Not `!isMgr()`: a BDR is neither,
      and a BDR has no door to a campaign at all. */
@@ -7217,11 +7215,11 @@
      row component for a list of eight would be a second thing to learn for
      no second meaning.
 
-     \u2550\u2550 AND THE OWNER TEST IS THE LINE THE CEO WILL MOVE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     `campOwner` puts every request on `MANAGERS[0]` because nobody is being
-     asked yet which manager should take it. When the CEO's desk arrives it
-     answers that, this filter goes on reading `owner`, and the only thing
-     that changes is who wrote the field. */
+     \u2550\u2550 AND THE OWNER TEST IS THE LINE THE CEO MOVED \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     A request arrives owned by nobody, and `campGive` is the CEO writing
+     `owner` before anybody runs it. This filter goes on reading `owner`
+     unchanged — a given request is on its manager's briefing only — and the
+     only new thing is who wrote the field. */
   const campAsks = () =>
     DB.camp.filter((k) => isAsked(k) && (isWhole() || !k.owner || k.owner === me().id))
     /* Longest waiting first, which is the order every other list of things
@@ -29267,12 +29265,10 @@
      `me()` a request from Kestrel would have named its owner as the person
      who is waiting on it.
 
-     \u2550\u2550 AND THIS IS THE LINE THE CEO WILL MOVE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     `MANAGERS[0]` is where every ownerless campaign in this build already
-     falls, and it is a placeholder for a decision nobody is being asked to
-     make yet: which manager takes this one. When the CEO's desk arrives it
-     is the desk that answers that, and a request will arrive owned by
-     nobody until he does. One field, one function, one change. */
+     \u2550\u2550 AND THIS IS THE LINE THE CEO MOVED \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     Which manager takes a request is the CEO's to answer, with `campGive`,
+     and a request stays owned by nobody until he does or a manager runs it.
+     One field, one function, one change. */
   const campOwner = () => (isMgr() ? me().id : '');
   function emptyCamp() {
     const id = 'k' + Date.now().toString(36);

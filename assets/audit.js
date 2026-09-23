@@ -383,6 +383,35 @@ const BANNED = [
   }
 }
 
+/* ── 9 · ONE POT, CUT TWO WAYS ─────────────────────────────────────────────
+
+   The CEO's target is the eight product lines added up, and the margin on
+   `TARGET_LINE` says that is also every sales manager at `TARGET_QUARTER`.
+   His Managers cut and his Services & Products cut each sum to the company
+   total only while that holds, and nothing at runtime would say when a
+   finance edit to one side broke it. Managers are counted off the `REPS`
+   array itself, so a fourth one appended there is counted too. */
+{
+  const src = read('assets/bdr.js');
+  const tq = /const TARGET_QUARTER = ([\d.e]+);/.exec(src);
+  const tl = /const TARGET_LINE = \{([\s\S]*?)\};/.exec(src);
+  const reps = /const REPS = \[([\s\S]*?)\n  \];/.exec(src);
+  if (!tq || !tl || !reps) {
+    fail('9 targets', 'could not read TARGET_QUARTER, TARGET_LINE or REPS out of bdr.js');
+  } else {
+    const lines = (tl[1].match(/:\s*[\d.e]+/g) || []).map((x) => Number(x.replace(/[:\s]/g, '')));
+    const mgrs = (reps[1].match(/fn: 'sales-manager'/g) || []).length;
+    const sum = lines.reduce((n, v) => n + v, 0);
+    const want = Number(tq[1]) * mgrs;
+    if (Math.abs(sum - want) > 0.5) {
+      fail('9 targets', 'TARGET_LINE sums to ' + sum + ' and ' + mgrs + ' managers at TARGET_QUARTER are ' +
+        want + ' \u2014 the CEO\u2019s two cuts no longer add up to one company');
+    } else {
+      notes.push('targets add up: ' + lines.length + ' lines = ' + mgrs + ' managers');
+    }
+  }
+}
+
 /* ── Report ──────────────────────────────────────────────────────────────── */
 notes.push('handlers ' + handlers.size + ' · controls ' + drawn.size +
   ' · classes used ' + used.size + ' · rules this build defines ' + mineDefined.size);
