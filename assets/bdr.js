@@ -5718,7 +5718,9 @@
       const week = meetings(TODAY_ISO, dayAdd(7)).length;
       return {
         card: {
-          state: now.length ? 'staged' : 'detected',
+          /* Awaiting whoever holds them. On the CEO's desk the deals are
+             not waiting on him, so the reading is one AiMY found. */
+          state: now.length && works() ? 'staged' : 'detected',
           text: now.length
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
               ' something today, out of the <b>' + commas(live.length) + '</b> ' + bookWhose() + '.'
