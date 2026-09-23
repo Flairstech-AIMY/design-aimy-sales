@@ -10468,33 +10468,57 @@
       rows.push(r);
       if (r.k === 'met') rows.push({ k: 'handed', label: 'Handed to you', n: dealBook().length });
     });
+    /* ══ FOUR WIDGETS, ONE PER STEP, THE WAY THE FLOOR IS DRAWN ═════════
+       This was seven rows under a header — Got this far · people · of the
+       one above — with the conversion in a column of mono figures and Hired
+       on a separate strip scaled to everybody found, which drew the one
+       stage the client does as a two-pixel sliver. The reader had to divide
+       their way down it to find where people fell out.
+
+       Now it is the four steps a person goes through, each a widget: the
+       stages in it as bars on ONE scale across all four, so the narrowing
+       still reads left to right and top to bottom; whose part the step is,
+       which is the sentence that used to sit between the blocks; and AiMY's
+       one plain sentence about where people went. Each step opens on the
+       count the one before it ended on, so a widget can be read alone. */
     const top = rows[0].n || 1;
     const say = fnSay();
-    let prev = null;
-    const draw = (r) => {
-      const pct = Math.max(1, Math.round((r.n / top) * 100));
-      const conv = prev == null ? null : (prev ? Math.round((r.n / prev) * 100) : 0);
-      prev = r.n;
-      return '<div class="b-fn-row">' +
-        '<span class="b-fn-name">' + esc(say[r.k] || r.label) + '</span>' +
-        '<span class="b-fn-bar"><span class="b-fn-fill ' +
-          (r.k === 'won' ? 'tone-ok' : 'tone-neutral') +
-          '" style="width:' + pct + '%"></span></span>' +
-        '<span class="b-fn-n">' + commas(r.n) + '</span>' +
-        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
-      '</div>';
-    };
-    const head = '<div class="b-fn-head"><span class="b-fn-name">Got this far</span>' +
-      '<span></span><span class="b-fn-n">people</span>' +
-      '<span class="b-fn-conv">of the one above</span></div>';
-    /* Handing over is the last thing we do, so it belongs above the line
-       with everything else that is ours. */
-    const ours = rows.filter((r) => r.k !== 'won');
-    const theirs = rows.filter((r) => r.k === 'won');
-    const d = myDeal();
-    return '<div class="b-funnel">' + head + ours.map(draw).join('') + '</div>' +
-      (d && d.line ? '<p class="s-exec-note">' + esc(d.line) + '</p>' : '') +
-      (theirs.length ? '<div class="b-funnel">' + theirs.map(draw).join('') + '</div>' : '');
+    const by = Object.create(null);
+    rows.forEach((r) => (by[r.k] = r.n));
+    const verb = (k) => String(say[k] || BUYER_FN[k] || k).toLowerCase();
+    const has = (ks) => ks.every((k) => by[k] != null);
+    const STEPS = [
+      { name: 'Finding them', ours: true, keys: ['sourced', 'reachable'],
+        say: () => (by.reachable >= by.sourced ? 'Every person we found can be reached.'
+          : commas(by.sourced - by.reachable) + ' of the ' + commas(by.sourced) +
+            ' people we found cannot be reached.') },
+      { name: 'Reaching them', ours: true, keys: ['reachable', 'contacted', 'replied'],
+        say: () => (by.reachable > by.contacted
+          ? commas(by.reachable - by.contacted) + ' people we could reach have not been ' +
+            verb('contacted') + ' yet.'
+          : commas(by.replied) + ' of the ' + commas(by.contacted) + ' people we ' +
+            verb('contacted') + ' answered.') },
+      { name: 'Handing them over', ours: true, keys: ['replied', 'met', 'handed'],
+        say: () => 'We handed you ' + commas(by.handed) + ' of the ' + commas(by.met) +
+          ' people we ' + verb('met') + '.' },
+      { name: 'Your decision', ours: false, keys: ['handed', 'won'],
+        say: () => 'You have ' + verb('won') + ' ' + commas(by.won) + ' of the ' +
+          commas(by.handed) + ' people we handed you.' },
+    ].filter((s) => has(s.keys));
+    if (!STEPS.length) return '';
+    const bar = (k) => '<span class="b-step-name">' + esc(say[k] || k) + '</span>' +
+      '<span class="b-fn-bar"><span class="b-fn-fill tone-neutral" style="width:' +
+        Math.max(1, Math.round((by[k] / top) * 100)) + '%"></span></span>' +
+      '<span class="b-step-n">' + commas(by[k]) + '</span>';
+    return '<div class="b-wids">' + STEPS.map((s) =>
+      '<div class="s-pan b-wid">' +
+        '<div class="b-wid-head">' +
+          '<span class="b-wid-name">' + esc(s.name) + '</span>' +
+          '<span class="s-pan-state">' + (s.ours ? 'Our part' : 'Your part') + '</span>' +
+        '</div>' +
+        '<div class="b-steps">' + s.keys.map(bar).join('') + '</div>' +
+        aimyBlock({ text: esc(s.say()) }, true) +
+      '</div>').join('') + '</div>';
   }
 
   /* ══ WHAT A PROMISE IS COMPARED AGAINST, AND WHY IT IS NOT LAST YEAR ═══

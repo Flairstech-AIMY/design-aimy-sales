@@ -7007,4 +7007,21 @@ textarea::placeholder,
    What the component brings from a queue card is a card's margins and a
    `flex: 1` that stretches it to fill the row; here it sits at the foot of
    the widget at its own height, with the widget's own gap above it. */
-.b-wid .b-aimy { flex: none; margin: 14px 0 0; }
+/* `margin-top: auto` sends it to the foot of the widget, so across a row of
+   widgets of different heights the four sentences line up; the space above
+   it is the block above it's own bottom margin, which auto cannot remove. */
+.b-wid .b-aimy { flex: none; margin: auto 0 0; }
+.b-wid-axis, .b-steps { margin-bottom: 14px; }
+
+/* A step's stages: name, bar, count. The bars are on one scale across every
+   widget in the grid — the count over everybody found — so the narrowing
+   reads across the four as well as down each one. */
+.b-steps {
+  display: grid; grid-template-columns: max-content minmax(40px, 1fr) auto;
+  gap: 10px 12px; align-items: center; margin-top: 14px;
+}
+.b-step-name { font-size: var(--ty-meta); color: var(--d100); }
+.b-step-n {
+  font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--d50);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
