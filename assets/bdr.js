@@ -7363,10 +7363,16 @@
 
   /* ══════════════ THE MANAGERS, READ THE WAY THEIR OWN DESKS READ THEM ══════════════
      One row per manager on the CEO's Today, and one card per manager on
-     his Financials. Every figure comes off the same index and the same
-     target the manager's own desk uses — `DB.byMgr` and `TARGET_QUARTER` —
-     so "Lina, €152k of €300k" here is the figure on Lina's own rail card,
-     not a second estimate of it. */
+     his Financials. What was gained and what it is measured against come
+     off the same index and target the manager's own desk uses — `DB.byMgr`
+     and `TARGET_QUARTER` — so "Lina, €152k of €300k" here is the figure on
+     Lina's own rail card, not a second estimate of it.
+
+     What AiMY expects does not, and on purpose. `oddsLadder` learns from
+     whichever desk is looking, so here every manager's open deals are read
+     at the company's odds rather than each at their own: three desks
+     compared on one yardstick, and a small book's odds do not swing on a
+     single deal. */
   function mgrRead(m, p) {
     const deals = (DB.byMgr[m.id] || []).map((id) => DB.byCon[id]).filter(Boolean);
     const booked = deals.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); })
@@ -10415,6 +10421,13 @@
        explain a product it had not mentioned. */
     const top = now.byLine.filter((r) => r.arr && r.meetings)[0] || now.byLine.filter((r) => r.arr)[0];
     const out = [];
+    /* The CEO's quarter ends in a board meeting, and the page it needs is
+       the one this report already holds, said in the order a board reads. */
+    if (isWhole()) {
+      out.push({ label: 'Write the board’s sales page',
+        ask: 'Write the sales page for the board: what we gained against target, what it cost, ' +
+          'the largest open deals, who is behind, and how much rides on our largest accounts.' });
+    }
 
     if (cheap && best && cheap.k !== best.k) {
       out.push({ label: 'Is the cheap source worth it',
@@ -24613,6 +24626,14 @@
      walked out of a room and the record never heard about it. That is the
      reason they still carry a notebook, so it is the first row and it is the
      only p1 the desk has. */
+  /* A set of deals said by whose they are: "12 Lina Haddad's, 6 Hazem
+     Saad's". The CEO chases a manager, not a contact. */
+  const whoseSay = (list) => {
+    const n = Object.create(null);
+    list.forEach((c) => { const k = mgrOf(c); n[k] = (n[k] || 0) + 1; });
+    return Object.keys(n).sort((a, b) => n[b] - n[a])
+      .map((k) => commas(n[k]) + ' ' + (REP[k] ? REP[k].name : 'nobody') + '’s').join(', ');
+  };
   function mgrTasks() {
     const tasks = [];
     /* ══════════════ AND FOUR OF THESE ARE THE BOARD'S ══════════════
@@ -24624,7 +24645,8 @@
        The write-ups above need no guard: a client's meetings are with us
        and `clientMeets` marks them free, so `unrecorded` finds none. */
     const board = !isBuyer();
-    unrecorded().slice(0, 4).forEach((m) => {
+    /* The write-up is the manager's, whoever else was in the room. */
+    (isWhole() ? [] : unrecorded().slice(0, 4)).forEach((m) => {
       const days = -daysBetween(TODAY_ISO, m.iso);
       tasks.push({
         id: 'met:' + m.con.id + ':' + m.iso,
@@ -24651,13 +24673,49 @@
           soon[0].con.name + '.',
         cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
     }
+    /* ══════════════ THE CEO'S TWO, AHEAD OF THE REST ══════════════
+       What only he can move — a request nobody has taken — and the reading
+       his desk exists for: a manager behind with the quarter half gone. The
+       request leads Today's paragraph, which reads the first rows of this
+       list in order; the manager does not, because the block under the
+       paragraph says it in figures and saying it twice is saying it once
+       too often. */
+    if (isWhole()) {
+      const free = campAsks().filter((k) => !k.givenBy);
+      if (free.length) {
+        tasks.push({ id: 'req-free', sev: 'p2', type: 'Requests', when: plural(free.length, 'request'),
+          body: plural(free.length, 'request') + (free.length === 1 ? ' is' : ' are') +
+            ' waiting for a manager, the oldest ' + (free[0].askedAt ? sayWhen(free[0].askedAt) : 'today') +
+            ': ' + campName(free[0]) + '.',
+          cta: 'Give them out', ask: 'go:' + JSON.stringify({}),
+          line: '<b>' + esc(plural(free.length, 'request')) + '</b> ' + (free.length === 1 ? 'is' : 'are') +
+            ' waiting for a manager' });
+      }
+      const pq = periodOf(S.period);
+      if (!pq.whole && pq.elapsed != null && pq.elapsed >= 0.5) {
+        const worst = MANAGERS.map((m) => mgrRead(m, pq))
+          .filter((r) => r.paceMoney != null && r.paceMoney < 0)
+          .sort((a, b) => a.paceMoney - b.paceMoney)[0];
+        const leftD = pq.span && pq.days != null ? Math.max(0, pq.span - pq.days - 1) : null;
+        if (worst) {
+          tasks.push({ id: 'mgr-behind', sev: 'p2', type: 'Managers',
+            when: euro(-worst.paceMoney) + ' behind',
+            body: worst.m.name + ' is ' + euro(-worst.paceMoney) + ' behind where the quarter should be' +
+              (leftD != null ? ', with ' + plural(leftD, 'day') + ' left' : '') + '.',
+            cta: 'See the managers', ask: 'go:' + JSON.stringify({ on: 'money', by: 'mgr' }) });
+        }
+      }
+    }
     const live = board ? queue(null, 'all').filter(dealLive) : [];
     const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
     if (late.length) {
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
+        /* On the CEO's desk, whose they are rather than who they are with:
+           the names are the managers' to chase. */
         body: plural(late.length, 'deal') + ' owed something before today: ' +
-          namesSay(late) + '.',
-        cta: 'Show my deals', ask: 'How do my deals stand?',
+          (isWhole() ? whoseSay(late) : namesSay(late)) + '.',
+        cta: isWhole() ? 'Show them' : 'Show my deals',
+        ask: isWhole() ? 'go:' + JSON.stringify({ on: 'deals' }) : 'How do my deals stand?',
         /* The same fact the row stated, at the length a clause has: the
            figure and what is true of it, with the names left to the board
            the figure opens. */
@@ -24666,7 +24724,8 @@
     }
     const cold = live.filter((c) => stageOf(c) === 'qual' &&
       daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
-    if (cold.length) {
+    /* A warm call is a manager's verb. */
+    if (cold.length && !isWhole()) {
       tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
         body: plural(cold.length, 'lead') + (cold.length === 1 ? ' has' : ' have') +
           ' waited two days or more without a warm call: ' + namesSay(cold) + '.',
@@ -24702,12 +24761,14 @@
         body: one.a.name + ' renews ' + SELL[one.r.sub.sell].name + ' in ' +
           plural(one.r.days, 'day') + ', worth ' + euro(one.r.sub.acv) + ' a year' +
           (due.length > 1 ? ', and ' + plural(due.length - 1, 'other') + ' follow' : '') + '.',
-        cta: 'Show the book',
+        cta: 'Show the accounts',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
         line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
           ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
     }
-    const moved = board ? openings() : [];
+    /* News at an account is the next thing to sell there, which is a
+       manager's to act on and not a row for the CEO's day. */
+    const moved = board && !isWhole() ? openings() : [];
     if (moved.length) {
       const one = moved[0];
       tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
@@ -24718,7 +24779,7 @@
             ? '. ' + plural(moved.length - 1, 'other') +
               (moved.length === 2 ? ' opened' : ' opened') + ' something too'
             : '') + '.',
-        cta: 'Show the book',
+        cta: 'Show the accounts',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
         line: briefN(moved.length, 'account', { on: 'deals', q: 'won' }) +
           ' moved this week' });
@@ -24774,8 +24835,9 @@
     if (quiet.length) {
       tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
         body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
-          'for a week: ' + namesSay(quiet) + '.',
-        cta: 'Show my deals', ask: 'How do my deals stand?',
+          'for a week: ' + (isWhole() ? whoseSay(quiet) : namesSay(quiet)) + '.',
+        cta: isWhole() ? 'Show them' : 'Show my deals',
+        ask: isWhole() ? 'go:' + JSON.stringify({ on: 'deals', q: 'commercial' }) : 'How do my deals stand?',
         line: briefN(quiet.length, 'deal', { on: 'deals' }) +
           (quiet.length === 1 ? ' has' : ' have') +
           ' a price on the table and nothing said for a week' });
@@ -27325,8 +27387,122 @@
      `MGR_BUCKETS`, and `lastActivity` against `checkinDays`, which is the
      rule every deal card already states in its own words. One derivation,
      two readers, so the bar and the board cannot disagree. */
+  /* ══════════════ THE CEO'S FOUR QUESTIONS, ANSWERED OFF THE BOOK ══════════════
+     His Start row and his Financials stage four questions in the bar: the
+     weekly call, what can still be caught, who needs help, and the board's
+     page. Each is answered here from the same derivations the page draws —
+     `mgrRead`, `bookAttain`, `oddsOf`, `acvOf` — so an answer and the figure
+     it explains cannot disagree. The code computes; the sentence only says
+     it, which is the division the research on trusting AI numbers asks for.
+     Short on purpose: Nour's rule for this desk is to the point. */
+  function ceoAnswer(q) {
+    const p = periodOf(S.period);
+    const book = dealBook();
+    const doors = (html) => '<div class="b-cuts">' + html + '</div>';
+    const door = (label, over) => '<button class="s-insight-lnk" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), over))) + '">' + esc(label) + '</button>';
+    const coOf = (c) => (accOf(c) || {}).name || c.name;
+    const few = (xs, say) => xs.slice(0, 3).map(say).join(', ') +
+      (xs.length > 3 ? ' and ' + plural(xs.length - 3, 'more') : '');
+    const worth = (xs) => euro(xs.reduce((n, c) => n + acvOf(c).value, 0));
+    const left = p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : null;
+    const rows = MANAGERS.map((m) => mgrRead(m, p)).sort((a, b) =>
+      (a.paceMoney == null ? 1e12 : a.paceMoney) - (b.paceMoney == null ? 1e12 : b.paceMoney));
+    const standing = rows.map((r) => '<b>' + esc(r.m.name) + '</b> ' + esc(euro(r.booked)) +
+      ' of ' + esc(euro(r.target))).join(', ');
+
+    if (/since monday|weekly call|what moved/.test(q)) {
+      const dow = (TODAY.getDay() + 6) % 7;
+      const mon = isoAdd(TODAY_ISO, -dow);
+      const endAt = (c) => { const ph = phasesOf(c); return ph.length ? ph[ph.length - 1].at.slice(0, 10) : ''; };
+      const won = book.filter((c) => { const w = wonAt(c); return w && w >= mon; });
+      const lost = book.filter((c) => stageOf(c) === 'lost' && endAt(c) >= mon);
+      const slip = book.filter((c) => dealLive(c) && closeBy(c) >= mon && closeBy(c) < TODAY_ISO);
+      const bits = [];
+      bits.push(won.length ? '<b>' + plural(won.length, 'deal') + '</b> signed, worth <b>' + esc(worth(won)) +
+        '</b>: ' + esc(few(won, (c) => coOf(c) + ' (' + directorOf(c).name + ')')) + '.'
+        : 'Nothing signed since Monday.');
+      if (lost.length) {
+        bits.push('<b>' + plural(lost.length, 'deal') + '</b> lost: ' +
+          esc(few(lost, (c) => coOf(c) + ' (' + directorOf(c).name + ')')) + '.');
+      }
+      if (slip.length) {
+        bits.push('<b>' + plural(slip.length, 'deal') + '</b> slipped past their date, worth <b>' +
+          esc(worth(slip)) + '</b>.');
+      }
+      bits.push('Against target: ' + standing + '.');
+      return bits.join(' ') + doors(door('See the managers', { on: 'money', by: 'mgr' }));
+    }
+
+    if (/still be caught|close it|still needed|comes next|shape next quarter/.test(q)) {
+      const a = bookAttain();
+      const gap = Math.max(0, a.target - a.booked);
+      const cand = book.filter((c) => dealLive(c) &&
+        (stageOf(c) === 'proof' || stageOf(c) === 'commercial'))
+        .map((c) => ({ c: c, v: acvOf(c).value, o: oddsOf(c).p }))
+        .sort((x, y) => y.v * y.o - x.v * x.o).slice(0, 5);
+      if (!cand.length) return 'No open deal is at Shown or Priced, so nothing can close this quarter.';
+      const all = cand.reduce((n, x) => n + x.v, 0);
+      const odds = Math.round(cand.reduce((n, x) => n + x.v * x.o, 0));
+      return (gap ? '<b>' + esc(euro(gap)) + '</b> is still needed' +
+          (left != null ? ' with <b>' + plural(left, 'day') + '</b> left' : '') + '. '
+        : 'The target is met. ') +
+        'The five most likely to sign: ' + cand.map((x) => '<b>' + esc(coOf(x.c)) + '</b> ' +
+          esc(euro(x.v)) + ', ' + esc(directorOf(x.c).name)).join('; ') + '. ' +
+        'All five are <b>' + esc(euro(all)) + '</b> if they sign; at their odds, about <b>' +
+        esc(euro(odds)) + '</b>' + (gap && all < gap ? ', so the gap cannot be closed in full this quarter.' : '.') +
+        doors(door('Show the deals', { on: 'deals', q: 'commercial' }));
+    }
+
+    if (/manager|who needs help|furthest|rank my/.test(q)) {
+      const worst = rows[0];
+      const theirs = book.filter((c) => dealLive(c) && mgrOf(c) === worst.m.id &&
+        (stageOf(c) === 'proof' || stageOf(c) === 'commercial'))
+        .sort((x, y) => acvOf(y).value - acvOf(x).value);
+      return 'Furthest behind first: ' + standing + '. ' +
+        (theirs.length
+          ? '<b>' + esc(worst.m.name) + '</b> has ' + plural(theirs.length, 'deal') +
+            ' at Shown or Priced, worth <b>' + esc(worth(theirs)) + '</b>: ' +
+            esc(few(theirs, (c) => coOf(c) + ' ' + euro(acvOf(c).value))) + '.'
+          : '<b>' + esc(worst.m.name) + '</b> has no deal at Shown or Priced.') +
+        doors(door('See the managers', { on: 'money', by: 'mgr' }));
+    }
+
+    if (/board/.test(q)) {
+      const a = bookAttain();
+      const now = bookMoney(bookScope(), p, workingHeads());
+      const more = p.whole || p.elapsed == null ? 0
+        : Math.round(pipelineOf(book).weighted * Math.max(0, 1 - p.elapsed));
+      const big = book.filter(dealLive).sort((x, y) => acvOf(y).value - acvOf(x).value).slice(0, 5);
+      const cust = customers();
+      const bill = cust.reduce((n, x) => n + custWorth(x), 0);
+      const five = bill ? cust.slice().sort((x, y) => custWorth(y) - custWorth(x)).slice(0, 5)
+        .reduce((n, x) => n + custWorth(x), 0) / bill : 0;
+      const worst = rows[0];
+      return '<b>Sales, ' + esc((PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase()) +
+        '.</b> We gained <b>' + esc(euro(a.booked)) + '</b> of the <b>' + esc(euro(a.target)) + '</b> target' +
+        (more ? ', and AiMY expects <b>' + esc(euro(more)) + '</b> more by the end' : '') + '. ' +
+        'It cost <b>' + esc(euro(now.spend.total)) + '</b> to sign' +
+        (now.wins.length ? ', <b>' + esc(euro(now.spend.total / now.wins.length)) + '</b> a deal' : '') + '. ' +
+        'The largest open deals: ' + esc(big.map((c) => coOf(c) + ' ' + euro(acvOf(c).value)).join(', ')) + '. ' +
+        (worst && worst.paceMoney != null && worst.paceMoney < 0
+          ? 'Furthest behind: <b>' + esc(worst.m.name) + '</b> at ' + esc(euro(worst.booked)) + ' of ' +
+            esc(euro(worst.target)) + '. ' : '') +
+        (five ? 'The five largest accounts pay <b>' + Math.round(five * 100) + '%</b> of what we bill.' : '') +
+        doors(door('Open Financials', { on: 'money' }));
+    }
+    return null;
+  }
+
   function answer(text) {
     const q = text.toLowerCase();
+    /* The CEO's four questions go first: "what moved since Monday" would
+       otherwise be read as a question about account news, and "what can
+       still be caught" as one about how many are left to call. */
+    if (isWhole()) {
+      const said = ceoAnswer(q);
+      if (said) return said;
+    }
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
