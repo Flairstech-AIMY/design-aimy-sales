@@ -204,7 +204,7 @@ in full:
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
 | Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
 | Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and every figure on the desk is read out of that one |
-| Rami Fahim, CEO | `?as=rami` | every desk's figures at once, read across the three managers — Today, Contacts, the diary of the deals he sits on, Campaigns, Lists, and Financials with a Managers cut — and four verbs: give it to a manager, give a manager a campaign, join a deal, ask AiMY |
+| Rami Fahim, CEO | `?as=rami` | every desk's figures at once, read across the three managers — Today, Contacts, the diary of the deals he sits on, Campaigns, Lists, and Financials with a Managers cut — and four verbs: assign to a manager, assign a campaign, join a deal, ask AiMY |
 
 **The CEO's desk reads all of it and operates none of it.** `isWhole()` is the
 reading: the book is `DB.byMgr` read whole, the same index the managers read,
@@ -215,11 +215,12 @@ refusal: no phone, no stage moves, no closing, no running or editing a
 campaign, no crews, no sourcing — gated where each verb is drawn and again at
 its handler.
 
-His one verb is **Give it to <manager>**, on a campaign request, a connection
-of his, a contact nobody holds yet, and a deal another manager holds — that
-manager is told in their bell. AiMY's pick is the primary button with the
-reason as a fact the reader can check; the other managers sit beside it;
-every give is undone from the toast. Managers still take unassigned requests
+His one verb is **Assign**, on a campaign request, a connection of his, a
+contact nobody holds yet, and a deal another manager holds — that manager is
+told in their bell. It is a menu of every manager with what they already
+carry, and beside it AiMY's suggestion as a fact the reader can check with
+its own press: "Lina holds the most QA and test automation deals, 4 of them.
+Assign to Lina". Every assignment is undone from the toast. Managers still take unassigned requests
 themselves. **Join it** puts him on a deal (`c.joined`, not the crew): its
 meetings land in his diary with Prepare me, the manager is told, and "Where
 you are needed" suggests at most three and stops at eight. The stage stays

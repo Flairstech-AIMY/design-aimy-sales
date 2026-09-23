@@ -305,7 +305,7 @@
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
   const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand',
-    given: 'Given to another manager' };
+    given: 'Assigned to another manager' };
 
   /* ══ WHAT IS IN THE CORPUS, AND WHEN IT GOES OUT ══════════════════════
      Four kinds of document sit behind a campaign. The name says which one
@@ -5244,12 +5244,12 @@
            this row has fallen into once already. */
         (isAsked(k) ? (k.givenBy && REP[k.owner]
             ? '<span class="b-qcard-num b-fact">' + chIcon('user') +
-              '<span>Given to ' + esc(REP[k.owner].name) + '</span></span>' : '')
+              '<span>Assigned to ' + esc(REP[k.owner].name) + '</span></span>' : '')
           : '<span class="b-qcard-num b-fact">' + chIcon('user') +
             '<span>' + esc(actor(k.owner).name) + '</span></span>') +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' +
-          (isAsked(k) ? (campFills(k) ? 'Open it' : isWhole() && !k.givenBy ? 'Give it' : 'See it')
+          (isAsked(k) ? (campFills(k) ? 'Open it' : isWhole() && !k.givenBy ? 'Assign it' : 'See it')
             /* Work it is the verb of the desk that runs it. */
             : isBuyer() || (isWhole() && !isDraft(k)) ? 'See it'
             : isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
@@ -6026,7 +6026,7 @@
       id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint', proposals: [], objections: [], openings: [],
-      note: gave ? me().name + ' gave this to ' + m.name + '.' : 'Handed to ' + m.name + '.',
+      note: gave ? me().name + ' assigned this to ' + m.name + '.' : 'Handed to ' + m.name + '.',
       lines: [], next: null, moved: [c.checkpoint, 'handed-over'], called: 'handed-over',
     };
     patchCon(c, Object.assign({ checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id },
@@ -6037,7 +6037,7 @@
        the lead off the desk it was handed to until the next reload. */
     reindex();
     paint();
-    toast(gave ? 'Given to ' + m.name : c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
+    toast(gave ? 'Assigned to ' + m.name : c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
       dropTouch(t.id);
       patchCon(c, before);
       reindex();
@@ -6045,14 +6045,16 @@
     });
   }
 
-  /* ══════════════ GIVE IT TO A MANAGER ══════════════
+  /* ══════════════ ASSIGN IT TO A MANAGER ══════════════
      The CEO's one verb, on five kinds of thing: a request somebody asked
      for, one he is writing himself, a connection of his, a contact nobody
      holds yet, and a deal another manager holds. One control wherever it
-     appears — AiMY's pick as the primary, with the reason in words he can
-     check, and the other managers beside it at full size — so accepting
-     is one press and choosing somebody else is one press too. No menu and
-     no confirm: every give is undone from the toast.
+     appears, in the shape Nour asked for on 23 Sep: an Assign button whose
+     menu holds every manager with what they already carry, and AiMY's
+     suggestion beside it as a sentence wired to its own press — "Lina
+     holds the most QA and test automation deals, 4 of them. Assign to
+     Lina". Accepting the suggestion is one press; choosing somebody else
+     is two. No confirm: every assignment is undone from the toast.
 
      A reason and not a score. The research on trust in AI is blunt that an
      explanation raises acceptance whether it is right or wrong, so the
@@ -6119,33 +6121,51 @@
       commas(runningOf(room.id)) + '.' };
   }
   /* A span, not a div, because two of the places it stands are inside a
-     row of other controls. `off` greys every button for the reason the
+     row of other controls. `off` greys both presses for the reason the
      draft page greys Request it: something the manager needs is missing.
 
-     `seq` is a list's memory of the reason it last printed. Four rows that
-     all go to Lina for the same reason said it four times; said once, the
-     rows under it read as "and these too", and a row with a different
-     reason still says its own. */
-  function giveStrip(kind, id, x, off, seq, quiet) {
+     The menu is the hand-over menu's own shape — a ghost pill, a caption,
+     a face and a name a row — with the second line every "Looking as" row
+     has, here what each manager already carries, which is what the choice
+     is made on. AiMY's pick heads it and says so. On something a manager
+     already holds it is Reassign, and the holder is in it, lit, unpressable,
+     "Has it now": the menu says who has it rather than leaving it to be
+     guessed from who is missing. */
+  function giveStrip(kind, id, x, off) {
     if (!isWhole()) return '';
     const held = kind === 'deal' ? mgrOf(x) : ((kind === 'req' && x.givenBy) ? x.owner : null);
     const pick = held ? null : giveTo(kind, x);
     const dis = off ? ' disabled aria-disabled="true"' : '';
-    const btn = (m, primary) => '<button class="' + (primary ? 's-insight-lnk primary' : 's-inline-btn') +
-      '" type="button" data-give="' + esc(kind + '|' + id + '|' + m.id) + '"' + dis + '>' +
-      (primary || !pick ? 'Give it to ' : '') + esc(firstOf(m)) + '</button>';
-    const others = MANAGERS.filter((m) => m.id !== held && (!pick || m.id !== pick.id));
-    let why = '';
-    if (pick && !(seq && seq.last === pick.why)) {
-      if (seq) seq.last = pick.why;
-      why = '<span class="b-give-why">' + aiMark() + '<span>' + esc(pick.why) + '</span></span>';
-    } else if (!pick && held && kind === 'req' && !quiet) {
-      why = '<span class="b-give-why"><span>Given to ' + esc(actor(held).name) +
-        (x.givenAt ? ' ' + esc(sayWhen(x.givenAt)) : '') + '.</span></span>';
-    }
-    return '<span class="b-give" role="group" aria-label="Give it to a manager">' +
-      (pick ? btn(REP[pick.id], true) : '') +
-      others.map((m) => btn(m, false)).join('') + why +
+    const attr = (m) => 'data-give="' + esc(kind + '|' + id + '|' + m.id) + '"';
+    const load = (m) => {
+      const open = (DB.byMgr[m.id] || []).filter((cid) => DB.byCon[cid] && dealLive(DB.byCon[cid])).length;
+      return plural(runningOf(m.id), 'campaign') + ' running \u00b7 ' + plural(open, 'open deal');
+    };
+    const first = held || (pick && pick.id);
+    const order = MANAGERS.filter((m) => m.id === first).concat(MANAGERS.filter((m) => m.id !== first));
+    const rows = order.map((m) => {
+      const now = m.id === held;
+      return '<button class="b-menu-item' + (now ? ' is-on' : '') + '" type="button" role="menuitem"' +
+        (now ? ' aria-disabled="true"' : ' ' + attr(m)) + '>' + faceOf(m.id, 24) +
+        '<span class="b-menu-line"><span class="b-menu-name">' + esc(m.name) + '</span>' +
+          '<span class="b-menu-sub">' + esc(now ? 'Has it now'
+            : (pick && m.id === pick.id ? 'AiMY suggests \u00b7 ' : '') + load(m)) + '</span></span>' +
+      '</button>';
+    }).join('');
+    const menuId = 'give-' + kind + '-' + id;
+    return '<span class="b-give" role="group" aria-label="Assign to a manager">' +
+      '<span class="b-menu-wrap">' +
+        '<button class="b-ghost b-menu-open" type="button" data-pickopen="' + esc(menuId) + '" ' +
+          'aria-haspopup="menu"' + dis + '>' + (held ? 'Reassign' : 'Assign') + '</button>' +
+        '<div class="b-menu" id="' + esc(menuId) + '" role="menu" hidden>' +
+          '<span class="b-menu-cap">' + (held ? 'Reassign to' : 'Assign to') + '</span>' + rows +
+        '</div>' +
+      '</span>' +
+      /* AiMY's reading, and the press it argues for, in one line. */
+      (pick ? '<span class="b-give-why">' + aiMark() + '<span>' + esc(pick.why) + '</span>' +
+        '<button class="s-insight-lnk" type="button" ' + attr(REP[pick.id]) + dis + '>' +
+          'Assign to ' + esc(firstOf(REP[pick.id])) + '</button>' +
+      '</span>' : '') +
     '</span>';
   }
   function give(kind, id, mgrId) {
@@ -6161,7 +6181,7 @@
     const was = { owner: k.owner || '', givenBy: k.givenBy || null, givenAt: k.givenAt || null };
     campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
     paint();
-    toast('Given to ' + REP[mgrId].name, () => { campSet(k, was); paint(); });
+    toast('Assigned to ' + REP[mgrId].name, () => { campSet(k, was); paint(); });
   }
   /* His own request, sent and given in the one press — `campAsk` with the
      owner written in, and undone the way `campAsk` is: back to a draft. */
@@ -6172,7 +6192,7 @@
       owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
     campSet(k, patch);
     go(Object.assign(cleared(), { camp: k.id }));
-    toast('Given to ' + REP[mgrId].name, () => {
+    toast('Assigned to ' + REP[mgrId].name, () => {
       campSet(k, { state: 'draft', askedAt: null, owner: '', givenBy: null, givenAt: null });
       go(Object.assign(cleared(), { camp: k.id }));
     });
@@ -6191,8 +6211,8 @@
         ' at ' + r.via.co + '.'
       : ' They are one of ' + me().name + '’s own connections.';
     const c = addLead({ name: n.name, title: n.title, co: n.co, sell: reachKey(n), manager: m.id,
-      note: me().name + ' gave this to ' + m.name + '.' + way,
-      givenBy: me().id, stay: true, toast: 'Given to ' + m.name });
+      note: me().name + ' assigned this to ' + m.name + '.' + way,
+      givenBy: me().id, stay: true, toast: 'Assigned to ' + m.name });
     /* What the index knew about their company comes with them. The list he
        gave it off said "software at 3,200 staff" and the manager's card said
        "industry not known". Only onto an account the lead itself made. */
@@ -6220,14 +6240,14 @@
       id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: new Date().toISOString(), secs: 0,
       outcome: 'given', proposals: [], objections: [], openings: [],
-      note: me().name + ' gave this to ' + m.name + '. It was ' + actor(was).name + '’s.',
+      note: me().name + ' assigned this to ' + m.name + '. It was ' + actor(was).name + '’s.',
       lines: [], next: null, moved: null, called: c.checkpoint, to: m.id, was: was,
     };
     patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO });
     addTouch(t);
     reindex();
     paint();
-    toast('Given to ' + m.name, () => {
+    toast('Assigned to ' + m.name, () => {
       dropTouch(t.id);
       patchCon(c, before);
       reindex();
@@ -7253,7 +7273,6 @@
         REGION[k.region] && REGION[k.region].label].filter(Boolean).join(' in ');
       return [x ? x.name : null, mk || null].filter(Boolean).join(' \u00b7 ');
     };
-    const seq = { last: '' };
     return '<section class="s-block s-block-wide" aria-label="Requests">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Requests</h2>' +
@@ -7263,7 +7282,7 @@
             const free = asks.filter((k) => !k.givenBy).length;
             const given = asks.length - free;
             return (free ? esc(plural(free, 'request')) + ' waiting for a manager' : 'None waiting') +
-              (given ? ' \u00b7 ' + esc(commas(given)) + ' given' : '');
+              (given ? ' \u00b7 ' + esc(commas(given)) + ' assigned' : '');
           }())
           : esc(plural(asks.length, 'campaign')) + ' asked for') +
           ' \u00b7 longest waiting first</span>' +
@@ -7283,14 +7302,18 @@
             '</span>' +
             '<span class="b-owed-body">' + esc(what(k)) +
               '. ' + campGoalSay(k) +
-              /* On the desk it was given to, who gave it. */
-              (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' gave it to you.</b>' : '') +
+              /* On the desk it was assigned to, who assigned it. */
+              (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' assigned it to you.</b>' : '') +
+              /* And on the CEO's, to whom — the Reassign under the row says
+                 it can move, and this says where it is. */
+              (k.givenBy && isWhole() && REP[k.owner]
+                ? ' <b>Assigned to ' + esc(REP[k.owner].name) + '.</b>' : '') +
               '</span>' +
           '</span>' +
           /* It opens as the page a draft opens as, with the two fields this
              desk is the only one who can answer still empty. */
           '<span class="b-owed-go">' + (isWhole() ? 'See it' : 'Open it') + '</span>' +
-        '</button>' + giveStrip('req', k.id, k, false, seq)).join('') + '</div>' +
+        '</button>' + giveStrip('req', k.id, k)).join('') + '</div>' +
     '</section>';
   }
 
@@ -7328,7 +7351,6 @@
        out loud rather than a total quietly cut. */
     const hits = reachAll().slice(0, 4);
     if (!hits.length) return '';
-    const seq = { last: '' };
     return '<section class="s-block s-block-wide" aria-label="Connections">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Connections</h2>' +
@@ -7363,7 +7385,7 @@
           '</span>' +
           '<span class="b-owed-go">' +
             (h.r.k === 'first' ? 'Write the message' : 'Write the ask') + '</span>' +
-        '</button>' + giveStrip('net', h.c.id, h.c, false, seq)).join('') + '</div>' +
+        '</button>' + giveStrip('net', h.c.id, h.c)).join('') + '</div>' +
     '</section>';
   }
 
@@ -7731,7 +7753,7 @@
     }
     if (st === 'qual') {
       return { text: (c.givenBy && !isWhole()
-          ? esc(actor(c.givenBy).name) + ' gave it to you ' + esc(sayWhen(c.givenAt || (c.checkpointAt || '').slice(0, 10)))
+          ? esc(actor(c.givenBy).name) + ' assigned it to you ' + esc(sayWhen(c.givenAt || (c.checkpointAt || '').slice(0, 10)))
           : 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10)))) +
           ' and still never warm-called.',
         from: 'the hand-over', act: call };
@@ -14026,8 +14048,8 @@
       const gap = Math.max(0, a.target - a.booked);
       const left = !p.whole && p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : 0;
       opens = [
-        { k: 'newcamp', label: 'Give a manager a campaign',
-          why: 'what to sell, to whom, and who runs it' },
+        { k: 'newcamp', label: 'Assign a campaign',
+          why: 'what to sell, to whom, and which manager runs it' },
         { k: 'ask:What moved since Monday? Which deals did we win, lose, or let slip past ' +
             'their date, and where does each manager stand against their target?',
           label: 'Prepare the weekly call', why: 'what was won, lost and slipped since Monday' },
@@ -17695,20 +17717,19 @@
              is least true \u2014 the ones saved before the field stopped carrying
              a placeholder. */
           ? (k.givenBy && REP[k.owner]
-            ? '<b>' + esc(actor(k.givenBy).name) + '</b> gave it to <b>' + esc(REP[k.owner].name) +
+            ? '<b>' + esc(actor(k.givenBy).name) + '</b> assigned it to <b>' + esc(REP[k.owner].name) +
               '</b>' + (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. ' +
               esc(firstOf(REP[k.owner])) + ' puts a team and the lists on it and starts it, ' +
               'and then it turns into a campaign on this page.'
             : isWhole()
-            ? 'Nobody has it yet. Give it to a manager, or any of them can take it from ' +
+            ? 'Nobody has it yet. Assign it to a manager, or any of them can take it from ' +
               'their briefing.'
             : 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
             'and the lists on it and starts it, and it turns into a campaign on this ' +
             'page when they do.')
           : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
             'asked for it yet.') + '</p>' +
-        /* Quiet: the sentence above already says whose it is. */
-        (sent ? giveStrip('req', k.id, k, false, null, true) : '') +
+        (sent ? giveStrip('req', k.id, k) : '') +
         campMeta(k) +
       '</section>' +
     '</div>';
@@ -24705,7 +24726,7 @@
           body: plural(free.length, 'request') + (free.length === 1 ? ' is' : ' are') +
             ' waiting for a manager, the oldest ' + (free[0].askedAt ? sayWhen(free[0].askedAt) : 'today') +
             ': ' + campName(free[0]) + '.',
-          cta: 'Give them out', ask: 'go:' + JSON.stringify({}),
+          cta: 'Assign them', ask: 'go:' + JSON.stringify({}),
           line: '<b>' + esc(plural(free.length, 'request')) + '</b> ' + (free.length === 1 ? 'is' : 'are') +
             ' waiting for a manager' });
       }
@@ -24884,7 +24905,7 @@
         const a = accOf(c);
         tasks.push({ id: 'ceo-moved:' + t.id, sev: 'p2', type: 'Moved',
           when: sayWhen(t.at.slice(0, 10)),
-          body: actor(t.by).name + ' gave the ' + (a ? a.name : c.name) + ' deal to ' +
+          body: actor(t.by).name + ' assigned the ' + (a ? a.name : c.name) + ' deal to ' +
             actor(t.to).name + '.',
           cta: 'Open it', ask: 'go:' + JSON.stringify({ con: c.id }) });
       });
@@ -27301,7 +27322,7 @@
         const m = pick && REP[pick.id];
         if (m) {
           addLead(Object.assign({}, f, { manager: m.id, givenBy: me().id,
-            note: me().name + ' gave this to ' + m.name + '.', toast: 'Given to ' + m.name,
+            note: me().name + ' assigned this to ' + m.name + '.', toast: 'Assigned to ' + m.name,
             sub: pick.why }));
           return;
         }
@@ -29679,7 +29700,7 @@
     lbuildSpend();
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
-    toast(ask ? (isWhole() ? 'Written \u2014 now give it to a manager' : 'Requested \u2014 waiting for a sales manager')
+    toast(ask ? (isWhole() ? 'Written \u2014 now assign it to a manager' : 'Requested \u2014 waiting for a sales manager')
       : k.name + ' is running \u2014 nobody is on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);

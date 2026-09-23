@@ -7027,11 +7027,11 @@ textarea::placeholder,
   font-variant-numeric: tabular-nums; text-align: right;
 }
 
-/* ══ 94. GIVE IT TO A MANAGER ══════════════════════════════════════════════
-   The CEO's one verb, drawn wherever there is something to give. Not a row
-   and not a menu: AiMY's pick as the primary, the other managers beside it
-   as plain buttons, and the reason after them, all on one line that wraps.
-   No existing rule is a row of buttons with a sentence at its end, which is
+/* ══ 94. ASSIGN IT TO A MANAGER ════════════════════════════════════════════
+   The CEO's one verb, drawn wherever there is something to assign: the
+   Assign menu (the hand-over menu's own component) and, beside it, AiMY's
+   suggestion as a sentence ending in its own press, all on one line that
+   wraps. No existing rule is a control with a sentence at its end, which is
    why this is here rather than borrowed.
 
    Under a `.b-owed` row it starts at the row's text column — 12px of row
@@ -7046,8 +7046,10 @@ textarea::placeholder,
   margin: 0 0 12px;
 }
 .b-owed .b-give, .b-owed .b-join { margin: -2px 0 10px 30px; }
+/* Wraps, because the press rides at the end of the sentence and a long
+   reason on a narrow row would otherwise push it off the edge. */
 .b-give-why {
-  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0;
   font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
 }
 .b-give-why svg { flex: none; }
