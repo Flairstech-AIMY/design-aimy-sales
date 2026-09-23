@@ -3731,7 +3731,9 @@
   const campFree = (k) => isAsked(k) && !k.owner;
   /* The desks that ask rather than run. Not `!isMgr()`: a BDR is neither,
      and a BDR has no door to a campaign at all. */
-  const asksOnly = () => isLine() || isBuyer();
+  /* The CEO runs no floor either, so his campaign door is the request —
+     with the one field only he fills in, which manager takes it. */
+  const asksOnly = () => isLine() || isBuyer() || isWhole();
   /* \u2550\u2550 WHO FILLS IT IN, WHICH IS NOT WHOSE IT IS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
      A blank one is filled in by whoever started it, and that is true of a
      request before it is sent: the stakeholder typing it is answering his
@@ -3780,7 +3782,7 @@
      a comment saying exactly this; it is a function now, so the two desks
      cannot drift apart again. */
   const ringable = (c) => !!c.phone && !c.dnc;
-  const canRing = (c) => (onBook() ? ringable(c) : callable(c));
+  const canRing = (c) => works() && (onBook() ? ringable(c) : callable(c));
 
   /* ══ A MEETING THAT HAS PASSED IS A QUESTION ═══════════════════════════
      Once a meeting is booked they leave the queue; once its day has gone
@@ -4722,7 +4724,7 @@
        but the RECORD is that account, so the same fallback there is a
        button that goes where you already are. The caller decides by asking
        whether anybody was found. */
-    return who
+    return who && works()
       ? { who: who, label: 'Call ' + who.name.split(' ')[0],
           attr: 'data-call="' + esc(who.id) + '"' }
       : { who: null, label: 'Open the account', attr: 'data-acc="' + esc(a.id) + '"' };
@@ -5239,7 +5241,7 @@
           '" type="button" data-camp="' + esc(k.id) + '">' +
           (isAsked(k) ? (campFills(k) ? 'Open it' : 'See it')
             /* Work it is the verb of the desk that runs it. */
-            : isBuyer() ? 'See it'
+            : isBuyer() || (isWhole() && !isDraft(k)) ? 'See it'
             : isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
@@ -5384,7 +5386,7 @@
          off a campaign shows the campaign reading and the shortfall is
          still true underneath it. */
       aimyBlock(listSays(l, people, call, !!camp), false,
-        people.some((c) => !c.phone)
+        works() && people.some((c) => !c.phone)
           ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
             'Fill in what is missing</button>'
           : '') +
@@ -5859,6 +5861,9 @@
   }
 
   function mgrMenu(conId, label) {
+    /* Not the CEO's. His way into a lead is to give it to a manager, which
+       is its own control and says so. */
+    if (!works()) return '';
     /* WHICH MANAGER IS ONLY A QUESTION IF THERE ARE SEVERAL. With one desk
        on the other side the menu would open on a single row, which is a
        question with one answer — so the verb does the thing instead. */
@@ -7160,9 +7165,15 @@
     const st = stageOf(c);
     const a = accOf(c);
     const first = (c.name || '').split(' ')[0];
-    const call = c.phone && !c.dnc
+    /* ══════════════ AND ON THE CEO'S DESK THE SAME SENTENCE, ABOUT SOMEBODY ELSE ══════════════
+       Every "you" on this card is the manager holding the deal, so on his
+       desk the card names them, and the verb is to open it: he calls
+       nobody from here. */
+    const whose = isWhole() ? esc(directorOf(c).name) + ' ' : 'you ';
+    const open = { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' };
+    const call = works() && c.phone && !c.dnc
       ? { label: 'Call ' + first, attr: 'data-call="' + esc(c.id) + '"' }
-      : { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' };
+      : open;
 
     if (st === 'won') {
       const exp = expansionsOf(c.acc)[0];
@@ -7185,13 +7196,13 @@
     }
     if (st === 'later') {
       const due = c.next ? daysBetween(TODAY_ISO, c.next.due) : null;
+      const parked = isWhole() ? 'the date set when it was parked' : 'the date you set when you parked it';
       return due != null && due <= 0
         ? { text: 'Rescheduled, and the day to pick it back up has come.',
-            from: 'the date you set when you parked it', act: call }
-        : { text: 'Rescheduled. Back with you ' +
+            from: parked, act: call }
+        : { text: 'Rescheduled. Back with ' + whose +
             esc(c.next ? sayWhen(c.next.due) : 'when you say so') + '.',
-            from: 'the date you set when you parked it',
-            act: { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' } };
+            from: parked, act: open };
     }
     /* A meeting that has been and gone with nothing written up is the one
        thing on this desk that costs money by sitting still. */
@@ -7200,8 +7211,8 @@
       return { text: 'You met them <b>' + esc(sayWhen(m.iso)) +
           '</b> and nothing here says how it went.',
         from: 'the diary against the record',
-        act: { label: 'Say how it went',
-          attr: 'data-fill="' + esc('Had a ' + m.kind + ' with ' + c.name + ', ') + '"' } };
+        act: works() ? { label: 'Say how it went',
+          attr: 'data-fill="' + esc('Had a ' + m.kind + ' with ' + c.name + ', ') + '"' } : open };
     }
     if (c.next && daysBetween(TODAY_ISO, c.next.due) < 0) {
       return { text: '<b>' + esc(c.next.what) + '</b> was due ' +
@@ -7209,7 +7220,7 @@
         from: 'the step you set', act: call };
     }
     if (st === 'qual') {
-      return { text: 'Handed to you ' + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
+      return { text: 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
           ' and still never warm-called.',
         from: 'the hand-over', act: call };
     }
@@ -7245,7 +7256,8 @@
     }
     if (c.next) {
       return { text: went + '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
-        act: { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } };
+        act: works() || sitsOn(c)
+          ? { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } : open };
     }
     return { text: went + 'Running, and nothing is owed on it today.', act: call };
   }
@@ -9905,7 +9917,9 @@
           'few people or losing the ones they reach.' });
     }
     if (pipe.tier.modelled > pipe.tier.comparable) {
-      out.push({ label: 'How real is the pipeline',
+      /* "Pipeline" is our word for it, not the reader's: the chip says what
+         the ask underneath already says, open deals. */
+      out.push({ label: 'How real are the open deals',
         ask: 'Most of my ' + fmtMoney(pipe.all) + ' of open deals is valued off the price list ' +
           'rather than off deals we have actually won. Which of them would make that number ' +
           'trustworthy fastest?' });
@@ -13451,6 +13465,31 @@
         { k: 'money', label: 'See the year',
           why: 'what was promised, and what has happened against it' },
       ];
+    } else if (isWhole()) {
+      /* ══════════════ FOUR WAYS IN, AND NONE OF THEM IS THE PHONE ══════════════
+         The manager's four operate the machine: the phone, the builder, a
+         lead, the finder. The CEO's are the one decision only he makes and
+         the questions he opens the week on. Both questions go into the bar
+         and wait for the press, which is what `ask:` already means. */
+      const a = bookAttain();
+      const p = periodOf(S.period);
+      const gap = Math.max(0, a.target - a.booked);
+      const left = !p.whole && p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : 0;
+      opens = [
+        { k: 'newcamp', label: 'Give a manager a campaign',
+          why: 'what to sell, to whom, and who runs it' },
+        { k: 'ask:What moved since Monday? Which deals did we win, lose, or let slip past ' +
+            'their date, and where does each manager stand against their target?',
+          label: 'Prepare the weekly call', why: 'what was won, lost and slipped since Monday' },
+        gap > 0 && left
+          ? { k: 'ask:We need ' + euro(gap) + ' more with ' + plural(left, 'day') + ' left. ' +
+                'Which open deals can close it, and whose are they?',
+              label: 'Ask what can still be caught',
+              why: esc(euro(gap)) + ' still needed, ' + esc(plural(left, 'day')) + ' left' }
+          : { k: 'ask:Which open deals will shape next quarter most, and whose are they?',
+              label: 'Ask what comes next', why: 'the deals that shape next quarter' },
+        { k: 'money', label: 'See Financials', why: 'what we gained, against what it cost' },
+      ];
     } else if (onBook()) {
       /* Four verbs, and every one of them is something this desk actually
          does: the phone for a warm call, the brief before a meeting, the
@@ -14663,7 +14702,8 @@
        whichever page you are looking at, which is the page's job done from
        the wrong place. Split by what they call, the pair reads: work the
        list, or work what is in front of you. */
-    const phone = first
+    const phone = !works() ? ''
+      : first
       ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
           '">Call the next one on this list</button>' +
         (call.length > 1
@@ -14680,6 +14720,7 @@
     const onward = camp.length
       ? camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
           '">Open ' + esc(campName(x)) + '</button>').join('')
+      : !works() ? ''
       : campMenu({ id: 'listCampPick', opts: campOpts(),
           cls: first ? 's-inline-btn' : 's-insight-lnk primary',
           label: 'Put it on a campaign', cap: 'Put it on', go: 'list:' + l.id });
@@ -14775,7 +14816,7 @@
             '<h2 class="s-block-h">Who is on it</h2>' +
             /* One left to call is the card's own button, six rows down and
                already naming them. */
-            (now.length > 1
+            (works() && now.length > 1
               ? '<button class="b-ghost" type="button" data-callall="' +
                 esc(now.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
                 'Call all ' + commas(now.length) + '</button>'
@@ -14902,7 +14943,7 @@
        higher says it louder, and one control drawn twice on one screen is
        two controls to learn. This is not that. It is the only place the
        shortfall can be fixed from. */
-    const door = people.some((c) => !c.phone)
+    const door = works() && people.some((c) => !c.phone)
       ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
         'Fill in what is missing</button>'
       : '';
@@ -17206,7 +17247,7 @@
         '</div>' +
         campMeta(k) +
         '<div class="s-rec-actions">' +
-          (all.length && !isBuyer()
+          (all.length && !isBuyer() && works()
             ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
               esc(k.id) + '">Call the next one</button>' : '') +
           /* "Call them" is about the people on the page of the queue, so
@@ -17218,7 +17259,7 @@
           /* The closed line stays for everybody — it is a fact about their
              campaign. The finder does not: it is us spending a supplier. */
           (campOpen(k)
-            ? (seesCost()
+            ? (seesCost() && works()
               ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
                 '">Find more for this campaign</button>'
               : '')
@@ -17883,13 +17924,13 @@
         /* Both are cuts of the queue, and `parse` sends `on=deals` back to
            Today on this desk — so on a client's copy they are two buttons
            that land where they were pressed. */
-        (back && campOpen(k) && !isBuyer()
+        (back && campOpen(k) && !isBuyer() && works()
           ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
             'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) && !isBuyer()
           ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
             'Show the ' + commas(fresh) + ' never called</button>' : '') +
-        (all.length || !campOpen(k) || !seesCost() ? '' :
+        (all.length || !campOpen(k) || !seesCost() || !works() ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
           '">Nobody left to call — find more</button>') +
       '</div>' +
@@ -18028,7 +18069,7 @@
          finder is what puts it right. */
       const wrong = stepCounts(st.members)['wrong-number'] || 0;
       rs.push({ text: exits,
-        door: (wrong && seesCost()) ? { attr: 'data-bopen="' + esc(k.id) + '"',
+        door: (wrong && seesCost() && works()) ? { attr: 'data-bopen="' + esc(k.id) + '"',
           say: 'Find more for this campaign' } : null });
     }
     /* ══ THE MANAGER'S COLUMN IS NOT A READING FOR THIS DESK ══════════════
@@ -18407,7 +18448,7 @@
         beats: 'AiMY finds numbers overnight; the finder brings people who already have one.',
         ours: 'We are finding numbers for them overnight, and the next list we pull '
           + 'for you only brings people who already have one.',
-        door: seesCost()
+        door: seesCost() && works()
           ? { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' } : null,
       });
     }
@@ -19127,13 +19168,13 @@
         ? { label: 'Reached before', tone: 'ok' }
         : { label: 'Nobody reached yet', tone: 'neutral' };
 
-    const chips = free.length
+    const chips = free.length && works()
       ? '<div class="b-camps-row" id="accCamps">' +
           campMenu({ id: 'accCampPick', opts: free.map((k) => ({ id: k.id, name: k.name })),
             label: 'Put everybody here on a campaign', cap: 'Put them on', go: 'acc:' + a.id }) +
         '</div>'
       : '';
-    const callFirst = call.length
+    const callFirst = call.length && works()
       ? '<button class="s-inline-btn" type="button" data-call="' + esc(call[0].id) + '">Call ' +
         esc(call[0].name.split(' ')[0]) + '</button>'
       : '';
@@ -19274,10 +19315,10 @@
 
              So the record keeps the one call it can name and the rows
              below keep theirs. The runs live where the set was chosen. */
-          (call.length
+          (call.length && works()
             ? '<button class="s-insight-lnk primary" type="button" data-call="' +
                 esc(call[0].id) + '">Call ' + esc(call[0].name.split(' ')[0]) + '</button>'
-            : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
+            : works() ? '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>' : '') +
           accHandBtn(people) +
         '</div>' +
       '</section>' +
@@ -19457,6 +19498,9 @@
           esc(act.label) + '</button>';
       }
     }
+    /* The reading stands on every desk; the door under it is somebody's
+       work, and on the CEO's desk nobody's. */
+    if (!works()) door = '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this company">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -20062,6 +20106,8 @@
      same gate, same undo — only the words differ, because the two acts are
      the same act at different points of the same story. */
   function endGate(c) {
+    /* Closing a deal is the verdict of whoever holds it. */
+    if (!works()) return '';
     const mgr = onBook() && c.checkpoint === 'handed-over';
     const endable = mgr ? dealLive(c)
       : (!isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
@@ -20097,14 +20143,14 @@
     const first = c.name.split(' ')[0];
     /* No call on somebody who opted out: the number is on the page, the
        verb is not. */
-    const call = c.phone && !c.dnc
+    const call = works() && c.phone && !c.dnc
       ? { html: 'Call ' + esc(first) +
           /* a parked callback or a meeting still ahead: the call is early, and says so */
           (c.checkpoint === 'callback' && c.next && c.next.due > TODAY_ISO ? ' early'
             : c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO ? ' to confirm' : ''),
         attr: 'data-call="' + esc(c.id) + '"' } : null;
     /* no number, or a number that is not theirs: the verb is the supplier */
-    const find = (seesCost() && !c.dnc &&
+    const find = (works() && seesCost() && !c.dnc &&
       (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
       ? { html: 'Find a number', attr: 'data-enrichcon="' + esc(c.id) + '"' } : null;
     /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
@@ -20119,7 +20165,7 @@
        than a line under the verbs. `askBlock` draws it. What a STEP did
        stays here: a caller records one on every call, so it is part of the
        row rather than news. */
-    const moves = (onBook() && c.checkpoint === 'handed-over')
+    const moves = (!works() || (onBook() && c.checkpoint === 'handed-over'))
       ? []
       : movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
         .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
@@ -20276,7 +20322,7 @@
     if (k === 'won' || k === 'lost' || k === 'later') {
       /* At the caller's desk the news is that somebody else was running it,
          so the sentence opens on their name. */
-      const who = mine ? '' : esc(directorOf(c).name) + ' had it. ';
+      const who = mine && works() ? '' : esc(directorOf(c).name) + ' had it. ';
       const word = k === 'won' ? 'They signed' : k === 'lost' ? 'They said no' : 'Rescheduled';
       /* The half a label cannot carry. A lost deal has a reason on the
          record and it is the thing a manager reads next; a rescheduled one
@@ -20302,6 +20348,18 @@
     const moves = dealMoves(c);
     if (!moves.length) return '';
     const met = PHASE[last.phase];
+    /* ══════════════ AND TO THE CEO IT IS NEWS, NOT A QUESTION ══════════════
+       The four answers are the manager's to give, because it was his room.
+       What the CEO can use is the fact that it has not been given — the
+       kind of exception he reads for — so the same block says whose it is
+       and asks him nothing. */
+    if (!works()) {
+      return stateWrap('is-ask', nmClock(),
+        '<p class="b-state-say"><b>' + esc(directorOf(c).name) + '</b> had a <b>' +
+          esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
+          esc(sayDay(last.at.slice(0, 10))) + '</b> and has not said how it went.</p>',
+        'What happened at the meeting');
+    }
     return stateWrap('is-ask', nmClock(),
       '<p class="b-state-say">You had a <b>' +
         esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
@@ -20366,6 +20424,7 @@
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'Call ' + esc(c.name.split(' ')[0]) + '</button>';
     }
+    if (!works()) door = '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -22486,6 +22545,13 @@
   function startCall(id, sess) {
     const c = DB.byCon[id];
     if (!c) return;
+    /* Every door to the phone is already absent on the CEO's desk; this is
+       the one a typed "call Ava" and a bookmark still reach. */
+    if (!works()) {
+      toast(c.name + ' is ' + (c.checkpoint === 'handed-over' ? directorOf(c).name + '’s to call.'
+        : 'called by the campaign’s callers.'));
+      return;
+    }
     if (!c.phone) { toast('No number on file for ' + c.name + '. Nothing to dial.'); return; }
     if (c.dnc) { toast(c.name + ' asked not to be called again.'); return; }
     clearCallTimers();
@@ -22831,6 +22897,7 @@
      disposition; only the tick differs, so a session is not a second call
      model and not a page of its own. */
   function callAll(ids) {
+    if (!works()) return;
     const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
     if (!live.length) { toast('Nobody in this set has a number to call.'); return; }
     const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
@@ -24878,8 +24945,8 @@
          exists and now carries what the lead is for. */
       opts: [
         { k: 'draft', label: hit.r.k === 'first' ? 'Write the message' : 'Write the ask' },
-        { k: 'add', label: 'Add them to my contacts', quiet: true },
-      ] });
+        works() ? { k: 'add', label: 'Add them to my contacts', quiet: true } : null,
+      ].filter(Boolean) });
     paintThread();
   }
   function openCanvas() {
@@ -26582,7 +26649,7 @@
          about a phone: "had a demo with Kate, they want pricing" is a
          meeting, and reading it as a call would write a touchpoint that
          says a phone call happened. */
-      if (onBook()) {
+      if (onBook() && works()) {
         /* Booking first: "add to calendar" is unambiguous and `readMeet`
            would otherwise take the same sentence and guess a stage from it. */
         const bk = readBook(t);
@@ -26590,8 +26657,8 @@
         const mt = readMeet(t);
         if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
       }
-      const read = readCall(t);
-      if (read.disp || read.props.length || read.objs.length) {
+      const read = works() ? readCall(t) : null;
+      if (read && (read.disp || read.props.length || read.objs.length)) {
         if (logBySentence(t, read)) return;
       }
     }
@@ -26761,7 +26828,7 @@
       if (!quiet.length) return 'Nobody you called or reached has gone quiet under four touches.';
       return '<b>' + plural(quiet.length, 'person') + '</b> went quiet before the fourth touch. They are first in their cuts now.' +
         '<div class="b-cuts">' +
-          '<button class="s-insight-lnk" type="button" data-call="' + esc(quiet[0].id) + '">Call ' + esc(quiet[0].name.split(' ')[0]) + '</button>' +
+          (works() ? '<button class="s-insight-lnk" type="button" data-call="' + esc(quiet[0].id) + '">Call ' + esc(quiet[0].name.split(' ')[0]) + '</button>' : '') +
           quiet.slice(0, 6).map((c) =>
           door(c.name + ' · ' + quietUnderFour(c) + ' of ' + TOUCH_RULE, Object.assign(cleared(), { con: c.id }))).join('') +
         '</div>';
@@ -29492,6 +29559,9 @@
     if (cset) {
       const k = DB.byCamp[S.camp];
       if (!k) return;
+      /* The renderer draws no field the CEO may not set; this is the same
+         rule at the handler — his own unsent request and nothing else. */
+      if (!works() && !(isDraft(k) && k.by === me().id)) return;
       const bits = String(cset.getAttribute('data-cset')).split('|');
       const f = bits[0];
       const v = bits.slice(1).join('|');
@@ -30067,6 +30137,7 @@
 
     const hto = t.closest('[data-handto]');
     if (hto) {
+      if (!works()) return;
       const v = hto.getAttribute('data-handto');
       handover(v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1));
       return;
@@ -30109,16 +30180,17 @@
 
     const dl = t.closest('[data-deal]');
     if (dl) {
+      if (!works()) return;
       const p = dl.getAttribute('data-deal').split(':');
       setStage(p[0], p[1]);
       return;
     }
 
     const dc = t.closest('[data-decide]');
-    if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
+    if (dc) { if (works()) setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
 
     const mv = t.closest('[data-move]');
-    if (mv) { setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
+    if (mv) { if (works()) setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
 
     const when = t.closest('[data-when]');
     if (when && DB.call) {
