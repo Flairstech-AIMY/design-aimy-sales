@@ -7993,7 +7993,8 @@
      A lead she handed over left her queue, her cuts and her day, and the
      only thing that came back was a decision. Where each one stands, in the
      words the manager's desk uses, per lead and never as a score — scoring
-     a caller is AiMY QA's. Latest hand-over first, four of them. */
+     a caller is AiMY QA's. Said in her bell when one moves; not a block on
+     her Today, which Nour cut — the page she opens is the queue. */
   function myHandovers() {
     const meId = me().id;
     const out = [];
@@ -8024,32 +8025,6 @@
     const spoke = (DB.touchesOf[c.id] || []).some((x) => TOUCH[x] && TOUCH[x].by === m.id && TOUCH[x].at > h.at);
     return spoke ? f + ' has tried them. Nothing is booked yet.' : f + ' has not called them yet.';
   }
-  function handoverBlock() {
-    const hs = myHandovers();
-    if (!hs.length) return '';
-    return '<section class="s-block s-block-wide" aria-label="Your hand-overs">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">Your hand-overs</h2>' +
-        '<span class="s-block-say">' + esc(plural(hs.length, 'hand-over')) + ' \u00b7 last 30 days' +
-          (hs.length > 4 ? ' \u00b7 the latest 4' : '') + '</span>' +
-      '</div>' +
-      '<div class="b-owed">' + hs.slice(0, 4).map((h, i) => {
-        const a = accOf(h.c);
-        return '<button class="b-owed-row" type="button" data-con="' + esc(h.c.id) + '" style="--i:' + i + '">' +
-          '<span class="b-owed-sev" aria-hidden="true"></span>' +
-          '<span class="b-owed-main">' +
-            '<span class="b-owed-head">' +
-              '<span class="b-owed-type">' + esc(h.c.name) + (a ? ' \u00b7 ' + esc(a.name) : '') + '</span>' +
-              '<span class="b-owed-when">' + esc(directorOf(h.c).name) + ' \u00b7 handed over ' +
-                esc(sayWhen(h.at.slice(0, 10))) + '</span>' +
-            '</span>' +
-            '<span class="b-owed-body">' + esc(handoverNow(h)) + '</span>' +
-          '</span>' +
-          '<span class="b-owed-go">Open it</span>' +
-        '</button>';
-      }).join('') + '</div>' +
-    '</section>';
-  }
   function homePage() {
     if (onBook()) return mgrHome();
     const q = queue();
@@ -8061,7 +8036,6 @@
 
     return '<div class="s-home">' +
       topBrief('calls') +
-      handoverBlock() +
       queueBlock(all, counts) +
     '</div>';
   }

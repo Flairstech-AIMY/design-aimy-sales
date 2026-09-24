@@ -299,10 +299,10 @@ not do to a scope.
 
 **THE CALLER HEARS WHAT BECAME OF HER HAND-OVERS.** A lead she handed over
 left her queue, her cuts and her day, and only a decision ever came back.
-"Your hand-overs" on her Today says where each of the latest stands, per lead
-and never as a score (`myHandovers`, `handoverNow`): not called yet, tried,
-a meeting booked or gone unwritten, met and at which step, signed, lost. Her
-bell says when one moves. The manager's "New to you" now includes her
+Her bell now says when one moves, and where it stands, per lead and never as
+a score (`myHandovers`, `handoverNow`): met and at which step, a meeting
+booked or gone unwritten. There is no block for them on her Today — the page
+she opens is the queue. The manager's "New to you" now includes her
 hand-over the day it lands. After the hand-over the phone is the manager's:
 the quiet Call on a handed-over record is gone, and `startCall` refuses it.
 And a list put on a campaign is put on one she works, with the menu saying
