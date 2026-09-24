@@ -7076,3 +7076,10 @@ textarea::placeholder,
    progress bar for the page rather than a figure for one person, and the
    three of them are compared by position, which needs them the same length. */
 .b-mgr-bar { display: block; max-width: 360px; margin: 10px 0 4px; }
+
+/* ══ 96. CONNECT LINKEDIN ══════════════════════════════════════════════════
+   The ghost button with LinkedIn's mark in front of the words, so the one
+   press that asks for an outside account says which account at a glance.
+   The mark is the line icon every LinkedIn link here already uses. */
+.b-li-btn { display: inline-flex; align-items: center; gap: 8px; }
+.b-li-btn svg { flex: none; }

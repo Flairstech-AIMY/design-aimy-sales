@@ -6847,7 +6847,18 @@
             '<span class="b-menu-name">' + esc(r.name) + '</span>' +
             '<span class="b-menu-sub">' + esc(jobSay(r)) + '</span>' +
           '</span>' +
-        '</button>').join('') + verItem();
+        '</button>').join('') +
+      /* Where the stakeholder, once connected, can let go of it — and
+         connect again from anywhere, not only from Today. */
+      (!isLine() ? '' :
+        '<button class="b-menu-item" type="button" role="menuitem" data-linkedin="' +
+          (onLinkedIn() ? 'off' : 'on') + '">' +
+          '<span class="b-menu-line">' +
+            '<span class="b-menu-name">' + (onLinkedIn() ? 'Disconnect LinkedIn' : 'Connect LinkedIn') + '</span>' +
+            '<span class="b-menu-sub">' + esc(onLinkedIn() ? 'connected ' + sayWhen(DELTA.linked[p.id])
+              : 'who you know, and who can introduce you') + '</span>' +
+          '</span>' +
+        '</button>') + verItem();
   }
   /* ══ THE WAY OUT TO V1 FOLLOWS ITS PILL INTO THIS MENU ══════════════════
      `.ver-link` is hidden under 1000 layout px, which is the topnav running
@@ -7664,6 +7675,20 @@
      claim in a louder place. */
   function connBlock() {
     if (!onBook() || isBuyer()) return '';
+    /* Not connected: the section stays where it is, empty, and says what
+       it is for and what turns it on. */
+    if (!onLinkedIn()) {
+      return '<section class="s-block s-block-wide" aria-label="Connections">' +
+        /* The button where the caption sits on every other block: the
+           header's right edge. */
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">Connections</h2>' +
+          '<button class="b-ghost b-li-btn" type="button" data-linkedin="on">' +
+            chIcon('linkedin', 14) + 'Connect LinkedIn</button>' +
+        '</div>' +
+        '<p class="s-block-sub">Connect LinkedIn to see the companies you have a way into.</p>' +
+      '</section>';
+    }
     /* Four. It is a shortlist to choose from, not a directory: the index
        holds a hundred and seventy-odd people there is some path to, and a
        briefing that lists them is a page you scroll rather than read. The
@@ -15213,8 +15238,34 @@
      somebody in the book, and where a bridge happens to be one of those it
      is said — a colleague of somebody we already talk to is a warmer ask
      than a stranger doing a favour. */
+  /* ══ NOTHING FROM LINKEDIN UNTIL LINKEDIN IS CONNECTED ═════════════════
+     Every reading of the network — the Connections section, "you are
+     connected to them" on a card, AiMY's turn about a way in, the note on a
+     connection the CEO assigns — comes through `reachOf`, so this one check
+     switches all of it off until the person reading has connected their
+     own account. Kept per desk in the saved half of the book.
+
+     The stakeholder's desk only, Nour's call: every other desk reads as
+     connected, the way it always has. */
+  const onLinkedIn = () => !isLine() || !!(DELTA.linked && DELTA.linked[me().id]);
+  function linkIn(on) {
+    const was = Object.assign({}, DELTA.linked || {});
+    const now = Object.assign({}, was);
+    if (on) now[me().id] = TODAY_ISO; else delete now[me().id];
+    DELTA.linked = now;
+    save();
+    paint();
+    /* No count: the section heads its shortlist with its own, and two
+       numbers for one thing a screen apart is one too many. */
+    toast(on ? 'LinkedIn connected' : 'LinkedIn disconnected', () => {
+      DELTA.linked = was;
+      save();
+      paint();
+    }, on ? 'Connections on Today shows the companies you have a way into.'
+      : 'Nothing from your network is shown until you connect it again.');
+  }
   function reachOf(c) {
-    if (!c) return null;
+    if (!c || !onLinkedIn()) return null;
     const h = Math.abs(hash(me().id + ':' + c.id + ':reach'));
     if (h % REACH_FIRST === 0) return { k: 'first', via: null, n: 0 };
     if (h % REACH_SECOND !== 0) return null;
@@ -31831,6 +31882,12 @@
     }
 
 
+    const li = t.closest('[data-linkedin]');
+    if (li) {
+      shutMenus(null);
+      linkIn(li.getAttribute('data-linkedin') === 'on');
+      return;
+    }
     const gb = t.closest('[data-giveback]');
     if (gb) {
       const p = String(gb.getAttribute('data-giveback')).split('|');
