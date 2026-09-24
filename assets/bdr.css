@@ -7083,3 +7083,6 @@ textarea::placeholder,
    The mark is the line icon every LinkedIn link here already uses. */
 .b-li-btn { display: inline-flex; align-items: center; gap: 8px; }
 .b-li-btn svg { flex: none; }
+/* One line, Nour's call: the block's own reading measure is for paragraphs,
+   and this is a single sentence under a header as wide as the page. */
+.b-li-sub { max-width: none; }

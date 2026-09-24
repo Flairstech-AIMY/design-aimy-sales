@@ -7686,7 +7686,7 @@
           '<button class="b-ghost b-li-btn" type="button" data-linkedin="on">' +
             chIcon('linkedin', 14) + 'Connect LinkedIn</button>' +
         '</div>' +
-        '<p class="s-block-sub">Connect LinkedIn to see potential leads and contact opportunities.</p>' +
+        '<p class="s-block-sub b-li-sub">Connect LinkedIn to see potential leads and contact opportunities.</p>' +
       '</section>';
     }
     /* Four. It is a shortlist to choose from, not a directory: the index
