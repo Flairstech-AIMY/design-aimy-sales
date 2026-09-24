@@ -202,7 +202,7 @@ in full:
 |---|---|---|
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
-| Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
+| Sherif Amin, stakeholder | `?as=sherif` | the manager's reading bounded by the product a campaign sells — read, not worked: request a campaign, pass on a lead, join a deal, and what buyers say about the product |
 | Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and every figure on the desk is read out of that one |
 | Rami Fahim, CEO | `?as=rami` | every desk's figures at once, read across the three managers — Today, Contacts, the diary of the deals he sits on, Campaigns, Lists, and Financials with a Managers cut — and four verbs: assign to a manager, assign a campaign, join a deal, ask AiMY |
 
@@ -223,8 +223,19 @@ its own press: "Lina holds the most QA and test automation deals, 4 of them.
 Assign to Lina". Every assignment is undone from the toast. Managers still take unassigned requests
 themselves. **Join it** puts him on a deal (`c.joined`, not the crew): its
 meetings land in his diary with Prepare me, the manager is told, and "Where
-you are needed" suggests at most three and stops at eight. The stage stays
-the manager's.
+you are needed" suggests at most three and stops at eight open ones. The
+stage stays the manager's.
+
+**What he sends out comes back, in his bell.** A line when something he
+assigned moved this week, one when something has sat three days untouched or
+was handed back, and one when a deal he sits on moves, wins or loses. There
+is no block for it on his Today. AiMY's pick passes over a
+manager carrying more than twice the average open deals, and when two thirds
+of his last five on a line went to one manager it suggests that manager and
+says it is his own pattern. When he takes the pick, the reason travels with
+the item (`givenWhy`) and the manager reads it: "The reason: you hold the
+most QA and test automation deals, 4 of them." Two assignments are dealt into
+the seed (`seedGives`) so the follow-up has something to show.
 
 Everything on the desk is said in words he would say out loud — "€612k of
 €900k", "AiMY expects €57k more" — and where a shared sentence failed that
@@ -285,6 +296,59 @@ quality tool is the same person with the same meetings in it. A chip that
 removes a control has taken away a capability rather than narrowed a
 reading, which is the thing this build does not do to a breakpoint and must
 not do to a scope.
+
+**THE CALLER HEARS WHAT BECAME OF HER HAND-OVERS.** A lead she handed over
+left her queue, her cuts and her day, and only a decision ever came back.
+Her bell now says when one moves, and where it stands, per lead and never as
+a score (`myHandovers`, `handoverNow`): met and at which step, a meeting
+booked or gone unwritten. There is no block for them on her Today — the page
+she opens is the queue. The manager's "New to you" now includes her
+hand-over the day it lands. After the hand-over the phone is the manager's:
+the quiet Call on a handed-over record is gone, and `startCall` refuses it.
+And a list put on a campaign is put on one she works, with the menu saying
+how many of the people fit its market (`putFit`) and the campaign's owner
+told in their bell.
+
+**THE MANAGER HEARS WHAT ARRIVES, AND SEES THE CLIENT SHE ANSWERS FOR.**
+Every other desk sends work to the sales manager, and none of it rang when
+it landed. "New to you" in her bell says who sent what since yesterday — an
+assignment from the CEO with its reason, a lead a client or a stakeholder
+passed on, a request somebody sent. The clients she is account manager for
+are read as their own desk (`asClient`, cached until the book changes): their
+meetings are in her diary at the hour theirs gives, the promises we answer
+for ring when they are behind, and Prepare me on a client meeting is the
+client's brief said from our side of the table. **Hand it back** is her
+answer to an assignment she cannot carry: a request goes back to waiting, a
+lead stays with her flagged until the CEO moves it, and his bell says why,
+in her figures. And a lead with a meeting booked is no longer counted as
+never warm-called (`unwarmed`).
+
+**THE STAKEHOLDER READS HIS PRODUCT AND WORKS NONE OF IT.** His desk was
+the manager's narrowed to AiMY QA, verbs and all: he could call Hazem's deal,
+close it as won or lost, write up a meeting he was not in, build lists and
+spend enrichment on them, with nobody told. `reads()` is what he shares with
+the CEO — `works()` is its refusal, and every sentence that says whose a
+deal is, or that the caller's part ends, reads it — while `isWhole()` stays
+the CEO's for the company, the managers and Assign. His verbs are Request a
+campaign, Add a lead, Write the ask, **Join it** on a deal for his product
+(the manager is told, the meeting lands in his diary with Prepare me), and
+Ask AiMY. And his Today has the reading only his desk exists for: **what
+buyers say about AiMY QA** — the reasons given on calls across every campaign
+selling it (`lineVoice`), which campaign raises each most, and what was lost
+on it this period.
+
+**WHAT THE CLIENT GIVES US COMES BACK TO THEM.** A lead they add goes to
+the manager on their own campaign that fits, on that campaign (a
+stakeholder's goes to AiMY's pick); it used to be saved with the client as
+its manager, where no desk showed it. `givenBy` marks it, and their bell
+says when the manager has been in touch or it ended — never the stage, which
+is our pipeline — and when one has sat three days untouched. There is no
+block for it on Today.
+Their requests ring when one is assigned, when it starts, and when nobody has
+picked it up in three days (`askNow`). And their meetings get a brief:
+`clientPrep` is their side of the table — the year, whose each miss is, what
+they asked for, and the questions worth putting — reached from Today, the
+bell, and the year page, which now names the renewal meeting it asks for.
 
 **THE CLIENT IS IN NONE OF THE ROOMS WE BOOKED, AND SEES NONE OF THE
 PEOPLE IN THEM.** Two readings that survived from the desks either side of
