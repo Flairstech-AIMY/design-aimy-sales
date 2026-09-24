@@ -17469,7 +17469,10 @@
     if (!k.name) miss.push('a name');
     if (!aimNow) miss.push('a goal');
     if (!k.sells.length) miss.push('something to sell');
-    if (!k.industry || !k.region) miss.push('a market');
+    /* The region is the manager's, like the team and the lists: where we
+       call is decided by who calls. So a request is complete without one. */
+    if (!k.industry) miss.push('a market');
+    else if (!k.region && !asking) miss.push('a region');
     /* Not asked for from a desk that cannot answer it. A greyed button over
        a sentence naming a field the page does not draw is the worst
        combination this build has: it says no and will not say where. */
@@ -17551,7 +17554,8 @@
         (isAsked(k)
           ? '<p class="s-block-sub"><b>' + esc(actor(k.by).name) + '</b> asked for this' +
             (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') +
-            '. Put a team on it and it is a campaign.</p>'
+            '. ' + (k.region ? 'Put a team on it' : 'Set the region, put a team on it,') +
+            ' and it is a campaign.</p>'
           : '') +
         '<div class="b-cmeta b-draft-meta">' +
           /* The one field above the fold AiMY can write, so it carries the
@@ -17580,9 +17584,9 @@
           draftField('Industry', draftMenu('dInd',
             k.industry ? esc(INDUSTRY[k.industry].label) : '', 'Which sector',
             INDUSTRIES.map((x) => draftItem('ind', x.k, x.label, k.industry === x.k)).join(''))) +
-          draftField('Region', draftMenu('dReg',
+          (asking ? '' : draftField('Region', draftMenu('dReg',
             k.region ? esc(REGION[k.region].label) : '', 'Where it is aimed',
-            REGIONS.map((x) => draftItem('reg', x.k, x.label, k.region === x.k)).join(''))) +
+            REGIONS.map((x) => draftItem('reg', x.k, x.label, k.region === x.k)).join('')))) +
           /* The third market fact, in the same control as the two above it.
              A menu, and the doctrine is against menus \u2014 but this is one of a
              fixed four, exactly like the sector and the region it now stands
@@ -17720,13 +17724,13 @@
           ? (k.givenBy && REP[k.owner]
             ? '<b>' + esc(actor(k.givenBy).name) + '</b> assigned it to <b>' + esc(REP[k.owner].name) +
               '</b>' + (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. ' +
-              esc(firstOf(REP[k.owner])) + ' puts a team and the lists on it and starts it, ' +
+              esc(firstOf(REP[k.owner])) + ' sets the region, puts a team and the lists on it and starts it, ' +
               'and then it turns into a campaign on this page.'
             : isWhole()
             ? 'Nobody has it yet. Assign it to a manager, or any of them can take it from ' +
               'their briefing.'
-            : 'It is on the sales managers\u2019 briefing. Whoever picks it up puts a team ' +
-            'and the lists on it and starts it, and it turns into a campaign on this ' +
+            : 'It is on the sales managers\u2019 briefing. Whoever picks it up sets the region, ' +
+            'puts a team and the lists on it and starts it, and it turns into a campaign on this ' +
             'page when they do.')
           : '<b>' + esc(actor(k.by).name) + '</b> is still writing this one. Nobody has been ' +
             'asked for it yet.') + '</p>' +
@@ -17822,7 +17826,7 @@
         '<span class="s-rec-kind b-kinds">' +
           fact('campaign', 'Campaign') +
           fact('industry', esc(INDUSTRY[k.industry].label)) +
-          fact('where', esc(REGION[k.region].label)) +
+          (REGION[k.region] ? fact('where', esc(REGION[k.region].label)) : '') +
           /* Only when it has one. A campaign from before this field existed,
              or one somebody has not answered, says nothing rather than
              claiming every company in the sector. */
@@ -29051,8 +29055,10 @@
     CBUILD.sell = k;
     CBUILD.step = 'who';
     cbuildPush('<b>' + esc(x.name) + '</b> — ' + esc(x.blurb) + '. ' +
-      'Who are we after? A sector and a country at least.',
-      [], 'Something like \u201clogistics companies in the Netherlands\u201d.');
+      'Who are we after? ' + (asksOnly() ? 'The sector at least.' : 'A sector and a country at least.'),
+      [], asksOnly() ? 'Something like \u201clogistics companies\u201d. The sales manager ' +
+        'who picks it up sets the region.'
+        : 'Something like \u201clogistics companies in the Netherlands\u201d.');
   }
 
   /* ══ THE MARKET IS TWO FACTS AND IT TOOK EITHER ═══════════════════════
@@ -29093,10 +29099,12 @@
     const big = pairs.filter((p) => p[0] === 'size')[0];
     TURNS.push({ who: 'you', html: esc(text) });
     if (ind) CBUILD.industry = ind[1];
-    if (cc) CBUILD.region = regionOfCC(cc[1]);
+    /* Not from a request: the region is the manager's to set, so a country
+       said in the sentence is not written for them. */
+    if (cc && !asksOnly()) CBUILD.region = regionOfCC(cc[1]);
     if (job) CBUILD.band = job[1];
     if (big) CBUILD.size = big[1];
-    if (!CBUILD.industry && !CBUILD.region) {
+    if (!CBUILD.industry && (asksOnly() || !CBUILD.region)) {
       cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
         '\u201chealthcare in Belgium\u201d — or pick from these.',
         INDUSTRIES.map((x) => ({ k: 'ind-' + x.k, label: x.label })), '');
@@ -29114,7 +29122,7 @@
         'one is a campaign the caller has to invent a story for.');
       return;
     }
-    if (!CBUILD.region) {
+    if (!CBUILD.region && !asksOnly()) {
       cbuildPush('<b>' + esc(INDUSTRY[CBUILD.industry].label) + '</b>. And where?',
         REGIONS.map((x) => ({ k: 'reg-' + x.k, label: x.label })),
         'It is in the name, on the card, and in the first line a caller says.');
@@ -29144,7 +29152,8 @@
 
   function cbuildGoalStep() {
     CBUILD.step = 'goal';
-    const said = INDUSTRY[CBUILD.industry].label + ' in ' + regionLabel(CBUILD.region) +
+    const said = INDUSTRY[CBUILD.industry].label +
+      (CBUILD.region ? ' in ' + regionLabel(CBUILD.region) : '') +
       (CBUILD.size ? ', ' + sizeLabel(CBUILD.size) + ' staff' : '');
     /* A narrowing whose effect is invisible is a narrowing you have to take
        on faith, and the titles heard in that sentence change who every
@@ -29191,7 +29200,7 @@
       draftField('What we sell them', esc(x ? x.name : '—')) +
       draftField('Client', 'FlairsTech') +
       draftField('Industry', esc(INDUSTRY[CBUILD.industry].label)) +
-      draftField('Region', esc(regionLabel(CBUILD.region))) +
+      (asksOnly() ? '' : draftField('Region', esc(regionLabel(CBUILD.region)))) +
       /* Said if it was heard, and the offering's own default if it was not \u2014
          the same value `cbuildMake` is about to write, so the card is not
          quieter than the record it is a preview of. */
@@ -29233,7 +29242,7 @@
     const ask = asksOnly();
     cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
       (ask
-        ? 'A sales manager picks it up, puts a team and the lists on it, and runs it.'
+        ? 'A sales manager picks it up, sets the region, puts a team and the lists on it, and runs it.'
         : 'Nobody is on it yet — a list goes on from its own page.'),
       [{ k: 'make', label: ask ? 'Request it' : 'Make it' },
         { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
@@ -29655,7 +29664,7 @@
          goal below still says, because "a first meeting with whoever owns
          quality" is a sentence and a list of titles is not. */
       persona: { who: sayPersona(parts) || askFor,
-        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
+        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + (b.region ? ' in ' + regL : ''),
         why: WHY_NOW[b.sell] },
       goal: b.noun === 'meeting'
         ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
