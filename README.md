@@ -297,6 +297,18 @@ removes a control has taken away a capability rather than narrowed a
 reading, which is the thing this build does not do to a breakpoint and must
 not do to a scope.
 
+**WHAT THE CLIENT GIVES US COMES BACK TO THEM.** A lead they add goes to
+the manager on their own campaign that fits, on that campaign (a
+stakeholder's goes to AiMY's pick); it used to be saved with the client as
+its manager, where no desk showed it. `givenBy` marks it, and "People you
+passed on" on Today says whether the manager has been in touch — never the
+stage, which is our pipeline — with a bell line at three days untouched.
+Their requests ring when one is assigned, when it starts, and when nobody has
+picked it up in three days (`askNow`). And their meetings get a brief:
+`clientPrep` is their side of the table — the year, whose each miss is, what
+they asked for, and the questions worth putting — reached from Today, the
+bell, and the year page, which now names the renewal meeting it asks for.
+
 **THE CLIENT IS IN NONE OF THE ROOMS WE BOOKED, AND SEES NONE OF THE
 PEOPLE IN THEM.** Two readings that survived from the desks either side of
 this one and were wrong on both counts.
