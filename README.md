@@ -340,9 +340,10 @@ on it this period.
 **WHAT THE CLIENT GIVES US COMES BACK TO THEM.** A lead they add goes to
 the manager on their own campaign that fits, on that campaign (a
 stakeholder's goes to AiMY's pick); it used to be saved with the client as
-its manager, where no desk showed it. `givenBy` marks it, and "People you
-passed on" on Today says whether the manager has been in touch — never the
-stage, which is our pipeline — with a bell line at three days untouched.
+its manager, where no desk showed it. `givenBy` marks it, and their bell
+says when the manager has been in touch or it ended — never the stage, which
+is our pipeline — and when one has sat three days untouched. There is no
+block for it on Today.
 Their requests ring when one is assigned, when it starts, and when nobody has
 picked it up in three days (`askNow`). And their meetings get a brief:
 `clientPrep` is their side of the table — the year, whose each miss is, what

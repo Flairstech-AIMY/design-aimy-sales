@@ -7487,69 +7487,6 @@
       say: 'Nobody has picked up ' + campName(k) + ' yet. You sent it ' + sayWhen(k.askedAt) + '.' };
   }
   const sentName = (g) => g.kind === 'camp' ? campName(g.x) : g.x.name;
-  function sentBlock() {
-    const all = sentOut();
-    if (!all.length) return '';
-    /* Not started first, oldest first; then what moved, latest first. */
-    const rows = all.slice().sort((a, b) => ((a.moved ? 1 : 0) - (b.moved ? 1 : 0)) ||
-      (a.moved ? (a.moved < b.moved ? 1 : -1) : (a.at < b.at ? -1 : 1))).slice(0, 5);
-    const still = all.filter((g) => !g.moved).length;
-    const ceo = isWhole();
-    const say = (g) => {
-      const f = firstOf(REP[g.to]);
-      if (g.kind === 'camp') return g.moved ? f + ' ran it. It is a campaign now.' : f + ' has not run it yet.';
-      if (g.x.back) return f + ' handed it back: ' + g.x.back.why + '.';
-      /* Not the stage on the passer's desk: a client does not read our
-         pipeline, only whether somebody has been in touch and how it ended. */
-      if (!ceo) {
-        if (!g.moved) return f + ' has not been in touch yet.';
-        const st = stageOf(g.x);
-        return f + ' has been in touch, last ' + sayWhen(g.moved) + '.' +
-          (st === 'won' ? ' They signed.' : st === 'lost' ? ' It did not go ahead.' : '');
-      }
-      if (!g.moved) return f + ' has not touched it yet.';
-      return f + ' was on it ' + sayWhen(g.moved) + '.' +
-        (isDeal(g.x) && DEAL_STAGE[stageOf(g.x)] ? ' It is at ' + DEAL_STAGE[stageOf(g.x)].label + ' now.' : '');
-    };
-    const title = ceo ? 'What you assigned' : 'People you passed on';
-    return '<section class="s-block s-block-wide" aria-label="' + title + '">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">' + title + '</h2>' +
-        '<span class="s-block-say">' + (ceo
-          ? (still ? esc(plural(still, 'thing')) + ' not started yet' : 'All of it has moved')
-          : (still ? esc(plural(still, 'person')) + ' not reached yet' : 'Everyone has been reached')) +
-          ' \u00b7 last 30 days</span>' +
-      '</div>' +
-      '<div class="b-owed">' + rows.map((g, i) => {
-        const a = g.kind === 'con' ? accOf(g.x) : null;
-        /* The record is not theirs to open, so their row is a statement. */
-        if (!ceo) {
-          return '<div class="b-owed-row" style="--i:' + Math.min(i, 8) + '">' +
-            '<span class="b-owed-sev' + (giveStale(g) ? ' p1' : '') + '" aria-hidden="true"></span>' +
-            '<span class="b-owed-main">' +
-              '<span class="b-owed-head">' +
-                '<span class="b-owed-type">' + esc(sentName(g)) + (a ? ' \u00b7 ' + esc(a.name) : '') + '</span>' +
-                '<span class="b-owed-when">' + esc(REP[g.to].name) + ' \u00b7 passed on ' + esc(sayWhen(g.at)) + '</span>' +
-              '</span>' +
-              '<span class="b-owed-body">' + esc(say(g)) + '</span>' +
-            '</span>' +
-          '</div>';
-        }
-        return '<button class="b-owed-row" type="button" ' +
-          (g.kind === 'camp' ? 'data-camp="' : 'data-con="') + esc(g.x.id) + '" style="--i:' + Math.min(i, 8) + '">' +
-          '<span class="b-owed-sev' + (giveStale(g) ? ' p1' : '') + '" aria-hidden="true"></span>' +
-          '<span class="b-owed-main">' +
-            '<span class="b-owed-head">' +
-              '<span class="b-owed-type">' + esc(sentName(g)) + (a ? ' \u00b7 ' + esc(a.name) : '') + '</span>' +
-              '<span class="b-owed-when">' + esc(REP[g.to].name) + ' \u00b7 assigned ' + esc(sayWhen(g.at)) + '</span>' +
-            '</span>' +
-            '<span class="b-owed-body">' + esc(say(g)) + '</span>' +
-          '</span>' +
-          '<span class="b-owed-go">Open it</span>' +
-        '</button>';
-      }).join('') + '</div>' +
-    '</section>';
-  }
   /* ══ WHAT BUYERS SAY ABOUT HIS PRODUCT ═════════════════════════════════
      The one reading only the stakeholder's desk exists for. The reasons a
      buyer gives on a call are already filed per campaign (`blockersOf`
@@ -7951,10 +7888,9 @@
          been late for three days, because nobody else can move it and it is
          one press. */
       reqBlock() +
-      /* What a client or a stakeholder passed on. The CEO's own follow-up is
-         in his bell, not a block on his Today — Nour cut it, as she cut the
-         caller's hand-overs. */
-      (isWhole() ? '' : sentBlock()) +
+      /* What came of what this desk sent out — the CEO's assignments, the
+         leads a client or a stakeholder passed on — is said in the bell, not
+         in a block here: Nour cut all three blocks for the same reason. */
       /* The stakeholder's own reading: what his product meets on calls. */
       voiceBlock() +
       /* The CEO's reading of the room, under the requests he assigns from
@@ -25477,13 +25413,33 @@
           body: asks[0].say + (asks.length > 1 ? ' And ' + plural(asks.length - 1, 'more') + ' on Campaigns.' : ''),
           cta: 'See it', ask: 'go:' + JSON.stringify({ camp: asks[0].k.id }) });
       }
+      /* The record is not the client's to open, so their row goes to the
+         campaign the lead went onto; a stakeholder reads the record itself. */
+      const where = (g) => isBuyer()
+        ? (g.x.camps && g.x.camps[0] ? { camp: g.x.camps[0] } : { on: 'camps' })
+        : { con: g.x.id };
+      const whereSay = isBuyer() ? 'See the campaign' : 'Open it';
       const stale = sentOut().filter(giveStale).sort((a, b) => (a.at < b.at ? -1 : 1));
       if (stale.length) {
         const g = stale[0];
         tasks.push({ id: 'passed-still', sev: 'p2', type: 'Your leads', when: plural(stale.length, 'person'),
           body: REP[g.to].name + ' has not been in touch with ' + g.x.name + ' yet. You passed them on ' +
             sayWhen(g.at) + '.' + (stale.length > 1 ? ' ' + plural(stale.length - 1, 'other') + ' the same.' : ''),
-          cta: 'Show them', ask: 'go:' + JSON.stringify({}) });
+          cta: whereSay, ask: 'go:' + JSON.stringify(where(stale[0])) });
+      }
+      /* And the ones that moved this week: the manager has been in touch, or
+         it ended. Never the stage — that is our pipeline, not theirs. */
+      const went = sentOut().filter((g) => g.moved && daysBetween(g.moved, TODAY_ISO) <= 7)
+        .sort((a, b) => (a.moved < b.moved ? 1 : -1));
+      if (went.length) {
+        const g = went[0];
+        const f = firstOf(REP[g.to]);
+        const st = stageOf(g.x);
+        tasks.push({ id: 'passed-moved', sev: 'p3', type: 'Your leads', when: plural(went.length, 'person'),
+          body: g.x.name + ': ' + (st === 'won' ? 'they signed.' : st === 'lost' ? 'it did not go ahead.'
+            : f + ' has been in touch, last ' + sayWhen(g.moved) + '.') +
+            (went.length > 1 ? ' ' + plural(went.length - 1, 'other') + ' moved this week too.' : ''),
+          cta: whereSay, ask: 'go:' + JSON.stringify(where(g)) });
       }
     }
     const live = board ? queue(null, 'all').filter(dealLive) : [];
