@@ -7951,8 +7951,10 @@
          been late for three days, because nobody else can move it and it is
          one press. */
       reqBlock() +
-      /* And what came of what he assigned from it. */
-      sentBlock() +
+      /* What a client or a stakeholder passed on. The CEO's own follow-up is
+         in his bell, not a block on his Today — Nour cut it, as she cut the
+         caller's hand-overs. */
+      (isWhole() ? '' : sentBlock()) +
       /* The stakeholder's own reading: what his product meets on calls. */
       voiceBlock() +
       /* The CEO's reading of the room, under the requests he assigns from
@@ -25303,12 +25305,29 @@
         const g = stale[0];
         const one = REP[g.to].name + ' has not ' + (g.kind === 'camp' ? 'run ' : 'touched ') +
           sentName(g) + ', assigned ' + sayWhen(g.at) + '.';
-        tasks.push({ id: 'sent-still', sev: 'p2', type: 'Assigned', when: plural(stale.length, 'thing'),
+        tasks.push({ id: 'sent-still', sev: 'p2', type: 'What you assigned', when: plural(stale.length, 'thing'),
           body: stale.length === 1 ? one
             : plural(stale.length, 'thing') + ' you assigned have not been started. The oldest: ' + one,
-          cta: 'Show them', ask: 'go:' + JSON.stringify({}),
+          /* To the thing itself: the block this used to open is gone. */
+          cta: 'Open it', ask: 'go:' + JSON.stringify(g.kind === 'camp' ? { camp: g.x.id } : { con: g.x.id }),
           line: '<b>' + esc(plural(stale.length, 'thing')) + '</b> you assigned ' +
             (stale.length === 1 ? 'has' : 'have') + ' not been started' });
+      }
+    }
+    if (isWhole()) {
+      /* And what he assigned that moved this week: a request run, a lead or
+         a deal the manager has done something on since. */
+      const went = sentOut().filter((g) => g.moved && !g.x.back && daysBetween(g.moved, TODAY_ISO) <= 7)
+        .sort((a, b) => (a.moved < b.moved ? 1 : -1));
+      if (went.length) {
+        const g = went[0];
+        const f = firstOf(REP[g.to]);
+        const st = g.kind === 'con' && isDeal(g.x) ? DEAL_STAGE[stageOf(g.x)] : null;
+        tasks.push({ id: 'sent-moved', sev: 'p3', type: 'What you assigned', when: plural(went.length, 'thing'),
+          body: (g.kind === 'camp' ? f + ' ran ' + campName(g.x) + '. It is a campaign now.'
+            : g.x.name + ': ' + f + ' was on it ' + sayWhen(g.moved) + '.' + (st ? ' It is at ' + st.label + ' now.' : '')) +
+            (went.length > 1 ? ' ' + plural(went.length - 1, 'other') + ' moved this week too.' : ''),
+          cta: 'Open it', ask: 'go:' + JSON.stringify(g.kind === 'camp' ? { camp: g.x.id } : { con: g.x.id }) });
       }
     }
     if (reads()) {

@@ -226,10 +226,10 @@ meetings land in his diary with Prepare me, the manager is told, and "Where
 you are needed" suggests at most three and stops at eight open ones. The
 stage stays the manager's.
 
-**What he sends out comes back.** "What you assigned" on Today lists the last
-30 days of it, not started first, and says whether the manager who holds it
-has done anything since; three days untouched puts a line in his bell, and so
-does a deal he sits on moving, winning or losing. AiMY's pick passes over a
+**What he sends out comes back, in his bell.** A line when something he
+assigned moved this week, one when something has sat three days untouched or
+was handed back, and one when a deal he sits on moves, wins or loses. There
+is no block for it on his Today. AiMY's pick passes over a
 manager carrying more than twice the average open deals, and when two thirds
 of his last five on a line went to one manager it suggests that manager and
 says it is his own pattern. When he takes the pick, the reason travels with
