@@ -223,8 +223,19 @@ its own press: "Lina holds the most QA and test automation deals, 4 of them.
 Assign to Lina". Every assignment is undone from the toast. Managers still take unassigned requests
 themselves. **Join it** puts him on a deal (`c.joined`, not the crew): its
 meetings land in his diary with Prepare me, the manager is told, and "Where
-you are needed" suggests at most three and stops at eight. The stage stays
-the manager's.
+you are needed" suggests at most three and stops at eight open ones. The
+stage stays the manager's.
+
+**What he sends out comes back.** "What you assigned" on Today lists the last
+30 days of it, not started first, and says whether the manager who holds it
+has done anything since; three days untouched puts a line in his bell, and so
+does a deal he sits on moving, winning or losing. AiMY's pick passes over a
+manager carrying more than twice the average open deals, and when two thirds
+of his last five on a line went to one manager it suggests that manager and
+says it is his own pattern. When he takes the pick, the reason travels with
+the item (`givenWhy`) and the manager reads it: "The reason: you hold the
+most QA and test automation deals, 4 of them." Two assignments are dealt into
+the seed (`seedGives`) so the follow-up has something to show.
 
 Everything on the desk is said in words he would say out loud — "€612k of
 €900k", "AiMY expects €57k more" — and where a shared sentence failed that

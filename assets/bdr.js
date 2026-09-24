@@ -3481,6 +3481,7 @@
     }
     reindex();
     seedJoins();
+    seedGives();
   }
 
   /* ══ A SAVED DEMO GOES STALE AND THE CORPUS DOES NOT ═══════════════════
@@ -6012,12 +6013,12 @@
      Not "the director" as a role read off the campaign, but the person
      chosen at the moment of handing over. From then on the record says who
      is managing it, and the BDR has nothing left to press. */
-  function handover(conId, mgrId) {
+  function handover(conId, mgrId, why) {
     const c = DB.byCon[conId];
     const m = REP[mgrId];
     if (!c || !m) return;
     const before = { checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, manager: c.manager || null,
-      givenBy: c.givenBy || null, givenAt: c.givenAt || null };
+      givenBy: c.givenBy || null, givenAt: c.givenAt || null, givenWhy: c.givenWhy || null };
     const now = new Date().toISOString();
     /* The CEO hands over too — it is how he gives a lead nobody holds yet —
        and the record says who gave it rather than that it was handed. */
@@ -6026,11 +6027,12 @@
       id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint', proposals: [], objections: [], openings: [],
-      note: gave ? me().name + ' assigned this to ' + m.name + '.' : 'Handed to ' + m.name + '.',
+      note: gave ? me().name + ' assigned this to ' + m.name + '.' + (why ? ' ' + (why.note || why.why) : '')
+        : 'Handed to ' + m.name + '.',
       lines: [], next: null, moved: [c.checkpoint, 'handed-over'], called: 'handed-over',
     };
     patchCon(c, Object.assign({ checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id },
-      gave ? { givenBy: me().id, givenAt: TODAY_ISO } : {}));
+      gave ? { givenBy: me().id, givenAt: TODAY_ISO, givenWhy: why ? why.you : null } : {}));
     addTouch(t);
     /* ══ AND THE MANAGER'S DESK HEARS ABOUT IT ════════════════════════════
        `DB.byMgr` is built in `reindex`, and a hand-over without one left
@@ -6086,13 +6088,15 @@
         !isDraft(k)).length);
       if (r) {
         return { id: r.m.id, why: firstOf(r.m) + ' already runs ' + plural(r.n, 'campaign') +
-          ' for ' + CLIENT[x.client].name + '.' };
+          ' for ' + CLIENT[x.client].name + '.',
+          you: 'you already run ' + plural(r.n, 'campaign') + ' for ' + CLIENT[x.client].name };
       }
     }
     if (kind === 'con') {
       const k = DB.byCamp[campFor(x)];
       if (k && REP[k.owner] && REP[k.owner].fn === 'sales-manager') {
-        return { id: k.owner, why: firstOf(REP[k.owner]) + ' runs ' + campName(k) + ', which they are on.' };
+        return { id: k.owner, why: firstOf(REP[k.owner]) + ' runs ' + campName(k) + ', which they are on.',
+          you: 'you run ' + campName(k) + ', which they are on' };
       }
     }
     const co = kind === 'con' ? ((accOf(x) || {}).name || '') : (x.co || '');
@@ -6102,23 +6106,90 @@
         const a = accOf(DB.byCon[cid]);
         return a && a.name.toLowerCase() === lower;
       }).length);
-      if (r) return { id: r.m.id, why: firstOf(r.m) + ' already holds a deal at ' + co + '.' };
+      if (r) return { id: r.m.id, why: firstOf(r.m) + ' already holds a deal at ' + co + '.',
+        you: 'you already hold a deal at ' + co };
     }
-    /* 2. Whoever sells the most of what it is for. */
+    /* 2. Whoever sells the most of what it is for — unless they already
+       carry more than twice the average open work. It sent all four QA
+       connections to Lina with 37 open deals against Nadia's 3, and giving
+       one did not change the count it chose on, so the fifth went to her too. */
     const line = kind === 'net' ? reachKey(x)
       : kind === 'con' ? lineOf(firstCamp(x))
       : kind === 'lead' ? x.sell : (x.sells || [])[0];
+    const top = [];
+    let pick = null;
     if (line && SELL[line]) {
-      const r = best((m) => heldOn(m.id, line));
-      if (r) {
-        return { id: r.m.id, why: firstOf(r.m) + ' holds the most ' + SELL[line].name + ' deals, ' +
-          commas(r.n) + ' of them.' };
+      const nm = SELL[line].name;
+      MANAGERS.map((m) => ({ m: m, n: heldOn(m.id, line) })).filter((r) => r.n > 0)
+        .sort((a, b) => b.n - a.n).forEach((r) => top.push(r));
+      const fit = top.filter((r) => !giveHeavy(r.m.id))[0];
+      if (fit && fit === top[0]) {
+        pick = { id: fit.m.id, why: firstOf(fit.m) + ' holds the most ' + nm + ' deals, ' +
+          commas(fit.n) + ' of them.', you: 'you hold the most ' + nm + ' deals, ' + commas(fit.n) + ' of them' };
+      } else if (fit) {
+        const o = openOf(fit.m.id), o0 = openOf(top[0].m.id), f0 = firstOf(top[0].m);
+        pick = { id: fit.m.id, why: firstOf(fit.m) + ' holds ' + commas(fit.n) + ' ' + nm + ' deals and has room: ' +
+          plural(o, 'open deal') + ' against ' + f0 + '\u2019s ' + commas(o0) + '.',
+          you: 'you hold ' + commas(fit.n) + ' ' + nm + ' deals and have room: ' + plural(o, 'open deal') +
+          ' against ' + f0 + '\u2019s ' + commas(o0) };
       }
+      /* What he chose before outranks the rule when the two disagree: it is
+         his call, and the sentence says it is his own pattern, not ours. */
+      const l = giveLearnt(line);
+      if (l && (!pick || l.id !== pick.id)) return l;
+      if (pick) return pick;
     }
-    /* 3. Whoever has the most room. */
-    const room = MANAGERS.slice().sort((a, b) => runningOf(a.id) - runningOf(b.id))[0];
-    return { id: room.id, why: firstOf(room) + ' runs the fewest campaigns right now, ' +
-      commas(runningOf(room.id)) + '.' };
+    /* 3. Whoever has the most room, by the open deals the menu shows. */
+    const room = MANAGERS.slice().sort((a, b) => openOf(a.id) - openOf(b.id))[0];
+    const o = openOf(room.id);
+    if (top.length && top[0].m.id !== room.id) {
+      const f0 = firstOf(top[0].m), o0 = openOf(top[0].m.id);
+      return { id: room.id, why: firstOf(room) + ' has the most room: ' + plural(o, 'open deal') + ' against ' +
+        f0 + '\u2019s ' + commas(o0) + '.',
+        you: 'you have the most room: ' + plural(o, 'open deal') + ' against ' + f0 + '\u2019s ' + commas(o0) };
+    }
+    return { id: room.id, why: firstOf(room) + ' has the most room, ' + plural(o, 'open deal') + '.',
+      you: 'you have the most room, ' + plural(o, 'open deal') };
+  }
+  /* A manager's open deals: the second figure under each name in the menu. */
+  const openOf = (id) => (DB.byMgr[id] || []).filter((cid) => DB.byCon[cid] && dealLive(DB.byCon[cid])).length;
+  const giveHeavy = (id) => {
+    const avg = MANAGERS.reduce((s, m) => s + openOf(m.id), 0) / MANAGERS.length;
+    return avg > 0 && openOf(id) > 2 * avg;
+  };
+  /* ══ WHAT HE HAS DONE BEFORE ══════════════════════════════════════════
+     Read off the records he assigned, not kept in a log of its own: a
+     request or a contact carries `givenBy` and `givenAt`, and whose it is
+     now. His last five on this line; if two thirds or more went to one
+     manager, that is his pattern and AiMY says so in his words. */
+  function givesOn(line) {
+    const who = me().id;
+    const out = [];
+    DB.camp.forEach((k) => {
+      if (k.givenBy === who && k.givenAt && (k.sells || [])[0] === line && REP[k.owner]) out.push({ to: k.owner, at: k.givenAt });
+    });
+    DB.con.forEach((c) => {
+      if (c.givenBy === who && c.givenAt && sellOf(c) === line && REP[mgrOf(c)]) out.push({ to: mgrOf(c), at: c.givenAt });
+    });
+    return out.filter((g) => daysBetween(g.at, TODAY_ISO) <= 30).sort((a, b) => (a.at < b.at ? 1 : -1));
+  }
+  function giveLearnt(line) {
+    const g = givesOn(line).slice(0, 5);
+    if (g.length < 2) return null;
+    const n = Object.create(null);
+    g.forEach((x) => { n[x.to] = (n[x.to] || 0) + 1; });
+    const id = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+    if (n[id] < 2 || n[id] * 3 < g.length * 2) return null;
+    const nm = SELL[line].name;
+    const all = n[id] === g.length;
+    return { id: id,
+      why: all ? 'You gave the last ' + commas(g.length) + ' ' + nm + ' ones to ' + firstOf(REP[id]) + '.'
+        : 'You gave ' + firstOf(REP[id]) + ' ' + commas(n[id]) + ' of the last ' + commas(g.length) + ' ' + nm + ' ones.',
+      you: all ? 'the last ' + commas(g.length) + ' ' + nm + ' ones went to you'
+        : commas(n[id]) + ' of the last ' + commas(g.length) + ' ' + nm + ' ones went to you',
+      /* The record is read by everybody, so it says whose pattern it is. */
+      note: all ? me().name + ' gave the last ' + commas(g.length) + ' ' + nm + ' ones to ' + REP[id].name + '.'
+        : me().name + ' gave ' + REP[id].name + ' ' + commas(n[id]) + ' of the last ' + commas(g.length) + ' ' + nm + ' ones.' };
   }
   /* A span, not a div, because two of the places it stands are inside a
      row of other controls. `off` greys both presses for the reason the
@@ -6171,30 +6242,39 @@
   }
   function give(kind, id, mgrId) {
     if (!isWhole() || !REP[mgrId] || REP[mgrId].fn !== 'sales-manager') return;
-    if (kind === 'req') campGive(DB.byCamp[id], mgrId);
-    else if (kind === 'draft') campAskGive(DB.byCamp[id], mgrId);
-    else if (kind === 'net') netGive(id, mgrId);
-    else if (kind === 'con') handover(id, mgrId);
+    /* The sentence he acted on goes with it, so the manager knows why it is
+       theirs. Only when he took AiMY's pick: a name chosen from the menu
+       has a reason nobody wrote down, and inventing one would be worse. */
+    const x = kind === 'req' || kind === 'draft' ? DB.byCamp[id]
+      : kind === 'net' ? (DB.net || []).filter((n) => n.id === id)[0]
+      : DB.byCon[id];
+    const p = x && kind !== 'deal' ? giveTo(kind, x) : null;
+    const why = p && p.id === mgrId ? p : null;
+    if (kind === 'req') campGive(DB.byCamp[id], mgrId, why);
+    else if (kind === 'draft') campAskGive(DB.byCamp[id], mgrId, why);
+    else if (kind === 'net') netGive(id, mgrId, why);
+    else if (kind === 'con') handover(id, mgrId, why);
     else if (kind === 'deal') regive(id, mgrId);
   }
-  function campGive(k, mgrId) {
+  function campGive(k, mgrId, why) {
     if (!k || !isAsked(k)) return;
-    const was = { owner: k.owner || '', givenBy: k.givenBy || null, givenAt: k.givenAt || null };
-    campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
+    const was = { owner: k.owner || '', givenBy: k.givenBy || null, givenAt: k.givenAt || null,
+      givenWhy: k.givenWhy || null };
+    campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: why ? why.you : null });
     paint();
     toast('Assigned to ' + REP[mgrId].name, () => { campSet(k, was); paint(); });
   }
   /* His own request, sent and given in the one press — `campAsk` with the
      owner written in, and undone the way `campAsk` is: back to a draft. */
-  function campAskGive(k, mgrId) {
+  function campAskGive(k, mgrId, why) {
     if (!k || !isDraft(k) || isAsked(k)) return;
     const patch = campFill(k);
     Object.assign(patch, { state: 'asked', by: me().id, askedAt: TODAY_ISO,
-      owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO });
+      owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: why ? why.you : null });
     campSet(k, patch);
     go(Object.assign(cleared(), { camp: k.id }));
     toast('Assigned to ' + REP[mgrId].name, () => {
-      campSet(k, { state: 'draft', askedAt: null, owner: '', givenBy: null, givenAt: null });
+      campSet(k, { state: 'draft', askedAt: null, owner: '', givenBy: null, givenAt: null, givenWhy: null });
       go(Object.assign(cleared(), { camp: k.id }));
     });
   }
@@ -6202,7 +6282,7 @@
      path that already puts a stranger into somebody's contacts. The note
      is the whole brief: who gave it, and the way in — which is HIS way in,
      because `reachOf` reads the network of whoever is looking. */
-  function netGive(nid, mgrId) {
+  function netGive(nid, mgrId, why) {
     const n = (DB.net || []).filter((x) => x.id === nid)[0];
     const m = REP[mgrId];
     if (!n || !m) return;
@@ -6212,8 +6292,8 @@
         ' at ' + r.via.co + '.'
       : ' They are one of ' + me().name + '’s own connections.';
     const c = addLead({ name: n.name, title: n.title, co: n.co, sell: reachKey(n), manager: m.id,
-      note: me().name + ' assigned this to ' + m.name + '.' + way,
-      givenBy: me().id, stay: true, toast: 'Assigned to ' + m.name });
+      note: me().name + ' assigned this to ' + m.name + '.' + (why ? ' ' + (why.note || why.why) : '') + way,
+      givenBy: me().id, givenWhy: why ? why.you : null, stay: true, toast: 'Assigned to ' + m.name });
     /* What the index knew about their company comes with them. The list he
        gave it off said "software at 3,200 staff" and the manager's card said
        "industry not known". Only onto an account the lead itself made. */
@@ -6236,7 +6316,8 @@
     if (!c || !m || c.checkpoint !== 'handed-over') return;
     const was = mgrOf(c);
     if (was === m.id) return;
-    const before = { manager: c.manager || null, givenBy: c.givenBy || null, givenAt: c.givenAt || null };
+    const before = { manager: c.manager || null, givenBy: c.givenBy || null, givenAt: c.givenAt || null,
+      givenWhy: c.givenWhy || null };
     const t = {
       id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: new Date().toISOString(), secs: 0,
@@ -6244,7 +6325,7 @@
       note: me().name + ' assigned this to ' + m.name + '. It was ' + actor(was).name + '’s.',
       lines: [], next: null, moved: null, called: c.checkpoint, to: m.id, was: was,
     };
-    patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO });
+    patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: null });
     addTouch(t);
     reindex();
     paint();
@@ -6296,7 +6377,9 @@
   function needFor() {
     if (!isWhole()) return [];
     const book = dealBook();
-    if (book.filter(sitsOn).length >= SITS_MAX) return null;
+    /* Open ones only. Counting won and lost deals locked the block for good
+       once eight he had joined had closed. */
+    if (book.filter((c) => sitsOn(c) && dealLive(c)).length >= SITS_MAX) return null;
     const live = book.filter((c) => dealLive(c));
     const vals = live.map((c) => acvOf(c).value).sort((x, y) => x - y);
     const mid = vals.length ? vals[Math.floor(vals.length / 2)] : 0;
@@ -6358,6 +6441,25 @@
      start — chosen by value off the corpus, not by a draw, so no other
      figure moves — and ten days ago, so no manager's bell announces a join
      nobody made in this session. A delta that has left one keeps it left. */
+  /* ══ TWO THINGS HE ASSIGNED, DEALT NOT ROLLED ══════════════════════════
+     So the follow-up has something to follow: one lead a manager has not
+     touched since, and one deal the manager has worked since. The oldest
+     id that fits each, on two different desks. No `rng` is read. */
+  function seedGives() {
+    const ceo = REPS.filter((r) => r.fn === 'ceo')[0];
+    if (!ceo) return;
+    const at = (c) => (c.checkpointAt || '').slice(0, 10);
+    const deals = DB.con.filter((c) => isDeal(c) && dealLive(c) && !('givenBy' in c) && REP[mgrOf(c)] &&
+      at(c)).sort((x, y) => (x.id < y.id ? -1 : 1));
+    const since = (c) => (DB.touchesOf[c.id] || []).some((id) => TOUCH[id] &&
+      TOUCH[id].by === mgrOf(c) && TOUCH[id].at.slice(0, 10) >= at(c));
+    const still = deals.filter((c) => stageOf(c) === 'qual' && !since(c) &&
+      daysBetween(at(c), TODAY_ISO) >= 4 && daysBetween(at(c), TODAY_ISO) <= 12)[0];
+    const went = deals.filter((c) => c !== still && (!still || mgrOf(c) !== mgrOf(still)) &&
+      stageOf(c) !== 'qual' && daysBetween(at(c), TODAY_ISO) <= 25 &&
+      phasesOf(c).some((t) => t.by === mgrOf(c) && t.at.slice(0, 10) >= at(c)))[0];
+    [still, went].forEach((c) => { if (c) { c.givenBy = ceo.id; c.givenAt = at(c); } });
+  }
   function seedJoins() {
     const ceo = REPS.filter((r) => r.fn === 'ceo')[0];
     if (!ceo) return;
@@ -7257,6 +7359,73 @@
     .sort((a, b) => (isWhole() ? (a.givenBy ? 1 : 0) - (b.givenBy ? 1 : 0) : 0) ||
       ((a.askedAt || '') < (b.askedAt || '') ? -1 : 1));
 
+  /* ══ WHAT HE SENT OUT, AND WHETHER IT MOVED ═════════════════════════════
+     He assigns and the item leaves his desk, so without this he can only
+     trust. Moved means the manager who holds it now did something after it
+     was assigned: ran the request, or wrote anything on the contact that
+     was not the assignment itself. Thirty days back; three days untouched
+     is late enough to say. */
+  const GIVE_STALE = 3;
+  function sentOut() {
+    if (!isWhole()) return [];
+    const who = me().id;
+    const out = [];
+    DB.camp.forEach((k) => {
+      if (k.givenBy !== who || !k.givenAt || !REP[k.owner]) return;
+      out.push({ kind: 'camp', x: k, to: k.owner, at: k.givenAt, moved: isAsked(k) ? null : k.givenAt });
+    });
+    DB.con.forEach((c) => {
+      if (c.givenBy !== who || !c.givenAt) return;
+      const to = mgrOf(c);
+      let last = null;
+      (DB.touchesOf[c.id] || []).forEach((tid) => {
+        const t = TOUCH[tid];
+        if (t && t.by === to && t.outcome !== 'given' && t.at.slice(0, 10) >= c.givenAt &&
+          (!last || t.at > last)) last = t.at;
+      });
+      out.push({ kind: 'con', x: c, to: to, at: c.givenAt, moved: last ? last.slice(0, 10) : null });
+    });
+    return out.filter((g) => REP[g.to] && daysBetween(g.at, TODAY_ISO) <= 30);
+  }
+  const giveStale = (g) => !g.moved && daysBetween(g.at, TODAY_ISO) >= GIVE_STALE;
+  const sentName = (g) => g.kind === 'camp' ? campName(g.x) : g.x.name;
+  function sentBlock() {
+    const all = sentOut();
+    if (!all.length) return '';
+    /* Not started first, oldest first; then what moved, latest first. */
+    const rows = all.slice().sort((a, b) => ((a.moved ? 1 : 0) - (b.moved ? 1 : 0)) ||
+      (a.moved ? (a.moved < b.moved ? 1 : -1) : (a.at < b.at ? -1 : 1))).slice(0, 5);
+    const still = all.filter((g) => !g.moved).length;
+    const say = (g) => {
+      const f = firstOf(REP[g.to]);
+      if (g.kind === 'camp') return g.moved ? f + ' ran it. It is a campaign now.' : f + ' has not run it yet.';
+      if (!g.moved) return f + ' has not touched it yet.';
+      return f + ' was on it ' + sayWhen(g.moved) + '.' +
+        (isDeal(g.x) && DEAL_STAGE[stageOf(g.x)] ? ' It is at ' + DEAL_STAGE[stageOf(g.x)].label + ' now.' : '');
+    };
+    return '<section class="s-block s-block-wide" aria-label="What you assigned">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What you assigned</h2>' +
+        '<span class="s-block-say">' + (still ? esc(plural(still, 'thing')) + ' not started yet'
+          : 'All of it has moved') + ' \u00b7 last 30 days</span>' +
+      '</div>' +
+      '<div class="b-owed">' + rows.map((g, i) => {
+        const a = g.kind === 'con' ? accOf(g.x) : null;
+        return '<button class="b-owed-row" type="button" ' +
+          (g.kind === 'camp' ? 'data-camp="' : 'data-con="') + esc(g.x.id) + '" style="--i:' + Math.min(i, 8) + '">' +
+          '<span class="b-owed-sev' + (giveStale(g) ? ' p1' : '') + '" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(sentName(g)) + (a ? ' \u00b7 ' + esc(a.name) : '') + '</span>' +
+              '<span class="b-owed-when">' + esc(REP[g.to].name) + ' \u00b7 assigned ' + esc(sayWhen(g.at)) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(say(g)) + '</span>' +
+          '</span>' +
+          '<span class="b-owed-go">Open it</span>' +
+        '</button>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
   function reqBlock() {
     /* A stakeholder and a client read this same home page. They see their
        own requests on their own campaigns list, where a card says Requested;
@@ -7304,7 +7473,8 @@
             '<span class="b-owed-body">' + esc(what(k)) +
               '. ' + campGoalSay(k) +
               /* On the desk it was assigned to, who assigned it. */
-              (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' assigned it to you.</b>' : '') +
+              (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' assigned it to you.</b>' +
+                (k.givenWhy ? ' The reason: ' + esc(k.givenWhy) + '.' : '') : '') +
               /* And on the CEO's, to whom — the Reassign under the row says
                  it can move, and this says where it is. */
               (k.givenBy && isWhole() && REP[k.owner]
@@ -7569,6 +7739,8 @@
          been late for three days, because nobody else can move it and it is
          one press. */
       reqBlock() +
+      /* And what came of what he assigned from it. */
+      sentBlock() +
       /* The CEO's reading of the room, under the requests he assigns from
          it: who is short and what they already carry. */
       mgrBlock() +
@@ -7756,7 +7928,8 @@
       return { text: (c.givenBy && !isWhole()
           ? esc(actor(c.givenBy).name) + ' assigned it to you ' + esc(sayWhen(c.givenAt || (c.checkpointAt || '').slice(0, 10)))
           : 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10)))) +
-          ' and still never warm-called.',
+          ' and still never warm-called.' +
+          (c.givenBy && !isWhole() && c.givenWhy ? ' The reason: ' + esc(c.givenWhy) + '.' : ''),
         from: 'the hand-over', act: call };
     }
     /* ══ HOW THE ROOM WENT, ON EVERY CARD THAT HAS BEEN IN ONE ═════════
@@ -24735,6 +24908,42 @@
           line: '<b>' + esc(plural(free.length, 'request')) + '</b> ' + (free.length === 1 ? 'is' : 'are') +
             ' waiting for a manager' });
       }
+      const stale = sentOut().filter(giveStale).sort((a, b) => (a.at < b.at ? -1 : 1));
+      if (stale.length) {
+        const g = stale[0];
+        const one = REP[g.to].name + ' has not ' + (g.kind === 'camp' ? 'run ' : 'touched ') +
+          sentName(g) + ', assigned ' + sayWhen(g.at) + '.';
+        tasks.push({ id: 'sent-still', sev: 'p2', type: 'Assigned', when: plural(stale.length, 'thing'),
+          body: stale.length === 1 ? one
+            : plural(stale.length, 'thing') + ' you assigned have not been started. The oldest: ' + one,
+          cta: 'Show them', ask: 'go:' + JSON.stringify({}),
+          line: '<b>' + esc(plural(stale.length, 'thing')) + '</b> you assigned ' +
+            (stale.length === 1 ? 'has' : 'have') + ' not been started' });
+      }
+      /* A deal he sits on that moved, won or lost since he joined, in the
+         last week. Only its meetings reached him before. */
+      const wk = dayAdd(-7);
+      const went = dealBook().filter(sitsOn).map((c) => {
+        const ph = phasesOf(c);
+        const t = ph[ph.length - 1];
+        const from = c.joinedAt && c.joinedAt > wk ? c.joinedAt : wk;
+        return t && t.at.slice(0, 10) >= from ? { c: c, at: t.at.slice(0, 10) } : null;
+      }).filter(Boolean).sort((a, b) => (a.at < b.at ? 1 : -1));
+      if (went.length) {
+        const moveSay = (r) => {
+          const a = accOf(r.c);
+          const st = stageOf(r.c);
+          return 'the ' + (a ? a.name : r.c.name) + ' deal ' +
+            (st === 'won' ? 'was won' : st === 'lost' ? 'was lost'
+              : 'moved to ' + (DEAL_STAGE[st] ? DEAL_STAGE[st].label : st)) + ' ' + sayWhen(r.at);
+        };
+        const first = moveSay(went[0]);
+        tasks.push({ id: 'joined-moved', sev: 'p2', type: 'Your deals', when: plural(went.length, 'deal'),
+          body: went.length === 1 ? first.charAt(0).toUpperCase() + first.slice(1) + '.'
+            : plural(went.length, 'deal') + ' you are on moved: ' + went.slice(0, 3).map(moveSay).join(', ') + '.',
+          cta: went.length === 1 ? 'See the deal' : 'See the first',
+          ask: 'go:' + JSON.stringify({ con: went[0].c.id }) });
+      }
       const pq = periodOf(S.period);
       if (!pq.whole && pq.elapsed != null && pq.elapsed >= 0.5) {
         const worst = MANAGERS.map((m) => mgrRead(m, pq))
@@ -27122,7 +27331,7 @@
     };
     /* Given by the CEO rather than met by the manager: said on the record,
        so the desk it lands on can say who sent it. */
-    if (f.givenBy) { c.givenBy = f.givenBy; c.givenAt = TODAY_ISO; }
+    if (f.givenBy) { c.givenBy = f.givenBy; c.givenAt = TODAY_ISO; c.givenWhy = f.givenWhy || null; }
     const t = {
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
       outcome: 'added', proposals: [], objections: [], openings: [],
