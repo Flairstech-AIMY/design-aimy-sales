@@ -6855,7 +6855,7 @@
           (onLinkedIn() ? 'off' : 'on') + '">' +
           '<span class="b-menu-line">' +
             '<span class="b-menu-name">' + (onLinkedIn() ? 'Disconnect LinkedIn' : 'Connect LinkedIn') + '</span>' +
-            '<span class="b-menu-sub">' + esc(onLinkedIn() ? 'connected ' + sayWhen(DELTA.linked[p.id])
+            '<span class="b-menu-sub">' + esc(onLinkedIn() ? 'connected ' + sayWhen(LINKED[p.id])
               : 'who you know, and who can introduce you') + '</span>' +
           '</span>' +
         '</button>') + verItem();
@@ -15243,23 +15243,24 @@
      connected to them" on a card, AiMY's turn about a way in, the note on a
      connection the CEO assigns — comes through `reachOf`, so this one check
      switches all of it off until the person reading has connected their
-     own account. Kept per desk in the saved half of the book.
+     own account. Held for this page only, per desk: not saved, so a reload
+     starts disconnected again (Nour's call — a demo shows the connect step
+     every time).
 
      The stakeholder's desk only, Nour's call: every other desk reads as
      connected, the way it always has. */
-  const onLinkedIn = () => !isLine() || !!(DELTA.linked && DELTA.linked[me().id]);
+  let LINKED = Object.create(null);
+  const onLinkedIn = () => !isLine() || !!LINKED[me().id];
   function linkIn(on) {
-    const was = Object.assign({}, DELTA.linked || {});
-    const now = Object.assign({}, was);
+    const was = Object.assign(Object.create(null), LINKED);
+    const now = Object.assign(Object.create(null), was);
     if (on) now[me().id] = TODAY_ISO; else delete now[me().id];
-    DELTA.linked = now;
-    save();
+    LINKED = now;
     paint();
     /* No count: the section heads its shortlist with its own, and two
        numbers for one thing a screen apart is one too many. */
     toast(on ? 'LinkedIn connected' : 'LinkedIn disconnected', () => {
-      DELTA.linked = was;
-      save();
+      LINKED = was;
       paint();
     }, on ? 'Connections on Today shows the companies you have a way into.'
       : 'Nothing from your network is shown until you connect it again.');
