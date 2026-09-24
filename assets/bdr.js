@@ -29198,7 +29198,10 @@
     return '<div class="b-cmeta b-cb-card">' +
       draftField('The goal', esc(CBUILD.aim)) +
       draftField('What we sell them', esc(x ? x.name : '—')) +
-      draftField('Client', 'FlairsTech') +
+      /* Whose book it goes on, which is the one `cbuildMake` writes: a
+         client asking is asking on their own, and it said FlairsTech. */
+      draftField('Client', esc(isBuyer() && CLIENT[myClient()] ? CLIENT[myClient()].name
+        : 'FlairsTech')) +
       draftField('Industry', esc(INDUSTRY[CBUILD.industry].label)) +
       (asksOnly() ? '' : draftField('Region', esc(regionLabel(CBUILD.region)))) +
       /* Said if it was heard, and the offering's own default if it was not \u2014
