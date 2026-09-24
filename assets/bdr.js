@@ -6271,8 +6271,8 @@
   function campGive(k, mgrId, why) {
     if (!k || !isAsked(k)) return;
     const was = { owner: k.owner || '', givenBy: k.givenBy || null, givenAt: k.givenAt || null,
-      givenWhy: k.givenWhy || null };
-    campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: why ? why.you : null });
+      givenWhy: k.givenWhy || null, back: k.back || null };
+    campSet(k, { owner: mgrId, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: why ? why.you : null, back: null });
     paint();
     toast('Assigned to ' + REP[mgrId].name, () => { campSet(k, was); paint(); });
   }
@@ -6329,7 +6329,7 @@
     const was = mgrOf(c);
     if (was === m.id) return;
     const before = { manager: c.manager || null, givenBy: c.givenBy || null, givenAt: c.givenAt || null,
-      givenWhy: c.givenWhy || null };
+      givenWhy: c.givenWhy || null, back: c.back || null };
     const t = {
       id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: campFor(c), by: me().id, at: new Date().toISOString(), secs: 0,
@@ -6337,7 +6337,7 @@
       note: me().name + ' assigned this to ' + m.name + '. It was ' + actor(was).name + '’s.',
       lines: [], next: null, moved: null, called: c.checkpoint, to: m.id, was: was,
     };
-    patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: null });
+    patchCon(c, { manager: m.id, givenBy: me().id, givenAt: TODAY_ISO, givenWhy: null, back: null });
     addTouch(t);
     reindex();
     paint();
@@ -6347,6 +6347,33 @@
       reindex();
       paint();
     }, actor(was).name + ' is told.');
+  }
+
+  /* ══════════════ HAND IT BACK ══════════════
+     The CEO can put anything on a manager's desk and the manager had no
+     way to say "not this one". This is that way, and it leaves the choice
+     where it was: a request goes back to waiting for a manager, and a lead
+     stays where it is — something has to hold it — flagged, until the CEO
+     moves it with Reassign. The reason is her load, in figures, so nobody
+     has to write one. */
+  const backable = (x, kind) => isMgr() && x && x.givenBy && REP[x.givenBy] && REP[x.givenBy].fn === 'ceo' &&
+    !x.back && (kind === 'camp' ? isAsked(x) && x.owner === me().id : mgrOf(x) === me().id && dealLive(x));
+  function handBack(kind, id) {
+    const x = kind === 'camp' ? DB.byCamp[id] : DB.byCon[id];
+    if (!backable(x, kind)) return;
+    const back = { by: me().id, to: x.givenBy, at: TODAY_ISO,
+      why: plural(openOf(me().id), 'open deal') + ' already' };
+    const to = actor(x.givenBy).name;
+    if (kind === 'camp') {
+      const was = { owner: x.owner, givenBy: x.givenBy, givenAt: x.givenAt, givenWhy: x.givenWhy || null, back: null };
+      campSet(x, { owner: '', givenBy: null, givenAt: null, givenWhy: null, back: back });
+      go(Object.assign(cleared(), {}));
+      toast('Handed back to ' + to, () => { campSet(x, was); paint(); });
+      return;
+    }
+    patchCon(x, { back: back });
+    paint();
+    toast('Handed back to ' + to, () => { patchCon(x, { back: null }); paint(); }, to + ' is told.');
   }
 
   /* ══════════════ JOIN IT: THE EXECUTIVE IN THE ROOM ══════════════
@@ -7318,7 +7345,7 @@
     const on = meetingsOn(TODAY_ISO);
     /* A client's meetings hang off no contact, and they get a brief too:
        the year, the campaigns and what they asked for (`clientPrep`). */
-    const next = on.filter((m) => !m.held && m.h != null && (m.con.id || isBuyer()))[0];
+    const next = on.filter((m) => !m.held && m.h != null && (m.con.id || isBuyer() || m.client))[0];
     return '<section class="s-block s-block-wide" aria-label="Your day">' +
       '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
       (on.length
@@ -7408,7 +7435,7 @@
     });
     return out.filter((g) => REP[g.to] && daysBetween(g.at, TODAY_ISO) <= 30);
   }
-  const giveStale = (g) => !g.moved && daysBetween(g.at, TODAY_ISO) >= GIVE_STALE;
+  const giveStale = (g) => !g.moved && (!!g.x.back || daysBetween(g.at, TODAY_ISO) >= GIVE_STALE);
   /* A requester's own requests, and the one thing worth saying about each. */
   const myAsks = () => DB.camp.filter((k) => k.by === me().id && k.askedAt);
   function askNow(k) {
@@ -7438,6 +7465,7 @@
     const say = (g) => {
       const f = firstOf(REP[g.to]);
       if (g.kind === 'camp') return g.moved ? f + ' ran it. It is a campaign now.' : f + ' has not run it yet.';
+      if (g.x.back) return f + ' handed it back: ' + g.x.back.why + '.';
       /* Not the stage on the passer's desk: a client does not read our
          pipeline, only whether somebody has been in touch and how it ended. */
       if (!ceo) {
@@ -7953,7 +7981,7 @@
     const live = all.filter(dealLive);
     const sum = (xs) => xs.reduce((n, c) => n + dealWorth(c), 0);
     const comm = live.filter((c) => stageOf(c) === 'commercial');
-    const cold = live.filter((c) => stageOf(c) === 'qual');
+    const cold = live.filter(unwarmed);
     const late = live.filter((c) => daysBetween(TODAY_ISO, closeBy(c)) < 0);
     const bits = [];
     if (comm.length) {
@@ -7988,7 +8016,9 @@
         (bits.length ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.'
           : 'Nothing is late and nothing is waiting on a first call.') + '</p>' +
       '<div class="s-lead-acts">' +
-        (cold.length ? door('Show the ' + commas(cold.length) + ' never called', 'qual') : '') +
+        /* The door opens the Not met step, which also holds the leads with a
+           meeting booked, so it does not carry the never-called count. */
+        (cold.length ? door('Show who is not met', 'qual') : '') +
         (comm.length ? door('Show the ' + commas(comm.length) + ' already priced', 'commercial') : '') +
       '</div>' +
     '</section>';
@@ -8077,12 +8107,23 @@
           esc(sayWhen(c.next.due)) + ' and has not been done.',
         from: 'the step you set', act: call };
     }
+    /* Handed back: it stays on this desk until the CEO moves it, and the
+       card says so rather than nagging about a call. */
+    if (c.back && c.back.by === me().id) {
+      return { text: 'You handed this back to ' + esc(actor(c.back.to).name) + ' ' + esc(sayWhen(c.back.at)) +
+          '. It stays with you until it is moved.', from: 'your hand-back', act: open };
+    }
+    if (st === 'qual' && c.next) {
+      return { text: '<b>' + esc(c.next.what) + '</b> is booked for <b>' + esc(sayDay(c.next.due)) +
+          '</b>. Nobody here has spoken to them since the hand-over.', from: 'the hand-over', act: call };
+    }
     if (st === 'qual') {
+      const fresh = daysBetween(c.givenAt || (c.checkpointAt || '').slice(0, 10), TODAY_ISO) < 1;
       return { text: (c.givenBy && !isWhole()
           ? esc(actor(c.givenBy).name) + (REP[c.givenBy] && REP[c.givenBy].fn !== 'ceo' ? ' passed it to you '
             : ' assigned it to you ') + esc(sayWhen(c.givenAt || (c.checkpointAt || '').slice(0, 10)))
           : 'Handed to ' + whose + esc(sayWhen((c.checkpointAt || '').slice(0, 10)))) +
-          ' and still never warm-called.' +
+          (fresh ? '. Nobody has warm-called them yet.' : ' and still never warm-called.') +
           (c.givenBy && !isWhole() && c.givenWhy ? ' The reason: ' + esc(c.givenWhy) + '.' : ''),
         from: 'the hand-over', act: call };
     }
@@ -17881,6 +17922,8 @@
                record is not in. */
             (editing || asking || isAsked(k) ? '' :
               '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>') +
+            (backable(k, 'camp') ? '<button class="b-ghost" type="button" data-giveback="camp|' + esc(k.id) +
+              '">Hand it back</button>' : '') +
             /* Greyed for the same reason and with the same sentence under it:
                a campaign is already running, and leaving it without a name or
                without a market would take those off a page somebody is
@@ -21166,6 +21209,7 @@
         list = !dealLive(c) ? []
           : reads() ? (sitsOn(c) ? [prep, join] : [join])
           : (call ? [call, prep] : find ? [find, prep] : [prep]);
+        if (backable(c, 'con')) list = list.concat([{ html: 'Hand it back', attr: 'data-giveback="con|' + esc(c.id) + '"' }]);
         quiet = dealLive(c) ? [] : call ? [call] : [];
         /* Where a deal ended is a statement, and `stateBlock` makes it
            one under the masthead. Nothing about it belongs in a row of
@@ -21687,6 +21731,10 @@
 
   /* One line of why this deal is where it is — the last meeting held, and
      what it left owed. The card and the column read the same string. */
+  /* ══ NOT MET, AND NOTHING BOOKED ═══════════════════════════════════════
+     "Never warm-called" was every deal at Not met, and two of Lina's four
+     had a meeting in the diary: a room booked is a call that happened. */
+  const unwarmed = (c) => stageOf(c) === 'qual' && !c.next;
   function dealWhy(c) {
     const ph = phasesOf(c);
     const st = stageOf(c);
@@ -21700,6 +21748,10 @@
     if (st === 'later') return 'You parked it <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
     if (!last) {
       const when = esc(sayWhen((c.checkpointAt || '').slice(0, 10)));
+      if (c.next) {
+        return 'Handed to you <b>' + when + '</b> \u00b7 ' + esc(c.next.what) + ' <b>' +
+          (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'due ') + esc(sayWhen(c.next.due)) + '</b>';
+      }
       return addedByHand(c)
         ? 'You added them <b>' + when + '</b>, and nobody has called them yet'
         : 'Handed to you <b>' + when + '</b>, and nobody has warm-called them';
@@ -21890,6 +21942,50 @@
     const k = myCamps().filter((c) => c.owner)[0];
     return REP[(k || {}).owner] || MANAGERS[0];
   };
+  /* ══ A CLIENT'S YEAR, READ FROM THE DESK THAT ANSWERS FOR IT ══════════
+     Marit's diary had Lina at 11:30 and at the renewal conversation, and
+     Lina's had neither; the year page said "Lina Haddad owns the 3 we answer
+     for" and nothing on Lina's desk mentioned a promise. Both are derived on
+     the client's desk only — `myDeal`, `acctMgr`, the slot — so the account
+     manager reads them the one way that cannot disagree: as that desk, for
+     the length of one call, with every desk-keyed cache put back after. */
+  const clientDesk = (k) => REPS.filter((r) => r.fn === 'client' && r.client === k)[0] || null;
+  function asClient(k, fn) {
+    const r = clientDesk(k);
+    if (!r) return null;
+    const was = { as: S.as, eng: S.eng, hour: HOUR_CACHE };
+    S.as = r.id;
+    S.eng = '';
+    clearMoney();
+    HOUR_CACHE = null;
+    try { return fn(r); } finally {
+      S.as = was.as;
+      S.eng = was.eng;
+      clearMoney();
+      HOUR_CACHE = was.hour;
+    }
+  }
+  /* The clients this manager answers for, their diary and their year.
+     Kept until the book changes, not cleared every paint: reading a year
+     as the client's desk costs a pass, and doing it on every repaint took
+     a manager's page from 86ms to 209ms. What moves a year is a touch, a
+     contact or a campaign, so their counts and the day are the key. */
+  let MINE_CLIENTS = null;
+  function myClients() {
+    if (!isMgr()) return [];
+    const key = [me().id, TODAY_ISO, DB.touch.length, DB.con.length, DB.camp.length,
+      DB.camp.filter((k) => !isDraft(k)).length].join('|');
+    if (MINE_CLIENTS && MINE_CLIENTS.key === key) return MINE_CLIENTS.rows;
+    const meId = me().id;
+    const rows = [];
+    CAMP_CLIENT_KEYS.forEach((k) => {
+      const got = asClient(k, (r) => acctMgr().id !== meId ? null
+        : { k: k, who: r, year: myYear(), meets: clientMeets('0000-01-01', '9999-12-31') });
+      if (got) rows.push(got);
+    });
+    MINE_CLIENTS = { key: key, rows: rows };
+    return rows;
+  }
   const ACCT_EXEC = 'hala';
   const YEAR_TALK = 'The year, and what next';
   function clientMeets(from, to) {
@@ -21977,6 +22073,13 @@
        Everybody else's diary is their book's, because they are in those
        rooms. Every room in the company is not his day; the deals he has
        joined are, and the company's week is on Contacts and in Financials. */
+    /* The rooms with the clients this manager answers for, at the hour the
+       client's own diary gives them. */
+    myClients().forEach((x) => x.meets.forEach((m) => {
+      if (m.iso < from || m.iso > to) return;
+      out.push(Object.assign({}, m, { con: { id: '', name: x.who.name + ', ' + CLIENT[x.k].name },
+        client: x.k }));
+    }));
     (reads() ? dealBook().filter(sitsOn) : queue(null, 'all')).forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
@@ -25080,9 +25183,9 @@
           soon[0].con.name + '.',
         /* It pointed at a contact, and a client's meeting and a diary entry
            somebody typed in have none, so the press did nothing. */
-        cta: soon[0].con.id || isBuyer() ? 'Prepare me' : 'See the diary',
+        cta: soon[0].con.id || isBuyer() || soon[0].client ? 'Prepare me' : 'See the diary',
         ask: soon[0].con.id ? 'prep:' + soon[0].con.id
-          : isBuyer() ? 'cprep:' + soon[0].iso + '|' + soon[0].title
+          : isBuyer() || soon[0].client ? 'cprep:' + soon[0].iso + '|' + soon[0].title
           : 'go:' + JSON.stringify({ on: 'cal' }) });
     }
     /* ══════════════ THE CEO'S TWO, AHEAD OF THE REST ══════════════
@@ -25158,6 +25261,80 @@
         }
       }
     }
+    if (isWhole()) {
+      /* What a manager handed back, for a week: a request is waiting again,
+         a lead is still on their desk until he moves it. */
+      const who = me().id;
+      const backs = DB.camp.filter((k) => k.back && k.back.to === who && isAsked(k) && !k.owner)
+        .map((k) => ({ x: k, kind: 'camp' }))
+        .concat(DB.con.filter((c) => c.back && c.back.to === who).map((c) => ({ x: c, kind: 'con' })))
+        .filter((b) => daysBetween(b.x.back.at, TODAY_ISO) <= 7);
+      if (backs.length) {
+        const b = backs[0];
+        tasks.push({ id: 'handed-back', sev: 'p2', type: 'Handed back', when: plural(backs.length, 'thing'),
+          body: actor(b.x.back.by).name + ' handed back ' + (b.kind === 'camp' ? campName(b.x) : b.x.name) +
+            ': ' + b.x.back.why + '.' + (backs.length > 1 ? ' ' + plural(backs.length - 1, 'other') + ' too.' : ''),
+          cta: b.kind === 'camp' ? 'Assign it' : 'Reassign it',
+          ask: 'go:' + JSON.stringify(b.kind === 'camp' ? { camp: b.x.id } : { con: b.x.id }) });
+      }
+    }
+    if (isMgr()) {
+      /* ══ WHAT ARRIVED ON THIS DESK ═══════════════════════════════════
+         Work sent here by somebody else rang nowhere: an assignment, a lead
+         a client or a stakeholder passed on, a request somebody sent. She
+         found them by noticing Contacts went up by one. Today and yesterday. */
+      const meId = me().id;
+      const fresh = (iso) => iso && daysBetween(iso, TODAY_ISO) <= 1;
+      const came = [];
+      (DB.byMgr[meId] || []).forEach((id) => {
+        const c = DB.byCon[id];
+        if (c && c.givenBy && c.givenBy !== meId && !c.back && fresh(c.givenAt)) {
+          came.push({ at: c.givenAt, go: { con: c.id },
+            say: actor(c.givenBy).name + (REP[c.givenBy] && REP[c.givenBy].fn === 'ceo' ? ' assigned you ' : ' passed you ') +
+              c.name + (accOf(c) ? ' at ' + accOf(c).name : '') + '.' + (c.givenWhy ? ' The reason: ' + c.givenWhy + '.' : '') });
+        }
+      });
+      DB.camp.forEach((k) => {
+        if (!isAsked(k)) return;
+        if (k.owner === meId && k.givenBy && fresh(k.givenAt)) {
+          came.push({ at: k.givenAt, go: { camp: k.id },
+            say: actor(k.givenBy).name + ' assigned you the request ' + campName(k) + '.' +
+              (k.givenWhy ? ' The reason: ' + k.givenWhy + '.' : '') });
+        } else if (!k.owner && k.by && fresh(k.askedAt)) {
+          came.push({ at: k.askedAt, go: { camp: k.id },
+            say: actor(k.by).name + ' asked for a campaign: ' + campName(k) + '. Any manager can take it.' });
+        }
+      });
+      came.sort((a, b) => (a.at < b.at ? 1 : -1));
+      if (came.length) {
+        tasks.push({ id: 'new-to-you', sev: 'p2', type: 'New to you', when: plural(came.length, 'thing'),
+          body: came[0].say + (came.length > 1 ? ' And ' + plural(came.length - 1, 'more') + '.' : ''),
+          cta: 'Open it', ask: 'go:' + JSON.stringify(came[0].go),
+          line: '<b>' + esc(plural(came.length, 'thing')) + '</b> came to you since yesterday' });
+      }
+      /* ══ AND THE PROMISES SHE ANSWERS FOR ═══════════════════════════
+         The client's year page names her as the owner of the ones we
+         answer for. When they are behind, her desk says so too. */
+      myClients().forEach((x) => {
+        const y = x.year;
+        const ours = y.behind.filter((b) => b.r.ours)
+          .sort((a, b) => (a.got / (a.r.to || 1)) - (b.got / (b.r.to || 1)));
+        if (!ours.length) return;
+        const f = ours[0];
+        const talk = x.meets.filter((m) => !m.held && m.iso >= TODAY_ISO && daysBetween(TODAY_ISO, m.iso) <= 14)
+          .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+        const t = talk.filter((m) => m.title === YEAR_TALK)[0] || talk[0];
+        tasks.push({ id: 'client-prom:' + x.k, sev: 'p2', type: 'Promises', when: commas(ours.length) + ' behind',
+          body: CLIENT[x.k].name + ': ' + plural(ours.length, 'promise') + ' we answer for ' +
+            (ours.length === 1 ? 'is' : 'are') + ' behind' +
+            (y.left != null ? ', with ' + plural(y.left, 'day') + ' of the year left' : '') + '. Furthest: ' +
+            (PROM_SAY[f.r.k] || f.r.say) + ', ' + promFig(f.r, f.got) + ' of ' + promFig(f.r, f.r.to) + '.',
+          cta: t ? 'Prepare me' : 'Show the campaigns',
+          ask: t ? 'cprep:' + t.iso + '|' + t.title : 'go:' + JSON.stringify({ on: 'camps' }),
+          line: '<b>' + esc(plural(ours.length, 'promise')) + '</b> to ' + esc(CLIENT[x.k].name) + ' ' +
+            (ours.length === 1 ? 'is' : 'are') + ' behind' });
+      });
+    }
     /* ══ WHAT CAME OF WHAT THEY ASKED FOR ═══════════════════════════════
        A request and a lead both left this desk and nothing came back: the
        request page had the answer if you went and looked. One line for the
@@ -25196,7 +25373,7 @@
         line: briefN(late.length, 'deal', { on: 'deals' }) +
           (late.length === 1 ? ' is' : ' are') + ' owed something before today' });
     }
-    const cold = live.filter((c) => stageOf(c) === 'qual' &&
+    const cold = live.filter((c) => unwarmed(c) &&
       daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
     /* A warm call is a manager's verb. */
     if (cold.length && !reads()) {
@@ -28657,9 +28834,20 @@
     if (m) clientPrep(m);
   }
   function clientPrep(m) {
+    /* On the account manager's desk the same brief is read as the client's
+       desk and said from our side of the table. */
+    const b = m.client && !isBuyer() ? asClient(m.client, () => clientBrief(m, true)) : clientBrief(m, false);
+    if (!b) return;
+    openCanvas();
+    say('aimy', answerBlock(b.title, b.body, b.cite));
+    paintThread();
+  }
+  function clientBrief(m, mgrSide) {
     const y = myYear();
     const year = m.title === YEAR_TALK || /review/i.test(m.title);
     const brief = /brief/i.test(m.title);
+    const cl = CLIENT[myClient()] ? CLIENT[myClient()].name : 'the client';
+    const clS = cl + (/s$/i.test(cl) ? '\u2019' : '\u2019s');
     const row = (k, v) => '<div class="b-back-row"><span class="b-back-k">' + k + '</span>' +
       '<p class="b-back-v">' + v + '</p></div>';
     const nm = (x) => esc((PROM_SAY[x.r.k] || x.r.say) + (x.r.eng ? ' \u00b7 ' + engName(x.r.eng) : ''));
@@ -28669,19 +28857,21 @@
     body += '<p class="b-prep-id">With ' + esc(m.con.name) + '</p>';
     /* ── where the year stands ── */
     if (y.scored.length) {
-      body += '<h3 class="b-brief-cap">Where the year stands</h3>' +
+      body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Where ' + esc(clS) + ' year stands' : 'Where the year stands') + '</h3>' +
         '<p class="b-prep-most">' + esc(commas(y.kept.length) + ' of ' + plural(y.scored.length, 'promise') + ' kept') +
           (y.left == null ? '' : ', with ' + esc(plural(y.left, 'day')) + ' to run') + '.' +
           (y.shut && TODAY_ISO > y.shut ? ' It renews on ' + esc(sayDay(isoAdd(y.p.end, 1))) +
-            ' unless you agree otherwise with us.' : '') + '</p>';
+            (mgrSide ? ' unless we agree otherwise with them.' : ' unless you agree otherwise with us.') : '') + '</p>';
       if (year || !brief) {
         if (ours.length) {
-          body += '<h3 class="b-brief-cap">Behind, and ours</h3><div class="b-back">' +
+          body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Behind, and yours to answer for' : 'Behind, and ours') +
+            '</h3><div class="b-back">' +
             ours.map((x) => row(nm(x), promDoing(x, y.p) || esc(promFig(x.r, x.got) + ' of ' + promFig(x.r, x.r.to)))).join('') +
             '</div>';
         }
         if (theirs.length && year) {
-          body += '<h3 class="b-brief-cap">Behind, and yours to carry</h3><div class="b-back">' +
+          body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Behind, and theirs to carry' : 'Behind, and yours to carry') +
+            '</h3><div class="b-back">' +
             theirs.map((x) => row(nm(x), esc(promFig(x.r, x.got) + ' of ' + promFig(x.r, x.r.to)))).join('') +
             '</div>';
         }
@@ -28691,14 +28881,14 @@
     const run = myCamps().filter((k) => !isDraft(k) && k.to >= TODAY_ISO)
       .sort((a, b) => (a.to < b.to ? -1 : 1));
     if (!year && run.length) {
-      body += '<h3 class="b-brief-cap">Your campaigns</h3>' +
-        '<p class="b-prep-most">' + esc(plural(run.length, 'campaign')) + ' running for you. ' +
+      body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Their campaigns' : 'Your campaigns') + '</h3>' +
+        '<p class="b-prep-most">' + esc(plural(run.length, 'campaign')) + ' running for ' + (mgrSide ? 'them' : 'you') + '. ' +
           esc(campName(run[0])) + ' closes first, ' + esc(sayDay(run[0].to)) + '.</p>';
     }
     /* ── what they asked for ── */
     const asks = myAsks().map(askNow).filter(Boolean);
     if (asks.length) {
-      body += '<h3 class="b-brief-cap">What you asked for</h3>' +
+      body += '<h3 class="b-brief-cap">' + (mgrSide ? 'What they asked for' : 'What you asked for') + '</h3>' +
         '<div class="b-back">' + asks.slice(0, 4).map((a) => row(esc(campName(a.k)), esc(a.say))).join('') + '</div>';
     }
     /* ── worth asking ── */
@@ -28706,19 +28896,21 @@
     ours.slice(0, 2).forEach((x) => qs.push('What happens to ' + (PROM_SAY[x.r.k] || x.r.say) +
       (y.left != null ? ' in the ' + plural(y.left, 'day') + ' left' : '') + '?'));
     if (year && theirs.length) {
-      qs.push('What do you need from us to move ' + (PROM_SAY[theirs[0].r.k] || theirs[0].r.say) + '?');
+      qs.push(mgrSide ? 'What would help them move ' + (PROM_SAY[theirs[0].r.k] || theirs[0].r.say) + '?'
+        : 'What do you need from us to move ' + (PROM_SAY[theirs[0].r.k] || theirs[0].r.say) + '?');
     }
-    if (year && y.shut && TODAY_ISO > y.shut) qs.push('What would you change before it renews?');
-    if (brief) qs.push('What do you want sold next, to whom, and how many?');
+    if (year && y.shut && TODAY_ISO > y.shut) {
+      qs.push(mgrSide ? 'What would they change before it renews?' : 'What would you change before it renews?');
+    }
+    if (brief) qs.push(mgrSide ? 'What do they want sold next, to whom, and how many?'
+      : 'What do you want sold next, to whom, and how many?');
     if (qs.length) {
-      body += '<h3 class="b-brief-cap">Worth asking</h3>' +
+      body += '<h3 class="b-brief-cap">' + (mgrSide ? 'What to be ready for' : 'Worth asking') + '</h3>' +
         '<div class="b-back">' + qs.map((q, i) => row(String(i + 1), esc(q))).join('') + '</div>';
     }
     body += '</div>';
-    openCanvas();
-    say('aimy', answerBlock(m.title + (m.h != null ? ' \u00b7 ' + sayDay(m.iso) + ' at ' + clockOf(m) : ''),
-      body, 'your year, your campaigns and what you asked for'));
-    paintThread();
+    return { title: m.title + (m.h != null ? ' \u00b7 ' + sayDay(m.iso) + ' at ' + clockOf(m) : ''),
+      body: body, cite: mgrSide ? clS + ' year, campaigns and requests' : 'your year, your campaigns and what you asked for' };
   }
   function callPrep(c) {
     const a = accOf(c);
@@ -31554,6 +31746,12 @@
     }
 
 
+    const gb = t.closest('[data-giveback]');
+    if (gb) {
+      const p = String(gb.getAttribute('data-giveback')).split('|');
+      handBack(p[0], p[1]);
+      return;
+    }
     const cpr = t.closest('[data-cprep]');
     if (cpr) { clientPrepFor(cpr.getAttribute('data-cprep')); return; }
     const prp = t.closest('[data-prep]');

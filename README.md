@@ -297,6 +297,20 @@ removes a control has taken away a capability rather than narrowed a
 reading, which is the thing this build does not do to a breakpoint and must
 not do to a scope.
 
+**THE MANAGER HEARS WHAT ARRIVES, AND SEES THE CLIENT SHE ANSWERS FOR.**
+Every other desk sends work to the sales manager, and none of it rang when
+it landed. "New to you" in her bell says who sent what since yesterday — an
+assignment from the CEO with its reason, a lead a client or a stakeholder
+passed on, a request somebody sent. The clients she is account manager for
+are read as their own desk (`asClient`, cached until the book changes): their
+meetings are in her diary at the hour theirs gives, the promises we answer
+for ring when they are behind, and Prepare me on a client meeting is the
+client's brief said from our side of the table. **Hand it back** is her
+answer to an assignment she cannot carry: a request goes back to waiting, a
+lead stays with her flagged until the CEO moves it, and his bell says why,
+in her figures. And a lead with a meeting booked is no longer counted as
+never warm-called (`unwarmed`).
+
 **THE STAKEHOLDER READS HIS PRODUCT AND WORKS NONE OF IT.** His desk was
 the manager's narrowed to AiMY QA, verbs and all: he could call Hazem's deal,
 close it as won or lost, write up a meeting he was not in, build lists and
