@@ -1173,7 +1173,16 @@
      stage, running a campaign, sourcing and crews are the verbs of whoever
      does the work; his way into a piece of work is to give it to a manager. */
   const isWhole = () => me().fn === 'ceo';
-  const works = () => !isWhole();
+  /* ══ TWO DESKS READ THE WORK AND HOLD NONE OF IT ═══════════════════════
+     The stakeholder answers for one product wherever it is sold and works
+     no book, and his desk was the manager's narrowed to that product: he
+     could call Hazem's deal, close it as won or lost, and write up a
+     meeting he was not in, with nobody told. `reads` is the reading both
+     share — whose it is, the caller's part, the meetings that are theirs —
+     and `isWhole` stays the CEO's alone for what only he has: the company,
+     the managers and Assign. */
+  const reads = () => isWhole() || isLine();
+  const works = () => !reads();
   /* A deal the reader has joined: the one way the CEO's own day fills. Its
      own field rather than a name on `c.crew`, because `conCrew` derives the
      crew from who worked the lead until somebody writes an array, and a
@@ -1181,7 +1190,7 @@
   const sitsOn = (c) => !!c && Array.isArray(c.joined) && c.joined.indexOf(me().id) >= 0;
   /* A queue is a caller's; on the CEO's desk nobody queues for him, and the
      same fact about a list is whether anybody is calling the people on it. */
-  const inQueue = () => (isWhole() ? 'being called' : 'in your queue');
+  const inQueue = () => (reads() ? 'being called' : 'in your queue');
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -3894,6 +3903,9 @@
        operation rather than their delivery. `switcher` draws no door to
        either; a bookmark is what reaches them. */
     if (isBuyer()) { S.build = ''; S.list = ''; S.con = ''; S.acc = ''; }
+    /* Finding people is the managers' — a desk that reads the lists does
+       not build one, and a bookmark to the builder lands on the lists. */
+    if (!works() && S.build) { S.build = ''; S.on = 'lists'; }
     if (isBuyer() && S.on === 'deals') S.on = '';
     /* ══════════════ AND THE CLIENT ALREADY HAS A SCOPE CONTROL ══════════════
        `by` switches the money between two dimensions — what SPENT it and
@@ -5431,7 +5443,7 @@
       if (on) {
         return { text: '<b>' + commas(people.length - on) + '</b> of the ' + commas(people.length) +
           ' are on no campaign, so they are not ' + inQueue() + '. The ' + commas(on) + ' already on one of ' +
-          (isWhole() ? 'ours' : 'yours') + ' are.',
+          (reads() ? 'ours' : 'yours') + ' are.',
           from: 'the list having no campaign' };
       }
       return { text: 'Nobody on this list is ' + inQueue() + ' until it is on a campaign.',
@@ -6353,7 +6365,10 @@
   const SITS_MAX = 8;
   function joinDeal(conId) {
     const c = DB.byCon[conId];
-    if (!c || !isWhole() || c.checkpoint !== 'handed-over') return;
+    if (!c || !reads() || c.checkpoint !== 'handed-over') return;
+    /* A stakeholder sits on deals for his own product, not on any id a
+       bookmark reaches. */
+    if (isLine() && dealBook().indexOf(c) < 0) return;
     const had = (c.joined || []).slice();
     const at = c.joinedAt || null;
     const on = had.indexOf(me().id) >= 0;
@@ -6375,7 +6390,7 @@
      most. Null, not empty, when he already sits on as many as one person
      can carry well: the block says so rather than going quiet. */
   function needFor() {
-    if (!isWhole()) return [];
+    if (!reads()) return [];
     const book = dealBook();
     /* Open ones only. Counting won and lost deals locked the block for good
        once eight he had joined had closed. */
@@ -7474,6 +7489,94 @@
       }).join('') + '</div>' +
     '</section>';
   }
+  /* ══ WHAT BUYERS SAY ABOUT HIS PRODUCT ═════════════════════════════════
+     The one reading only the stakeholder's desk exists for. The reasons a
+     buyer gives on a call are already filed per campaign (`blockersOf`
+     reads them one campaign at a time); this is the same count across
+     every campaign that sells his product, plus what was lost on it this
+     period. "Something else" is left out of the rows and said as a count,
+     because it is a reason nobody filed. */
+  function lineVoice() {
+    const line = myLine();
+    const camps = DB.camp.filter((k) => !isDraft(k) && (k.sells || []).indexOf(line) >= 0);
+    const on = Object.create(null);
+    camps.forEach((k) => (on[k.id] = k));
+    const said = Object.create(null);
+    let calls = 0;
+    let gave = 0;
+    let other = 0;
+    callsIn(DB.touch.filter((t) => on[t.camp])).forEach((t) => {
+      calls++;
+      (t.objections || []).forEach((o) => {
+        if (o === 'other') { other++; return; }
+        const s = said[o] || (said[o] = { k: o, n: 0, by: Object.create(null) });
+        s.n++;
+        gave++;
+        s.by[t.camp] = (s.by[t.camp] || 0) + 1;
+      });
+    });
+    const rows = Object.keys(said).map((k) => said[k]).sort((a, b) => b.n - a.n);
+    rows.forEach((r) => {
+      const top = Object.keys(r.by).sort((a, b) => r.by[b] - r.by[a])[0];
+      r.camp = on[top] || null;
+    });
+    const p = periodOf(S.period);
+    const lost = dealBook().filter((c) => {
+      if (stageOf(c) !== 'lost') return false;
+      const ph = phasesOf(c);
+      const at = ph.length ? ph[ph.length - 1].at.slice(0, 10) : '';
+      return at && (!p.from || at >= p.from) && (!p.to || at <= p.to);
+    });
+    return { line: line, camps: camps, calls: calls, gave: gave, other: other, rows: rows, lost: lost };
+  }
+  function voiceSay(v) {
+    const nm = sellSay(v.line);
+    const top = v.rows[0];
+    const lostWorth = v.lost.reduce((n, c) => n + acvOf(c).value, 0);
+    /* "Most" only when one leads: four reasons at two each is a tie. */
+    const level = top ? v.rows.filter((r) => r.n === top.n) : [];
+    const names = (rs) => {
+      const w = rs.map((r) => '<b>' + esc(OBJECTION[r.k].label.toLowerCase()) + '</b>');
+      const last = w.pop();
+      return w.length ? w.join(', ') + ' and ' + last : last;
+    };
+    return (!top ? 'No buyer has given a reason about ' + esc(nm) + ' on a call yet.'
+      : level.length > 1
+      ? 'Buyers raise ' + names(level) + ' about ' + esc(nm) + ' equally, ' + esc(plural(top.n, 'time')) +
+        ' each, out of ' + esc(plural(v.gave, 'reason')) + ' given on calls.'
+      : 'Buyers raise ' + names([top]) + ' most about ' + esc(nm) + ': ' + esc(commas(top.n)) + ' of the ' +
+        esc(plural(v.gave, 'reason')) + ' given on calls.') +
+      (v.lost.length ? ' <b>' + esc(plural(v.lost.length, 'deal')) + '</b> on it ' +
+        (v.lost.length === 1 ? 'was' : 'were') + ' lost this period, worth ' + esc(euro(lostWorth)) + '.' : '');
+  }
+  function voiceBlock() {
+    if (!isLine()) return '';
+    const v = lineVoice();
+    if (!v.calls && !v.lost.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="What buyers say">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What buyers say about ' + esc(sellSay(v.line)) + '</h2>' +
+        '<span class="s-block-say">' + esc(plural(v.calls, 'call')) + ' on ' +
+          esc(plural(v.camps.length, 'campaign')) +
+          (v.other ? ' \u00b7 ' + esc(commas(v.other)) + ' not filed' : '') + '</span>' +
+      '</div>' +
+      aimyBlock({ text: voiceSay(v), from: '' }, true) +
+      (v.rows.length ? '<div class="b-owed">' + v.rows.map((r, i) =>
+        '<button class="b-owed-row" type="button"' + (r.camp ? ' data-camp="' + esc(r.camp.id) + '"' : '') +
+          ' style="--i:' + Math.min(i, 8) + '">' +
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(OBJECTION[r.k].label) + '</span>' +
+              '<span class="b-owed-when">raised ' + esc(plural(r.n, 'time')) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(OBJECTION[r.k].blurb) +
+              (r.camp ? ' Most on ' + esc(campName(r.camp)) + '.' : '') + '</span>' +
+          '</span>' +
+          (r.camp ? '<span class="b-owed-go">See it</span>' : '') +
+        '</button>').join('') + '</div>' : '') +
+    '</section>';
+  }
   function reqBlock() {
     /* A stakeholder and a client read this same home page. They see their
        own requests on their own campaigns list, where a card says Requested;
@@ -7789,6 +7892,8 @@
       reqBlock() +
       /* And what came of what he assigned from it. */
       sentBlock() +
+      /* The stakeholder's own reading: what his product meets on calls. */
+      voiceBlock() +
       /* The CEO's reading of the room, under the requests he assigns from
          it: who is short and what they already carry. */
       mgrBlock() +
@@ -7863,7 +7968,7 @@
     }
     if (cold.length) {
       bits.push('<b>' + commas(cold.length) + '</b> ' + (cold.length === 1 ? 'has' : 'have') +
-        (isWhole() ? ' been handed to a manager and never warm-called'
+        (reads() ? ' been handed to a manager and never warm-called'
           : ' been handed to you and never warm-called'));
     }
     const door = (label, q) => '<button class="s-insight-lnk" type="button" data-go="' +
@@ -7921,7 +8026,7 @@
        Every "you" on this card is the manager holding the deal, so on his
        desk the card names them, and the verb is to open it: he calls
        nobody from here. */
-    const whose = isWhole() ? esc(directorOf(c).name) + ' ' : 'you ';
+    const whose = reads() ? esc(directorOf(c).name) + ' ' : 'you ';
     const open = { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' };
     const call = works() && c.phone && !c.dnc
       ? { label: 'Call ' + first, attr: 'data-call="' + esc(c.id) + '"' }
@@ -7948,7 +8053,7 @@
     }
     if (st === 'later') {
       const due = c.next ? daysBetween(TODAY_ISO, c.next.due) : null;
-      const parked = isWhole() ? 'the date set when it was parked' : 'the date you set when you parked it';
+      const parked = reads() ? 'the date set when it was parked' : 'the date you set when you parked it';
       return due != null && due <= 0
         ? { text: 'Rescheduled, and the day to pick it back up has come.',
             from: parked, act: call }
@@ -7960,7 +8065,7 @@
        thing on this desk that costs money by sitting still. */
     if (MGR_UNREC[c.id]) {
       const m = MGR_UNREC[c.id];
-      return { text: (isWhole() ? esc(directorOf(c).name) + ' met them <b>' : 'You met them <b>') +
+      return { text: (reads() ? esc(directorOf(c).name) + ' met them <b>' : 'You met them <b>') +
           esc(sayWhen(m.iso)) +
           '</b> and nothing here says how it went.',
         from: 'the diary against the record',
@@ -8150,7 +8255,7 @@
         '<span class="s-lead-n">' + esc(euro(worth)) + '</span>' +
         '<span class="s-lead-say">a year, across <span class="s-lead-of">' +
           commas(book.length) + '</span> companies that already buy from ' +
-          (isWhole() ? 'us' : 'you') + '.</span>' +
+          (reads() ? 'us' : 'you') + '.</span>' +
       '</div>' +
       '<p class="s-lead-deck">' + lean + renewSay +
         (bits.length
@@ -8641,7 +8746,7 @@
     if (gap <= 0) return of + ' — the target is met';
     return of + ' — ' + euro(Math.abs(Math.round(a.paceMoney))) + ' ' +
       (a.paceMoney >= 0 ? 'ahead of' : 'behind') +
-      (isWhole() ? ' where we should be today' : ' where you should be today');
+      (reads() ? ' where we should be today' : ' where you should be today');
   }
 
   /* The promise, at the foot of both cards so the two line up whatever
@@ -12845,7 +12950,7 @@
             esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + '</span>') +
           '<span class="s-att-key is-target">Target</span>' +
           (done || pacePc == null ? ''
-            : '<span class="s-att-key is-pace">Where ' + (isWhole() ? 'we' : 'you') +
+            : '<span class="s-att-key is-pace">Where ' + (reads() ? 'we' : 'you') +
               ' should be today</span>') +
         '</div>' +
       '</div>') +
@@ -13980,7 +14085,7 @@
          and it is the only p1 this desk has — so the paragraph names it and
          the phrase is the way there. Silence about it on the surface a
          manager opens first is how it goes on being unwritten. */
-      const un = unrecorded().length;
+      const un = reads() ? 0 : unrecorded().length;
       const owed = un
         ? ' <button class="slv-n" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
@@ -14300,6 +14405,19 @@
           : { k: 'ask:Which open deals will shape next quarter most, and whose are they?',
               label: 'Ask what comes next', why: 'the deals that shape next quarter' },
         { k: 'money', label: 'See Financials', why: 'what we gained, against what it cost' },
+      ];
+    } else if (isLine()) {
+      /* ══════════════ WHAT A PRODUCT'S OWNER STARTS FROM ══════════════
+         Not the phone and not the finder: those are the managers'. What
+         is his is asking for a campaign on his product, passing on
+         somebody he met, and the one question only this desk is for —
+         what buyers say about the thing he answers for. */
+      opens = [
+        campDoor,
+        { k: 'lead', label: 'Add a lead', why: 'somebody you met, to the sales manager who fits them' },
+        { k: 'ask:What do buyers raise about ' + sellSay(myLine()) + ', and what did we lose on it?',
+          label: 'Ask what buyers say', why: 'what comes up on calls, and what was lost' },
+        { k: 'money', label: 'See Financials', why: esc(sellSay(myLine())) + ' against its target' },
       ];
     } else if (onBook()) {
       /* Four verbs, and every one of them is something this desk actually
@@ -14687,7 +14805,7 @@
             /* The CEO was handed nothing: on his desk it is how many the
                campaign has handed over, to whichever manager. */
             ? '<b>' + commas(all.length) + '</b> ' +
-              (isWhole() ? 'handed over on this campaign' : 'handed to you on this campaign')
+              (reads() ? 'handed over on this campaign' : 'handed to you on this campaign')
             : S.q === 'after'
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
               : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
@@ -15715,6 +15833,7 @@
      same thing. One write, one toast, one undo. */
   function fillList(id) {
     if (isBuyer()) { toast('We fill the numbers in.'); return; }
+    if (!works()) return;
     const l = DB.byList[id];
     if (!l) return;
     const f = finderOf();
@@ -21045,7 +21164,7 @@
         /* A lead added by hand has no number, so the supplier is the verb
            before the phone can be — the same door the caller's desk offers. */
         list = !dealLive(c) ? []
-          : isWhole() ? (sitsOn(c) ? [prep, join] : [join])
+          : reads() ? (sitsOn(c) ? [prep, join] : [join])
           : (call ? [call, prep] : find ? [find, prep] : [prep]);
         quiet = dealLive(c) ? [] : call ? [call] : [];
         /* Where a deal ended is a statement, and `stateBlock` makes it
@@ -21858,7 +21977,7 @@
        Everybody else's diary is their book's, because they are in those
        rooms. Every room in the company is not his day; the deals he has
        joined are, and the company's week is on Contacts and in Financials. */
-    (isWhole() ? dealBook().filter(sitsOn) : queue(null, 'all')).forEach((c) => {
+    (reads() ? dealBook().filter(sitsOn) : queue(null, 'all')).forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
         if (iso < from || iso > to) return;
@@ -22277,10 +22396,10 @@
       : isExit(c.checkpoint) ? esc('That is where it ended. Nothing is owed.')
       /* A lead's next step is the caller's, and to the CEO it is a fact
          about the lead rather than an instruction to him. */
-      : esc((isWhole() ? 'The caller’s next step: ' + plainNext.charAt(0).toLowerCase() + plainNext.slice(1)
+      : esc((reads() ? 'The caller’s next step: ' + plainNext.charAt(0).toLowerCase() + plainNext.slice(1)
         : plainNext) + (quiet ? ' ' + quietSay(quiet, c) : ''));
     const hand = done ? '' :
-      (isWhole() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
+      (reads() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
       esc(d.name) + ' takes it from there.';
     return {
       now: now, steps: storyTrim(steps),
@@ -22330,7 +22449,7 @@
       now: now, steps: storyTrim(steps),
       next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
-        ? (isWhole() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
+        ? (reads() ? 'The caller’s part ends' : 'Your part ends') + ' at <b>Interested</b> — ' +
           esc(directorOf(top).name) + ' takes it from there.' : '',
       /* ══ THE HEAD SAID WHAT THE MASTHEAD HAD JUST SAID ══════════════
          "Valencia · Retail", forty pixels under an eyebrow reading COMPANY ·
@@ -24720,6 +24839,7 @@
      its own count of attempts; the history keeps the old calls. */
   function enrichCon(id) {
     if (isBuyer()) { toast('We fill the numbers in.'); return; }
+    if (!works()) return;
     const c = DB.byCon[id];
     if (!c) return;
     const f = finderOf();
@@ -24933,7 +25053,7 @@
        and `clientMeets` marks them free, so `unrecorded` finds none. */
     const board = !isBuyer();
     /* The write-up is the manager's, whoever else was in the room. */
-    (isWhole() ? [] : unrecorded().slice(0, 4)).forEach((m) => {
+    (reads() ? [] : unrecorded().slice(0, 4)).forEach((m) => {
       const days = -daysBetween(TODAY_ISO, m.iso);
       tasks.push({
         id: 'met:' + m.con.id + ':' + m.iso,
@@ -24995,6 +25115,8 @@
           line: '<b>' + esc(plural(stale.length, 'thing')) + '</b> you assigned ' +
             (stale.length === 1 ? 'has' : 'have') + ' not been started' });
       }
+    }
+    if (reads()) {
       /* A deal he sits on that moved, won or lost since he joined, in the
          last week. Only its meetings reached him before. */
       const wk = dayAdd(-7);
@@ -25019,6 +25141,8 @@
           cta: went.length === 1 ? 'See the deal' : 'See the first',
           ask: 'go:' + JSON.stringify({ con: went[0].c.id }) });
       }
+    }
+    if (isWhole()) {
       const pq = periodOf(S.period);
       if (!pq.whole && pq.elapsed != null && pq.elapsed >= 0.5) {
         const worst = MANAGERS.map((m) => mgrRead(m, pq))
@@ -25063,9 +25187,9 @@
         /* On the CEO's desk, whose they are rather than who they are with:
            the names are the managers' to chase. */
         body: plural(late.length, 'deal') + ' owed something before today: ' +
-          (isWhole() ? whoseSay(late) : namesSay(late)) + '.',
-        cta: isWhole() ? 'Show them' : 'Show my deals',
-        ask: isWhole() ? 'go:' + JSON.stringify({ on: 'deals' }) : 'How do my deals stand?',
+          (reads() ? whoseSay(late) : namesSay(late)) + '.',
+        cta: reads() ? 'Show them' : 'Show my deals',
+        ask: reads() ? 'go:' + JSON.stringify({ on: 'deals' }) : 'How do my deals stand?',
         /* The same fact the row stated, at the length a clause has: the
            figure and what is true of it, with the names left to the board
            the figure opens. */
@@ -25075,7 +25199,7 @@
     const cold = live.filter((c) => stageOf(c) === 'qual' &&
       daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
     /* A warm call is a manager's verb. */
-    if (cold.length && !isWhole()) {
+    if (cold.length && !reads()) {
       tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
         body: plural(cold.length, 'lead') + (cold.length === 1 ? ' has' : ' have') +
           ' waited two days or more without a warm call: ' + namesSay(cold) + '.',
@@ -25118,7 +25242,7 @@
     }
     /* News at an account is the next thing to sell there, which is a
        manager's to act on and not a row for the CEO's day. */
-    const moved = board && !isWhole() ? openings() : [];
+    const moved = board && !reads() ? openings() : [];
     if (moved.length) {
       const one = moved[0];
       tasks.push({ id: 'cust-open', sev: 'p2', type: 'Accounts',
@@ -25185,9 +25309,9 @@
     if (quiet.length) {
       tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
         body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
-          'for a week: ' + (isWhole() ? whoseSay(quiet) : namesSay(quiet)) + '.',
-        cta: isWhole() ? 'Show them' : 'Show my deals',
-        ask: isWhole() ? 'go:' + JSON.stringify({ on: 'deals', q: 'commercial' }) : 'How do my deals stand?',
+          'for a week: ' + (reads() ? whoseSay(quiet) : namesSay(quiet)) + '.',
+        cta: reads() ? 'Show them' : 'Show my deals',
+        ask: reads() ? 'go:' + JSON.stringify({ on: 'deals', q: 'commercial' }) : 'How do my deals stand?',
         line: briefN(quiet.length, 'deal', { on: 'deals' }) +
           (quiet.length === 1 ? ' has' : ' have') +
           ' a price on the table and nothing said for a week' });
@@ -25196,9 +25320,10 @@
        The other half of joining around nobody: the manager hears it the
        day it happens, and for a week, one row a deal. */
     if (isMgr()) {
+      const outside = (id) => REP[id] && (REP[id].fn === 'ceo' || REP[id].fn === 'stakeholder');
       dealBook().filter((c) => c.joinedAt && daysBetween(c.joinedAt, TODAY_ISO) <= 7 &&
-        (c.joined || []).some((id) => REP[id] && REP[id].fn === 'ceo')).forEach((c) => {
-        const who = REP[(c.joined || []).filter((id) => REP[id] && REP[id].fn === 'ceo')[0]];
+        (c.joined || []).some(outside)).forEach((c) => {
+        const who = REP[(c.joined || []).filter(outside).slice(-1)[0]];
         const a = accOf(c);
         tasks.push({ id: 'ceo-joins:' + c.id, sev: 'p3', type: 'Joined', when: sayWhen(c.joinedAt),
           body: who.name + ' joined the ' + (a ? a.name : c.name) + ' deal.',
@@ -27882,6 +28007,17 @@
       const said = ceoAnswer(q);
       if (said) return said;
     }
+    /* The stakeholder's own question, read off the same count as his block. */
+    if (isLine() && /\b(buyers?|raise[sd]?|objections?|push ?back|lose|lost)\b/.test(q)) {
+      const v = lineVoice();
+      /* The ones under the leader, never a leader said twice. */
+      const under = v.rows.length ? v.rows.filter((r) => r.n < v.rows[0].n).slice(0, 2) : [];
+      return voiceSay(v) + (under.length ? ' Then ' + under.map((r) =>
+        esc(OBJECTION[r.k].label.toLowerCase()) + ' (' + esc(commas(r.n)) + ')').join(' and ') + '.' : '') +
+        (v.lost.length ? '<div class="b-cuts"><button class="s-insight-lnk" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'deals', q: 'lost' }))) + '">Show the ' +
+          esc(plural(v.lost.length, 'lost deal')) + '</button></div>' : '');
+    }
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
@@ -30295,6 +30431,7 @@
        asked, what each fills, which to ask next — so there is no version of
        it a client can be shown. */
     if (isBuyer()) { toast('Finding people is ours. Add anybody you have met yourself.'); return; }
+    if (!works()) { toast('Finding people is the sales managers\u2019. Request a campaign and they bring them.'); return; }
     DRAFT = null;
     if (S.build || S.list) goFree(Object.assign(cleared(), { on: 'lists' }), true);
     const k = (campId && DB.byCamp[campId] && mine(DB.byCamp[campId]))

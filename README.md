@@ -202,7 +202,7 @@ in full:
 |---|---|---|
 | Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
 | Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, the customer book, Financials |
-| Sherif Amin, stakeholder | `?as=sherif` | the same, bounded by the product a campaign sells |
+| Sherif Amin, stakeholder | `?as=sherif` | the manager's reading bounded by the product a campaign sells — read, not worked: request a campaign, pass on a lead, join a deal, and what buyers say about the product |
 | Marit Okonjo, client | `?as=kestrel` | the same shell — Today, their diary with us, the campaigns we run for them — with their year a press away; `?eng=` picks which of the three they bought, and every figure on the desk is read out of that one |
 | Rami Fahim, CEO | `?as=rami` | every desk's figures at once, read across the three managers — Today, Contacts, the diary of the deals he sits on, Campaigns, Lists, and Financials with a Managers cut — and four verbs: assign to a manager, assign a campaign, join a deal, ask AiMY |
 
@@ -296,6 +296,20 @@ quality tool is the same person with the same meetings in it. A chip that
 removes a control has taken away a capability rather than narrowed a
 reading, which is the thing this build does not do to a breakpoint and must
 not do to a scope.
+
+**THE STAKEHOLDER READS HIS PRODUCT AND WORKS NONE OF IT.** His desk was
+the manager's narrowed to AiMY QA, verbs and all: he could call Hazem's deal,
+close it as won or lost, write up a meeting he was not in, build lists and
+spend enrichment on them, with nobody told. `reads()` is what he shares with
+the CEO — `works()` is its refusal, and every sentence that says whose a
+deal is, or that the caller's part ends, reads it — while `isWhole()` stays
+the CEO's for the company, the managers and Assign. His verbs are Request a
+campaign, Add a lead, Write the ask, **Join it** on a deal for his product
+(the manager is told, the meeting lands in his diary with Prepare me), and
+Ask AiMY. And his Today has the reading only his desk exists for: **what
+buyers say about AiMY QA** — the reasons given on calls across every campaign
+selling it (`lineVoice`), which campaign raises each most, and what was lost
+on it this period.
 
 **WHAT THE CLIENT GIVES US COMES BACK TO THEM.** A lead they add goes to
 the manager on their own campaign that fits, on that campaign (a
