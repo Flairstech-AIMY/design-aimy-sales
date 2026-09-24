@@ -5834,8 +5834,26 @@
      The menu wins. It is the shape everything else here uses when a choice
      hangs off a verb, a name in it is the whole interaction, and a second
      campaign is a second press rather than a checkbox and a button. */
+  /* ══ HOW MUCH OF IT FITS THE CAMPAIGN ═════════════════════════════════
+     A list says its market in a sentence and a campaign in two fields, so
+     the fit is read off the people: how many of them are at a company in
+     the campaign's sector and region. A banking list offered to an energy
+     campaign said "56 people on it" and nothing else. */
+  function putFit(go, k) {
+    const at = go.indexOf(':');
+    const kind = go.slice(0, at);
+    const id = go.slice(at + 1);
+    const accs = kind === 'list'
+      ? ((DB.byList[id] || {}).has || []).map((x) => accOf(DB.byCon[x])).filter(Boolean)
+      : (DB.byAcc[id] ? [DB.byAcc[id]] : []);
+    if (!accs.length || !k || !k.industry) return null;
+    const fits = accs.filter((a) => a.industry === k.industry && (!k.region || a.region === k.region)).length;
+    return { n: accs.length, fits: fits };
+  }
   function campMenu(o) {
-    const ks = o.opts;
+    /* A caller puts people on campaigns she works, not on every campaign in
+       the company — a client's included. */
+    const ks = o.opts.filter((x) => onBook() || ((DB.byCamp[x.id] || {}).crew || []).indexOf(me().id) >= 0);
     if (!ks.length) return '';
     return '<span class="b-menu-wrap">' +
       '<button class="' + esc(o.cls || 's-inline-btn') + ' b-menu-open" type="button" ' +
@@ -5848,8 +5866,13 @@
           '<button class="b-menu-item" type="button" role="menuitem" ' +
           'data-puton="' + esc(o.go + '|' + k.id) + '">' +
             '<span class="b-menu-line"><span class="b-menu-name">' + esc(k.name) + '</span>' +
-            '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) +
-            ' on it</span></span>' +
+            '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) + ' on it' +
+              (function () {
+                const f = putFit(o.go, DB.byCamp[k.id]);
+                if (!f || f.fits * 2 >= f.n) return '';
+                return ' \u00b7 ' + (f.fits ? commas(f.fits) + ' of these ' + commas(f.n) : 'none of these') +
+                  ' fit its market';
+              }()) + '</span></span>' +
           '</button>').join('') +
       '</div>' +
     '</span>';
@@ -5966,10 +5989,20 @@
       toast('They are all on ' + listSay(ks.map((k) => k.name)) + ' already.');
       return;
     }
+    /* The campaign's owner hears it: people added to their queue by
+       somebody else, and how many of them are in its market. */
+    const puts = ks.filter((kk) => kk.owner && kk.owner !== me().id).map((kk) => {
+      const f = putFit(kind + ':' + id, kk);
+      const was = kk.putBy || null;
+      campSet(kk, { putBy: { by: me().id, what: l ? l.name : a.name, at: TODAY_ISO,
+        n: touched.filter((x) => x.add.indexOf(kk.id) >= 0).length, fits: f ? f.fits : null, of: f ? f.n : null } });
+      return { k: kk, was: was };
+    });
     reindex();
     save();
     paint();
     toast(plural(touched.length, 'person') + ' joined ' + listSay(ks.map((k) => k.name)), () => {
+      puts.forEach((p) => campSet(p.k, { putBy: p.was }));
       touched.forEach((x) => {
         const c = DB.byCon[x.id];
         patchCon(c, { camps: c.camps.filter((y) => x.add.indexOf(y) < 0) });
@@ -7956,6 +7989,67 @@
     '</div>';
   }
 
+  /* ══ WHAT BECAME OF HER HAND-OVERS ═════════════════════════════════════
+     A lead she handed over left her queue, her cuts and her day, and the
+     only thing that came back was a decision. Where each one stands, in the
+     words the manager's desk uses, per lead and never as a score — scoring
+     a caller is AiMY QA's. Latest hand-over first, four of them. */
+  function myHandovers() {
+    const meId = me().id;
+    const out = [];
+    DB.con.forEach((c) => {
+      if (c.checkpoint !== 'handed-over') return;
+      const t = (DB.touchesOf[c.id] || []).map((x) => TOUCH[x]).filter((x) => x && x.by === meId &&
+        x.moved && x.moved[1] === 'handed-over')[0];
+      if (!t || daysBetween(t.at.slice(0, 10), TODAY_ISO) > 30) return;
+      out.push({ c: c, at: t.at });
+    });
+    return out.sort((a, b) => (a.at < b.at ? 1 : -1));
+  }
+  function handoverNow(h) {
+    const c = h.c;
+    const m = directorOf(c);
+    const f = firstOf(m);
+    const st = stageOf(c);
+    const ph = phasesOf(c).filter((t) => t.at >= h.at);
+    const last = ph[ph.length - 1];
+    if (st === 'won') return 'They signed ' + sayWhen(last ? last.at.slice(0, 10) : TODAY_ISO) + '.';
+    if (st === 'lost') return 'It did not go ahead.';
+    if (st === 'later') return f + ' parked it for later.';
+    if (last) return f + ' met them ' + sayWhen(last.at.slice(0, 10)) + '. It is at ' + DEAL_STAGE[st].label + ' now.';
+    if (c.next && c.next.due < TODAY_ISO) {
+      return c.next.what + ' was on ' + sayDay(c.next.due) + '. ' + f + ' has not written it up yet.';
+    }
+    if (c.next) return c.next.what + ' is booked for ' + sayDay(c.next.due) + '.';
+    const spoke = (DB.touchesOf[c.id] || []).some((x) => TOUCH[x] && TOUCH[x].by === m.id && TOUCH[x].at > h.at);
+    return spoke ? f + ' has tried them. Nothing is booked yet.' : f + ' has not called them yet.';
+  }
+  function handoverBlock() {
+    const hs = myHandovers();
+    if (!hs.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="Your hand-overs">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Your hand-overs</h2>' +
+        '<span class="s-block-say">' + esc(plural(hs.length, 'hand-over')) + ' \u00b7 last 30 days' +
+          (hs.length > 4 ? ' \u00b7 the latest 4' : '') + '</span>' +
+      '</div>' +
+      '<div class="b-owed">' + hs.slice(0, 4).map((h, i) => {
+        const a = accOf(h.c);
+        return '<button class="b-owed-row" type="button" data-con="' + esc(h.c.id) + '" style="--i:' + i + '">' +
+          '<span class="b-owed-sev" aria-hidden="true"></span>' +
+          '<span class="b-owed-main">' +
+            '<span class="b-owed-head">' +
+              '<span class="b-owed-type">' + esc(h.c.name) + (a ? ' \u00b7 ' + esc(a.name) : '') + '</span>' +
+              '<span class="b-owed-when">' + esc(directorOf(h.c).name) + ' \u00b7 handed over ' +
+                esc(sayWhen(h.at.slice(0, 10))) + '</span>' +
+            '</span>' +
+            '<span class="b-owed-body">' + esc(handoverNow(h)) + '</span>' +
+          '</span>' +
+          '<span class="b-owed-go">Open it</span>' +
+        '</button>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
   function homePage() {
     if (onBook()) return mgrHome();
     const q = queue();
@@ -7967,6 +8061,7 @@
 
     return '<div class="s-home">' +
       topBrief('calls') +
+      handoverBlock() +
       queueBlock(all, counts) +
     '</div>';
   }
@@ -21216,7 +21311,10 @@
            things you can press. */
       } else {
         list = [];
-        quiet = call ? [call] : [];
+        /* No quiet Call either. The page says "it is not yours" and still
+           offered the phone, and a call from the caller mid-deal reaches the
+           manager's prospect with the manager none the wiser. */
+        quiet = [];
         /* Only the live case, and only as a note: who has it now. What
            happened when it ended is the statement `stateBlock` draws, on
            this desk as on the other. */
@@ -23641,6 +23739,10 @@
         : 'called by the campaign’s callers.'));
       return;
     }
+    if (!onBook() && c.checkpoint === 'handed-over') {
+      toast(c.name + ' is ' + directorOf(c).name + '\u2019s now. The hand-over was the last call.');
+      return;
+    }
     if (!c.phone) { toast('No number on file for ' + c.name + '. Nothing to dial.'); return; }
     if (c.dnc) { toast(c.name + ' asked not to be called again.'); return; }
     clearCallTimers();
@@ -23987,7 +24089,8 @@
      model and not a page of its own. */
   function callAll(ids) {
     if (!works()) return;
-    const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
+    const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc &&
+      (onBook() || DB.byCon[id].checkpoint !== 'handed-over'));
     if (!live.length) { toast('Nobody in this set has a number to call.'); return; }
     const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
     startCall(live[0], sess);
@@ -25064,6 +25167,21 @@
         cta: 'Say what happened',
         ask: 'Which meetings have passed without anyone saying whether they turned up?' });
     }
+    /* A hand-over the manager moved this week — met, shown, priced — which
+       is the half between handing over and a decision that never came
+       back. Decisions keep their own row below. */
+    const movedH = myHandovers().map((h) => {
+      const ph = phasesOf(h.c).filter((t) => t.at >= h.at && t.phase !== 'resolution');
+      const t = ph[ph.length - 1];
+      return t && daysBetween(t.at.slice(0, 10), TODAY_ISO) <= 7 ? { h: h, at: t.at } : null;
+    }).filter(Boolean).sort((a, b) => (a.at < b.at ? 1 : -1));
+    if (movedH.length) {
+      const x = movedH[0];
+      tasks.push({ id: 'handover-moved', sev: 'p3', type: 'Your hand-overs', when: plural(movedH.length, 'lead'),
+        body: x.h.c.name + ': ' + handoverNow(x.h) + (movedH.length > 1 ? ' ' + plural(movedH.length - 1, 'other') +
+          ' moved this week too.' : ''),
+        cta: 'Open it', ask: 'go:' + JSON.stringify({ con: x.h.c.id }) });
+    }
     const dec = decidedLately();
     if (dec) {
       tasks.push({ id: 'decided', sev: 'p2', type: 'Handed over', when: 'this week',
@@ -25304,6 +25422,24 @@
           came.push({ at: k.askedAt, go: { camp: k.id },
             say: actor(k.by).name + ' asked for a campaign: ' + campName(k) + '. Any manager can take it.' });
         }
+      });
+      /* A caller's hand-over is the most common arrival of all, and it rang
+         nowhere until it had waited two days for a warm call. */
+      (DB.byMgr[meId] || []).forEach((id) => {
+        const c = DB.byCon[id];
+        if (!c || c.givenBy || !fresh((c.checkpointAt || '').slice(0, 10))) return;
+        const t = (DB.touchesOf[c.id] || []).map((x) => TOUCH[x]).filter((x) => x && x.moved &&
+          x.moved[1] === 'handed-over' && REP[x.by] && REP[x.by].fn === 'bdr')[0];
+        if (!t) return;
+        came.push({ at: t.at.slice(0, 10), go: { con: c.id },
+          say: actor(t.by).name + ' handed you ' + c.name + (accOf(c) ? ' at ' + accOf(c).name : '') + '.' });
+      });
+      DB.camp.forEach((k) => {
+        const p = k.putBy;
+        if (k.owner !== meId || !p || p.by === meId || !fresh(p.at)) return;
+        came.push({ at: p.at, go: { camp: k.id },
+          say: actor(p.by).name + ' put ' + p.what + ' on ' + campName(k) + ': ' + plural(p.n, 'person') +
+            ' added to its queue' + (p.of ? ', ' + (p.fits ? commas(p.fits) : 'none') + ' of them in its market' : '') + '.' });
       });
       came.sort((a, b) => (a.at < b.at ? 1 : -1));
       if (came.length) {

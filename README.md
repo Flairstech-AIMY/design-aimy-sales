@@ -297,6 +297,18 @@ removes a control has taken away a capability rather than narrowed a
 reading, which is the thing this build does not do to a breakpoint and must
 not do to a scope.
 
+**THE CALLER HEARS WHAT BECAME OF HER HAND-OVERS.** A lead she handed over
+left her queue, her cuts and her day, and only a decision ever came back.
+"Your hand-overs" on her Today says where each of the latest stands, per lead
+and never as a score (`myHandovers`, `handoverNow`): not called yet, tried,
+a meeting booked or gone unwritten, met and at which step, signed, lost. Her
+bell says when one moves. The manager's "New to you" now includes her
+hand-over the day it lands. After the hand-over the phone is the manager's:
+the quiet Call on a handed-over record is gone, and `startCall` refuses it.
+And a list put on a campaign is put on one she works, with the menu saying
+how many of the people fit its market (`putFit`) and the campaign's owner
+told in their bell.
+
 **THE MANAGER HEARS WHAT ARRIVES, AND SEES THE CLIENT SHE ANSWERS FOR.**
 Every other desk sends work to the sales manager, and none of it rang when
 it landed. "New to you" in her bell says who sent what since yesterday — an
