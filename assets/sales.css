@@ -1189,7 +1189,11 @@ body {
   font-family: inherit;
 }
 .topnav-tab:hover { background: rgba(255, 255, 255, 0.05); color: var(--d200); }
-.topnav-tab.active { color: var(--accent); }
+/* The one you are on is the only 600 in the strip; its siblings are
+   `--fw-semibold`, which is 500 on this scale. The mark is a step in weight as
+   well as the accent colour — colour alone carries it only for readers who can
+   see that hue. Matches Knowledge, where the same strip does the same thing. */
+.topnav-tab.active { color: var(--accent); font-weight: var(--fw-bold); }
 .topnav-tab svg { width: 13px; height: 14px; flex-shrink: 0; }
 .topnav-tab:active { transform: scale(0.97); }
 .topnav-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
