@@ -7086,3 +7086,157 @@ textarea::placeholder,
 /* One line, Nour's call: the block's own reading measure is for paragraphs,
    and this is a single sentence under a header as wide as the page. */
 .b-li-sub { max-width: none; }
+
+/* ══ 97. THE CURATION, AS A LINE OF THOUGHT ════════════════════════════════
+   The run left its page with the manual path and lives in the conversation
+   now (bdr.js, THE CURATION, WHEREVER YOU ARE WHILE IT RUNS). Three places
+   draw it and all three are here: the line of steps in the thread, the one
+   step in the card above the bar, and the card on Lists that is still
+   arriving.
+
+   The shape is the one people already read as a model working: a heading
+   that says it is going and for how long, and under it a rail of steps that
+   appear as they start. The live step's words shimmer, a finished step draws
+   its tick and says what it found, and when the run is over the heading
+   becomes "Curated in 7.6s" and the rail folds away under it. Native
+   <details>, so folding and reopening is the browser's and the keyboard's
+   without a line of script. */
+.b-cur { margin-top: 14px; }
+.b-cur-sum {
+  display: inline-flex; align-items: center; gap: 8px;
+  list-style: none; cursor: pointer; user-select: none;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: color var(--t-fast);
+}
+.b-cur-sum::-webkit-details-marker { display: none; }
+.b-cur-sum:hover { color: var(--d50); }
+.b-cur-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: var(--r-xs); }
+.b-cur-sum > svg { flex: none; color: var(--d200); transition: transform var(--t-fast) var(--ease-out); }
+.b-cur[open] > .b-cur-sum > svg { transform: rotate(180deg); }
+.b-cur-time, .b-cur-peek-time {
+  font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-cur-time:empty { display: none; }
+
+/* The words that are still happening. A light passes across them left to
+   right, which is the only part of the state that is decoration: the
+   words say what is happening and are readable at every frame of it. */
+.b-cur.is-live .b-cur-say,
+.b-cur-step.is-live .b-cur-label,
+.b-cur-peek-say .pipe-say,
+.b-cur-card-say .pipe-say {
+  background: linear-gradient(90deg, var(--d100) 0%, var(--d100) 38%, var(--d50) 50%,
+    var(--d100) 62%, var(--d100) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .b-cur.is-live .b-cur-say,
+  .b-cur-step.is-live .b-cur-label,
+  .b-cur-peek-say .pipe-say,
+  .b-cur-card-say .pipe-say { animation: b-cur-shine 1.8s linear infinite; }
+  /* The crossing keeps its own entrance and exit; the light rides on top. */
+  .b-cur-peek-say .pipe-say.is-in,
+  .b-cur-card-say .pipe-say.is-in {
+    animation: pipe-say-in 300ms var(--ease-out) 90ms both, b-cur-shine 1.8s linear infinite;
+  }
+  .b-cur-peek-say .pipe-say.is-out,
+  .b-cur-card-say .pipe-say.is-out { animation: pipe-say-out 260ms var(--ease-out) forwards; }
+}
+@keyframes b-cur-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+.b-cur-steps { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+.b-cur-step {
+  position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr);
+  column-gap: 12px; padding-bottom: 14px;
+}
+/* Not drawn until it starts. A step list that shows its whole future is a
+   progress bar in words; one that grows is somebody working. */
+.b-cur-step.is-wait { display: none; }
+.b-cur-step:last-child, .b-cur-step.is-live, .b-cur-step:has(+ .is-wait) { padding-bottom: 0; }
+/* The rail, from one pin to the next. */
+.b-cur-step::before {
+  content: ''; position: absolute; left: 8.5px; top: 22px; bottom: 3px;
+  width: 1px; background: var(--card-border);
+}
+.b-cur-step:last-child::before, .b-cur-step.is-live::before,
+.b-cur-step:has(+ .is-wait)::before { display: none; }
+.b-cur-pin {
+  position: relative; z-index: 1; width: 18px; height: 18px; margin-top: 1px;
+  border-radius: 50%; background: var(--card-bg); border: 1.5px solid var(--card-border);
+  transition: background-color 360ms var(--ease-out), border-color 360ms var(--ease-out);
+}
+.b-cur-step.is-live .b-cur-pin { border-color: var(--accent); }
+.b-cur-step.is-live .b-cur-pin::after {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .b-cur-step.is-live .b-cur-pin::after { animation: b-cur-beat 1s var(--ease-out) infinite alternate; }
+}
+@keyframes b-cur-beat { from { transform: scale(0.7); opacity: 0.6; } to { transform: scale(1.15); opacity: 1; } }
+.b-cur-step.is-done .b-cur-pin { background: var(--ok-text); border-color: var(--ok-text); }
+/* The tick draws itself, off the same pathLength="1" trick the pipeline's
+   pins used, so nothing is measured to do it. */
+.b-cur-pin > svg {
+  position: absolute; inset: 0; margin: auto; width: 10px; height: 10px;
+  color: var(--card-bg); opacity: 0;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  transition: stroke-dashoffset var(--t-open) var(--ease-out), opacity var(--t-fast) var(--ease-out);
+}
+.b-cur-step.is-done .b-cur-pin > svg { stroke-dashoffset: 0; opacity: 1; }
+.b-cur-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b-cur-label {
+  font-size: var(--t-ui); line-height: 20px; font-weight: var(--fw-semibold); color: var(--d100);
+}
+.b-cur-said { font-size: var(--t-small); line-height: 20px; color: var(--d200); }
+.b-cur-step:not(.is-done) .b-cur-said { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .b-cur-step.is-enter { animation: b-arrive 260ms var(--ease-out) both; }
+  .b-cur-step.is-settle .b-cur-said { animation: b-cur-said-in 300ms var(--ease-out) both; }
+}
+@keyframes b-cur-said-in { from { opacity: 0; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .b-cur-pin, .b-cur-pin > svg, .b-cur-sum > svg { transition: none; }
+}
+
+/* ══ THE PRIMARY ANSWER IN A TURN ════════════════════════════════════════
+   "Curate the list" and "Open the list" are the one press each of their
+   turns is for, so they wear the brand fill `.s-insight-lnk.primary` wears
+   everywhere else a surface has one obvious next step. Spent, they go
+   quiet like any other answered chip. */
+.s-cb-opt.is-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.s-cb-opt.is-primary:hover { background: var(--brand); border-color: var(--brand); filter: brightness(1.08); }
+.s-cb-opt.is-primary.is-spent { background: none; border-color: transparent; color: var(--ink-muted); filter: none; }
+
+/* ══ THE CARD ABOVE THE BAR, ONE STEP AT A TIME ════════════════════════════
+   The mark, the step and the clock on one line. The step crosses over in
+   place, so the line needs a box the outgoing words can sit in while the
+   incoming ones size it; left-anchored here, where the pipeline anchored
+   right, because the words start at the mark and grow away from it. */
+.b-peek .b-cur-peek { display: flex; width: 100%; }
+.b-cur-peek-say, .b-cur-card-say { position: relative; display: block; min-width: 0; }
+.b-cur-peek-say { flex: 1; overflow: hidden; }
+.b-cur-peek-say .pipe-say.is-out,
+.b-cur-card-say .pipe-say.is-out { left: 0; right: auto; }
+.b-cur-peek-time { flex: none; }
+/* The canvas is behind the card while it is shut, so the press on the card
+   is the way back to the whole line. It says so by answering the pointer
+   the way the answer card does; nothing extra is drawn. */
+
+/* ══ THE LIST THAT IS STILL ARRIVING ═══════════════════════════════════════
+   `lcard`'s anatomy with the facts not in yet: the tag, the name, the step
+   it is on, then the criteria, the counts, AiMY's reading and the foot as
+   the library's shimmer. It is not a door yet, so it does not lift. */
+.b-cur-card { display: flex; flex-direction: column; gap: 10px; cursor: default; }
+.b-cur-card:hover { transform: none; }
+.b-cur-card-say {
+  margin: -4px 0 4px; padding: 0 14px; overflow: hidden;
+  font-size: var(--t-ui); line-height: 20px; font-weight: var(--fw-semibold);
+}
+.b-cur-card .tc-gov { display: flex; align-items: center; gap: 12px; margin-top: auto; }
+/* The card's children carry the 14px inset themselves, so the shimmer
+   does too, and lines up with the words the finished card will have. */
+.b-cur-card > .s-skel-line { margin-inline: 14px; max-width: calc(100% - 28px); }

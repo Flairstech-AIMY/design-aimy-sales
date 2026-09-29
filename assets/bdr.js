@@ -3903,9 +3903,9 @@
        operation rather than their delivery. `switcher` draws no door to
        either; a bookmark is what reaches them. */
     if (isBuyer()) { S.build = ''; S.list = ''; S.con = ''; S.acc = ''; }
-    /* Finding people is the managers' — a desk that reads the lists does
-       not build one, and a bookmark to the builder lands on the lists. */
-    if (!works() && S.build) { S.build = ''; S.on = 'lists'; }
+    /* There is no builder page any more: finding people is a conversation.
+       A bookmark to the old one lands on the lists. */
+    if (S.build) { S.build = ''; S.bt = ''; S.bk = ''; S.on = 'lists'; }
     if (isBuyer() && S.on === 'deals') S.on = '';
     /* ══════════════ AND THE CLIENT ALREADY HAS A SCOPE CONTROL ══════════════
        `by` switches the money between two dimensions — what SPENT it and
@@ -5422,6 +5422,9 @@
     '</article>';
   }
   function lgrid(rows) {
+    /* A list being curated stands first, where it will land. */
+    const wait = curSlot();
+    if (wait) return cardGrid(rows, lcard).replace('<div class="b-grid">', '<div class="b-grid">' + wait);
     if (!rows.length) {
       return '<p class="b-vfoot">You have not built one yet. ' +
         '<button class="s-inline-btn" type="button" data-bopen>Find leads</button></p>';
@@ -15163,7 +15166,7 @@
            The sentence in the empty state keeps its copy: that one is inside
            an explanation of what a list is FOR, which is prose that happens to
            be pressable rather than a control put at the end of a row. */
-        (found.length
+        ((found.length || curSlot())
           ? lgrid(paged(found).rows) + pager(paged(found), 'list')
           : '<p class="b-vfoot">' + (S.find
             ? 'No list matches “' + esc(S.find) + '”.'
@@ -15812,9 +15815,8 @@
               const gap = listGap(l);
               if (!gap) return '';
               return '<span><b>' + commas(gap) + '</b> more matched its criteria · ' +
-                '<button class="s-inline-btn" type="button" data-go="' +
-                esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe', bk: l.kind, bt: l.terms }))) +
-                '">Bring them in</button></span>';
+                '<button class="s-inline-btn" type="button" data-bmore="' + esc(l.id) + '">' +
+                'Bring them in</button></span>';
             })() +
           '</div>' +
         '</div>' +
@@ -16345,7 +16347,7 @@
     '</div>';
   }
 
-  function buildSuggests(t, found, mine2) {
+  function buildSuggests(t, found, mine2, kind, taken) {
     const out = [];
     const has = (axis) => (t[axis] || []).length > 0;
     const camps = myCampaigns();
@@ -16431,7 +16433,7 @@
       }
     }
     /* What you already hold that matches, and how much of it is live. */
-    if (mine2.length && DRAFT.take.length < mine2.length) {
+    if (mine2.length && taken < mine2.length) {
       const live = mine2.filter(callable);
       out.push({ k: 'have', take: mine2.map((c) => c.id),
         say: '<b>' + commas(mine2.length) + '</b> you already hold match this' +
@@ -16468,7 +16470,7 @@
     }
     /* Where the callable ones are. A criterion that narrows to people you can
        actually call is worth more than one that narrows to more people. */
-    if (buildKind() === 'con' && found.length > 3 && anyCrit(t)) {
+    if (kind === 'con' && found.length > 3 && anyCrit(t)) {
       const floor = fillRate(found);
       const dead = found.filter((r) => r.seedPhone >= floor).length;
       if (dead && dead / found.length >= 0.25) {
@@ -16494,7 +16496,7 @@
   }
 
   function buildSuggestBlock(t, found, mine2) {
-    const sug = buildSuggests(t, found, mine2);
+    const sug = buildSuggests(t, found, mine2, buildKind(), DRAFT.take.length);
     if (!sug.length) return '';
     /* THE MARK GOES ON THE BLOCK, NOT ON EVERY ROW. `.s-sugg-row` is a
        two-column grid — the sentence and the button — so a third child took
@@ -26413,6 +26415,7 @@
        A call not yet started is simply put down. */
     if (DB.call && DB.call.state !== 'ready') { endCall(); return; }
     byId('aimyOverlay').classList.remove('open');
+    curPeekShow();
     /* THE RAIL GOES WITH IT. The canvas is where a run lives — the brief,
        the read-back, the summary — so dismissing it dismisses the run. A
        rail left standing beside a closed conversation is a call nobody is
@@ -26421,7 +26424,9 @@
   }
   /* Navigating away is not dismissing: the rail survives every URL change by
      construction, which is the whole reason it is a shell region. */
-  function hideCanvas() { byId('aimyOverlay').classList.remove('open'); }
+  /* Either way it goes, a curation still running moves to the card above
+     the bar, so the steps are never somewhere you cannot see. */
+  function hideCanvas() { byId('aimyOverlay').classList.remove('open'); curPeekShow(); }
 
   /* The mark, at the size the V3 build draws it in a bubble. */
   const aiMark = () =>
@@ -26468,10 +26473,13 @@
            question to mean anything — so a turn may carry markup between its
            sentence and its shortcuts. It is the card the record will carry,
            drawn by the renderer the record uses. */
-        (t.card || '') +
+        /* A run is drawn from its own record rather than stored as markup,
+           because it changes after the turn is written. */
+        (t.cur ? curStepper(t.cur) : (t.card || '')) +
         (t.opts && t.opts.length
           ? '<div class="s-cb-opts">' + t.opts.map((o) =>
               '<button class="s-cb-opt' + (o.quiet ? ' is-quiet' : '') +
+              (o.primary ? ' is-primary' : '') +
               (t.spent ? ' is-spent' : '') + '" type="button" ' +
               /* Written out per step rather than composed at runtime: an
                  attribute whose name only exists while the page is running
@@ -26483,6 +26491,7 @@
                 : t.step === 'whois' ? 'data-whois="' + esc(o.k) + '"'
                 : t.step === 'whoismake' ? 'data-whoismake="' + esc(o.k) + '"'
                 : t.step === 'reach' ? 'data-reach="' + esc(o.k) + '"'
+                : t.step === 'curdone' ? 'data-curopen="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
               esc(o.label) + '</button>').join('') + '</div>'
           : '') +
@@ -27042,6 +27051,10 @@
   function peekAway(e) {
     const box = peekEl();
     if (!box || box.hidden || box.classList.contains('is-shut')) return;
+    /* Not while it is carrying a run. The steps are the thing you are
+       waiting on, and a press on the page is you doing something else
+       while you wait, which is what the card is there to allow. */
+    if (box.classList.contains('is-curating')) return;
     const t = e.target;
     if (!(t instanceof Element)) return;
     if (t.closest('.aimy-float-wrap') || t.closest('.aimy-overlay')) return;
@@ -27184,7 +27197,7 @@
     const over = byId('aimyOverlay');
     if (over && over.classList.contains('open')) return;
     box.hidden = false;
-    box.classList.remove('is-thinking');
+    box.classList.remove('is-thinking', 'is-curating');
     box.classList.remove('is-clipped');
     peekShut(false);
     byId('peekBody').style.maxHeight = '';
@@ -27236,7 +27249,7 @@
     }
     box.hidden = false;
     box.classList.add('is-thinking');
-    box.classList.remove('is-clipped');
+    box.classList.remove('is-clipped', 'is-curating');
     /* An answer is the one thing that outranks having put the drawer away:
        you asked for it, so it comes up. Shutting it again is one press, and
        the press is where you left it. */
@@ -27342,7 +27355,7 @@
     const box = peekEl();
     if (box) {
       box.hidden = true;
-      box.classList.remove('is-thinking', 'is-clipped');
+      box.classList.remove('is-thinking', 'is-clipped', 'is-curating');
       /* Put away and dismissed are different states and the second one ends
          the first: a drawer hidden while still holding `is-shut` comes back
          from the next question already down. */
@@ -28004,19 +28017,43 @@
     }
 
     if (LBUILD) {
-      /* Whatever you type belongs to the list being built. A name where a
-         name was asked for, and criteria to read anywhere else. */
-      if (LBUILD.step === 'name') { lbuildConfirm(t); return; }
-      if (/^(go|that is enough|enough|look now|show me)$/i.test(t)) { lbuildName(); return; }
-      /* The way out, said rather than pressed. It is a button on the first
-         turn only, and a sentence under the second says this works. */
-      if (/^\s*open (the )?builder\s*$/i.test(t)) { lbuildOpt('open'); return; }
-      /* The same shape: a way out that is a sentence rather than a chip,
-         because the turn it belongs to already offers two answers and a way
-         out, and a fourth control on a question with two answers is how the
-         answers stop looking like the answers. */
+      /* Whatever you type belongs to the list being made: an answer where a
+         question was asked, a name at the plan, criteria anywhere else. */
+      if (!LBUILD.kind && /^\s*(companies|people)\s*\.?\s*$/i.test(t)) {
+        TURNS.push({ who: 'you', html: esc(t) });
+        lbuildKind(/^\s*compan/i.test(t) ? 'acc' : 'con');
+        return;
+      }
+      /* A way out that is a sentence rather than a chip, because the turn it
+         belongs to already offers its answers and a third control on a
+         question with two answers is how the answers stop looking like it. */
       if (/^\s*(start again|start the criteria again|clear( it)?|forget that)\s*$/i.test(t)) {
+        TURNS.push({ who: 'you', html: esc(t) });
         lbuildOpt('reset');
+        return;
+      }
+      if (LBUILD.step === 'plan') {
+        /* At the plan a sentence is a name, unless it is a yes or plainly
+           more criteria ("only the Netherlands", "also banks"). */
+        if (/^\s*(go|yes|do it|start|curate( it| the list)?)\s*[.!]?\s*$/i.test(t)) {
+          TURNS.push({ who: 'you', html: esc(t) });
+          lbuildCurate();
+          return;
+        }
+        if (/^\s*(only|also|add|just|and|but)\b/i.test(t) && readSaid(t, LBUILD.kind).length) {
+          lbuildRead(t);
+          return;
+        }
+        TURNS.push({ who: 'you', html: esc(t) });
+        const nm = t.replace(/^\s*(call it|name it)\s+/i, '')
+          .replace(/^["“']+|["”']+$/g, '').trim().slice(0, 70);
+        if (nm) { LBUILD.name = nm; LBUILD.named = true; }
+        lbuildPlan();
+        return;
+      }
+      if (/^\s*(go|that is enough|enough|look now|show me|carry on)\s*$/i.test(t)) {
+        TURNS.push({ who: 'you', html: esc(t) });
+        lbuildPlan();
         return;
       }
       lbuildRead(t);
@@ -30623,18 +30660,23 @@
 
   let LBUILD = null;
 
-  /* ══ THE WAY OUT IS NOT ONE OF THE ANSWERS ════════════════════════════
-     It sat beside Companies and People in the same bordered chip, so a
-     question with two answers looked like a question with three — and the
-     one that was not an answer carried the same weight as the two that
-     were. Quiet: no border, no ground, the weight of a word.
+  /* ══ THE CONVERSATION IS THE ONLY WAY IN, AND IT GOES ALL THE WAY ═════
+     There were two ways to find leads. This conversation offered a builder
+     page as a way out on its first turn ("Open the builder instead"), and on
+     its last turn it handed you to that page anyway: the run, the review,
+     the campaign, the team and Save all happened somewhere else. Two
+     surfaces had to agree about one list, and the one you had been talking
+     to stopped talking at the moment the work started.
 
-     And once. It rode every turn after the first as well, which is a
-     conversation asking whether you would rather not be having it, over and
-     over. On the second turn it becomes a sentence instead — the bar is
-     right there, and saying "open builder" into it works from then on. */
-  const LB_OUT = { k: 'open', label: 'Open the builder instead', quiet: true };
-  const LB_GO = { k: 'go', label: 'That is enough — look now' };
+     Nour's call, 29 Sep 2026: the chat is the only path, and it covers the
+     process end to end. It asks what you are collecting, reads who you are
+     after, offers AiMY's one best narrowing at a time with the count behind
+     it, states the whole plan in one sentence (the market, the campaign,
+     who calls, the name) and curates on one press. The curation runs in the
+     thread as a line of steps, follows you to the card above the bar if you
+     close the canvas, stands on Lists as a card that is still arriving, and
+     saves itself when it is done. */
+  const LB_GO = { k: 'go', label: 'That is enough' };
 
   /* Options belong to the turn that offered them, and only the newest turn's
      are live. Old chips left pressable are a conversation you can answer
@@ -30644,24 +30686,17 @@
   }
   function lbuildPush(text, opts, hint) {
     lbuildSpend();
-    let h = hint || '';
-    if (LBUILD) {
-      LBUILD.turns = (LBUILD.turns || 0) + 1;
-      /* On the turn the button stops appearing, and only that turn. */
-      if (LBUILD.turns === 2) {
-        h = (h ? h + ' ' : '') + 'Say “open builder” any time if you would rather fill it in yourself.';
-      }
-    }
-    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: h });
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '' });
     paintThread();
   }
 
   const lbuildTerms = () => (LBUILD ? LBUILD.terms : []);
-  const lbuildMatched = () => {
+  const lbuildT = () => {
     const t = Object.create(null);
     lbuildTerms().forEach((p) => (t[p[0]] || (t[p[0]] = [])).push(p[1]));
-    return buildMatched(t);
+    return t;
   };
+  const lbuildMatched = () => buildMatched(lbuildT());
   const lbuildSay = () => {
     const hit = lbuildMatched().length;
     return '<b>' + commas(hit) + '</b> of the ' + commas(DB.net.length) +
@@ -30755,100 +30790,141 @@
     k.size ? sizeLabel(k.size) + ' staff' : null,
   ].filter(Boolean).join(' \u00b7 ');
 
-  function lbuildStart(campId) {
+  function lbuildStart(campId, seed) {
     /* The builder names a supplier on every screen of it — which one we
        asked, what each fills, which to ask next — so there is no version of
        it a client can be shown. */
     if (isBuyer()) { toast('Finding people is ours. Add anybody you have met yourself.'); return; }
-    if (!works()) { toast('Finding people is the sales managers\u2019. Request a campaign and they bring them.'); return; }
-    DRAFT = null;
-    if (S.build || S.list) goFree(Object.assign(cleared(), { on: 'lists' }), true);
+    if (!works()) { toast('Finding people is the sales managers’. Request a campaign and they bring them.'); return; }
+    /* One at a time. A second list started over a running one would put two
+       timelines in two threads and two cards on Lists, and the finish
+       message could only ever be about one of them. */
+    if (CURATE && !CURATE.done) {
+      toast('Still curating “' + CURATE.name + '”. One list at a time.');
+      return;
+    }
     const k = (campId && DB.byCamp[campId] && mine(DB.byCamp[campId]))
       ? DB.byCamp[campId] : null;
-    LBUILD = { kind: null, terms: campMarket(k), step: 'kind', name: null,
-      /* The one narrowing AiMY is holding out on the current turn. Null
-         everywhere else, so pressing a spent chip cannot apply a stale one. */
-      offer: null, camp: k ? k.id : null };
+    LBUILD = { kind: seed ? (seed.kind || 'con') : null,
+      terms: seed ? seed.terms.slice() : campMarket(k), step: seed ? 'said' : 'kind',
+      name: null, offer: null, camp: k ? k.id : null, take: [] };
+    /* A NEW CONVERSATION, NOT THE LAST ONE EMPTIED. This cleared `TURNS` and
+       left `CHAT_AT` pointing at whatever was open, so the next sync wrote
+       the list conversation over the top of an unrelated one in the column. */
+    chatSync();
     TURNS.length = 0;
+    CHAT_AT = null;
+    THREAD_SEEN = 0;
     openCanvas();
-    const ways = [{ k: 'kind-acc', label: 'Companies' },
-      { k: 'kind-con', label: 'People' }, LB_OUT];
+    /* From a list: "more like this one" is a list that already answered
+       both questions, so the conversation starts at the read-back. */
+    if (seed) {
+      lbuildTurn('More like <b>' + esc(seed.name) + '</b>. I have its criteria already.');
+      return;
+    }
+    const ways = [{ k: 'kind-acc', label: 'Companies' }, { k: 'kind-con', label: 'People' }];
     /* The same question either way. What changes is whether it is asked on
        an empty page or on the market the campaign already has. */
     if (LBUILD.terms.length) {
-      lbuildPush('More for <b>' + esc(k.name) + '</b>. I have its market already — <b>' +
-        esc(campMarketSay(k)) + '</b> — and ' + lbuildSay() +
+      lbuildPush('More for <b>' + esc(k.name) + '</b>. I have its market already, <b>' +
+        esc(campMarketSay(k)) + '</b>, and ' + lbuildSay() +
         ' Companies, or the people at them?', ways,
-        'Say anything that narrows it further, or say \u201cstart again\u201d to drop what ' +
+        'Say anything that narrows it further, or say “start again” to drop what ' +
         'the campaign brought.');
       return;
     }
-    lbuildPush('What are you collecting — companies, or the people at them?', ways,
+    lbuildPush('What are you collecting, companies or the people at them?', ways,
       'Or just say who you are after and I will work it out.');
+  }
+
+  /* One reader for a criterion, so the read-back, the offers and the plan
+     all say a term the same way. */
+  function lbuildLabel(p) {
+    if (p[0] === 'only') return p[1] === 'phone' ? 'only ones with a number' : 'new to you';
+    return p[0] === 'industry' ? (INDUSTRY[p[1]] || { label: p[1] }).label
+      : p[0] === 'size' ? (SIZE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
+      : p[0] === 'title' ? (TITLE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
+      : p[0] === 'where' ? countryName(p[1])
+      : p[1];
+  }
+
+  /* ══ AiMY'S ONE BEST NARROWING, WHEREVER THE CONVERSATION HAS GOT TO ══
+     The page builder had a block of up to three suggestions, each with its
+     count and a button, and applied none of them until pressed. That rule
+     survives the move; the block does not. In a conversation three offers
+     at once is a form, so it is one: the campaign's persona first when the
+     finder came from a campaign, then whatever the page would have led
+     with. Pressing it applies it and the next turn offers the next one. */
+  function lbuildOffer() {
+    const t = lbuildT();
+    const found = buildMatched(t);
+    const k = LBUILD.camp ? DB.byCamp[LBUILD.camp] : null;
+    if (LBUILD.kind === 'con' && k && k.persona && k.persona.who && !(t.title || []).length) {
+      const b = titleBand(k.persona.who);
+      if (b !== 'other') {
+        const would = lbuildWould(['title', b]);
+        /* The page builder's own threshold: under a third is a fact rather
+           than a finding, and a fact is not worth a button. */
+        if (would && would / Math.max(1, found.length) >= 0.33) {
+          return { k: 'band', terms: [['title', b]], act: 'Only those',
+            say: '<b>' + commas(would) + ' of the ' + commas(found.length) + '</b> are in ' +
+              esc(lbuildLabel(['title', b])) + ', which is what the campaign asks for.' };
+        }
+      }
+    }
+    return buildSuggests(t, found, bookFit(t), LBUILD.kind || 'con', LBUILD.take.length)[0] || null;
+  }
+
+  /* The read-back every criteria turn ends on: what it leaves, and the one
+     narrowing worth offering next, or the axis nobody has named yet. */
+  function lbuildTurn(head) {
+    const lead = head ? head + ' ' : '';
+    if (!lbuildMatched().length) {
+      LBUILD.offer = null;
+      lbuildPush(lead + 'Nothing I can reach matches all of that. Take something back off it ' +
+        'and I will look again.', [{ k: 'reset', label: 'Start the criteria again' }],
+        'Or say it differently.');
+      return;
+    }
+    const o = lbuildOffer();
+    LBUILD.offer = o ? o.k : null;
+    lbuildPush(lead + lbuildSay() + (o ? ' ' + o.say : lbuildNudge()),
+      (o ? [{ k: 'offer', label: o.act }] : []).concat([LB_GO]),
+      'Say anything else that narrows it, or say go.');
   }
 
   function lbuildKind(kind) {
     LBUILD.kind = kind;
     LBUILD.step = 'said';
-    if (!LBUILD.terms.length) {
-      lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b>. ' +
-        'Who are you after? Say it however you like — a sector, a country, a size, ' +
-        'a job title.',
-        [], 'Something like “QA managers at software companies in the Netherlands”.');
-      return;
-    }
-    /* ══ THE MARKET IS APPLIED AND THE PERSONA IS OFFERED ════════════════
-       The difference is whose assertion it is. The sector, the country and
-       the size are what the record SAYS the campaign is, so a finder opened
-       from that campaign starts from them and the turn before this one said
-       so. The persona is who to ask for once you reach the company, which is
-       a different question from who is in the index \u2014 and `title` is one of
-       the four axes `buildMatched` applies whatever the kind is, so a band
-       put on quietly would narrow a companies list by the job titles of the
-       people inside it.
-
-       Measured before it was written: on the energy campaign the market
-       leaves eleven and the persona leaves one of those. So it follows the
-       rule the page builder's own chips follow \u2014 each states the count behind
-       it and waits to be pressed, and one that holds less than a third is a
-       fact rather than a finding and is not offered at all. Same threshold,
-       same sentence, same verb.
-
-       The nudge stands down when the offer is up. Both are about job titles
-       and two sentences asking for the same thing is a turn arguing with
-       itself. */
-    const k = LBUILD.camp ? DB.byCamp[LBUILD.camp] : null;
-    const hit = lbuildMatched().length;
-    let band = null;
-    let left = 0;
-    if (kind === 'con' && k && k.persona && k.persona.who &&
-        !LBUILD.terms.some((p) => p[0] === 'title')) {
-      const b = titleBand(k.persona.who);
-      if (b !== 'other') {
-        const would = lbuildWould(['title', b]);
-        if (would / Math.max(1, hit) >= 0.33) { band = b; left = would; }
-      }
-    }
-    LBUILD.offer = band;
-    const bandSay = band ? (TITLE_BANDS.filter((b) => b.k === band)[0] || {}).label : '';
-    lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b> in that market. ' +
-      lbuildSay() +
-      (band ? ' <b>' + commas(left) + ' of the ' + commas(hit) + '</b> are in ' +
-        esc(bandSay) + ', which is what the campaign asks for.' : '') +
-      (band ? '' : lbuildNudge()),
-      band ? [{ k: 'band', label: 'Only those' }, LB_GO] : [LB_GO],
-      'Say anything else that narrows it, or say go.');
+    /* A job band does not survive a switch to companies: `buildMatched`
+       applies `title` whatever the kind is, so a band left on would narrow a
+       list of organisations by the job titles of the people inside them. */
+    if (kind === 'acc') LBUILD.terms = LBUILD.terms.filter((p) => p[0] !== 'title');
+    const who = '<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b>';
+    if (LBUILD.terms.length) { lbuildTurn(who + ' in that market.'); return; }
+    /* Nothing said yet, and AiMY may still have the first criterion: a
+       campaign of yours running out of people, or where your handovers came
+       from. Offered, never applied. */
+    const o = lbuildOffer();
+    LBUILD.offer = o ? o.k : null;
+    lbuildPush(who + '. Who are you after? Say it however you like: a sector, a country, ' +
+      'a size' + (kind === 'con' ? ', a job title' : '') + '.' + (o ? ' ' + o.say : ''),
+      o ? [{ k: 'offer', label: o.act }] : [],
+      'Something like “' + (kind === 'con'
+        ? 'QA managers at software companies in the Netherlands'
+        : 'Banking companies in the Netherlands with 200 to 1,000 staff') + '”.');
   }
 
   /* Read a sentence into criteria, then say what was understood and what it
      leaves. Nothing is applied silently and nothing is applied twice. */
   function lbuildRead(text) {
     if (!LBUILD.kind) LBUILD.kind = /\bcompan|organisation|organization|firm/i.test(text) ? 'acc' : 'con';
+    LBUILD.step = 'said';
     const read = readSaid(text, LBUILD.kind);
     TURNS.push({ who: 'you', html: esc(text) });
     if (!read.length) {
       lbuildPush('I could not pick a sector, a country, a size or a job title out of that.',
-        [LB_GO], 'Try naming one of those.');
+        LBUILD.terms.length ? [LB_GO] : [], 'Try naming one of those.');
       return;
     }
     const added = [];
@@ -30858,107 +30934,460 @@
         added.push(p);
       }
     });
-    LBUILD.step = 'said';
-    const label = (p) => (p[0] === 'industry' ? INDUSTRY[p[1]].label
-      : p[0] === 'size' ? (SIZE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
-      : p[0] === 'title' ? (TITLE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
-      : p[0] === 'where' ? (COUNTRY_OPTS.filter((c) => c[0] === p[1])[0] || [p[1], p[1]])[1]
-      : 'new to you');
-    const hit = lbuildMatched().length;
-    /* in the page's axis order, so the read-back and the chips agree */
+    /* in the page's axis order, so the read-back and the plan agree */
     const axisOrder = BUILD_AXES.map((ax) => ax.k);
     const inOrder = added.slice().sort((x, y) => axisOrder.indexOf(x[0]) - axisOrder.indexOf(y[0]));
-    const head = added.length
-      ? 'Read that as <b>' + inOrder.map((p) => esc(label(p))).join(', ') + '</b>.'
-      : 'Nothing new in that.';
-    if (!hit) {
-      lbuildPush(head + ' Nothing in the index matches all of that. Take something ' +
-        'back off it and I will look again.',
-        [{ k: 'reset', label: 'Start the criteria again' }],
-        'Or say it differently.');
+    lbuildTurn(added.length
+      ? 'Read that as <b>' + inOrder.map((p) => esc(lbuildLabel(p))).join(', ') + '</b>.'
+      : 'Nothing new in that.');
+  }
+
+  /* Pressing the offer. It is worked out again rather than trusted from the
+     turn, because the thread is a record and an old chip can outlive what
+     made it true. */
+  function lbuildTake() {
+    const key = LBUILD.offer;
+    LBUILD.offer = null;
+    const o = lbuildOffer();
+    if (!o || o.k !== key) { lbuildTurn('That no longer applies.'); return; }
+    if (o.take) {
+      o.take.forEach((id) => { if (LBUILD.take.indexOf(id) < 0) LBUILD.take.push(id); });
+      lbuildTurn('<b>' + commas(o.take.length) + '</b> of yours are coming along.');
       return;
     }
-    lbuildPush(head + ' ' + lbuildSay() + lbuildNudge(), [LB_GO],
-      'Say anything else that narrows it, or say go.');
+    const added = o.terms.filter((p) => !LBUILD.terms.some((q) => q[0] === p[0] && q[1] === p[1]));
+    added.forEach((p) => LBUILD.terms.push(p));
+    if (!LBUILD.kind) LBUILD.kind = 'con';
+    lbuildTurn(added.length
+      ? 'Added <b>' + added.map((p) => esc(lbuildLabel(p))).join(', ') + '</b>.' : '');
   }
 
-  function lbuildName() {
-    LBUILD.step = 'name';
-    lbuildPush(lbuildSay() + ' What should the list be called?',
-      [{ k: 'name-auto', label: 'Call it “' + lbuildAutoName() + '”' }],
-      lbuildAutoName());
+  /* ══ WHERE THE LIST GOES, DECIDED BY WHAT IT IS ═══════════════════════
+     The page asked this with a menu of every open campaign after the run.
+     A list whose sector is a campaign's sector is almost always for that
+     campaign, so AiMY proposes it in the plan and the plan can be told
+     otherwise in one press. A country on its own is not the same market,
+     so it only breaks a tie. */
+  function lbuildCampPick() {
+    const t = lbuildT();
+    const ind = t.industry || [];
+    const cc = t.where || [];
+    let best = null;
+    let top = 0;
+    myCampaigns().filter(campOpen).forEach((k) => {
+      let s = ind.indexOf(k.industry) >= 0 ? 2 : 0;
+      const reg = REGION[k.region];
+      if (reg && cc.some((x) => reg.cc.indexOf(x) >= 0)) s += 1;
+      if (s > top) { top = s; best = k; }
+    });
+    return top >= 2 ? best.id : null;
+  }
+  /* Who calls it. A caller's list is theirs; a manager's list for a
+     campaign goes to the people already working that campaign, dealt out
+     evenly, which is what the page's team menu was mostly used to say. */
+  function lbuildCrew() {
+    const k = LBUILD.to ? DB.byCamp[LBUILD.to] : null;
+    if (isMgr() && k && k.crew && k.crew.length) return k.crew.slice();
+    return [me().id];
   }
 
-  /* The last turn. Everything said is carried into the page's draft, the
-     canvas closes, and the build runs on the page — where the set gets its
-     offers, its reading and its actions. A second preview inside the canvas
-     would be two renderers of one thing, which is the duplication this whole
-     rebuild exists to remove. */
-  function lbuildConfirm(name) {
-    TURNS.push({ who: 'you', html: esc(name) });
+  /* ══ THE PLAN, IN ONE SENTENCE, BEFORE ANYTHING RUNS ══════════════════
+     Everything the page used to ask after the run, asked before it: which
+     campaign, who calls, what it is called. Said as a plan rather than as
+     three questions, because each has a right answer AiMY can already see
+     and three questions would make you confirm three things you agree with.
+     Curate is the one press; the campaign can be taken off or put back, and
+     typing anything renames it. */
+  function lbuildPlan() {
+    if (!lbuildMatched().length && !LBUILD.take.length) { lbuildTurn(''); return; }
+    LBUILD.step = 'plan';
+    if (!LBUILD.kind) LBUILD.kind = 'con';
+    if (LBUILD.pick === undefined) LBUILD.pick = lbuildCampPick();
+    if (LBUILD.to === undefined) LBUILD.to = LBUILD.camp || LBUILD.pick;
+    /* The name follows the criteria until somebody types one. */
+    if (!LBUILD.named) LBUILD.name = lbuildAutoName();
+    const k = LBUILD.to ? DB.byCamp[LBUILD.to] : null;
+    const crew = lbuildCrew();
+    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
+    const who = crew.length === 1 ? 'for ' + first(crew[0]) + ' to call'
+      : 'split evenly between ' + listSay(crew.map(first));
+    const take = LBUILD.take.length;
+    const alt = LBUILD.camp ? null
+      : k ? { k: 'nocamp', label: 'Leave it off a campaign', quiet: true }
+      : LBUILD.pick ? { k: 'camp', label: 'Put it on ' + DB.byCamp[LBUILD.pick].name, quiet: true }
+      : null;
+    lbuildPush('Here is the plan. I will look for <b>' +
+      esc(describeSentence(lbuildT(), LBUILD.kind)) + '</b>' +
+      (take ? ', bring <b>' + commas(take) + '</b> of yours along' : '') + ', ' +
+      (k ? 'put them on <b>' + esc(k.name) + '</b>' : 'keep them off a campaign for now') +
+      ', ' + esc(who) + ', and call the list <b>“' + esc(LBUILD.name) + '”</b>.',
+      [{ k: 'curate', label: 'Curate the list', primary: true }].concat(alt ? [alt] : []),
+      'Type a name to call it something else.');
+  }
+
+  /* The last press of the conversation and the first of the curation. The
+     conversation's state is copied out whole, because from here the list is
+     being made and nothing said in the thread should be able to change it. */
+  function lbuildCurate() {
+    const L = LBUILD;
     lbuildSpend();
-    const flat = LBUILD.terms.map((p) => p[0] + ':' + p[1]);
-    const kind = LBUILD.kind || 'con';
+    const spec = { name: L.name || lbuildAutoName(), kind: L.kind || 'con', t: lbuildT(),
+      bt: L.terms.map((p) => p[0] + ':' + p[1]).join(','), take: L.take.slice(),
+      camp: L.to || null, crew: lbuildCrew() };
     LBUILD = null;
-    hideCanvas();
-    DRAFT = { kind: kind, said: '', name: name, take: [], drop: [], rows: [], run: null };
-    go(Object.assign(cleared(), { on: 'lists', build: 'describe', bk: kind, bt: flat.join(',') }));
-    buildRun();
+    curateStart(spec);
   }
 
   function lbuildOpt(k) {
     if (!LBUILD) return;
-    if (k === 'open') {
-      /* ══ THE WAY OUT DOES NOT ANSWER THE QUESTION IT IS LEAVING ════════
-          defaulted the unanswered question to People,
-         and the line under it — build: kind ? 'describe' : 'kind' — could
-         never take its second branch, because the default had just made kind
-         truthy. So the one control offered before the question was answered
-         answered it, silently, always the same way, and walked past the
-         builder's own companies-or-people step to prove it.
-
-         Null until somebody says otherwise: the builder opens on the step
-         that asks. */
-      const flat = LBUILD.terms.map((p) => p[0] + ':' + p[1]);
-      const kind = LBUILD.kind;
-      LBUILD = null;
-      hideCanvas();
-      DRAFT = kind
-        ? { kind: kind, said: '', name: null, take: [], drop: [], rows: [], run: null }
-        : null;
-      go(Object.assign(cleared(), { on: 'lists', build: kind ? 'describe' : 'kind',
-        bk: kind || '', bt: flat.join(',') }));
-      return;
-    }
     if (k === 'kind-acc') { lbuildKind('acc'); return; }
     if (k === 'kind-con') { lbuildKind('con'); return; }
-    if (k === 'band') {
-      const b = LBUILD.offer;
-      LBUILD.offer = null;
-      if (!b) return;
-      LBUILD.terms.push(['title', b]);
-      const say = (TITLE_BANDS.filter((x) => x.k === b)[0] || {}).label || '';
-      lbuildPush('<b>' + esc(say) + '</b> only. ' + lbuildSay() + lbuildNudge(),
-        [LB_GO], 'Say anything else that narrows it, or say go.');
-      return;
-    }
-    if (k === 'go') { lbuildName(); return; }
-    if (k === 'name-auto') { lbuildConfirm(lbuildAutoName()); return; }
+    if (k === 'offer') { lbuildTake(); return; }
+    if (k === 'go') { lbuildPlan(); return; }
+    if (k === 'curate') { lbuildCurate(); return; }
+    if (k === 'nocamp') { LBUILD.to = null; lbuildPlan(); return; }
+    if (k === 'camp') { LBUILD.to = LBUILD.pick || null; lbuildPlan(); return; }
     if (k === 'reset') {
       LBUILD.terms = [];
+      LBUILD.take = [];
+      LBUILD.step = LBUILD.kind ? 'said' : 'kind';
       /* Clearing a seeded builder before the first question is answered puts
-         you back at that question, not past it. Without this it dropped you
-         on "Who are you after?" with the companies-or-people step never
-         asked, and `lbuildRead` then guessed the kind off your next
-         sentence. */
+         you back at that question, not past it. */
       if (!LBUILD.kind) {
-        lbuildPush('Cleared \u2014 nothing on it now. Companies, or the people at them?',
+        lbuildPush('Cleared, nothing on it now. Companies, or the people at them?',
           [{ k: 'kind-acc', label: 'Companies' }, { k: 'kind-con', label: 'People' }],
           'Or just say who you are after and I will work it out.');
         return;
       }
       lbuildPush('Cleared. Who are you after?', [], 'Name a sector, a country or a size.');
     }
+  }
+
+  /* ══ THE CURATION, WHEREVER YOU ARE WHILE IT RUNS ══════════════════════
+     The run used to be a page: a card with a ribbon, four stage pins and a
+     clock, which you had to stand in front of for eight seconds because it
+     was the page. Now it belongs to the conversation that asked for it and
+     is drawn wherever you happen to be looking:
+
+       in the thread, as a line of steps, the way a model shows its working.
+       Each step appears when it starts, says what it is doing while it runs
+       and what it found once it is done, and the whole line folds into one
+       sentence ("Curated in 7.6s") when it is finished;
+
+       in the card above the bar, if you close the canvas, as one step at a
+       time, the old words leaving upward as the new ones arrive (`swapText`,
+       the same crossing the pipeline's status line used);
+
+       on Lists, as the card the list will be, with its name and the step it
+       is on and the rest still shimmering.
+
+     ONE CLOCK. Every one of those is a function of the elapsed wall time, so
+     a background tab that throttles the timer catches up rather than
+     stalling, and three renderers cannot disagree about which step it is.
+
+     IT SAVES ITSELF. The review page between the run and the list is gone
+     with the manual path; the plan the conversation stated is what gets
+     written, and the finished list is undone with one press. */
+  let CURATE = null;
+  const CUR_TICK = 100;
+  const canvasShown = () => byId('aimyOverlay').classList.contains('open');
+  const curNoun = (c, n) => (c.kind === 'acc'
+    ? plural(n, 'company', 'companies') : plural(n, 'person'));
+
+  /* The steps, with the run's own numbers in what each one says it found. */
+  function curateSteps(c) {
+    const f = finderOf();
+    const other = finderUp().filter((x) => x.k !== f.k)[0];
+    const rows = c.rows;
+    const floor = fillRate(rows);
+    const withNum = rows.filter((x) => x.seedPhone < floor).length;
+    const withMail = rows.filter((x) => x.seedEmail < f.email).length;
+    const known = rows.filter((x) => x.known).length;
+    const camp = c.camp ? DB.byCamp[c.camp] : null;
+    return [
+      { label: 'Reading what you asked for', dur: 1.2,
+        said: describeSentence(c.t, c.kind) },
+      { label: 'Asking ' + f.name + (other ? ' and ' + other.name : ''), dur: 2.3,
+        said: curNoun(c, rows.length) + ' came back once the duplicates were out' },
+      { label: 'Finding their numbers and emails', dur: 1.8,
+        said: commas(withNum) + ' with a number, ' + commas(withMail) + ' with an email' },
+      { label: 'Checking them against your contacts', dur: 1.3,
+        said: (known ? commas(known) + ' of them you already have' : 'None of them are yours yet') +
+          (c.take.length ? ', and ' + commas(c.take.length) + ' of yours are coming along' : '') },
+      { label: 'Putting the list together', dur: 1.0,
+        said: curNoun(c, rows.length + c.take.length) + ' on “' + c.name + '”' +
+          (camp ? ', on ' + camp.name : '') },
+    ];
+  }
+
+  function curateStart(spec) {
+    const found = buildMatched(spec.t);
+    const c = Object.assign({}, spec, {
+      id: 'l' + Date.now().toString(36),
+      rows: found.slice(0, Math.max(0, 500 - spec.take.length)),
+      t0: performance.now(), done: false, timer: null,
+    });
+    c.steps = curateSteps(c);
+    c.starts = c.steps.reduce((acc, x) => acc.concat([acc[acc.length - 1] + x.dur]), [0]);
+    c.total = c.starts[c.starts.length - 1];
+    /* What the thread keeps. Plain data on the turn itself, mutated in place,
+       so the conversation store writes the run's progress with the rest of
+       what was said and a reopened conversation shows how far it got. */
+    c.view = { id: c.id, name: c.name, at: 0, done: false, secs: 0,
+      steps: c.steps.map((x) => ({ label: x.label, said: x.said })) };
+    CURATE = c;
+    say('aimy', 'Curating <b>“' + esc(c.name) + '”</b>. You can close this: it keeps ' +
+      'going, and I will tell you when it is ready.', { cur: c.view });
+    c.timer = setInterval(curateTick, CUR_TICK);
+    if (!canvasShown()) curPeekShow();
+    paint();
+  }
+
+  function curateTick() {
+    const c = CURATE;
+    if (!c || c.done) return;
+    const el = Math.min((performance.now() - c.t0) / 1000, c.total);
+    c.view.secs = el;
+    if (el >= c.total) { curateEnd(); return; }
+    let at = c.steps.length - 1;
+    for (let i = 0; i < c.steps.length; i++) {
+      if (el < c.starts[i + 1]) { at = i; break; }
+    }
+    const was = c.view.at;
+    c.view.at = at;
+    curPaint(was);
+  }
+
+  /* ══ A CLASS, NOT A REPAINT ════════════════════════════════════════════
+     The thread is rebuilt from a string on every turn, which would restart
+     every animation on this line ten times a second. Between turns the line
+     is touched in place: a step's class when its state changes, the clock's
+     text, and the one label in the card or on Lists that is crossing over.
+     `was` is the step that was running on the last tick, so only a real
+     change announces itself. */
+  function curPaint(was) {
+    const c = CURATE;
+    if (!c) return;
+    const v = c.view;
+    const moved = was !== v.at;
+    const live = c.steps[Math.min(v.at, c.steps.length - 1)].label;
+    const box = byId('cur-' + v.id);
+    if (box) {
+      const time = box.querySelector('.b-cur-time');
+      if (time) time.textContent = v.done ? '' : v.secs.toFixed(1) + 's';
+      if (moved || v.done) {
+        box.querySelectorAll('.b-cur-step').forEach((li, i) => {
+          const st = v.done || i < v.at ? 'done' : i === v.at ? 'live' : 'wait';
+          if (li.classList.contains('is-' + st)) return;
+          const from = li.classList.contains('is-wait') ? 'wait' : 'live';
+          li.className = 'b-cur-step is-' + st +
+            (st === 'live' && from === 'wait' ? ' is-enter' : '') +
+            (st === 'done' ? ' is-settle' : '');
+        });
+        const host = byId('overlayThread');
+        if (host && canvasShown()) host.scrollTop = host.scrollHeight;
+      }
+    }
+    const pt = byId('curPeekTime');
+    if (pt) pt.textContent = v.secs.toFixed(1) + 's';
+    if (moved) {
+      swapText(byId('curPeekSay'), live);
+      swapText(byId('curCardSay'), live);
+    }
+  }
+
+  /* The line in the thread, drawn from the turn's own record of the run so
+     a conversation reopened later draws what happened. A run the page was
+     reloaded out of says so rather than pretending to still be going. */
+  function curStepper(v) {
+    const live = !!(CURATE && CURATE.id === v.id && !v.done);
+    const head = v.done ? 'Curated in ' + v.secs.toFixed(1) + 's'
+      : live ? 'Curating the list' : 'Stopped before it finished';
+    const st = (i) => (v.done || i < v.at ? 'done' : i === v.at && live ? 'live' : 'wait');
+    return '<details class="b-cur' + (live ? ' is-live' : '') + '" id="cur-' + esc(v.id) + '"' +
+        (v.done ? '' : ' open') + '>' +
+      '<summary class="b-cur-sum">' +
+        '<span class="b-cur-say">' + esc(head) + '</span>' +
+        '<span class="b-cur-time">' + (live ? v.secs.toFixed(1) + 's' : '') + '</span>' +
+        chIcon('down', 14) +
+      '</summary>' +
+      '<ol class="b-cur-steps">' + v.steps.map((x, i) =>
+        '<li class="b-cur-step is-' + st(i) + '">' +
+          '<span class="b-cur-pin">' + pipeCheck(10) + '</span>' +
+          '<span class="b-cur-body">' +
+            '<span class="b-cur-label">' + esc(x.label) + '</span>' +
+            '<span class="b-cur-said">' + esc(x.said) + '</span>' +
+          '</span>' +
+        '</li>').join('') + '</ol>' +
+    '</details>';
+  }
+
+  /* ══ THE CARD ABOVE THE BAR CARRIES IT WHILE THE CANVAS IS SHUT ════════
+     One step at a time, the mark thinking beside it and the clock after it.
+     Never over an answer somebody asked for: if the card is holding
+     something else it keeps it, and the run goes on in the thread. */
+  function curPeekShow() {
+    const c = CURATE;
+    const box = peekEl();
+    if (!c || c.done || !box || canvasShown()) return;
+    if (!box.hidden && !box.classList.contains('is-curating')) return;
+    peekStop();
+    box.hidden = false;
+    box.classList.add('is-thinking', 'is-curating');
+    box.classList.remove('is-clipped');
+    peekShut(false);
+    const body = byId('peekBody');
+    body.style.maxHeight = '';
+    byId('peekActs').innerHTML = '';
+    PEEK_ACTS = '';
+    byId('aimyFloatWrap').classList.add('has-peek');
+    body.innerHTML = '<span class="ai-thinking b-cur-peek">' +
+      '<canvas class="think-mark" width="26" height="26" aria-hidden="true"></canvas>' +
+      '<span class="ai-thinking-label b-cur-peek-say" id="curPeekSay">' +
+        '<span class="pipe-say">' + esc(c.steps[Math.min(c.view.at, c.steps.length - 1)].label) +
+        '</span></span>' +
+      '<span class="b-cur-peek-time" id="curPeekTime">' + c.view.secs.toFixed(1) + 's</span>' +
+    '</span>';
+    startThinking(body.querySelector('.think-mark'));
+  }
+
+  /* ══ AND ON LISTS, THE CARD IT IS ABOUT TO BE ══════════════════════════
+     First in the grid, because a new list is the newest one and that is
+     where it lands. Its name is known and so is the step it is on, so both
+     are written; everything the run has not produced yet shimmers in the
+     shape the finished card will have. */
+  function curSlot() {
+    const c = CURATE;
+    if (!c || c.done || S.on !== 'lists' || S.list || S.find || pageAt() > 0) return '';
+    const bar = (h, w, extra) => SKEL_BAR(h, w, extra);
+    return '<div class="b-slot" style="--i:0">' +
+      '<article class="type-card s-card b-qcard b-cur-card" aria-busy="true">' +
+        '<div class="tc-head"><span class="tag tag-neutral">Curating</span></div>' +
+        '<span class="tc-title s-card-title">' + esc(c.name) + '</span>' +
+        '<p class="b-cur-card-say" id="curCardSay"><span class="pipe-say">' +
+          esc(c.steps[Math.min(c.view.at, c.steps.length - 1)].label) + '</span></p>' +
+        bar(13, 88) + bar(13, 64) + bar(15, 46, ';margin-top:6px') +
+        bar(58, 100, ';margin-top:6px') +
+        '<div class="tc-gov b-qcard-foot">' + bar(14, 34) +
+          bar(30, 20, ';margin-left:auto;border-radius:999px') + '</div>' +
+      '</article>' +
+    '</div>';
+  }
+
+  /* The write, lifted out of the page's Save with the draft replaced by the
+     plan the conversation stated. The same minting, the same round-robin
+     deal, the same undo record; it is the page's save that is gone. */
+  function writeList(c) {
+    const camp = c.camp ? DB.byCamp[c.camp] : null;
+    const crew = c.crew && c.crew.length ? c.crew : [me().id];
+    const found = c.rows;
+    const bring = c.take.filter((x) => DB.byCon[x]);
+    const f = finderOf();
+    const id = c.id;
+    const madeAcc = [];
+    const madeCon = [];
+    found.forEach((n, i) => {
+      const accId = 'x' + id + '_' + i;
+      madeAcc.push({ id: accId, name: n.co, domain: n.domain, industry: n.industry,
+        city: n.city, country: n.country, region: CC_REGION[n.country], size: n.size });
+      madeCon.push({
+        id: 'y' + id + '_' + i, acc: accId, name: n.name, title: n.title,
+        phone: netPhone(n, found), email: netEmail(n),
+        camps: camp ? [camp.id] : [], owner: crew[i % crew.length],
+        checkpoint: 'not-called', checkpointAt: null,
+        attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
+        fate: SCENARIOS[i % SCENARIOS.length].k,
+        enrichedAt: null,
+      });
+    });
+    const l = {
+      id: id, name: c.name, kind: 'con', terms: c.bt, crit: describeSentence(c.t, c.kind),
+      has: madeCon.map((x) => x.id).concat(bring), by: me().id, at: new Date().toISOString(),
+      for: camp ? camp.id : null, via: f.name, found: found.length + bring.length,
+    };
+    const joined = [];
+    if (camp) {
+      bring.forEach((id2) => {
+        const x = DB.byCon[id2];
+        if (x && x.camps.indexOf(camp.id) < 0) {
+          patchCon(x, { camps: x.camps.concat([camp.id]) });
+          joined.push(id2);
+        }
+      });
+    }
+    DB.acc = DB.acc.concat(madeAcc);
+    DB.con = DB.con.concat(madeCon);
+    DB.list.push(l);
+    DELTA.list.push(l);
+    DELTA.made = (DELTA.made || []).concat([{ list: id, acc: madeAcc, con: madeCon }]);
+    reindex();
+    save();
+    l.undo = () => {
+      joined.forEach((id2) => {
+        const x = DB.byCon[id2];
+        if (x) patchCon(x, { camps: x.camps.filter((k) => k !== camp.id) });
+      });
+      dropList(id);
+    };
+    return l;
+  }
+
+  /* ══ DONE, SAID WHERE YOU ARE ══════════════════════════════════════════
+     In the canvas: said in the thread, and a beat later the list opens,
+     because you were watching it being made and the list is the next thing
+     you want to see. With the canvas shut: said in the card above the bar
+     with the one press that opens it, because you have gone and done
+     something else and a page swapped out from under that is not news, it
+     is an interruption. Either way the thread keeps the sentence. */
+  function curateEnd() {
+    const c = CURATE;
+    clearInterval(c.timer);
+    c.done = true;
+    c.view.done = true;
+    c.view.at = c.steps.length;
+    c.view.secs = c.total;
+    const l = writeList(c);
+    const camp = c.camp ? DB.byCamp[c.camp] : null;
+    const html = 'Your list is ready. <b>“' + esc(c.name) + '”</b> has <b>' +
+      esc(curNoun(c, l.has.length)) + '</b>' +
+      (camp ? ' and is on <b>' + esc(camp.name) + '</b>' : '') + '.';
+    CURATE = null;
+    say('aimy', html, { step: 'curdone', opts: [{ k: l.id, label: 'Open the list', primary: true }] });
+    const openIt = () => {
+      hideCanvas();
+      goFree(Object.assign(cleared(), { on: 'lists', list: l.id }));
+      toast('Saved ' + curNoun(c, l.has.length) + ' as “' + l.name + '”', () => {
+        l.undo();
+        if (S.list === l.id) goFree(Object.assign(cleared(), { on: 'lists' }));
+        else paint();
+      });
+    };
+    if (canvasShown()) {
+      setTimeout(() => {
+        if (!DB.byList[l.id]) return;
+        if (canvasShown()) openIt();
+        else curDonePeek(l, html);
+      }, 1200);
+      return;
+    }
+    paint();
+    curDonePeek(l, html);
+  }
+
+  function curDonePeek(l, html) {
+    const box = peekEl();
+    if (!box) return;
+    peekStop();
+    box.hidden = false;
+    box.classList.remove('is-thinking', 'is-curating', 'is-clipped');
+    peekShut(false);
+    const body = byId('peekBody');
+    body.style.maxHeight = '';
+    byId('peekActs').innerHTML = '';
+    PEEK_ACTS = '<div class="b-cuts"><button class="s-insight-lnk primary" type="button" ' +
+      'data-curopen="' + esc(l.id) + '">Open the list</button></div>';
+    byId('aimyFloatWrap').classList.add('has-peek');
+    peekStream(body, html, peekSettle);
   }
 
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
@@ -31018,6 +31447,30 @@
     const lb = t.closest('[data-lb]');
     if (lb) { lbuildOpt(lb.getAttribute('data-lb')); return; }
 
+    /* The finished list, from the thread or from the card above the bar. */
+    const curo = t.closest('[data-curopen]');
+    if (curo) {
+      const id = curo.getAttribute('data-curopen');
+      peekAll();
+      peekHide();
+      hideCanvas();
+      if (DB.byList[id]) go(Object.assign(cleared(), { on: 'lists', list: id }));
+      else toast('That list has been taken back.');
+      return;
+    }
+    /* More like a list you have: the conversation, opened on its criteria. */
+    const bmore = t.closest('[data-bmore]');
+    if (bmore) {
+      const l = DB.byList[bmore.getAttribute('data-bmore')];
+      if (!l) return;
+      const pairs = String(l.terms || '').split(',').filter(Boolean).map((x) => {
+        const at = x.indexOf(':');
+        return [x.slice(0, at), x.slice(at + 1)];
+      });
+      lbuildStart(null, { kind: l.kind || 'con', terms: pairs, name: l.name });
+      return;
+    }
+
     /* Which of the two you are collecting. It decides which axes exist — a
        job title is a criterion for people and meaningless for a company — so
        it is asked first and nothing else is on that screen. */
@@ -31059,7 +31512,7 @@
       const k = bsug.getAttribute('data-bsug');
       const t2 = terms();
       const found = buildMatched(t2);
-      const s2 = buildSuggests(t2, found, bookFit(t2)).filter((x) => x.k === k)[0];
+      const s2 = buildSuggests(t2, found, bookFit(t2), buildKind(), DRAFT.take.length).filter((x) => x.k === k)[0];
       if (!s2) return;
       if (s2.take) {
         s2.take.forEach((id) => { if (DRAFT.take.indexOf(id) < 0) DRAFT.take.push(id); });
