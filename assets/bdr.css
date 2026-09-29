@@ -6828,3 +6828,10 @@ textarea::placeholder,
   text-wrap: pretty;
 }
 .b-renew > p b { color: var(--d50); font-weight: var(--fw-semibold); }
+
+/* ══ 99. ADDED BY A CLIENT ═════════════════════════════════════════════════
+   The chip on a lead's record saying which client brought it (bdr.js, A
+   LEAD A CLIENT ADDED SAYS SO). The record's chips had four tones and none
+   of them meant "where it came from"; info is the design system's tone for
+   a neutral fact worth seeing, the same one the card's tag wears. */
+.s-meta-st.tone-info { color: var(--info); background: var(--info-bg); }

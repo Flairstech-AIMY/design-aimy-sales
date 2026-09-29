@@ -4313,6 +4313,20 @@
      Nothing new is drawn; the only thing this build adds is the three-column
      shape, because a card of this height at full width would be one call per
      screen. */
+  /* ══ A LEAD A CLIENT ADDED SAYS SO ═════════════════════════════════════
+     A client's "Add a lead" passes the person to the manager on their
+     campaign, with the client as `givenBy`. That was said once, in AiMY's
+     reading on the card, and only while the lead sat in qualification;
+     after the first move it was gone, and the manager working the deal
+     could no longer see that the client brought it. Nour: tag it. A tag on
+     the card and a chip on the record, for every desk inside the building
+     and at every stage, read off the field the hand-over already writes.
+     Not on the client's own desk, which knows. */
+  const addedByClient = (c) => {
+    const r = c && c.givenBy ? REP[c.givenBy] : null;
+    return r && r.fn === 'client' && !isBuyer() ? r : null;
+  };
+  const clientSay = (r) => 'Added by ' + ((CLIENT[r.client] || {}).name || r.name);
   function qcard(c, i) {
     const a = accOf(c);
     /* ══ AND THE FALLBACK NAMES SOMEBODY ELSE'S CAMPAIGN ═══════════════
@@ -4334,6 +4348,9 @@
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
+        (addedByClient(c) ? '<span class="tag tag-info" title="' +
+          esc(clientSay(addedByClient(c)) + ', ' + addedByClient(c).name) + '">' +
+          esc(clientSay(addedByClient(c))) + '</span>' : '') +
         (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
           '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
@@ -19744,6 +19761,8 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
+          (addedByClient(c) ? '<span class="s-meta-st tone-info">' +
+            esc(clientSay(addedByClient(c)) + ' · ' + addedByClient(c).name) + '</span>' : '') +
           /* No tier. It grades the COMPANY, and this masthead already
              threw out industry, city, headcount and domain for being facts
              about the company rather than about this person — the rank is
@@ -20178,8 +20197,17 @@
      says "with the director" — which is the news at that desk and nonsense
      at the director's own, where it tells her a lead is with somebody else
      when the somebody else is her. */
+  /* "You added them yourself" was said of every lead typed in by hand,
+     including the ones a client or the CEO typed in and passed on, so a
+     client's lead told the manager she had found it. Whoever passed it is
+     named instead. */
   const stepSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
-    ? (addedByHand(c) ? 'you added them yourself' : 'yours to close')
+    ? (addedByClient(c)
+        ? addedByClient(c).name + ' at ' + clientSay(addedByClient(c)).replace(/^Added by /, '') +
+          ' added them'
+      : c.givenBy && c.givenBy !== me().id && REP[c.givenBy]
+        ? actor(c.givenBy).name + ' passed them to you'
+      : addedByHand(c) ? 'you added them yourself' : 'yours to close')
     : (called[c.checkpoint] || {}).say || 'they have left the ladder');
 
   /* ══ WHAT AiMY MAKES OF THIS ONE, WITH SOMEWHERE TO GO ═════════════════
