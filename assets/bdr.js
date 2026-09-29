@@ -3998,42 +3998,6 @@
     SCALAR.forEach((k) => { if (k !== 'as' && k !== 'eng') over[k] = ''; });
     return over;
   }
-  /* ══ THE GATE ON LEAVING AN UNSAVED RESULT ═════════════════════════════
-     V3 guarded a drafted list with its decision surface — the list's name,
-     how many are in it, and the two ways out — after trying a browser
-     `beforeunload` prompt and throwing it out: the browser draws that one,
-     so it cannot say what it is about, and it only ever offers leave or
-     stay when the decision has three answers.
-
-     Ours is that decision, drawn INLINE at the top of the result rather
-     than as a modal: a press that would leave the builder with a result
-     nobody has saved does not navigate; it paints the gate, which names
-     the count and offers Save, Save onto a campaign, Discard, Stay. Only
-     a door out of the builder trips it — changing the criteria or the
-     supplier stays inside and is not a decision about the result. */
-  let LEAVE = null;
-  let LEAVE_OK = false;
-  function leavingResult(over) {
-    if (LEAVE_OK || S.build !== 'done' || !DRAFT || !(DRAFT.rows || []).length) return false;
-    const next = Object.assign(Object.create(null), S, over || {});
-    return !next.build;
-  }
-  function goFree(over, replace) { LEAVE_OK = true; try { go(over, replace); } finally { LEAVE_OK = false; } }
-
-  /* ══ AND THE BROWSER'S BACK BUTTON ═══════════════════════════════════════
-     A door in the product can be intercepted; the browser's Back cannot be
-     refused, only answered. So while an unsaved result is on screen the
-     history carries one extra entry — the same URL, marked — and Back lands
-     on the entry beneath it, which is still the result. The popstate handler
-     sees the mark is gone, puts it back, and paints the gate. Stay leaves
-     the guard standing; Save and Discard move on through goFree. */
-  let BACK_GUARD = false;
-  function guardBack() {
-    const want = S.build === 'done' && DRAFT && (DRAFT.rows || []).length > 0;
-    if (want && !BACK_GUARD) { history.pushState({ aimyGuard: 1 }, '', location.href); BACK_GUARD = true; }
-    if (!want) BACK_GUARD = false;
-  }
-
   /* ══ WHAT COUNTS AS A DIFFERENT SURFACE ══════════════════════════════════
      Written once and read twice — once before the paint to remember where we
      were, once after it to ask whether that changed — because two copies of
@@ -4060,12 +4024,6 @@
   const recordKey = () => [S.con, S.camp, S.eng].join('|');
 
   function go(over, replace) {
-    if (leavingResult(over)) {
-      LEAVE = { over: over, replace: !!replace };
-      paint();
-      byId('pageScroll').scrollTop = 0;
-      return;
-    }
     const wasOn = recordKey();
     const wasSurface = surfaceKey();
     const url = qs(over);
@@ -4326,11 +4284,9 @@
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
-    mountLists();
     paintRail();
     refreshTasks();
     paintProto();
-    guardBack();
     postPaint(pre);
     /* Put down by the paint that used it, so the next one — a write, a page
        of the queue — draws its cards plain unless go() says otherwise. */
@@ -4341,14 +4297,7 @@
   /* The lists a surface declares, mounted after its markup exists. Kept apart
      from the page's string because a windowed list cannot be one: it has to
      measure where it landed before it knows which rows to draw. */
-  function mountLists() {
-    const nl = byId('netList');
-    if (nl) {
-      vlist({ host: nl, items: paged((DRAFT && DRAFT.rows) || []).rows, rowH: 132,
-        rowClass: 's-brow', key: (n) => n.id, row: netRow,
-        empty: 'Nothing matches those criteria.' });
-    }
-  }
+
 
   /* ══ ONE PERSON, AS A CARD ══════════════════════════════════════════════
      A row had space for a name, a line and a button, which is enough to be
@@ -14989,7 +14938,7 @@
      gap has to move the moment you press another supplier. */
   let FILL_AT = null;
   function fillRate(rows) {
-    const list = rows || (DRAFT && DRAFT.rows) || [];
+    const list = rows || [];
     if (!list.length) return finderOf().phone;
     const gap = fillGap(list.length);
     if (gap <= 0) return 1;
@@ -15086,27 +15035,6 @@
     return out;
   })();
 
-  /* The criteria, out of the URL. `bt` is a comma list of `axis:value`, so a
-     half-described search is a link somebody can send. */
-  function terms() {
-    const out = Object.create(null);
-    String(S.bt || '').split(',').filter(Boolean).forEach((p) => {
-      const at = p.indexOf(':');
-      if (at < 0) return;
-      const a = p.slice(0, at), v = p.slice(at + 1);
-      (out[a] || (out[a] = [])).push(v);
-    });
-    return out;
-  }
-  function toggleTerm(axis, val) {
-    const t = terms();
-    const has = (t[axis] || []).indexOf(val) >= 0;
-    t[axis] = has ? (t[axis] || []).filter((x) => x !== val) : (t[axis] || []).concat([val]);
-    const flat = [];
-    Object.keys(t).forEach((a) => t[a].forEach((v) => flat.push(a + ':' + v)));
-    go({ bt: flat.join(','), on: 'lists', build: 'describe' });
-  }
-
   /* What the search returns. An axis with nothing ticked does not narrow —
      an empty filter that excluded everything would make the first press of
      any chip look like it found something. */
@@ -15129,15 +15057,6 @@
       return true;
     });
   }
-  /* How many a chip would leave, if it were the only change. Counts on the
-     chips are what makes narrowing legible before you press. */
-  function countWith(axis, val) {
-    const t = terms();
-    const cur = t[axis] || [];
-    t[axis] = cur.indexOf(val) >= 0 ? cur.filter((x) => x !== val) : cur.concat([val]);
-    return buildMatched(t).length;
-  }
-
   /* The one being asked, and never one that is not answering. */
   const finderOf = () => {
     const up = finderUp();
@@ -15146,7 +15065,6 @@
   };
 
   function listsPage() {
-    if (S.build) return buildPage();
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
     const found = DB.list.slice().reverse().filter((l) => matches(listHay(l)));
@@ -15600,7 +15518,7 @@
      a seventh caller on it is to give them some of what the other six are
      holding. So the write is a redeal, and four rules decide it.
 
-     EVEN, BECAUSE THAT IS WHAT THE BUILDER PROMISED. `saveList` deals a
+     EVEN, BECAUSE THAT IS WHAT THE BUILDER PROMISED. `writeList` deals a
      new list out round-robin — "three callers get a third each rather than
      one of them getting five hundred" — and a seventh caller arriving
      later should land on the same split, not on whatever is left over.
@@ -16001,201 +15919,6 @@
   }
 
 
-  /* ══ THE BUILDER, PORTED FROM THE V3 BUILD ══════════════════════════════
-     Four steps, and the V3 build's arguments for each of them hold here:
-
-       KIND FIRST, because which axes exist follows from it — a job title is
-       a criterion for people and meaningless for companies.
-
-       THE SENTENCE IS TYPED IN THE BAR THAT IS ALREADY THERE. A textarea on
-       this page asking "who are you looking for" beside a fixed composer
-       asking the same thing in different words makes the first question of
-       the interaction "which box?". The page shows what it HEARD; the bar is
-       where you say it.
-
-       AiMY OFFERS CRITERIA AND APPLIES NONE. Every suggestion states the
-       count behind it and waits to be pressed. A builder that pre-applies
-       what it guessed is a builder you have to audit before you trust.
-
-       THE LOOKING IS VISIBLE. Rows arrive one at a time under the names of
-       the suppliers that were asked, because a spinner over a search says
-       nothing about whether it is working or stuck.
-
-     `DRAFT` is the working document: the sentence, the name, which of your
-     own you are bringing, and the run. The CRITERIA live in the URL, so a
-     half-described search is a link somebody can send. */
-
-  let DRAFT = null;
-  const BSTEPS = ['kind', 'describe', 'run', 'done'];
-  /* A done URL is only a result while something came back. The entry the
-     browser keeps under a discarded result says done and holds nothing; it
-     reads as the describe page, criteria intact, not as "0 came back". */
-  const bstep = () => {
-    const step = BSTEPS.indexOf(S.build) >= 0 ? S.build : 'kind';
-    return step === 'done' && !(DRAFT && (DRAFT.rows || []).length) ? 'describe' : step;
-  };
-
-  function buildOpen(over) {
-    DRAFT = { kind: 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
-    go(Object.assign(cleared(), { on: 'lists', build: 'kind', bt: '' }, over || {}));
-  }
-
-  const buildKind = () => (DRAFT && DRAFT.kind) || S.bk || 'con';
-
-  /* The name tracks the criteria until you disagree with it. Type in the
-     field and it is yours and stops moving; leave it and it keeps up. */
-  const buildAutoName = () => autoName(terms(), buildKind());
-  const buildName = () => (DRAFT && DRAFT.name != null ? DRAFT.name : buildAutoName());
-
-  function buildPage() {
-    const step = bstep();
-    if (!DRAFT) DRAFT = { kind: S.bk || 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
-    if (step === 'run') return buildRunning();
-    if (step === 'done') return buildDone();
-    if (step === 'kind') return buildPickKind();
-    return buildDescribe();
-  }
-
-  function buildPickKind() {
-    return '<div class="s-home">' +
-      backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
-      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
-        '<div class="s-sheet-kind">New list</div>' +
-        '<h1 class="s-sheet-name">What are you collecting?</h1>' +
-      '</div></div>' +
-      '<div class="s-ways s-block-wide">' +
-        '<button class="s-way" type="button" data-bkind="acc">' +
-          '<span class="s-way-name">Companies</span>' +
-          '<span class="s-way-why">One row per organization. <b>' +
-            commas(DB.net.length) + '</b> in reach, and the ones you already ' +
-            'hold can come along.</span>' +
-        '</button>' +
-        '<button class="s-way" type="button" data-bkind="con">' +
-          '<span class="s-way-name">People</span>' +
-          '<span class="s-way-why">The people at those companies, narrowed by job ' +
-            'title. <b>' + commas(DB.con.length) + '</b> of them are already yours.</span>' +
-        '</button>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function buildDescribe() {
-    const t = terms();
-    const found = buildMatched(t);
-    const kind = buildKind();
-    const mine2 = bookFit(t);
-    const take = DRAFT.take.length;
-    const eg = kind === 'con'
-      ? 'QA managers at software companies in the Netherlands with 200 to 1,000 staff'
-      : 'Banking and logistics companies in the Netherlands with 200 to 1,000 staff';
-    const chips = [];
-    BUILD_AXES.forEach((ax) => {
-      if (kind === 'acc' && ax.k === 'title') return;
-      const opts = Object.create(null);
-      ax.opts().forEach((o) => (opts[o[0]] = o[1]));
-      (t[ax.k] || []).forEach((v) => chips.push({ axis: ax.k, val: v, label: opts[v] || v }));
-    });
-    if ((t.only || []).indexOf('new') >= 0) {
-      chips.push({ axis: 'only', val: 'new', label: 'New to you' });
-    }
-    if ((t.only || []).indexOf('phone') >= 0) {
-      chips.push({ axis: 'only', val: 'phone', label: 'Has a number' });
-    }
-
-    return '<div class="s-home">' +
-      backBtn('data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'kind' }))) + '"',
-        'Companies or people') +
-      /* ══ THE VERB IS WHERE THE PAGE STARTS ═════════════════════════════
-         It sat at the bottom, past the criteria, the suggestions and the
-         expectation — so the one thing this page is for was the last thing
-         on it, and it was pressable before anybody had said who they were
-         after. Top right, beside the name, and dark until there is a
-         criterion to run: an empty search asks five hundred strangers for
-         nothing in particular. */
-      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
-        '<div class="s-sheet-kind">New list · ' + (kind === 'con' ? 'People' : 'Companies') + '</div>' +
-        '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
-          'value="' + esc(buildName()) + '" data-auto="' + esc(buildAutoName()) + '" ' +
-          'data-bname aria-label="Name this list" /></h1>' +
-      '</div>' +
-      '<span class="b-sheet-act">' +
-        '<button class="entry-action em-direct s-build-go" type="button" data-bgo' +
-          (anyCrit(t) && (found.length + take) ? '' : ' disabled aria-disabled="true"') +
-          '>Generate the list</button>' +
-      '</span></div>' +
-
-      /* ══ A SENTENCE POINTING AT THE BAR IS NOT A WAY INTO IT ═══════════
-         "Say who you are after in the bar below" was the whole of the empty
-         state: an instruction to go and do something somewhere else on the
-         page, with an example you would have to read, remember and retype.
-         The one press puts the example in the bar with the caret at its end,
-         so the first thing a caller does is edit a working sentence rather
-         than face an empty field trying to recall the shape of one. */
-      (DRAFT.said
-        ? '<p class="s-block-wide s-said">' + esc(DRAFT.said) + '</p>'
-        : '<div class="s-block-wide b-empty">' +
-            /* A company has no job title, and the builder does not offer the
-               axis on that side either. */
-            '<p class="s-said is-empty">Say who you are after — a sector, a country, ' +
-            'a size' + (kind === 'con' ? ', a job title' : '') + '. Say it in any order ' +
-            'and I will read it.</p>' +
-            '<button class="s-insight-lnk primary" type="button" data-fill="' + esc(eg) + '">' +
-              'Add criteria</button>' +
-          '</div>') +
-
-      (chips.length
-        ? '<div class="s-find-crit s-block-wide">' + chips.map((c) =>
-            '<button class="chip active" type="button" data-bterm="' +
-            esc(c.axis + ':' + c.val) + '">' + esc(c.label) +
-            '<span class="s-crit-x" aria-hidden="true">×</span></button>').join('') + '</div>'
-        : '') +
-
-      buildSuggestBlock(t, found, mine2) +
-
-      /* ══ THE SOURCES ARE A LISTING, NOT A CHOICE ═══════════════════════
-         They were three chips with one lit, beside a sentence naming the lit
-         one — a control for picking a supplier, on a page where nobody is
-         picking a supplier. Which one answers is not a decision a caller
-         makes; what they need is whether the numbers are coming and, when
-         one of them stops, which one and since when.
-
-         Under the sentence and to the left of the button, because it is the
-         working of that sentence rather than another thing to press. */
-      '<div class="s-build-foot s-block-wide">' +
-        '<div class="b-src-side">' +
-        buildExpect(t, found) +
-        (take ? '<p class="s-build-total s-block-wide"><b>' + commas(take) +
-          '</b> of your own are going in with them.</p>' : '') +
-        '<div class="b-srcs">' +
-          '<span class="b-srcs-cap">Where the numbers come from, and how they did last week</span>' +
-          FINDERS.map((x) =>
-            '<span class="b-src' + (x.down ? ' is-off' : '') + '">' +
-              '<span class="b-rstate-dot ' + (x.down ? 'tone-warn' : 'tone-ok') + '"></span>' +
-              '<span class="b-src-n">' + esc(x.name) + '</span>' +
-              /* A percentage, because that is the unit a fill rate is quoted
-                 in everywhere else a caller meets one. "7 in 10 with a
-                 number" made you work out both what the ratio was and what
-                 it was a ratio OF.
-
-                 BOTH NUMBERS, since LinkedIn joined the list. A listing whose
-                 only figure is the phone rate says the source these sellers
-                 actually use is the worst of the four, when what is true is
-                 that it trades a number for a name — and the row underneath
-                 offering to fill the gaps only makes sense once you can see
-                 which gap each one leaves. */
-              '<span class="b-src-v">' + (x.down
-                ? 'not answering since ' + esc(sayDay(dayAdd(-2)))
-                : Math.round(x.phone * 100) + '% with a number · ' +
-                  Math.round(x.email * 100) + '% with an email') +
-              '</span>' +
-            '</span>').join('') +
-        '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }
-
   /* ── ONE READER FOR A TYPED SENTENCE ──
      "Software companies in Amsterdam with 200 to 1,000 staff" becomes three
      criteria, and it accumulates across axes rather than taking one match
@@ -16290,62 +16013,6 @@
     const p2 = Math.pow(10, String(Math.round(n)).length - 2);
     return commas(Math.round(n / p2) * p2);
   };
-
-  /* ══ BEFORE THE RUN THERE IS NOTHING TO COUNT ══════════════════════════
-     The foot read "12,000 of the 12,000 I can reach match. Apollo would give
-     a number for about 8,880 of them" — a definite count, and the count of
-     the whole index when nobody had said what they were after. If the page
-     already knows how many there are and how many have numbers, pressing
-     Generate discovers nothing, and the run underneath it is theatre.
-
-     What is actually known here is the criteria and a local sketch of the
-     market. So: an expectation, said as one — how wide the criteria are,
-     how many should come back with a number, how much of it you may already
-     hold — each with the thing the guess is read off. The counts arrive from
-     the run, which is the only place they can come from. */
-  function buildExpect(t, found) {
-    if (!anyCrit(t)) return '';
-    const f = finderOf();
-    const share = found.length / Math.max(1, DB.net.length);
-    /* Half a clause each, because they are read inside one sentence. */
-    const wide = !found.length
-      ? ['Nothing like this', 'nothing in my sketch matches, so expect very little back']
-      : share >= 0.45
-        ? ['Very wide', 'nearly everything matches, so name a sector or a country']
-        : share >= 0.15
-          ? ['Wide', 'it will fill the run easily and be a broad list']
-          : share >= 0.03
-            ? ['About right', 'narrow enough to be a list, wide enough to fill a run']
-            : ['Narrow', 'you may get fewer than 500 back'];
-    /* ══ A SUMMARY, NOT A TABLE ════════════════════════════════════════
-       Two labelled rows, each a paragraph, to say the two things a caller
-       reads in a second: is this too wide, and will they have numbers. One
-       sentence with the two figures in it. Everything the guess is read off
-       arrives on the run twelve seconds later and does not need saying
-       twice before it. */
-    return '<div class="b-expect">' +
-      '<span class="b-srcs-cap">What to expect</span>' +
-      /* —— AND IT PROMISED THE SUPPLIER'S RATE ——————————————————————————————
-         This said "Maybe 21% of them with a phone number, going on what
-         LinkedIn Sales Navigator did last week" — true of the supplier and
-         no longer true of the run, which fills to within a few of complete
-         whatever the source returns. An expectation that undersells the
-         thing by sixty points is worse than none: it is the one figure a
-         caller decides on.
-
-         The shortfall, then, as the count it is, off the same arithmetic
-         `fillRate` uses. Capped at 500 because the run is. */
-      '<p class="b-exp-say"><b>' + esc(wide[0]) + '</b> — ' + esc(wide[1]) + '.' +
-        (found.length
-          ? ' All but <b>' + commas(fillGap(Math.min(found.length, 500))) +
-            '</b> of them with a phone number, because we fill in most of what ' +
-            esc(f.name) + ' misses.'
-          : '') + '</p>' +
-      /* What you already hold is said by the suggestion above, which also
-         offers to drop them. Saying it twice, once without the fix, is the
-         duplication this rebuild keeps taking out. */
-    '</div>';
-  }
 
   function buildSuggests(t, found, mine2, kind, taken) {
     const out = [];
@@ -16495,61 +16162,6 @@
     return out.slice(0, 3);
   }
 
-  function buildSuggestBlock(t, found, mine2) {
-    const sug = buildSuggests(t, found, mine2, buildKind(), DRAFT.take.length);
-    if (!sug.length) return '';
-    /* THE MARK GOES ON THE BLOCK, NOT ON EVERY ROW. `.s-sugg-row` is a
-       two-column grid — the sentence and the button — so a third child took
-       the button's column and pushed it onto a row of its own. One mark
-       heads the block, which is also what the V3 build does and reads once
-       rather than three times. */
-    return '<div class="s-sugg s-block-wide">' +
-      '<p class="s-lead-mark">' +
-        '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
-          '<use href="#aimy-logo-small"/></svg>AiMY suggests</p>' +
-      sug.map((s) =>
-        '<div class="s-sugg-row">' +
-          '<span class="s-sugg-say">' + s.say + '</span>' +
-          '<button class="s-finding-go" type="button" data-bsug="' + esc(s.k) + '">' +
-            esc(s.act) + '</button>' +
-        '</div>').join('') + '</div>';
-  }
-
-  /* ══ THE LOOKING IS A PIPELINE ═════════════════════════════════════════
-     It was a caption and a stream of the last eight names ticking every
-     ninety milliseconds: it said something was happening and nothing about
-     what. A search that takes six seconds is four steps — read the
-     criteria, ask the suppliers, fill in the ways to reach people, take
-     out who you already have — and a caller waiting on it should be able
-     to see which step it is on and what that step found.
-
-     So it is a pipeline: a progress track, four stage tiles joined by
-     connectors that fill as the next stage runs, and a step list with the
-     time each took and, once it is done, what it found — the rows the
-     chosen supplier returned, the share with a number, how many were
-     already in the book. The run's REAL numbers, once each, on the step
-     they belong to; a typed log stood here for one pass and said them four
-     lines at a time before scrolling them away. One elapsed clock
-     drives all of it from requestAnimationFrame; every element on screen
-     is a function of that clock, so nothing can drift out of step, and a
-     tab that was in the background catches up rather than stalling.
-
-     It stays on screen when it finishes. Auto-navigating to the result
-     would take away the one control a finished run offers — run it again
-     with a different supplier — so the footer holds both: the way to what
-     came back, and the other suppliers. */
-  let PIPE = null;
-  /* The four steps of a run, from the same set as everything else. */
-  const PIPE_ICON = {
-    read: '<circle cx="11" cy="11" r="8"/> <path d="m21 21-4.3-4.3"/>',
-    ask: '<path d="M4.9 16.1C1 12.2 1 5.8 4.9 1.9"/> <path d="M7.8 4.7a6.14 6.14 0 0 0-.8 7.5"/> <circle cx="12" cy="9" r="2"/> <path d="M16.2 4.8c2 2 2.26 5.11.8 7.47"/> <path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1"/> <path d="M9.5 18h5"/> <path d="m8 22 4-11 4 11"/>',
-    fill: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/> <path d="M14.05 2a9 9 0 0 1 8 7.94"/> <path d="M14.05 6A5 5 0 0 1 18 10"/>',
-    known: '<rect width="8" height="18" x="3" y="3" rx="1"/> <path d="M7 3v18"/> <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>',
-  };
-  const pipeIcon = (k) =>
-    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" ' +
-      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      PIPE_ICON[k] + '</svg>';
   /* ══ THE TWO MARKS THAT ARE NOT ICONS ══════════════════════════════════
      This tick and the spinner below it keep their own heavier strokes and
      stay out of the set on purpose. Both are drawn at eleven and twelve
@@ -16624,707 +16236,8 @@
     next.textContent = text;
     el.appendChild(next);
   }
-  const pipeFmt = (n) => n.toFixed(1) + 's';
-
-  /* The four steps, with the run's own numbers in their lines. */
-  function pipeStages() {
-    const f = finderOf();
-    const rows = DRAFT.rows || [];
-    const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
-    const known = rows.filter((x) => x.known).length;
-    const t = terms();
-    const nCrit = Object.keys(t).reduce((n, k) => n + (t[k] || []).length, 0);
-    const floor = fillRate(rows);
-    const withNum = rows.filter((x) => x.seedPhone < floor).length;
-    const withMail = rows.filter((x) => x.seedEmail < f.email).length;
-    const kind = buildKind() === 'acc' ? 'companies' : 'people';
-    const others = FINDERS.filter((x) => x.k !== f.k);
-    const share = Math.round(rows.length * 0.62);
-    return [
-      { id: 'read', label: 'Read the criteria', icon: 'read', duration: 1.4, logs: [
-        { at: 0.05, text: '$ find ' + kind + ' · ' + describeTerms(t) },
-        { at: 0.6, text: '→ ' + plural(nCrit, 'criterion', 'criteria') + ' understood' },
-        { at: 1.0, text: '✓ ready' } ] },
-      { id: 'ask', label: 'Ask the suppliers', icon: 'ask', duration: 2.4, logs: [
-        { at: 0.05, text: '$ ask ' + FINDERS.map((x) => x.name).join(' · ') },
-        { at: 0.7, text: '→ ' + f.name + ': ' + commas(share) + ' rows' },
-        { at: 1.4, text: '→ ' + others[0].name + ': ' + commas(rows.length - share) + ' rows' },
-        { at: 2.0, text: '✓ ' + commas(rows.length) + ' candidates after de-duplication' } ] },
-      { id: 'fill', label: 'Fill in the ways in', icon: 'fill', duration: 1.8, logs: [
-        { at: 0.05, text: '$ ' + f.name.toLowerCase().replace(/\s.*$/, '') + ' fill --phone --email' },
-        { at: 0.6, text: '→ numbers for ' + Math.round(f.phone * 100) + '%' },
-        { at: 1.1, text: '→ emails for ' + Math.round(f.email * 100) + '%' },
-        { at: 1.5, text: '✓ ' + commas(withNum) + ' with a number, ' + commas(withMail) + ' with an address' } ] },
-      { id: 'known', label: 'Take out who you have', icon: 'known', duration: 1.4, logs: [
-        { at: 0.05, text: '$ diff against your book' },
-        { at: 0.5, text: '→ ' + commas(known) + ' already in your contacts' },
-        { at: 0.9, text: '→ ' + commas(mine2.length) + ' brought in from yours' },
-        { at: 1.2, text: '✓ ' + commas(rows.length + mine2.length) + ' ready to save' } ] },
-    ];
-  }
-
-  function buildRun() {
-    const t = terms();
-    const found = buildMatched(t);
-    const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
-    const rows = found.slice(0, Math.max(0, 500 - mine2.length));
-    DRAFT.rows = rows;
-    DRAFT.run = { total: rows.length + mine2.length, at: 0 };
-    const stages = pipeStages();
-    const starts = stages.reduce((acc, x) => acc.concat([acc[acc.length - 1] + x.duration]), [0]);
-    if (PIPE && PIPE.raf) clearTimeout(PIPE.raf);
-    PIPE = { stages: stages, starts: starts, total: starts[starts.length - 1], t0: null,
-      raf: null, elapsed: 0 };
-    go({ build: 'run' });
-    PIPE.raf = setTimeout(pipeFrame, 16);
-  }
-  /* A TIMER, NOT requestAnimationFrame. rAF stops dead in a background tab,
-     so a run started and then tabbed away from never finished. A timer is
-     throttled there but still fires, and because every frame is a function
-     of wall time the run simply catches up when it does. Sixteen
-     milliseconds in a visible tab is the same sixty frames a second. */
-  const pipeFrame = () => pipeTick(performance.now());
-
-  /* One clock; everything is a function of it. */
-  const pipeStateOf = (i) => (PIPE.elapsed >= PIPE.starts[i] + PIPE.stages[i].duration ? 'done'
-    : PIPE.elapsed >= PIPE.starts[i] ? 'running' : 'pending');
-  const pipeLocalOf = (i) => Math.max(0, Math.min(PIPE.elapsed - PIPE.starts[i], PIPE.stages[i].duration));
-  const pipeProgressOf = (i) => Math.max(0, Math.min(1, pipeLocalOf(i) / PIPE.stages[i].duration));
-
-  /* The glow travels in pixels, so it needs the track's height. Read here,
-     which is called at mount and whenever the viewport changes — and never
-     from pipePaint, which runs on the frame clock. */
-  function pipeMeasure() {
-    if (!PIPE) return;
-    const t = document.querySelector('.pipe-rib-track');
-    PIPE.trackH = t ? t.getBoundingClientRect().height : 0;
-  }
-
-  function pipeTick(now) {
-    if (!PIPE || S.build !== 'run' || !byId('pipeCard')) { if (PIPE) PIPE.raf = null; return; }
-    if (!PIPE.trackH) pipeMeasure();
-    if (PIPE.t0 === null) PIPE.t0 = now;
-    PIPE.elapsed = Math.min((now - PIPE.t0) / 1000, PIPE.total);
-    pipePaint();
-    if (PIPE.elapsed >= PIPE.total) { PIPE.raf = null; if (DRAFT && DRAFT.run) DRAFT.run.at = DRAFT.run.total; return; }
-    PIPE.raf = setTimeout(pipeFrame, 16);
-  }
-
-  function pipePaint() {
-    const finished = PIPE.elapsed >= PIPE.total;
-    const firstOpen = PIPE.stages.findIndex((x, i) => pipeStateOf(i) !== 'done');
-    const ai = firstOpen === -1 ? PIPE.stages.length - 1 : firstOpen;
-    const active = PIPE.stages[ai];
-    const activeDone = pipeStateOf(ai) === 'done';
-    const local = pipeLocalOf(ai);
-    /* ══ TRANSFORM AND OPACITY, AND NOTHING ELSE ════════════════════
-       This runs sixty times a second. Scaling a full-height bar and
-       translating a glow is compositor work; animating a height or a top is
-       layout and paint on every one of those frames. PIPE.trackH is read at
-       mount and on resize — never here, because a getBoundingClientRect
-       between two style writes is a forced synchronous reflow. */
-    const fill = byId('pipeFill');
-    if (fill) fill.style.transform = 'scaleY(' + (PIPE.elapsed / PIPE.total) + ')';
-    const rhead = byId('pipeHead');
-    if (rhead) {
-      rhead.style.transform = 'translateY(' + (PIPE.elapsed / PIPE.total * (PIPE.trackH || 0)) + 'px)';
-      rhead.style.opacity = finished ? '0' : '1';
-    }
-    const st = byId('pipeStatus');
-    if (st) {
-      swapText(st, finished ? 'Found · ' + commas(DRAFT.run.total) : 'Running · ' + active.label);
-      st.classList.toggle('done', finished);
-    }
-    const dot = byId('pipeDot');
-    if (dot) dot.classList.toggle('done', finished);
-    /* The card wears the same signal, because bdr.css hangs the compositor
-       hints off it: the ribbon, its head and the four pins are promoted for
-       the length of the run and handed back the moment it ends. */
-    const card = byId('pipeCard');
-    if (card) card.classList.toggle('done', finished);
-
-    /* A CLASS, NOT A REWRITE. Two classes decide everything a step looks
-       like, and both the time and the sentence it ends on are already in the
-       markup waiting at opacity 0 — so a step finishing is one class toggle
-       and the rest is CSS transitions the compositor runs. Touched only when
-       the state actually changes; this loop is on the frame clock. */
-    PIPE.stages.forEach((x, i) => {
-      const state = pipeStateOf(i);
-      const step = byId('pipeStep-' + x.id);
-      if (step && step.getAttribute('data-state') !== state) {
-        step.setAttribute('data-state', state);
-        step.classList.toggle('is-live', state === 'running');
-        step.classList.toggle('is-done', state === 'done');
-      }
-    });
-
-    const el = byId('pipeElapsed');
-    if (el) el.textContent = pipeFmt(PIPE.elapsed);
-    /* ══ A LOADING STATE IS NOT A DESTINATION ══════════════════════════════
-       It finished and then waited to be told to show what it had found, with
-       "Run again with ZoomInfo" beside the way out — two decisions on a
-       screen whose whole purpose was to be over. It ends by opening the list,
-       which is where every one of those decisions is available anyway. */
-    if (finished && PIPE && !PIPE.left) {
-      PIPE.left = true;
-      /* One beat on the finished state so the last tick is seen, then out. */
-      setTimeout(() => { if (S.build === 'run') go({ build: 'done' }); }, 420);
-    }
-  }
-
-  function buildRunning() {
-    if (!PIPE) return '<div class="s-home"><p class="b-vfoot s-block-wide">Nothing is running.</p></div>';
-    const f = finderOf();
-    const kind = buildKind() === 'acc' ? 'Companies' : 'People';
-    /* PLACED ON A PAGE, NOT FLOATED IN AN EMPTY ONE. The card sat alone
-       under a back link, centred at 640px, with nothing saying what was
-       being built. The page keeps the masthead the other builder steps
-       have — what this is, its name, the criteria — and the card takes the
-       column's full width under it, with its steps and its log side by
-       side where there is room. */
-    return '<div class="s-home">' +
-      '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Looking · ' + esc(kind) + ' · via ' + esc(f.name) + '</span>' +
-        '<div class="s-rec-title"><h1 class="s-rec-name">' + esc(buildName()) + '</h1>' +
-          '<span class="s-meta-st tone-warn">Not saved</span></div>' +
-        '<div class="s-rec-facts"><div><span>' + esc(describeTerms(terms())) + '</span></div></div>' +
-      '</section>' +
-      '<div class="pipe s-block-wide"><div class="pipe-card" id="pipeCard">' +
-        '<header class="pipe-head">' +
-          '<div class="pipe-head-row">' +
-            '<div class="pipe-head-main">' +
-              /* No title. `.s-rec-name` above the card is buildName() already;
-                 this printed the same string forty pixels under it, and this
-                 was the copy being cut off at the card's own edge. */
-              '<span class="pipe-badge">' + esc(kind) + '<span class="pipe-badge-dot">·</span>' + esc(f.name) + '</span>' +
-            '</div>' +
-            '<div class="pipe-head-state">' +
-              '<span class="pipe-status" id="pipeStatus">' +
-                '<span class="pipe-say">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
-              '</span>' +
-              '<span class="pipe-live-dot" id="pipeDot" aria-hidden="true"></span>' +
-            '</div>' +
-          '</div>' +
-        '</header>' +
-
-        /* THE RIBBON. One track for the whole run, and the vertical room a
-           step gets is its duration — `flex-grow` is the number, written
-           inline because it is data and not a design constant. */
-        '<section class="pipe-rib" aria-label="Steps">' +
-          '<div class="pipe-rib-track"><div class="pipe-rib-fill" id="pipeFill"></div></div>' +
-          '<div class="pipe-rib-head" id="pipeHead"></div>' +
-          PIPE.stages.map((x) =>
-            '<div class="pipe-step" id="pipeStep-' + esc(x.id) + '" ' +
-              'style="flex-grow:' + x.duration + '">' +
-              '<span class="pipe-pin">' + pipeCheck(9) + '</span>' +
-              '<span class="pipe-step-body">' +
-                '<span class="pipe-step-row">' +
-                  '<span class="pipe-step-label">' + esc(x.label) + '</span>' +
-                  '<span class="pipe-step-time">' + pipeFmt(x.duration) + '</span>' +
-                '</span>' +
-                '<span class="pipe-step-said">' +
-                  esc(x.logs[x.logs.length - 1].text.replace(/^\u2713\s*/, '')) +
-                '</span>' +
-              '</span>' +
-            '</div>').join('') +
-        '</section>' +
-
-
-        /* The clock, and nothing beside it. A chip naming the running stage
-           stood here and said what the status line at the top of the card
-           already says, eight centimetres below it — and said it WRONG: it
-           was written once, on the first paint where the run was not
-           finished, and never again, so it read `Read the criteria…` for the
-           whole run. The fix for a stale second copy of a fact is not to
-           refresh it. */
-        /* ══ HOW LONG IT HAS TAKEN, NOT HOW LONG IT WILL ═══════════════
-           `0.0s / 7.0s` promised a finish. The seven seconds is this fixture's
-           own scripted length and a real run answers to four suppliers over a
-           network — so the total was a number the product cannot know, printed
-           in the one place a reader would take it for a commitment. The clock
-           counts up and says nothing it cannot stand behind. */
-        '<footer class="pipe-foot">' +
-          '<span class="pipe-elapsed" id="pipeElapsed">0.0s</span>' +
-        '</footer>' +
-      '</div></div>' +
-      '<p class="b-vfoot s-block-wide">Nothing is saved until you say so. What comes back is shown first, ' +
-        'and you choose what to keep.</p>' +
-    '</div>';
-  }
-
-
-  /* ── WHAT CAME BACK, BEFORE IT IS YOURS ──
-     The set, what is missing from it, and the two ways out. Nothing is in the
-     book until Save. */
-  /* ══ WHAT SAVING IT ALSO DECIDES ═══════════════════════════════════════
-     Six campaign chips in a row, each of which saved the list AND put it on
-     that campaign in one press — a decision made by a control that did not
-     look like it was making it, and six of them across the foot with no way
-     to see which you had chosen because choosing one ended the page.
-
-     Two menus on two buttons, the shape this build uses everywhere a choice
-     is attached to a verb. They stage the decision on the draft, the button
-     says what has been staged, and Save is still the one press that commits.
-
-     ASSIGN TAKES SEVERAL. Five hundred leads and one caller is a queue
-     nobody finishes; a list is split between the people who will call it,
-     so the menu toggles and stays open until you look away from it. */
-  const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
-    ? DRAFT.assign : [me().id]);
-
-  /* Untouched, it is the verb; touched, it is the answer. The campaign button
-     beside it works the same way, and "You are calling them" read as a fact
-     somebody was telling you rather than a control.
-
-     Names, while there are few enough to name. "Split between 2" makes you
-     open the menu to find out which two.
-
-     AND THE LADDER IS GONE, BECAUSE THE FACES SAY IT. `assignSay` wrote the
-     answer into the opener's label — "You are calling them", "Split between
-     Omar and Salma", "Split between 5 of you" — which is a sentence doing a
-     roster's job, and it was the only thing on the page that named anybody.
-     The draft draws `buildTeam` now: the block a saved list draws, with the
-     faces, the names and a cross on each. A label repeating what the faces
-     beside it already show is the fact twice, and the shorter of the two is
-     the one that cannot name a single person. The opener is a verb again. */
-
-  /* ══ A MULTIPLE CHOICE DOES NOT REPAINT THE PAGE UNDER ITSELF ═══════════
-     Ticking a caller called paint(), which rebuilds the surface from a string
-     — so the open menu was destroyed and a new one built in its place on every
-     press. It came back because the handler re-showed it by id, and it came
-     back NEW: the entrance animation replayed, the search box lost what was
-     typed in it and the focus ring went with the element it was on. Four names
-     is four flashes.
-
-     The rule is already written at [data-pickopen]: opening, choosing and
-     filtering happen in the DOM, and only the confirm writes. This is the
-     choosing. Nothing else on the page reads the assignment — saveList()
-     reads it at commit time, and that is a write, which repaints — so the
-     two things that show it are the ticks and the opener's own label. */
-  function assignSync() {
-    const who = assignedTo();
-    const set = !!(DRAFT && DRAFT.assign);
-    const menu = byId('assignPick');
-    if (menu) {
-      menu.querySelectorAll('[data-pickrep]').forEach((b) => {
-        const on = who.indexOf(b.getAttribute('data-pickrep')) >= 0;
-        b.setAttribute('aria-pressed', String(on));
-        const tick = b.querySelector('.b-menu-tick');
-        if (tick) tick.classList.toggle('is-on', on);
-      });
-    }
-    /* ══ AND THE FACES BESIDE IT ARE MARKUP, SO THEY ARE REBUILT ═══════
-       The opener used to carry the answer as a label, and a label is a
-       string, so syncing it was one assignment. The answer is a roster now
-       — faces, names, crosses, and a stack once there are more than four —
-       and none of that can be written as text.
-
-       So everything after the caption row is thrown away and drawn again.
-       That is safe for exactly the reason the note above gives: the open
-       menu is NOT in here. It lives in the caption row beside the verb,
-       which this does not touch, so the filter you typed and the focus ring
-       survive a tick the way they did when this only moved a string. */
-    const team = byId('buildTeam');
-    const head = team && team.querySelector('.b-team-head');
-    if (head) {
-      while (head.nextSibling) team.removeChild(head.nextSibling);
-      head.insertAdjacentHTML('afterend', buildFaces(who));
-    }
-  }
-  /* ══ A LIST ON NO CAMPAIGN IS A LIST NOBODY IS WORKING ═════════════════
-     Save led and the campaign hung off it as a second thought, so the easy
-     press produced a set of five hundred people sitting in a drawer. Putting
-     them on a campaign is the point of having found them: it is the primary,
-     it opens the menu, and a name in that menu saves and attaches in the one
-     press.
-
-     AND THE OTHER ONE IS CALLED SAVE. It read "Save as draft", to say what
-     it left you with — and what it leaves you with is a list. A list has no
-     draft: there is no flag on the record, the page you land on is the same
-     page either way, and the only difference is `for` being null, which that
-     page already states in as many words with "Not on a campaign yet". So
-     the word was naming a state the model does not have, and naming it on
-     the one control a caller presses when they have decided to keep
-     something. Keeping something is Save.
-
-     It still reads as the quieter of the two, because it is: the campaign is
-     the primary and the filled button, and this is the inline one beside it.
-     Weight says which is the better idea; the label should only say what the
-     press does. */
-  const campPickMenu = () => {
-    const ks = myCampaigns().filter(campOpen);
-    if (!ks.length) return '';
-    return '<span class="b-menu-wrap">' +
-      '<button class="entry-action em-direct s-build-go b-menu-open" type="button" ' +
-        'data-pickopen="campPick" aria-haspopup="menu">Add to campaign</button>' +
-      '<div class="b-menu" id="campPick" role="menu" hidden>' +
-        '<span class="b-menu-cap">Put them on</span>' +
-        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
-          'placeholder="Find a campaign" aria-label="Find a campaign" spellcheck="false" />' +
-        ks.map((k) =>
-          '<button class="b-menu-item" type="button" role="menuitem" ' +
-          'data-pickcamp="' + esc(k.id) + '">' +
-            '<span class="b-menu-line"><span class="b-menu-name">' + esc(k.name) + '</span>' +
-            '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) +
-            ' on it · ' + esc(plural(daysBetween(TODAY_ISO, k.to), 'day')) + ' left</span></span>' +
-          '</button>').join('') +
-      '</div>' +
-    '</span>';
-  };
-  /* ══ THE VERB ON A CAPTION ROW, WHICH IS WHERE THIS BUILD PUTS ONE ═════
-     It was a pill in the action row reading whatever `assignSay` made of the
-     choice, standing between Save and Discard as though staging a crew were
-     a fourth thing to do to the list. It is the team block's verb now, on
-     the caption's row, exactly where `listCrewPick` sits on a saved list and
-     where the note above `teamFaces` says an assigning verb belongs.
-
-     IT STAYS A TOGGLE, and that is the one place this differs from the saved
-     list's. `listCrewPick` only ever adds, because taking somebody off lives
-     on their own row and a saved list repaints on every write. Nothing here
-     is written until Save — the whole builder's rule — so this menu cannot
-     repaint the page to rebuild itself, and a toggle with ticks is a list
-     that never needs rebuilding. The cross on a face writes through the same
-     attribute, so the two agree without either one redrawing the other. */
-  const assignPickMenu = () => {
-    const who = assignedTo();
-    /* ══ A CROSS THE MENU CANNOT UNDO IS A DECISION TAKEN AWAY ══════════
-       The menu was `BDRS`, the calling floor, which is right until you read
-       it on a manager's desk: `assignedTo()` starts at whoever is looking,
-       a manager is not a caller, and so the one name already on the team was
-       the one name the menu did not hold. Nothing exposed that while the
-       block was a pill — there was no way to take anybody off. The faces
-       carry a cross now, and pressing yours left you unable to put yourself
-       back.
-
-       So the roster is the floor plus anybody already on it who is not part
-       of the floor. The invariant is the whole point and it is worth saying
-       plainly: every face this block draws a cross on is a row this menu can
-       tick back on. */
-    const extra = who.filter((id) => !BDRS.some((r) => r.id === id))
-      .map((id) => actor(id)).filter(Boolean);
-    return '<span class="b-menu-wrap">' +
-      '<button class="s-inline-btn b-menu-open" ' +
-        'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
-        'Change the team</button>' +
-      '<div class="b-menu" id="assignPick" role="menu" hidden>' +
-        '<span class="b-menu-cap">Who is calling them</span>' +
-        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
-          'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
-        extra.concat(BDRS).map((r) =>
-          '<button class="b-menu-item" type="button" role="menuitem" ' +
-          'data-pickrep="' + esc(r.id) + '" aria-pressed="' + (who.indexOf(r.id) >= 0) + '">' +
-            '<span class="b-menu-tick' + (who.indexOf(r.id) >= 0 ? ' is-on' : '') + '"></span>' +
-            faceOf(r.id, 24) +
-            '<span class="b-menu-name">' + esc(r.id === me().id ? 'You' : r.name) + '</span>' +
-          '</button>').join('') +
-      '</div>' +
-    '</span>';
-  };
-  /* ══ WHO WILL CALL THEM, AS THE BLOCK THAT SAYS SO ═════════════════════
-     A saved list draws `listTeam` under its action row — a caption, the
-     faces, a cross on each, the verb to change it — and it is the block that
-     makes that page look like itself. The draft answered the same question
-     with a pill in the action row, which is the same fact one rank quieter
-     in a different place, and it was the first difference anybody saw with
-     the two pages side by side.
-
-     Same block, same caption, same component. `teamFaces` does the drawing
-     for the campaign, for a saved list and now for this, so a team of two is
-     two rows here and a team of seven is three and a stack, identically.
-
-     ONE REAL DIFFERENCE, AND IT IS ABOUT WHERE THE TRUTH LIVES. A saved
-     list's team is DERIVED: it counts `owner` across the records and so it
-     cannot disagree with them. A draft has no records — that is what a draft
-     is — so this reads `assignedTo()`, the choice staged on `DRAFT`,
-     defaulting to you. Save deals the list against it, and from that moment
-     the same block is reading records instead, without the reader ever being
-     shown a different block. */
-  function buildTeam() {
-    return '<div class="b-team" id="buildTeam">' +
-      '<div class="b-team-head">' +
-        '<span class="b-cmeta-cap b-team-cap">The team</span>' +
-        assignPickMenu() +
-      '</div>' +
-      buildFaces(assignedTo()) +
-    '</div>';
-  }
-  /* Its own function because two things draw it: the paint, and `assignSync`
-     putting it back after a tick. The same split, and the same reason, that
-     `assignSay` used to have. */
-  function buildFaces(who) {
-    /* NEVER THE LAST ONE. `listTeam` refuses the same press because a list
-       held by nobody loses the only block that can give it back; here the
-       write refuses it too — `data-pickrep` will not splice below one — so
-       drawing a cross that cannot work would be the product offering a press
-       it has already decided against. */
-    const off = who.length > 1 ? buildOff : (() => '');
-    return teamFaces(who, (id, x) => mateRow(id, null, x), { off: off });
-  }
-  /* `data-pickrep` is the attribute the menu already toggles on, so a cross
-     on a face and an untick in the menu are one write with one sync behind
-     it. `crewOff` makes the same argument for the campaign: one attribute
-     for both directions, because the model already knows which way it is
-     going. */
-  const buildOff = (id) =>
-    '<button class="b-crew-x" type="button" data-pickrep="' + esc(id) + '" ' +
-      'aria-label="' + esc('Take ' + actor(id).name + ' off this list') + '">' +
-      chIcon('x') + '</button>';
-
-  function leaveGate(n) {
-    if (!LEAVE) return '';
-    return '<section class="s-insight is-lead b-lead-slim b-gate s-block-wide" aria-label="Not saved">' +
-      '<div class="s-lead-mark">' +
-        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
-          '<use href="#aimy-logo-small"/></svg>' +
-        '<span class="work-state ws-staged" data-work-state="staged">Awaiting You</span>' +
-      '</div>' +
-      '<p class="s-lead-deck">This list is not saved. <b>' + esc(plural(n, 'person')) +
-        '</b> came back and nothing is working them.</p>' +
-      '<p class="b-gate-note">Leaving throws them away. Save it and it is yours; put it on a campaign ' +
-        'and they join your queue.</p>' +
-      '<div class="s-lead-acts">' +
-        /* The same two words the action row uses, forty pixels up. They were
-           "Save as draft" and "Discard it" here against "Save as draft" and
-           "Discard" there — one control with two labels, which this build
-           keeps finding and keeps saying is two controls to learn. */
-        '<button class="s-insight-lnk primary" type="button" data-save>Save</button>' +
-        '<button class="s-insight-lnk" type="button" data-discard>Discard</button>' +
-        '<button class="s-inline-btn" type="button" data-stay>Stay</button>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* ══ WHAT CAME BACK IS THE LIST PAGE, BEFORE IT IS SAVED ═══════════════
-     This was a surface of its own, and it shared a name with the surface it
-     hands you to. A sheet head with the name inside it; a grey sentence of
-     counts under that; AiMY's readings; four controls in a foot; the rows
-     beneath a heading with a note parked where a section's actions go. Press
-     Save and every one of those facts is still on screen — how many people,
-     what they were found by, which campaign they are on, who is calling them
-     — in a different place, at a different size, in a different order.
-
-     So the last screen of the builder taught a shape nobody would ever see
-     again, and the first screen of the thing you had just made was one you
-     had to learn from scratch. It is the same list page now: the masthead
-     with the name and the state beside it, the criteria and the counts in
-     the facts row, the actions where a record's actions live, AiMY in the
-     slot the saved list gives its reading, and the people under the same
-     section head with the same count line.
-
-     TWO THINGS STAY DIFFERENT, AND BOTH ARE REAL. The name is a field
-     rather than a heading, because it has not been decided yet — the same
-     move `campDraftPage` makes, and its note says why: a draft is the same
-     page, answerable. And the people are rows rather than cards, because
-     they are not records yet; they are candidates you are comparing before
-     any of them exists, and comparing wants columns. `rosterBlock`'s own
-     note already draws that line.
-
-     The criteria come with it. A saved list carries `l.crit` in its facts
-     row and this page carried the sentence nowhere at all — pressing
-     Generate took the chips off the screen and what you had asked for was
-     only in the URL. It is the same sentence from the same function that
-     writes `crit` on save, so the draft and the list say it identically. */
-  function buildDone() {
-    const rows = DRAFT.rows || [];
-    const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
-    const f = finderOf();
-    const kept = rows.filter((x) => DRAFT.drop.indexOf(x.id) < 0).length;
-    const withNum = rows.filter((x) => x.seedPhone < fillRate(rows)).length;
-    /* What Save would write, which is what the masthead counts — the
-       unticked are off it, and the ones you brought from your own book are
-       on it. The arithmetic between that and what the suppliers returned is
-       the facts row's job, directly under it. */
-    const keeping = kept + mine2.length;
-    const person = buildKind() === 'con';
-    const some = (n) => (person ? plural(n, 'person') : plural(n, 'company', 'companies'));
-    const nameV = buildName();
-    const pg = paged(rows);
-    return '<div class="s-home">' +
-      leaveGate(keeping) +
-      /* The way out is a door like any other, and it trips the gate above
-         on the way: `go` refuses to leave an unsaved result and paints the
-         decision instead. The builder used to have no door at all here,
-         which left the rail and the browser's Back as the only ways off a
-         page that is otherwise a record. */
-      backBtn('data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
-
-      '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">List · ' + esc(some(keeping)) + ' · found just now</span>' +
-        '<div class="s-rec-title">' +
-          /* `size` is the field's width before CSS gets to it, and
-             `field-sizing: content` grows it as you type — the heading has
-             to shrink to fit so the chip sits BESIDE the name, the way it
-             does on a saved list, rather than being pushed to the far end
-             of a very wide row. */
-          '<h1 class="s-rec-name is-field"><input class="s-build-name" type="text" ' +
-            'spellcheck="false" size="' + Math.max(8, Math.min(36, nameV.length + 1)) + '" ' +
-            'value="' + esc(nameV) + '" data-auto="' + esc(buildAutoName()) + '" ' +
-            'data-bname aria-label="Name this list" /></h1>' +
-          /* The saved list's chip answers whether it is on a campaign. This
-             one answers the question that comes first: none of it exists
-             yet. Warn, because leaving now throws it away. */
-          '<span class="s-meta-st tone-warn">Not saved yet</span>' +
-        '</div>' +
-        '<div class="s-rec-facts">' +
-          '<div><span>' + esc(describeSentence(terms(), buildKind())) + '</span></div>' +
-          '<div>' +
-            '<span><b>' + commas(rows.length + mine2.length) + '</b> came back</span>' +
-            (kept < rows.length
-              ? '<span><b>' + commas(rows.length - kept) + '</b> unticked</span>'
-              : '') +
-            (mine2.length
-              ? '<span><b>' + commas(mine2.length) + '</b> already yours</span>'
-              : '') +
-            '<span>' + esc(f.name) + ' found a number for <b>' + commas(withNum) +
-              '</b></span>' +
-          '</div>' +
-        '</div>' +
-        /* ══ THE FOOT WAS AN ACTION ROW IN THE WRONG ROOM ════════════════
-           These four sat in `.s-build-foot` below AiMY's readings, which is
-           where a form puts its Submit — and this is not a form you finish,
-           it is a record you are deciding about. Every other record in the
-           build puts what you can do with it at the top beside what it is,
-           and the list page it becomes is one of them. Same four controls,
-           same order, same weights: the campaign is the primary because
-           putting them in front of somebody is the point of having found
-           them, and Save without one is named for what it leaves you. */
-        '<div class="s-rec-actions">' +
-          campPickMenu() +
-          '<button class="s-inline-btn" type="button" data-save>Save</button>' +
-          '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
-        '</div>' +
-        /* Under the actions and inside the masthead, which is where the
-           saved list puts `listTeam`. Its absence was the gap you saw when
-           the two pages were read one after the other. */
-        buildTeam() +
-      '</section>' +
-
-      /* The slot the saved list gives `listLead`. Both are AiMY reading the
-         set you are looking at and offering the one press that changes it;
-         drawing them in the same place is what makes the second one legible
-         the first time you meet it. */
-      fillBlock(rows) +
-
-      '<section class="s-block s-block-wide" aria-label="Who came back">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Who came back</h2></div>' +
-        /* "untick anybody you do not want" was at the far end of the head
-           row, where a section's ACTIONS live — the same defect the roster
-           block has a paragraph about, and it was worse here because this
-           one really does read as a control. Under the heading with the
-           count, which is where the list page puts the sentence that says
-           how to read the rows below. */
-        '<p class="b-tocall">' + esc(some(rows.length)) + ' · untick ' +
-          (person ? 'anybody' : 'anything') + ' you do not want</p>' +
-        /* `cardGrid`, the same grid the saved list's roster is drawn in and
-           the same one the queue uses — not `vlist`. A windowed column was
-           the right machinery for five hundred rows and there have never
-           been five hundred on screen: `paged` caps this at fifteen, which
-           is a grid with nothing to window. */
-        cardGrid(pg.rows, netCard) +
-        pager(pg, 'row') +
-      '</section>' +
-    '</div>';
-  }
-
-  /* ══ THE ROW A SUPPLIER ACTUALLY RETURNS ════════════════════════════════
-     Name, what they do, where and how big, and a way to go and look. The V3
-     build's argument, and it is a good one: a row carrying four of the seven
-     fields a supplier hands back is a row you scan rather than read, and the
-     three it was missing are the three that decide whether this is worth a
-     call at all.
-
-     NOT A TABLE, and no header, because every value says what it is. The
-     figures sit in a side column so the eye can run down them, and the
-     unticked row is how you drop somebody before any of it is saved. */
-  function netRow(n) {
-    const f = finderOf();
-    const hasPhone = n.seedPhone < fillRate();
-    const hasMail = n.seedEmail < f.email;
-    const dropped = DRAFT && DRAFT.drop.indexOf(n.id) >= 0;
-    const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const li = 'linkedin.com/company/' + slug;
-    const person = buildKind() === 'con';
-    return '<label class="s-pick-tick">' +
-        '<input class="s-tick" type="checkbox" data-bdrop="' + esc(n.id) + '"' +
-        (dropped ? '' : ' checked') + ' aria-label="Keep ' + esc(person ? n.name : n.co) + '" />' +
-      '</label>' +
-      '<span class="s-brow-main">' +
-        '<span class="s-brow-name">' + esc(person ? n.name : n.co) + '</span>' +
-        '<span class="s-brow-desc">' +
-          (person ? esc(n.title) + ' at ' + esc(n.co) : esc(n.about)) + '</span>' +
-        '<span class="s-brow-facts">' + [
-          INDUSTRY[n.industry].label,
-          n.city,
-          person ? null : 'founded ' + n.founded,
-          person ? (hasPhone ? 'has a number' : 'no number') : null,
-          person ? (hasMail ? 'has an address' : 'no address') : null,
-          n.known ? 'already in your contacts' : null,
-        ].filter(Boolean).map(esc).join(' · ') + '</span>' +
-        '<span class="s-brow-links">' +
-          '<a class="s-brow-link" href="https://' + esc(n.domain) + '" target="_blank" ' +
-            'rel="noopener">' + esc(n.domain) + '</a>' +
-          '<a class="s-brow-link" href="https://www.' + esc(li) + '" target="_blank" ' +
-            'rel="noopener">' + esc(li) + '</a>' +
-        '</span>' +
-      '</span>' +
-      '<span class="s-brow-side">' +
-        '<span class="s-brow-fig">' + commas(n.size) + ' staff</span>' +
-        '<span class="s-brow-rev">' +
-          (n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm') + '</span>' +
-        '<span class="s-brow-tag">' + esc(n.type) + '</span>' +
-      '</span>';
-  }
-
-  /* ══ A CANDIDATE, AS THE SAME CARD ═══════════════════════════════════
-     `rosterBlock`'s note drew a line and put the builder on the wrong side
-     of it: a person is a card everywhere in this build, EXCEPT here, where
-     they were a table row because "comparing wants columns". The argument
-     is real and it is not worth what it costs. These are the same people
-     you are looking at thirty seconds later on the saved list, where they
-     are cards; the page transformed under you at the one moment you were
-     deciding whether to keep them.
-
-     And the columns were never doing the work claimed for them. A row put
-     the size and the revenue in a right-hand rail so the eye could run down
-     them — which is what a table is for — while the thing you actually
-     scan for is whether they can be called and whether you already have
-     them, and both of those were prose in the middle of a wrapping line.
-
-     So it is `qcard`'s anatomy, slot for slot: what they are across the
-     top, the name, who they are under it, the facts in two lines of two,
-     what AiMY makes of them, and the foot. The three things that differ are
-     the three real ones.
-
-     THE NAME DOES NOT OPEN. There is nothing to open — a candidate is a row
-     out of an index, not a record — so it is a span, and the two places you
-     CAN go and look are drawn as what they are: links, out to the web.
-
-     THE FOOT'S VERB IS THE TICK. Every other card ends in something to do
-     to that person. The only thing you can do to this one is decide whether
-     it survives to being saved, which is the whole job of this page.
-
-     AND THERE IS NO AiMY BLOCK ON IT AT ALL. There was, and it was the
-     one-block-per-row defect this build has a paragraph about elsewhere:
-     fifteen cards each wearing the mark, and all of them saying one of two
-     sentences — no number, or no address. Worse, the panel directly above
-     the grid already says both, counted: "62 came back without a number…
-     28 have no email address", with the supplier who would fill them. A
-     marked block repeating a figure from forty pixels higher, on every card,
-     is the product talking rather than reading.
-
-     Both facts belong to the card and neither of them is an insight, so they
-     sit in the foot as facts. The third thing the block said — already in
-     your book — is the tag in the head, which is where a card's state has
-     always gone.
-
-     AND THE HEIGHTS FOLLOW FROM THAT. The block was the only element on this
-     card that was sometimes there and sometimes not, so a candidate with
-     nothing missing got eighty pixels of nothing between the links and the
-     foot, in a grid that stretches every card in a row to the tallest. Take
-     it out and every card has the same rows. */
   /* ══ THE NUMBER AND THE ADDRESS, BEFORE THEY ARE RECORDS ═════════════
-     `saveList` minted these at the moment it wrote: the supplier's hit rate
+     The page's Save minted these at the moment it wrote: the supplier's hit rate
      decides whether a row has one, and the value is derived from the row so a
      re-run says the same thing. The formula lived inside the save, which is
      why the card in front of you could say no more than whether one existed
@@ -17334,278 +16247,15 @@
 
      Lifted out and read by both, so what the card shows is exactly what the
      record gets and there is no second copy of the formula to drift. */
-  /* `rows` is optional and the save hands it in: `fillRate()` alone reads
-     `DRAFT.rows`, and the save falls back to re-matching when the draft has
-     gone, which would have written the supplier's raw rate into the list —
-     the one path where the floor not applying is a WRITE rather than a
-     wrong label. */
+  /* `rows` is what the run returned, and the write hands it in: the floor
+     is a property of the whole set, so a number read off one row alone
+     would be the supplier's raw rate written into the list. */
   const netPhone = (n, rows) => (n.seedPhone < fillRate(rows)
     ? '+31 6 ' + String(1000000 + Math.floor(n.seedPhone * 8999999)) : null);
   const netEmail = (n) => (n.seedEmail < finderOf().email
     ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') +
       '@' + n.domain
     : null);
-
-  function netCard(n, i) {
-    const tel = netPhone(n);
-    const mail = netEmail(n);
-    const dropped = !!(DRAFT && DRAFT.drop.indexOf(n.id) >= 0);
-    const person = buildKind() === 'con';
-    const who = person ? n.name : n.co;
-    const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    return '<article class="type-card s-card b-qcard b-netcard' +
-      (dropped ? ' is-dropped' : '') + '" style="--i:' + Math.min(i || 0, 8) + '">' +
-      '<div class="tc-head">' +
-        (n.known
-          ? '<span class="tag tag-warn">Already yours</span>'
-          : '<span class="tag tag-neutral">New</span>') +
-        '<span class="tc-type b-fact">' + chIcon('industry') + '<span>' +
-          esc((INDUSTRY[n.industry] || { label: n.industry }).label) + '</span></span>' +
-      '</div>' +
-      '<div class="b-qcard-top">' +
-        /* A span, not a button. The audit's first check is a control that is
-           drawn and not wired, and a card title you can press that opens
-           nothing is exactly that with the styling to prove it. */
-        '<span class="tc-title s-card-title">' + esc(who) + '</span>' +
-      '</div>' +
-      /* TWO DIFFERENT LINES WEARING ONE CLASS. `b-qcard-role` is the job
-         under a name — short, semibold, one step down — and a person's is
-         exactly that. A company's is a sentence about what the place does,
-         which is the slot `lcard` fills with `b-qcard-what`: a step larger
-         and a weight lighter, because it is read rather than recognised.
-         Setting a sentence in the job's clothes made it the loudest thing
-         on a company card after the name. */
-      (person
-        ? '<p class="tc-summary b-qcard-role">' + esc(n.title) + ' at ' +
-          esc(n.co) + '</p>'
-        : '<p class="tc-summary b-qcard-what">' + esc(n.about) + '</p>') +
-      '<p class="b-qcard-where">' +
-        fact('where', esc(n.city)) +
-        fact('staff', esc(commas(n.size) + ' staff')) + '</p>' +
-      '<p class="b-qcard-where">' +
-        fact('money', esc(n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm')) +
-        fact('company', esc(person ? n.type : n.type + ' · founded ' + n.founded)) + '</p>' +
-      /* ══ AND ON A COMPANY CARD, WHOSE NUMBER IT IS ══════════════════════
-         `saveList` mints one contact per row whichever kind you asked for —
-         a company list is a list of people at companies, and always has been.
-         So the address under a company card belongs to somebody, and the
-         card was not saying who: the name and the job were in the row and
-         drawn nowhere. A person's card has them in the line under the name
-         already, so this is the company card catching up rather than a new
-         fact. */
-      (person ? ''
-        : '<p class="b-qcard-where b-net-contact">' +
-          fact('user', esc(n.name)) + fact('role', esc(n.title)) + '</p>') +
-      /* ══ THE NUMBER ITSELF, NOT THE FACT THAT THERE IS ONE ═══════════════
-         These were two pills in the foot reading "A number" and "An address",
-         which is the card describing its own data instead of showing it. The
-         queue card in the same slot prints +31 6 4786055, because a number is
-         a thing you read, check against what you already hold, and act on. A
-         euphemism for it is none of those.
-
-         ONE FACT TO A LINE, and that is not a rhythm decision. An email runs
-         to thirty-eight characters on a long name and a domain, a number to
-         thirteen, and the pair on one wrapping line means some cards break
-         and their neighbours do not — which in a grid that stretches a row to
-         its tallest is the hole this card has already been fixed for once.
-         Separately they cannot wrap at any width this is drawn at.
-
-         AND WHERE NOTHING CAME BACK IT SAYS SO. The supplier not finding an
-         address is the more useful of the two answers on this page: it is
-         what the panel above is offering to fix, and it is a reason to
-         untick. A blank line would hide it. */
-      '<p class="b-qcard-where' + (person ? ' b-net-contact' : '') + '">' +
-        (tel ? fact('phone', esc(tel))
-          : fact('no', 'No number came back')) + '</p>' +
-      '<p class="b-qcard-where">' +
-        (mail ? fact('mail', esc(mail))
-          : fact('no', 'No address came back')) + '</p>' +
-      /* The two addresses the row carried, kept because they are the only
-         way to check a stranger before you keep them — and drawn as links
-         rather than as two more grey facts, because that is what they are.
-         The domain reads as itself; the profile does not, so it is named. */
-      '<p class="b-net-links">' +
-        '<a class="b-net-link" href="https://' + esc(n.domain) + '" target="_blank" ' +
-          'rel="noopener">' + chIcon('web') + '<span>' + esc(n.domain) + '</span></a>' +
-        '<a class="b-net-link" href="https://www.linkedin.com/company/' + esc(slug) + '" ' +
-          'target="_blank" rel="noopener">' + chIcon('linkedin') +
-          '<span>LinkedIn</span></a>' +
-      '</p>' +
-      /* ══ AND THE FOOT IS THE DECISION, WITH NOTHING BESIDE IT ════════════
-         It held the two reach pills on its left. With those gone to the
-         facts where they belong, the one thing you can do to this card is
-         the only thing in its foot — which is what the foot was for. The
-         build already answers the lone-child case: `.b-qcard-foot >
-         :only-child` takes `margin-left: auto`, so it sits where every
-         other card's verb sits rather than sliding to the left. */
-      '<div class="tc-gov b-qcard-foot">' +
-        /* The label is the control, so the word is pressable along with the
-           box — a 15px tick on its own is the smallest target on the page.
-
-           AND THE WORD DOES NOT CHANGE WITH THE STATE. It read "Left out"
-           when unticked, which is 25px wider than "Keep" — enough to push
-           the foot onto a second line on a narrow card, so unticking
-           somebody made their card 10px taller and every card in that row of
-           the grid taller with it. A control that resizes the thing it sits
-           in is a control you can feel through the page.
-
-           Nothing is lost by dropping it. The box is unticked, which is what
-           a box is for, and the whole card has gone quiet around it. Two of
-           those already say left-out; the third was only saying it again, in
-           the one place where saying it cost a reflow. The word stays what
-           pressing it does. */
-        '<label class="b-net-keep">' +
-          '<input class="s-tick" type="checkbox" data-bdrop="' + esc(n.id) + '"' +
-          (dropped ? '' : ' checked') + ' aria-label="Keep ' + esc(who) + '" />' +
-          '<span>Keep</span>' +
-        '</label>' +
-      '</div>' +
-    '</article>';
-  }
-
-  /* ── WHAT IS MISSING FROM WHAT CAME BACK, AND WHO WOULD FILL IT ──
-     Named suppliers with the share each actually fills, so the offer is a
-     measurement rather than a promise. Pressing one re-asks that supplier
-     and the numbers on the page move. */
-  function fillOffers(rows) {
-    const f = finderOf();
-    /* "The best of the three" is not true while one of the three is not
-       answering, and the listing on the builder says which one that is. */
-    const ofThem = finderUp().length < FINDERS.length ? 'the ones answering' : 'the three';
-    const floor = fillRate(rows);
-    const noPhone = rows.filter((n) => n.seedPhone >= floor);
-    const noMail = rows.filter((n) => n.seedEmail >= f.email);
-    const known = rows.filter((n) => n.known);
-    const out = [];
-    if (noPhone.length) {
-      const better = finderUp().filter((x) => x.phone > f.phone)
-        .sort((a, b) => b.phone - a.phone)[0];
-      out.push({ n: noPhone.length, act: better ? 'Ask ' + better.name : 'No better source',
-        attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
-        say: 'came back without a number, so they cannot be called. ' +
-          (better ? esc(better.name) + ' fills ' + Math.round(better.phone * 100) +
-            '% against ' + esc(f.name) + '&rsquo;s ' + Math.round(f.phone * 100) + '%.'
-            : esc(f.name) + ' is the best of ' + ofThem + ' for numbers.') });
-    }
-    if (noMail.length) {
-      const better = finderUp().filter((x) => x.email > f.email)
-        .sort((a, b) => b.email - a.email)[0];
-      out.push({ n: noMail.length, act: better ? 'Ask ' + better.name : 'No better source',
-        attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
-        say: verbFor(noMail.length, 'has') + ' no email address. ' + (better
-          ? esc(better.name) + ' fills ' + Math.round(better.email * 100) + '% of them.'
-          : esc(f.name) + ' is the best of ' + ofThem + ' for addresses.') });
-    }
-    if (known.length) {
-      out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
-        say: verbFor(known.length, 'is') + ' already in your contacts, so saving ' +
-          (known.length === 1 ? 'them' : 'these') + ' would give you a second copy ' +
-          'of somebody you may already have called.' });
-    }
-    return out;
-  }
-
-  function fillBlock(rows) {
-    const offers = fillOffers(rows);
-    if (!offers.length) return '';
-    return '<div class="s-findings is-panel s-block-wide">' +
-      '<p class="s-lead-mark">' +
-        '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
-          '<use href="#aimy-logo-small"/></svg>AiMY reads it</p>' +
-      '<p class="s-findings-say">' + (['', 'One thing', 'Two things', 'Three things', 'Four things'][offers.length] || plural(offers.length, 'thing')) +
-        ' about what came back, before you keep it.</p>' +
-      '<div class="s-findings-list">' + offers.map((o) =>
-        '<div class="s-finding">' +
-          '<span class="s-finding-say"><b>' + commas(o.n) + '</b> ' + o.say + '</span>' +
-          '<button class="s-finding-go" type="button" ' + o.attr + '>' +
-            esc(o.act) + '</button>' +
-        '</div>').join('') + '</div>' +
-    '</div>';
-  }
-
-  /* Saving mints the people, so from here they are ordinary records: the
-     queue, the ladder and the call panel cannot tell where they came from. */
-  function saveList(campId) {
-    const camp = campId ? DB.byCamp[campId] : null;
-    const crew = assignedTo();
-    const t = terms();
-    /* WHAT THE RUN ACTUALLY RETURNED, not the criteria run again. They are
-       usually the same set and they are not always: pressing "Bring them in"
-       adds people from your own book that no index search would return, and
-       recomputing here would have silently dropped every one of them. */
-    const found = ((DRAFT && DRAFT.rows) || buildMatched(t).slice(0, 500))
-      .filter((n) => !DRAFT || DRAFT.drop.indexOf(n.id) < 0);
-    const bring = (DRAFT && DRAFT.take) || [];
-    if (!found.length && !bring.length) return;
-    const f = finderOf();
-    const now = new Date().toISOString();
-    const id = 'l' + Date.now().toString(36);
-    const madeAcc = [];
-    const madeCon = [];
-    found.forEach((n, i) => {
-      const accId = 'x' + id + '_' + i;
-      const a = {
-        id: accId, name: n.co, domain: n.domain, industry: n.industry,
-        city: n.city, country: n.country, region: CC_REGION[n.country], size: n.size,
-      };
-      const c = {
-        id: 'y' + id + '_' + i, acc: accId, name: n.name, title: n.title,
-        /* The same two functions the card drew from, so the number on the
-           card and the number on the record are one value and not two
-           spellings of one intention. */
-        phone: netPhone(n, found), email: netEmail(n),
-        /* Dealt out in order, so three callers get a third each rather than
-           one of them getting five hundred. */
-        camps: camp ? [camp.id] : [], owner: crew[i % crew.length],
-        checkpoint: 'not-called', checkpointAt: null,
-        attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
-        fate: SCENARIOS[i % SCENARIOS.length].k,
-        enrichedAt: null,
-      };
-      madeAcc.push(a);
-      madeCon.push(c);
-    });
-    const crit = describeSentence(t, buildKind());
-    /* The people you brought in from your own book join the list without
-       being minted again — they are already records, and a second copy of
-       somebody you have already called is the worst thing a list can add. */
-    const has = madeCon.map((c) => c.id).concat(bring.filter((id2) => DB.byCon[id2]));
-    const l = {
-      id: id, name: buildName(), kind: 'con', terms: S.bt || '', crit: crit,
-      has: has, by: me().id, at: now, for: camp ? camp.id : null, via: f.name,
-      found: found.length + bring.length,
-    };
-    /* The people brought in from your own book are real records; they
-       join the campaign by patch, and the undo takes them back off it. */
-    const joined = [];
-    if (camp) {
-      bring.forEach((id2) => {
-        const c = DB.byCon[id2];
-        if (c && c.camps.indexOf(camp.id) < 0) { patchCon(c, { camps: c.camps.concat([camp.id]) }); joined.push(id2); }
-      });
-    }
-    DB.acc = DB.acc.concat(madeAcc);
-    DB.con = DB.con.concat(madeCon);
-    DB.list.push(l);
-    DELTA.list.push(l);
-    DELTA.made = (DELTA.made || []).concat([{ list: id, acc: madeAcc, con: madeCon }]);
-    reindex();
-    save();
-    const bt = S.bt;
-    LEAVE = null;
-    DRAFT = null;
-    goFree(Object.assign(cleared(), { on: 'lists', list: id }));
-    toast('Saved ' + plural(has.length, 'person') + ' as "' + l.name + '"' +
-      (camp ? ' · on ' + camp.name : '') +
-      (crew.length > 1 ? ' · split between ' + commas(crew.length) + ' of you' : ''), () => {
-      joined.forEach((id2) => {
-        const c = DB.byCon[id2];
-        if (c) patchCon(c, { camps: c.camps.filter((x) => x !== camp.id) });
-      });
-      dropList(id);
-      goFree(Object.assign(cleared(), { on: 'lists', build: 'describe', bt: bt }));
-    });
-  }
 
   function dropList(id) {
     const i = DB.list.findIndex((x) => x.id === id);
@@ -17627,18 +16277,6 @@
 
   /* The company decision, made once. Mirrors `addListTo` exactly, including
      the undo: a write that cannot be taken back is a write nobody presses. */
-  function describeTerms(t) {
-    const bits = [];
-    BUILD_AXES.forEach((ax) => {
-      const v = t[ax.k];
-      if (!v || !v.length) return;
-      const opts = Object.create(null);
-      ax.opts().forEach((o) => (opts[o[0]] = o[1]));
-      bits.push(v.map((x) => opts[x] || x).join(' or '));
-    });
-    if ((t.only || []).indexOf('new') >= 0) bits.push('new to you');
-    return bits.length ? bits.join(' · ') : 'everyone the sources hold';
-  }
   /* ══ A LIST IS NAMED THE WAY THE SEEDED ONES ARE ═══════════════════════
      "Software · 200 to 1,000 · Netherlands · Quality" was the criteria
      string as a title, over the same string as a description. The seeded
@@ -25977,7 +24615,13 @@
     const said = turns.filter((t) => t.who === 'you')[0]
       || turns.filter((t) => !t.hello)[0] || turns[0];
     if (!said) return 'New conversation';
-    const flat = String(said.html || '').replace(/<[^>]+>/g, ' ')
+    /* Inline marks go without leaving a gap ("Retail ." was a bold word and
+       a full stop), and the escapes `esc` wrote are read back as the
+       characters they stand for, or a title says "&amp;". */
+    const flat = String(said.html || '').replace(/<\/?(b|i|em|strong|span)\b[^>]*>/g, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, '\'')
       .replace(/\s+/g, ' ').trim();
     const one = flat.split(/(?<=[.?!])\s/)[0] || flat;
     return (one.length > 72 ? one.slice(0, 70).replace(/\s+\S*$/, '') + '…' : one)
@@ -28060,36 +26704,6 @@
       return;
     }
 
-    /* ══ THE BUILDER OWNS THE BAR WHILE IT IS OPEN ═════════════════════════
-       A textarea on the describe step asking "who are you looking for" beside
-       a fixed composer asking the same thing in different words makes the
-       first question of the interaction "which box?". There is one box, and
-       it is the one that was already there — the page shows what it HEARD. */
-    /* NOT `&& DRAFT`. The draft is made by the first paint of this page, and
-       on every path where it is not — a reload straight onto the URL, a way
-       in that skipped the paint — the sentence fell past this branch and out
-       the far end of the router, where anything unrecognised opens the
-       canvas. The page is the condition; the draft is made if it is missing. */
-    if (S.build === 'describe') {
-      if (!DRAFT) DRAFT = { kind: S.bk || 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
-      DRAFT.said = t;
-      const read = readSaid(t, buildKind());
-      if (!read.length) {
-        paint();
-        toast('I could not pick a sector, a country or a size out of that.');
-        return;
-      }
-      const cur = terms();
-      const flat = [];
-      Object.keys(cur).forEach((a) => cur[a].forEach((v) => flat.push(a + ':' + v)));
-      read.forEach((pair) => {
-        const key = pair[0] + ':' + pair[1];
-        if (flat.indexOf(key) < 0) flat.push(key);
-      });
-      go({ bt: flat.join(',') });
-      return;
-    }
-
     const addM = t.match(ADD_RE);
     if (addM) {
       const f = readLead(addM[1]);
@@ -29933,7 +28547,6 @@
        produces and has no business making one. */
     if (!onBook()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
-    DRAFT = null;
     CBUILD = { step: 'way', sell: null, industry: null, region: null,
       who: null, noun: null, n: null, weeks: null, name: null,
       /* The job titles heard in the sentence about who we are after, and a
@@ -30740,23 +29353,16 @@
     lbuildTerms().forEach((p) => (named[p[0]] = 1));
     const order = ['industry', 'where', 'size', 'title'];
     const say = {
-      industry: ' You have not said a sector — name one and I will narrow it.',
-      where: ' You have not said where — name a country and I will narrow it.',
-      size: ' You have not said how big — say a size and I will narrow it.',
-      title: ' You have not said what they do — name a job title and I will narrow it.',
+      industry: ' You have not said a sector. Name one and I will narrow it.',
+      where: ' You have not said where. Name a country and I will narrow it.',
+      size: ' You have not said how big. Say a size and I will narrow it.',
+      title: ' You have not said what they do. Name a job title and I will narrow it.',
     };
     const open = order.filter((k) => !named[k] &&
       (k !== 'title' || LBUILD.kind === 'con'));
     return open.length ? say[open[0]] : '';
   }
 
-  /* ══ FIND LEADS STARTS OVER ════════════════════════════════════════════
-     A draft left from an earlier visit to the builder outlives the page it
-     was made on, and `buildKind()` prefers its kind over the URL's — so the
-     builder waiting behind the question was already collecting people
-     before anybody had answered which of the two it was. Ask the question
-     on a clean surface: the draft goes, and a half-built list is left
-     rather than reopened underneath. */
   /* ══ THE FINDER OPENS ON THE CAMPAIGN'S OWN MARKET ════════════════════
      "Find more for this campaign" remembered WHICH campaign and nothing
      about it. The builder opened with no criteria and asked the manager to
@@ -30966,8 +29572,9 @@
      The page asked this with a menu of every open campaign after the run.
      A list whose sector is a campaign's sector is almost always for that
      campaign, so AiMY proposes it in the plan and the plan can be told
-     otherwise in one press. A country on its own is not the same market,
-     so it only breaks a tie. */
+     otherwise in one press. The sector has to match; where a country was
+     named it has to be inside the campaign's region too, because Dutch
+     software companies are not a MENA software campaign's people. */
   function lbuildCampPick() {
     const t = lbuildT();
     const ind = t.industry || [];
@@ -30975,12 +29582,14 @@
     let best = null;
     let top = 0;
     myCampaigns().filter(campOpen).forEach((k) => {
-      let s = ind.indexOf(k.industry) >= 0 ? 2 : 0;
+      if (ind.indexOf(k.industry) < 0) return;
       const reg = REGION[k.region];
-      if (reg && cc.some((x) => reg.cc.indexOf(x) >= 0)) s += 1;
+      const inReg = !!reg && cc.some((x) => reg.cc.indexOf(x) >= 0);
+      if (cc.length && !inReg) return;
+      const s = inReg ? 2 : 1;
       if (s > top) { top = s; best = k; }
     });
-    return top >= 2 ? best.id : null;
+    return best ? best.id : null;
   }
   /* Who calls it. A caller's list is theirs; a manager's list for a
      campaign goes to the people already working that campaign, dealt out
@@ -31002,8 +29611,10 @@
     if (!lbuildMatched().length && !LBUILD.take.length) { lbuildTurn(''); return; }
     LBUILD.step = 'plan';
     if (!LBUILD.kind) LBUILD.kind = 'con';
-    if (LBUILD.pick === undefined) LBUILD.pick = lbuildCampPick();
-    if (LBUILD.to === undefined) LBUILD.to = LBUILD.camp || LBUILD.pick;
+    /* Read again on every plan, because the criteria may have changed
+       since the last one; only a choice somebody made by hand is kept. */
+    LBUILD.pick = lbuildCampPick();
+    if (!LBUILD.toSet) LBUILD.to = LBUILD.camp || LBUILD.pick;
     /* The name follows the criteria until somebody types one. */
     if (!LBUILD.named) LBUILD.name = lbuildAutoName();
     const k = LBUILD.to ? DB.byCamp[LBUILD.to] : null;
@@ -31045,11 +29656,12 @@
     if (k === 'offer') { lbuildTake(); return; }
     if (k === 'go') { lbuildPlan(); return; }
     if (k === 'curate') { lbuildCurate(); return; }
-    if (k === 'nocamp') { LBUILD.to = null; lbuildPlan(); return; }
-    if (k === 'camp') { LBUILD.to = LBUILD.pick || null; lbuildPlan(); return; }
+    if (k === 'nocamp') { LBUILD.to = null; LBUILD.toSet = true; lbuildPlan(); return; }
+    if (k === 'camp') { LBUILD.to = LBUILD.pick || null; LBUILD.toSet = true; lbuildPlan(); return; }
     if (k === 'reset') {
       LBUILD.terms = [];
       LBUILD.take = [];
+      LBUILD.toSet = false;
       LBUILD.step = LBUILD.kind ? 'said' : 'kind';
       /* Clearing a seeded builder before the first question is answered puts
          you back at that question, not past it. */
@@ -31355,10 +29967,10 @@
     say('aimy', html, { step: 'curdone', opts: [{ k: l.id, label: 'Open the list', primary: true }] });
     const openIt = () => {
       hideCanvas();
-      goFree(Object.assign(cleared(), { on: 'lists', list: l.id }));
+      go(Object.assign(cleared(), { on: 'lists', list: l.id }));
       toast('Saved ' + curNoun(c, l.has.length) + ' as “' + l.name + '”', () => {
         l.undo();
-        if (S.list === l.id) goFree(Object.assign(cleared(), { on: 'lists' }));
+        if (S.list === l.id) go(Object.assign(cleared(), { on: 'lists' }));
         else paint();
       });
     };
@@ -31471,120 +30083,6 @@
       return;
     }
 
-    /* Which of the two you are collecting. It decides which axes exist — a
-       job title is a criterion for people and meaningless for a company — so
-       it is asked first and nothing else is on that screen. */
-    const bkind = t.closest('[data-bkind]');
-    if (bkind) {
-      if (!DRAFT) buildOpen();
-      DRAFT.kind = bkind.getAttribute('data-bkind');
-      /* ══ THE CRITERIA SURVIVE THE KIND ═══════════════════════════════
-         This cleared `bt` on every press, and it was harmless for as long as
-         the only way to reach this step with criteria on was to have typed
-         them — typing them sets the kind, so the kind step was never reached
-         with anything to lose. A finder opened from a campaign arrives with
-         the campaign's market on it and the kind still unasked, so the first
-         press threw away the whole reason for opening it from there.
-
-         A job band does not survive a switch to companies. `buildMatched`
-         applies `title` whatever the kind is, so a band left on would narrow
-         a list of organisations by the job titles of the people inside them
-         and never say it had. */
-      const keep = String(S.bt || '').split(',').filter(Boolean)
-        .filter((p) => DRAFT.kind === 'con' || p.indexOf('title:') !== 0);
-      go({ on: 'lists', build: 'describe', bk: DRAFT.kind, bt: keep.join(',') });
-      return;
-    }
-
-    /* A criterion chip on the describe step removes itself. */
-    const bterm = t.closest('[data-bterm]');
-    if (bterm) {
-      const v = bterm.getAttribute('data-bterm');
-      const at = v.indexOf(':');
-      toggleTerm(v.slice(0, at), v.slice(at + 1));
-      return;
-    }
-
-    /* AiMY's offers apply nothing until pressed, and each one carries what it
-       would apply rather than recomputing it from the label. */
-    const bsug = t.closest('[data-bsug]');
-    if (bsug) {
-      const k = bsug.getAttribute('data-bsug');
-      const t2 = terms();
-      const found = buildMatched(t2);
-      const s2 = buildSuggests(t2, found, bookFit(t2), buildKind(), DRAFT.take.length).filter((x) => x.k === k)[0];
-      if (!s2) return;
-      if (s2.take) {
-        s2.take.forEach((id) => { if (DRAFT.take.indexOf(id) < 0) DRAFT.take.push(id); });
-        paint();
-        toast(plural(s2.take.length, 'person') + ' of yours will come along.');
-        return;
-      }
-      const flat = [];
-      Object.keys(t2).forEach((a2) => t2[a2].forEach((v) => flat.push(a2 + ':' + v)));
-      s2.terms.forEach((pair) => {
-        const key = pair[0] + ':' + pair[1];
-        if (flat.indexOf(key) < 0) flat.push(key);
-      });
-      go({ bt: flat.join(',') });
-      return;
-    }
-
-    if (t.closest('[data-bgo]')) { buildRun(); return; }
-
-    /* Unticking drops somebody before anything is written. Save counts what
-       is still ticked, so the number you press is the number you get — the
-       rule this product had to fix its own figures for once already. */
-    const bdrop = t.closest('[data-bdrop]');
-    if (bdrop && DRAFT) {
-      const id = bdrop.getAttribute('data-bdrop');
-      const at = DRAFT.drop.indexOf(id);
-      if (at >= 0) DRAFT.drop.splice(at, 1);
-      else DRAFT.drop.push(id);
-      paint();
-      return;
-    }
-
-    const term = t.closest('[data-term]');
-    if (term) {
-      const v = term.getAttribute('data-term');
-      const at = v.indexOf(':');
-      toggleTerm(v.slice(0, at), v.slice(at + 1));
-      return;
-    }
-    const finder = t.closest('[data-finder]');
-    if (finder) { FINDER = finder.getAttribute('data-finder'); paint(); return; }
-    if (t.closest('[data-save]')) { saveList(); return; }
-    /* Staged on the draft, not committed: Save is still the one press that
-       writes anything, and both menus say what they have staged. */
-    /* A name in the campaign menu is the commit, not a staged choice: it is
-       the primary on the page and the page ends when it is pressed. */
-    const pc = t.closest('[data-pickcamp]');
-    if (pc) { shutMenus(null); saveList(pc.getAttribute('data-pickcamp')); return; }
-    const pr = t.closest('[data-pickrep]');
-    if (pr) {
-      const id = pr.getAttribute('data-pickrep');
-      const now = assignedTo().slice();
-      const at = now.indexOf(id);
-      if (at >= 0) { if (now.length > 1) now.splice(at, 1); } else now.push(id);
-      DRAFT.assign = now;
-      /* In place. The menu is a multiple choice and stays where it was — the
-         same element, not a new one wearing its id. See assignSync. */
-      assignSync();
-      return;
-    }
-    if (t.closest('[data-discard]')) {
-      /* The explicit verb, and the gate's own. Nothing has been written, so
-         there is nothing to undo; the criteria stay in the URL. */
-      const to = LEAVE ? LEAVE.over : Object.assign(cleared(), { on: 'lists' });
-      const rep = LEAVE ? LEAVE.replace : false;
-      const n = ((DRAFT && DRAFT.rows) || []).length;
-      LEAVE = null; DRAFT = null;
-      goFree(to, rep);
-      if (n) toast('Threw away the ' + plural(n, 'person') + ' that came back. The criteria are still in the builder.');
-      return;
-    }
-    if (t.closest('[data-stay]')) { LEAVE = null; paint(); return; }
     const fl = t.closest('[data-filllist]');
     if (fl) { fillList(fl.getAttribute('data-filllist')); return; }
 
@@ -32768,19 +31266,6 @@
     }
   });
 
-  /* THE NAME TRACKS THE CRITERIA UNTIL YOU DISAGREE WITH IT. While the field
-     still holds the derived name, `DRAFT.name` stays null and the heading
-     keeps up with what you narrow to. The moment you type something else it
-     is yours and stops moving — which is the only way to disagree with a
-     generated name without saving the list and renaming it afterwards. */
-  document.addEventListener('input', (e) => {
-    const nm = e.target.closest('[data-bname]');
-    if (nm && DRAFT) {
-      DRAFT.name = nm.value === nm.getAttribute('data-auto') ? null : nm.value;
-      return;
-    }
-  });
-
   /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════
      Two hundred calls in a day is two hundred rounds of: read the brief,
      dial, listen, say what happened, next. Every one of those is a key here,
@@ -33217,13 +31702,6 @@
      the bar; it is placed again when the fonts are in. */
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSwitchBar(null));
   window.addEventListener('popstate', (e) => {
-    if (BACK_GUARD && !(e.state && e.state.aimyGuard) && S.build === 'done' && DRAFT && (DRAFT.rows || []).length) {
-      history.pushState({ aimyGuard: 1 }, '', location.href);
-      LEAVE = { over: Object.assign(cleared(), { on: 'lists' }), replace: true, back: true };
-      paint();
-      byId('pageScroll').scrollTop = 0;
-      return;
-    }
     parse(); paint();
   });
   window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });

@@ -662,16 +662,7 @@
    because a thing you press needs more air above it than a caption does. */
 .b-aimy-act { display: block; margin-top: 8px; }
 
-/* ══ 13. THE BUILDER'S HEADING TAKES ITS OWN WIDTH ═════════════════════════
-   `.s-sheet-head` is a flex row and `.s-sheet-head-main` is only `min-width:
-   0` — it has no grow, so it is sized by its content. Its content is a text
-   input at `width: 100%`, which resolves against a parent sized by that same
-   input: circular, so the browser falls back to an input's default width and
-   the list name reads "Software · 200 to 1,000 · Nethe".
 
-   In the V3 build the head sits in a sheet that constrains it; here it sits
-   in the page grid, which does not. One `flex: 1 1 auto`. */
-.s-home > .s-sheet-head > .s-sheet-head-main { flex: 1 1 auto; }
 
 /* §14 styled the conversation options. The shell already has them —
    .s-cb-opts, .s-cb-opt and .s-cb-hint — so this build renders those and
@@ -1819,250 +1810,7 @@ textarea::placeholder,
    is done, the mono face for the log. No light gradients; elevation by the
    lit top edge the rest of the product uses. */
 .pipe { display: flex; justify-content: center; }
-/* ══ CAPPED, BECAUSE A COLUMN DOES NOT WANT A THOUSAND PIXELS ════════════
-   `width: 100%` was right while the rail was in here — four tiles and three
-   connectors spread to fill whatever they were given. A step row is a mark, a
-   few words and a clock, and at a 1412px layout this card was 1023 wide with
-   about 300 of that used: a short label on the left, a time on the far right,
-   and two thirds of nothing between them.
 
-   Every reference for this pattern is narrow — Rox centres about 340px in a
-   full page, Lindy's sits in a chat column, Profound's in a side panel — and
-   none of them stretches the steps across the window. `.pipe` is already
-   `justify-content: center`, so the cap is the whole change. */
-.pipe-card {
-  width: 100%; max-width: 640px; padding: 14px;
-  border-radius: 20px; background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 40px -20px rgba(0,0,0,0.5);
-}
-.pipe-badge, .pipe-elapsed {
-  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-}
-
-/* header */
-.pipe-head { padding: 6px 8px 16px; }
-/* ══ IT WRAPS RATHER THAN OVERLAPS ═════════════════════════════
-   `justify-content: space-between` with one side `flex: none` puts the two
-   groups at the ends of a row and then lets them run into each other when the
-   row is shorter than both — measured on a phone, `Companies · LinkedIn Sales
-   Navigator` was drawn straight through `Running · Ask the suppliers`, two
-   sentences on the same pixels. Wrapping gives the status its own line at the
-   width where it needs one and changes nothing at the width where it does not.
-
-   `.pipe-title` IS GONE. It printed buildName() inside the card, forty pixels
-   under `.s-rec-name`, which is buildName() as the page's own heading — the
-   same string twice, and the copy in here was the one being cut off at the
-   card's edge. */
-.pipe-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
-.pipe-head-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.pipe-badge {
-  display: inline-flex; align-items: center; gap: 5px; flex: none;
-  padding: 5px 8px; border-radius: var(--r-md); font-size: var(--t-ui); line-height: 1;
-  color: var(--d200); background: var(--card-bg-raised); border: 1px solid var(--card-border);
-}
-.pipe-badge-dot { color: var(--ink-muted); }
-.pipe-head-state { display: flex; align-items: center; gap: 8px; flex: none; }
-/* Both halves of the head give way before the row does. The badge is a fact
-   about the run and the status is what it is doing; neither is worth an
-   ellipsis until the other has none left to give. */
-.pipe-head-main, .pipe-badge, .pipe-status { min-width: 0; }
-.pipe-badge, .pipe-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pipe-status { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text); }
-.pipe-status.done { color: var(--ok-text); }
-.pipe-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
-.pipe-live-dot.done { background: var(--ok-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
-
-/* ══ THE RIBBON ════════════════════════════════════════════════
-
-   THE HEIGHT COMES FROM THE STEPS, AND SO DOES THE SPACING. Each step is
-   `flex-grow: <its duration>` down a column of fixed height with a zero
-   basis, so the room a step gets IS how long it takes: the gap under `Ask the
-   suppliers` is bigger than the gap under `Read the criteria` because the
-   step is. A list of four evenly spaced rows cannot say that, and it was the
-   one thing the run knew and never showed.
-
-   NOTHING THAT MOVES PER FRAME TOUCHES LAYOUT, which is the whole reason this
-   shape is drawn the way it is rather than the obvious way. The fill is a
-   full-height bar SCALED from its top edge, not a height that is animated;
-   the head is a glow TRANSLATED down the same axis, not a top that is moved.
-   Both are compositor work. Verified on the standalone before this landed:
-   across 121 synthetic frames the only inline properties that changed were
-   `transform` on the fill and `transform`/`opacity` on the head, and
-   `getBoundingClientRect` was called zero times inside the loop — the track's
-   height is read once at mount and again only on resize, because reading it
-   per frame is a forced synchronous reflow sixty times a second.
-
-   THE HORIZONTAL TRACK ABOVE IT IS GONE. This IS the progress bar; a second
-   one across the head of the same card was the same claim twice. So is the
-   predicted finish — the foot carries the clock and nothing else. */
-.pipe-rib { position: relative; display: flex; flex-direction: column; height: 250px; margin: 16px 0 4px; }
-
-.pipe-rib-track {
-  position: absolute; left: 5px; top: 8px; bottom: 16px; width: 2px;
-  border-radius: 2px; background: var(--card-border); overflow: hidden;
-}
-.pipe-rib-fill {
-  position: absolute; inset: 0; border-radius: 2px; background: var(--accent);
-  transform-origin: top center; transform: scaleY(0);
-}
-/* The leading edge, riding down with the fill. */
-.pipe-rib-head {
-  position: absolute; left: 6px; top: 8px; width: 0; height: 0;
-  transform: translateY(0);
-  transition: opacity 420ms var(--ease-out); pointer-events: none;
-}
-/* ══ THE LAYER IS HELD FOR THE RUN, NOT FOR THE PAGE ══════════════════════
-   These three carried `will-change` in their own rules, which promotes each
-   to its own compositor layer the moment the card mounts and keeps it there
-   for as long as the card is on screen — including the beat it spends
-   finished, and the whole of a run somebody has walked away from. A promoted
-   layer costs GPU memory whether or not anything is moving on it, and the
-   hint is only worth paying for in the window where the frame clock is
-   actually writing transforms.
-
-   `done` goes on the card the moment the run ends, which is the same signal
-   the status line and the dot already read, so the layers are handed back at
-   the end of the run rather than at the end of the surface. */
-#pipeCard:not(.done) .pipe-rib-fill,
-#pipeCard:not(.done) .pipe-pin { will-change: transform; }
-#pipeCard:not(.done) .pipe-rib-head { will-change: transform, opacity; }
-.pipe-rib-head::before {
-  content: ''; position: absolute; left: -11px; top: -11px; width: 22px; height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb),0.6) 0%, rgba(var(--accent-rgb),0) 68%);
-}
-
-/* flex-grow is written inline per step, because it is data — the duration of
-   that stage — and not a design constant. Basis 0 so grow distributes the
-   whole column and the shares are exact. */
-.pipe-step {
-  position: relative; flex: 1 1 0; min-height: 46px;
-  display: flex; align-items: flex-start; gap: 14px;
-}
-.pipe-pin {
-  position: relative; z-index: 1; flex: none;
-  width: 12px; height: 12px; margin-top: 2px; border-radius: 50%;
-  background: var(--card-bg); border: 1.5px solid var(--card-border);
-  transform: scale(1);
-  transition: background-color 400ms var(--ease-out),
-              border-color 400ms var(--ease-out),
-              transform 460ms var(--ease-pin),
-              box-shadow 400ms var(--ease-out);
-}
-.pipe-step.is-live .pipe-pin {
-  background: var(--accent); border-color: var(--accent); transform: scale(1.22);
-  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.14);
-}
-.pipe-step.is-done .pipe-pin {
-  background: var(--ok-text); border-color: var(--ok-text); transform: scale(1);
-  box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0);
-}
-/* ══ AND THE STEP SIGNS ITSELF ═════════════════════════════════════════════
-   A step finishing turned its dot from blue to green and that was the whole
-   report. Colour alone is the weakest thing a state change can be — it is
-   the one channel a reader may not have, and on a 12px dot at the edge of a
-   card it is a change you have to be looking at to catch. The tick draws
-   itself instead: the stroke arrives left to right in the time the eye takes
-   to get there, so the step says `done` in a shape as well as a hue.
-
-   NOTHING IS MEASURED TO DO THIS. The path carries pathLength="1", which
-   renormalises its length to a single unit whatever the geometry actually
-   is, so the dash is 1 and the offset runs 1 → 0 with no getTotalLength and
-   no reading of the DOM — which matters because the state this hangs off is
-   set on the frame clock, and a measurement between two style writes is a
-   forced synchronous reflow.
-
-   This is a paint rather than a composite, which the rest of the run is
-   careful not to be. It is affordable here and only here: nine pixels, four
-   times in a seven-second run, against a ribbon and a glow that are written
-   sixty times a second. `.score-ring-fill` in the library draws the same
-   way. */
-.pipe-pin > svg {
-  position: absolute; inset: 0; margin: auto; width: 9px; height: 9px;
-  color: var(--card-bg); opacity: 0;
-  stroke-dasharray: 1; stroke-dashoffset: 1;
-  transition: stroke-dashoffset var(--t-open) var(--ease-out),
-              opacity var(--t-fast) var(--ease-out);
-}
-.pipe-step.is-done .pipe-pin > svg { stroke-dashoffset: 0; opacity: 1; }
-/* Frozen, not removed: the tick is what the step now says, so it is drawn
-   in full at once rather than taken away. */
-@media (prefers-reduced-motion: reduce) { .pipe-pin > svg { transition: none; } }
-
-.pipe-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.pipe-step-row { display: flex; align-items: baseline; gap: 12px; }
-.pipe-step-label {
-  flex: 1; min-width: 0; font-size: var(--t-body); font-weight: var(--fw-medium);
-  line-height: 1.25; color: var(--ink-muted);
-  transition: color 460ms var(--ease-out);
-}
-.pipe-step.is-live .pipe-step-label { color: var(--d50); font-weight: var(--fw-bold); }
-.pipe-step.is-done .pipe-step-label { color: var(--d200); }
-/* The figure and the sentence a finished step ends on. They arrive with it
-   rather than being drawn empty and waiting — opacity and transform, so the
-   arrival costs nothing the compositor cannot do. */
-.pipe-step-time {
-  flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--t-small); color: var(--ink-muted);
-  opacity: 0; transform: translateY(-3px);
-  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
-}
-.pipe-step.is-done .pipe-step-time { opacity: 1; transform: none; }
-.pipe-step-said {
-  font-family: var(--font-mono); font-size: var(--t-small); color: var(--ink-muted);
-  line-height: 1.4;
-  opacity: 0; transform: translateY(-4px);
-  transition: opacity 420ms var(--ease-out), transform 420ms var(--ease-out);
-}
-.pipe-step.is-done .pipe-step-said { opacity: 1; transform: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  .pipe-pin, .pipe-step-label, .pipe-step-time, .pipe-step-said, .pipe-rib-head {
-    transition-duration: 1ms;
-  }
-}
-
-/* footer — the clock, and nothing beside it. `.pipe-foot-act` and its chip
-   went with the stage name they carried: it repeated the status at the top of
-   the same card and was written once and never updated, so it named the first
-   stage for the length of the run. */
-.pipe-foot { display: flex; align-items: center; gap: 12px; padding: 16px 8px 4px; }
-.pipe-elapsed { font-size: var(--t-ui); color: var(--ink-muted); }
-
-/* text that changes state goes through a blur — swapText() */
-/* ══ A NUMBER CHANGING IS NOT A BUTTON BEING PRESSED ══════════════
-   90ms is --t-press, and it was here by proximity rather than by argument:
-   a press is short because the finger is already up, and nothing about that
-   applies to a figure being replaced. Four pixels of blur crossed in 90ms is
-   not a softening, it is a flash of something unreadable. The swap step is
-   --t-fast over --blur-small's two pixels — a shorter distance to travel,
-   held long enough to read as one value becoming another. */
-/* ══ AND IT CROSSES ITSELF RATHER THAN BLINKING ════════════════════
-   Everything above argued about how long ONE span should take to fade out,
-   change its own characters and fade back in. However well that is timed it
-   is a blink: for the length of the fade there is nothing on the line, and an
-   empty line beside a live dot reads as the thing having broken rather than
-   having changed. Timing it correctly only made it an honest blink — measured
-   at exactly zero opacity on all four swaps, and still wrong.
-
-   Two spans instead, overlapping. The incoming starts at 90ms while the
-   outgoing has until 260, so for 170ms both are on the line — one leaving
-   upward, one arriving from below — and on no frame is there nothing there.
-   The arriving one is longer and slower than the departing one, which is the
-   asymmetry every good swap has: a thing leaving should get out of the way,
-   a thing arriving is what you are meant to read.
-
-   OPACITY AND TRANSFORM, NOTHING ELSE. The blur that used to soften this was
-   a full repaint on every frame of the fade and buys nothing once two layers
-   are crossing — the overlap IS the softening. 6px of travel: far enough to
-   carry a direction, not far enough to be a movement of its own.
-
-   The outgoing span is anchored RIGHT, because `.pipe-head-state` sits at the
-   end of a `space-between` row: the dot holds still and the text's left edge
-   is what moves when the wording changes length. Anchored left, the departing
-   words would slide sideways as the incoming ones sized the box. */
-.pipe-status { position: relative; display: inline-block; text-align: right; }
 .pipe-say { display: block; white-space: nowrap; }
 .pipe-say.is-in { animation: pipe-say-in 300ms var(--ease-out) 90ms both; }
 .pipe-say.is-out {
@@ -2095,19 +1843,7 @@ textarea::placeholder,
    below --d300. */
 
 
-/* The results head sat 24px in from the page edge: .s-sheet-head is a sheet
-   component with its own padding, and on this page it is a grid child like
-   every other header. Flush left, like the masthead on the other pages. */
-.s-home > .s-sheet-head { padding-left: 0; padding-right: 0; }
 
-/* The leaving gate: the lead block's anatomy in the warn register — a
-   decision, not a finding — with a note under the deck that says what each
-   way out does. Inline at the top of the result, never a modal. */
-.s-insight.is-lead.b-gate {
-  background: color-mix(in srgb, var(--warn) 6%, transparent); border-color: color-mix(in srgb, var(--warn) 22%, transparent);
-}
-.b-gate-note { margin: -6px 0 14px; font-size: var(--t-ui); color: var(--d200); max-width: 62ch; text-wrap: pretty; }
-.b-gate .s-lead-acts { align-items: center; gap: 8px 10px; }
 
 /* ══ 31. THE TOAST ARRIVES AND LEAVES THE SAME WAY ═════════════════════════
    The library gives the toast a 220ms rise, and it never ran here: the toast
@@ -2320,30 +2056,11 @@ textarea::placeholder,
 :root[data-theme="light"] .ds-theme-toggle .icon-sun { opacity: 0; transform: scale(0.6) rotate(40deg); filter: blur(2px); }
 :root[data-theme="light"] .ds-theme-toggle .icon-moon { opacity: 1; transform: none; filter: none; }
 
-.s-pick-tick .s-tick {
-  appearance: none; -webkit-appearance: none; margin: 0; width: 16px; height: 16px; border-radius: 5px;
-  border: 1.5px solid var(--d400); background: var(--card-bg); display: grid; place-items: center;
-  transition: opacity var(--t-fast), background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
-}
-.s-pick-tick .s-tick::after {
-  content: ""; width: 10px; height: 10px; background: #fff;
-  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='black' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
-          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='black' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
-  clip-path: inset(0 100% 0 0); transition: clip-path 140ms var(--ease-out);
-}
-.s-pick-tick .s-tick:checked { background: var(--accent); border-color: var(--accent); }
-.s-pick-tick .s-tick:checked::after { clip-path: inset(0 0 0 0); }
-.s-pick-tick .s-tick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-.b-gate { animation: b-arrive 200ms var(--ease-out) both,
-                     b-arrive-blur 200ms var(--ease-out); }
 
 @media (prefers-reduced-motion: reduce) {
-  .s-call::details-content, .s-trace::details-content,
-  .s-crew::details-content, .b-nmo::details-content,
-  .s-call-sum::before, .s-trace-sum::before, .b-nmo-sum::before,
-  .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
-  .b-gate { animation: none; }
+  .s-call::details-content, .s-trace::details-content, .s-crew::details-content, .b-nmo::details-content, .s-call-sum::before, .s-trace-sum::before, .b-nmo-sum::before, .ds-theme-toggle svg { transition: none; }
+  
 }
 
 /* ══ 37. THE DECISION ON THE CARD ══════════════════════════════════════════
@@ -4033,92 +3750,7 @@ textarea::placeholder,
    beat's sentence stays the size of the words around it. */
 .b-prep-refp .b-doc { padding: 9px 14px; gap: 10px; }
 
-/* ══ 57. WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
-   Three chips with one lit, beside a sentence naming the lit one — a control
-   for picking a supplier on a page where nobody picks a supplier. It is a
-   listing now: what each of them fills, and which of them has stopped
-   answering. Under the sentence it explains, left of the button, because it
-   is that sentence's working and not another thing to press. */
-.b-src-side { flex: 1 1 26ch; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
-.b-src-side > .s-build-total { flex: none; }
-/* ONE RHYTHM DOWN THE BLOCK. The caption sat 2px off its list while the
-   rows sat 5px apart, and what each supplier actually did was the palest
-   thing in it. Every row is one step apart, and the sentence is read at the
-   ink everything else on this page is read at. */
-.b-srcs { display: flex; flex-direction: column; gap: 8px; }
-.b-srcs-cap {
-  margin-bottom: 4px;
-  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--d200);
-}
-.b-src { display: flex; align-items: baseline; gap: 10px; font-size: var(--t-body); }
-.b-src .b-rstate-dot { align-self: center; }
-.b-src-n { font-weight: var(--fw-bold); color: var(--d50); min-width: 104px; }
-.b-src-v { color: var(--d100); }
-/* A supplier that is not answering is a fact about today, not a fault of
-   yours — stated in the warning tone and left in the list, because a source
-   removed from the list is a source you stop expecting back. */
-.b-src.is-off .b-src-v { color: var(--warn-text); }
 
-/* ══ 58. THE WAY INTO THE BAR ══════════════════════════════════════════════
-   The empty state told you where to type and left you to remember the shape
-   of the sentence. The line and the press that fills it sit together, so the
-   instruction and the way to follow it are one thing. */
-.b-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
-.b-empty .s-said { margin: 0; }
-
-/* ══ 59. WHAT TO EXPECT ════════════════════════════════════════════════════
-   Three rows on one grid so the estimates line up and can be read down the
-   middle column without reading the reasons. The reason is at the small step
-   because it is why the estimate is a guess, and a guess whose working is
-   hidden is a count wearing a hedge. */
-/* One sentence under one caption. It was a two-row grid of labels and
-   paragraphs to say the two things a caller reads in a second. */
-.b-expect { display: flex; flex-direction: column; }
-.b-exp-say {
-  margin: 0; font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); max-width: 68ch; text-wrap: pretty;
-}
-.b-exp-say b { color: var(--d50); font-weight: var(--fw-semibold); }
-
-/* A rule above the foot is the section separator this build took out
-   everywhere else; the space under the block above it says the same thing. */
-.s-build-foot { border-top: 0; padding-top: 0; margin-top: 26px; }
-
-/* ══ 60. THE RUN FITS THE SCREEN ═══════════════════════════════════════════
-   Four stage tiles, four log rows and a foot, on a card that grew past the
-   bottom of a short viewport — and a loading state you have to scroll is a
-   loading state that has stopped telling you anything. The card is capped at
-   the height it has, and the log scrolls inside it, which is the part that
-   grows. svh rather than vh, so a mobile browser's own bar is counted. */
-.pipe-card { max-height: calc(var(--vp-h) - 190px); display: flex; flex-direction: column; }
-/* Nothing is pressed here any more, so the foot is one line of elapsed. */
-.pipe-foot { padding: 12px 8px 2px; }
-@media (max-height: 611.98px) { /* 720 layout px tall */
-  .pipe-card { max-height: calc(var(--vp-h) - 150px); }
-}
-
-/* A tick in a menu row: on for what is chosen, a held place for what is not,
-   so the rows do not shift as you pick. */
-.b-menu-tick {
-  width: 14px; height: 14px; flex: none; border-radius: 5px;
-  border: 1px solid var(--card-border-hover); background: var(--card-bg);
-  position: relative;
-}
-.b-menu-tick.is-on { background: var(--accent); border-color: var(--accent); }
-.b-menu-tick.is-on::after {
-  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
-  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(42deg);
-}
-
-/* The run is started from the top of the page it is the point of, so the
-   masthead carries it on the right the way every other masthead here does. */
-.b-sheet-act { margin-left: auto; flex: none; align-self: center; }
-.b-sheet-act .s-build-go[disabled] { opacity: 0.45; cursor: not-allowed; }
-
-/* The primary opens a menu, so the menu hangs off a filled button rather
-   than a quiet one; it is the same wrapper either way. */
-.b-menu-wrap .s-build-go { white-space: nowrap; }
 
 /* A menu that searches. The box is the chooser's own, narrowed to the menu's
    width and set between the caption and the rows it filters. */
@@ -4166,12 +3798,12 @@ textarea::placeholder,
    would override that transition from a later file and put a transform on a
    control whose own stylesheet says it has none, which is exactly the kind
    of quiet divergence a whole-component lift exists to refuse. */
-.s-way, .s-start, .s-finding-go, .chip {
+.s-start, .chip {
   transition: transform 160ms var(--ease-out), border-color var(--t-fast),
     background-color var(--t-fast), color var(--t-fast);
 }
-.s-finding-go:active, .chip:active { transform: scale(0.97); }
-.s-way:active, .s-start:active { transform: scale(0.985); }
+.chip:active { transform: scale(0.97); }
+.s-start:active { transform: scale(0.985); }
 .chip:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* The find box focuses the way the menus' search does — a call, not only a
    changed border — so the two boxes that do the same job look the same lit. */
@@ -4181,8 +3813,8 @@ textarea::placeholder,
 .s-call { transition: border-color var(--t-fast); }
 .s-call:hover { border-color: var(--card-border-hover); }
 @media (prefers-reduced-motion: reduce) {
-  .s-way, .s-start, .s-finding-go, .chip { transition: none; }
-  .s-finding-go:active, .chip:active, .s-way:active, .s-start:active { transform: none; }
+  .s-start, .chip { transition: none; }
+  .chip:active, .s-start:active { transform: none; }
 }
 
 /* ══ 62b. THE ONES THE HAND STILL GOT NOTHING FROM ════════════════════════
@@ -4254,7 +3886,7 @@ textarea::placeholder,
   --float-shadow: 0 0 0 1px rgba(16, 24, 40, 0.06), 0 2px 6px -2px rgba(16, 24, 40, 0.12),
     0 16px 40px -12px rgba(16, 24, 40, 0.2);
 }
-.b-menu, .aimy-toast, .ntf-panel, .pipe-card { box-shadow: var(--float-shadow); }
+.b-menu, .aimy-toast, .ntf-panel { box-shadow: var(--float-shadow); }
 
 /* CONCENTRIC. Outer radius is inner radius plus the padding between them,
    or the corners of a nested surface visibly disagree with the corners of
@@ -4274,8 +3906,7 @@ textarea::placeholder,
    Every number a caller compares by eye — a lead figure, a tile, a count
    after a bold — is set in tabular figures, so a 1 takes the room of a 7
    and two of them stacked read as a column. */
-.s-lead-n, .s-lead-of, .s-af-val, .b-way-n, .b-exp-say b, .b-tocall b, .b-way-lead b,
-.s-block-say b, .b-vfoot b, .b-branch-n, .b-src-v, .pipe-elapsed, .b-menu-sub {
+.s-lead-n, .s-lead-of, .s-af-val, .b-way-n, .b-tocall b, .b-way-lead b, .s-block-say b, .b-vfoot b, .b-branch-n, .b-menu-sub {
   font-variant-numeric: tabular-nums;
 }
 
@@ -5347,7 +4978,7 @@ textarea::placeholder,
   border-top: 1px solid var(--card-border);
 }
 .b-cal-side .b-cal-cap { margin-top: 0; }
-@media (prefers-reduced-motion: reduce) { .b-gate:active { transform: none; } }
+
 
 /* The promise each door keeps, in the ink this product uses for a text action
    everywhere else. `margin-top: auto` puts it on the floor of the card, so the
@@ -6753,144 +6384,14 @@ textarea::placeholder,
 }
 .b-note-name:hover { color: var(--d50); }
 .b-note-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-/* ══ THE DRAFT LIST'S NAME IS THE MASTHEAD, TYPEABLE ═══════════════════
-   `.s-rec-title` is a flex row: the name, then the state chip beside it.
-   `.s-build-name` is `width: 100%` — written for `.s-sheet-head`, where the
-   heading is a block and full width is what it wants — and inside a flex row
-   that made the heading grow to eat the whole line, which pushed the chip to
-   the far right edge and broke the one thing this page was made to match.
 
-   So here the field is sized by its own content: `size` sets the width
-   before CSS arrives and is the floor, `field-sizing: content` grows it as
-   you type, and `max-width` stops a long name from running past the column.
-   The heading shrinks to fit and the chip sits where it sits on a saved list
-   — next to the name, not across the page from it.
-
-   `field-sizing` is Chromium-only today. Everywhere else the `size`
-   attribute alone answers, which is the same layout one repaint behind: the
-   field is redrawn at the right width the next time the page paints. */
-.s-rec-title > .s-rec-name.is-field { min-width: 0; margin-top: 0; }
-.s-rec-title .s-build-name {
-  width: auto; max-width: 100%;
-  field-sizing: content;
-}
 /* ══ THE CANDIDATE CARD ═══════════════════════════════════════════════
    `netCard` is `qcard`'s anatomy with three slots doing different work, and
    these are the rules for those three. Everything else on it — the head, the
    title, the two fact lines, the AiMY block, the foot — is the card every
    other surface in this build draws, unstyled again here on purpose. */
 
-/* ══ THE TWO PLACES YOU CAN GO AND LOOK ══════════════════════════════
-   A stranger off an index is the one record in this product you cannot open,
-   so the only way to check them before you keep them is to go outside. The
-   row carried both addresses as bare text and they were the quietest thing
-   on it; here they are links and read as links, one step under the facts.
 
-   `min-width: 0` on the anchor because a domain does not break: without it
-   a long one pushes the card wider than its column and the grid stops being
-   a grid. */
-/* ══ AND IT SITS IN THE CARD'S GUTTER LIKE EVERY OTHER ROW ═══════════
-   This had no horizontal padding, so its marks began at the card's edge
-   while the tag, the name, the sentence, the facts and the foot all begin
-   14px in. One row out of seven breaking the left margin is the kind of
-   thing you see before you can say what it is. Measured: 353 against 367.
-
-   AND IT GETS THE BREAK THE BLOCK IT REPLACED HAD — BOTH HALVES OF IT.
-   `.b-aimy` sat in this slot on a queue card and it carries `10px 0 14px`:
-   ten to separate the card's FACTS from the thing under them, fourteen to
-   keep the foot's hairline off it. This went in at 2, then at 10, and both
-   times with nothing underneath — so the rule sat flush against the links,
-   measured 168.1 to 168.1, with every other row on the card spaced and
-   this one pinned to a line.
-
-   Lopsided is worse than tight. Ten above and nothing below reads as the
-   links belonging to the foot rather than to the card, which is backwards:
-   they are the last of what the supplier returned, and the foot is what
-   you do about it.
-
-   THE NUMBER IS COPIED, NOT CHOSEN. It is the one the block this replaced
-   already used in the same slot, so a candidate card and the roster card
-   it becomes put their hairline the same distance under the last thing
-   above it. */
-.b-net-links {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
-  padding: 0 14px; margin: 10px 0 14px; min-width: 0;
-}
-.b-net-link {
-  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
-  font-size: var(--t-micro); font-weight: var(--fw-semibold);
-  color: var(--accent-label); text-decoration: none;
-  transition: color var(--t-fast);
-}
-.b-net-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 10px, which is what `.b-qcard-where` gives its marks. Three stacked
-   rows of mark-then-text whose marks are 10, 11 and 12 wide start their
-   text at three different places — 383, 370 and 385 — and a column that
-   is nearly aligned reads worse than one that is plainly not. */
-.b-net-link > svg { flex: none; width: 10px; height: 10px; }
-.b-net-link:hover { color: var(--accent); text-decoration: underline; }
-.b-net-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-
-/* ══ THE FOOT'S VERB IS A DECISION ABOUT THE CARD ═════════════════════
-   Every other card in this build ends in something to do to that person.
-   This one ends in whether they survive, so the tick sits where the verb
-   sits and carries the word with it: a 14px box on its own is the smallest
-   target on the surface, and `<label>` makes the word part of it.
-
-   IT DOES NOT FADE. `.s-tick` is 0.35 until the card is hovered, which is
-   right on a grid where picking is an occasional thing you do to one card.
-   It is wrong here: every card on this page is asking the same question,
-   the answer is already set on all of them, and a page of ticks you cannot
-   see until you reach for them is a page that does not look answerable. */
-.b-net-keep {
-  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
-  transition: color var(--t-fast);
-}
-.b-net-keep .s-tick { opacity: 1; width: 15px; height: 15px; }
-.b-net-keep:hover { color: var(--d50); }
-
-/* ══ AND ONE YOU HAVE LEFT OUT STAYS ON THE PAGE ══════════════════════
-   Unticking does not remove the card, and it should not: the count in the
-   masthead has already dropped, and a row that vanishes when you untick it
-   makes changing your mind a search. So it goes quiet instead — a treatment
-   rather than a re-inking, so nothing inside it has to hold a second colour.
-
-   THE WAY BACK KEEPS FULL INK, AND THAT IS WHY THIS IS NOT ONE RULE ON THE
-   CARD. `opacity` on a parent cannot be undone by a child: it composites
-   the subtree as one layer, so `.b-net-keep { opacity: 1 }` under a card at
-   0.45 is a rule that reads as an exception and has no effect whatsoever.
-   It was written that way first and it took a screenshot to catch — the
-   audit cannot see a rule that applies cleanly and does nothing.
-
-   So the dimming is applied to the card's CONTENT instead, every child but
-   the foot, and inside the foot to the fact and not to the control. The one
-   press that gives you this person back is the one thing on the card still
-   at full strength, which is what you want on the card you are least sure
-   about. */
-.b-netcard.is-dropped > *:not(.b-qcard-foot) { opacity: 0.45; }
-/* The foot's own fact was dimmed by name here. It has not carried a
-   `.b-qcard-num` since the reach pills went in, so this rule has been
-   applying to nothing — the second kind of dead rule the audit cannot
-   see, after the one whose effect is cancelled by its parent. The foot
-   holds only the tick now, and the tick is what must stay bright. */
-.b-netcard.is-dropped:hover > *:not(.b-qcard-foot),
-.b-netcard.is-dropped:focus-within > *:not(.b-qcard-foot) { opacity: 0.85; }
-@media (prefers-reduced-motion: no-preference) {
-  .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
-}
-/* ══ THE CONTACT BLOCK, UNDER THE FIRMOGRAPHICS ══════════════════════
-   The number and the address moved out of the foot and into the card's
-   facts, where they are the value rather than a word about the value. They
-   are a different KIND of fact from the two lines above them — where the
-   place is and how big it is describe the company; these are how you reach
-   somebody — so the block starts with the same 8px the facts take under the
-   name, and the lines inside it keep `.b-qcard-where`'s own 2px because they
-   are a pair in exactly the way the two firmographic lines are.
-
-   On a company card the 8px falls on the contact's name instead, because
-   there the block is who-and-how rather than just how. */
-.b-netcard .b-net-contact { padding-top: 8px; }
 /* ══ THE CARD'S OWN RHYTHM, WHICH WAS ALL ONE INTERVAL ════════════════
    `.b-qcard-where` carries `padding-top: 2px` and there are two of them, so
    that one value was doing two different jobs. Between the two fact lines it
