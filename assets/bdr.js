@@ -1002,7 +1002,7 @@
      The faces come off the id, so nobody here needed drawing. */
   const REPS = [
     { id: 'engy',   name: 'Engy Saleh',    initials: 'ES', fn: 'bdr' },
-    { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
+    { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager', team: 'Enterprise Team' },
     { id: 'omar',   name: 'Omar Fathy',    initials: 'OF', fn: 'bdr' },
     { id: 'mariam', name: 'Mariam Zaki',   initials: 'MZ', fn: 'bdr' },
     { id: 'youssef', name: 'Youssef Kamal', initials: 'YK', fn: 'bdr' },
@@ -1013,8 +1013,8 @@
     /* Two more desks on the other side of the hand-over, appended so Lina
        stays `MANAGERS[0]` — every fallback in the build reaches for that
        when a campaign has no owner of its own. */
-    { id: 'nadia',  name: 'Nadia Fouad',   initials: 'NF', fn: 'sales-manager' },
-    { id: 'hazem',  name: 'Hazem Saad',    initials: 'HS', fn: 'sales-manager' },
+    { id: 'nadia',  name: 'Nadia Fouad',   initials: 'NF', fn: 'sales-manager', team: 'Growth Team' },
+    { id: 'hazem',  name: 'Hazem Saad',    initials: 'HS', fn: 'sales-manager', team: 'Quality Team' },
     /* The one person here who does not work a book. A stakeholder owns one
        of the eight things we sell and answers for it wherever it is sold, so
        `sell` is the whole of what makes him different — singular, because
@@ -1072,6 +1072,14 @@
        changes. */
     { id: 'rami', name: 'Rami Fahim', initials: 'RF', fn: 'ceo' },
   ];
+  /* ══ THE CEO READS TEAMS, NOT MANAGERS ══════════════════════════════
+     Nour, 29 Sep 2026: on the CEO's desk the managers section is teams,
+     "<Team> managed by <Manager>". The names are by what each one mostly
+     runs: Enterprise (Lina, seven campaigns across data, engineering and
+     knowledge), Quality (Hazem, QA and test automation) and Growth (Nadia,
+     new markets). A field on the roster rather than a table beside it, and
+     nothing filters on it, so no count moves. */
+  const teamOf = (m) => (m && m.team) || ((m ? m.name.split(' ')[0] : 'The') + '\u2019s team');
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
   const BDRS = REPS.filter((r) => r.fn === 'bdr');
@@ -7765,19 +7773,20 @@
     const worst = rows[0];
     const behind = rows.filter((r) => r.paceMoney != null && r.paceMoney < 0);
     const said = !behind.length
-      ? (rows.every((r) => r.paceMoney != null) ? 'Every manager is where the quarter should be today.'
-        : 'The window has closed; the rows say where each desk finished.')
-      : '<b>' + esc(worst.m.name) + '</b> is <b>' + esc(euro(-worst.paceMoney)) +
+      ? (rows.every((r) => r.paceMoney != null) ? 'Every team is where the quarter should be today.'
+        : 'The window has closed; the rows say where each team finished.')
+      : '<b>' + esc(teamOf(worst.m)) + '</b>, managed by ' + esc(worst.m.name) + ', is <b>' +
+        esc(euro(-worst.paceMoney)) +
         '</b> behind where the quarter should be today' +
         (worst.more ? ', and AiMY expects <b>' + esc(euro(worst.more)) + '</b> more from the open deals.' : '.');
     const door = esc(JSON.stringify(Object.assign(cleared(), { on: 'money', by: 'mgr' })));
-    return '<section class="s-block s-block-wide" aria-label="Managers">' +
+    return '<section class="s-block s-block-wide" aria-label="Teams">' +
       '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">Managers</h2>' +
-        '<span class="s-block-say">' + esc(plural(rows.length, 'manager')) +
+        '<h2 class="s-block-h">Teams</h2>' +
+        '<span class="s-block-say">' + esc(plural(rows.length, 'team')) +
           ' \u00b7 furthest behind first</span>' +
       '</div>' +
-      aimyBlock({ text: said, from: 'each desk’s own figures' }) +
+      aimyBlock({ text: said, from: 'each team’s own figures' }) +
       '<div class="b-owed">' + rows.map((r, i) => {
         const v = mgrVerdict(r.booked, r.target, p);
         const scale = Math.max(r.target * 1.2, r.booked) || 1;
@@ -7799,7 +7808,8 @@
           '<span class="b-owed-sev" aria-hidden="true"></span>' +
           '<span class="b-owed-main">' +
             '<span class="b-owed-head">' +
-              '<span class="b-owed-type">' + esc(r.m.name) + '</span>' +
+              '<span class="b-owed-type">' + esc(teamOf(r.m)) + '</span>' +
+              '<span class="b-owed-by">managed by ' + esc(r.m.name) + '</span>' +
               '<span class="s-meta-st tone-' + esc(v.tone) + '">' + esc(v.say) + '</span>' +
             '</span>' +
             '<span class="b-owed-body">' + esc(facts.join(' \u00b7 ')) + '</span>' +
@@ -7832,7 +7842,7 @@
       const cost = theirs.reduce((n, s) => n + s.total, 0);
       return '<div class="s-pan" style="--i:' + i + '">' +
         '<div class="s-pan-head">' +
-          '<span class="s-pan-name">' + esc(m.name) +
+          '<span class="s-pan-name">' + esc(teamOf(m)) +
             '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
           '<span class="s-pan-figs">' +
             '<span class="s-pan-fig">' +
@@ -7847,6 +7857,7 @@
           '</span>' +
         '</div>' +
         '<div class="s-pan-facts">' +
+          '<span>managed by <b>' + esc(m.name) + '</b></span>' +
           (theirs.length ? '<span><b>' + theirs.length + '</b> ' +
             (theirs.length === 1 ? 'campaign' : 'campaigns') + '</span>' : '') +
           '<span><b>' + r.meetings + '</b> ' + (r.meetings === 1 ? 'person met' : 'people met') + '</span>' +
@@ -10808,7 +10819,7 @@
   const CUTS = [{ k: 'camp', label: 'Campaigns' }, { k: 'svc', label: 'Services & Products' }];
   /* The third cut is who holds the money, which is a question only the
      desk that reads all of the managers can ask. */
-  const cutsFor = () => (isWhole() ? CUTS.concat([{ k: 'mgr', label: 'Managers' }]) : CUTS);
+  const cutsFor = () => (isWhole() ? CUTS.concat([{ k: 'mgr', label: 'Teams' }]) : CUTS);
   function cutBy() {
     return cutsFor().filter((r) => r.k === S.by)[0] ? S.by : 'camp';
   }
@@ -24098,11 +24109,12 @@
           .sort((a, b) => a.paceMoney - b.paceMoney)[0];
         const leftD = pq.span && pq.days != null ? Math.max(0, pq.span - pq.days - 1) : null;
         if (worst) {
-          tasks.push({ id: 'mgr-behind', sev: 'p2', type: 'Managers',
+          tasks.push({ id: 'mgr-behind', sev: 'p2', type: 'Teams',
             when: euro(-worst.paceMoney) + ' behind',
-            body: worst.m.name + ' is ' + euro(-worst.paceMoney) + ' behind where the quarter should be' +
+            body: teamOf(worst.m) + ', managed by ' + worst.m.name + ', is ' + euro(-worst.paceMoney) +
+              ' behind where the quarter should be' +
               (leftD != null ? ', with ' + plural(leftD, 'day') + ' left' : '') + '.',
-            cta: 'See the managers', ask: 'go:' + JSON.stringify({ on: 'money', by: 'mgr' }) });
+            cta: 'See the teams', ask: 'go:' + JSON.stringify({ on: 'money', by: 'mgr' }) });
         }
       }
     }

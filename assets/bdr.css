@@ -6835,3 +6835,9 @@ textarea::placeholder,
    of them meant "where it came from"; info is the design system's tone for
    a neutral fact worth seeing, the same one the card's tag wears. */
 .s-meta-st.tone-info { color: var(--info); background: var(--info-bg); }
+
+/* ══ 100. A TEAM AND WHO MANAGES IT ════════════════════════════════════════
+   The CEO's Teams block names the team in the row's bold slot and says who
+   runs it straight after, on the same baseline, one weight down and at the
+   ink floor rather than below it. */
+.b-owed-by { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d200); }
