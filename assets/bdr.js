@@ -12381,6 +12381,40 @@
      best and worst campaign by what they cost, and the share of payroll
      nobody logged. Two of the four are our cost and a third ranks their
      campaigns by it. This says the three things their deal is about. */
+  /* ══ WHAT HAPPENS AT THE END OF IT ═══════════════════════════════════
+     Thirteen days from the end of a year, the question a C-level came to
+     this page with is not how the quarter went; it is what happens on the
+     first of October and whether they still have a say in it. It says the
+     uncomfortable half too: a sixty-day notice on a thirtieth-of-September
+     end closed on the first of August, and a report that shows a client
+     promises behind without telling them the window has gone is keeping
+     the most useful thing on the page to itself.
+
+     IN AiMY'S BLOCK, AND IT STANDS OUT THERE. It was a grey line in the
+     header, stated flat as a contract fact, and read as small print. Nour:
+     put it in the AiMY block, with a different ground to catch the eye. So
+     it is the last thing AiMY says about the quarter, on a tinted ground of
+     its own with the calendar mark: amber once the window has closed,
+     because that is the half that needs acting on, and the accent while
+     there is still time to say something. */
+  function renewFlag() {
+    if (!isBuyer() || !myDeal() || !myDeal().notice) return '';
+    const pd = periodOf('deal');
+    const left = pd.end ? daysBetween(TODAY_ISO, pd.end) : null;
+    if (left == null) return '';
+    const shut = isoAdd(pd.end, -myDeal().notice);
+    const gone = TODAY_ISO > shut;
+    return '<div class="b-renew' + (gone ? ' is-shut' : '') + '" role="note">' +
+      chIcon('calendar', 16) +
+      '<p>Your year ends in <b>' + esc(plural(Math.max(0, left), 'day')) +
+        '</b>, and notice is ' + esc(plural(myDeal().notice, 'day')) + '. ' +
+        (gone ? 'That window closed on <b>' + esc(sayDay(shut)) +
+          '</b>, so it renews on <b>' + esc(sayDay(isoAdd(pd.end, 1))) +
+          '</b> unless we agree otherwise.'
+          : 'You have until <b>' + esc(sayDay(shut)) + '</b> to say otherwise.') + '</p>' +
+    '</div>';
+  }
+
   function buyerBrief(now, a, pipe, p) {
     const d = myDeal();
     const scored = qProms(d ? d.promises : [])
@@ -12844,7 +12878,11 @@
     ].filter((r) => r.v > 0);
 
     return '<div class="s-home">' +
-      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the briefing') + '</div>' +
+      /* The book menu on the back row, Nour's call: it changes which book
+         the whole page reads, so it sits with the way out rather than among
+         the chips, and the header keeps exactly the manager's control. */
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the briefing') +
+        engChips() + '</div>' +
       '<section class="s-block s-block-wide s-exec" aria-label="Financials">' +
       '<header class="s-exec-top">' +
         '<div>' +
@@ -12905,43 +12943,7 @@
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
         '</div>' +
-        /* ══ THE CLIENT'S CONTROLS SIT WHERE THE MANAGER'S DO ══════════════
-           Level with the heading, at the far end of the row: the chips last,
-           and the book being read just before them, so the two things that
-           change what the page reads are one group. The renewal note was
-           inside the title block and made it three lines tall, so the chips
-           sat on its last line and the book menu wrapped to a row of its own;
-           it is its own full-width line under the row now. */
-        (isBuyer() ? '<div class="b-exec-ctl">' + engChips() + periodChips() + '</div>'
-          : periodChips() + engChips()) +
-        /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
-           Thirteen days from the end of a year, the question a C-level
-           came to this page with is not how the quarter went — it is what
-           happens on the first of October and whether they still have a
-           say in it. Every other figure here is a reading; this is a fact
-           off the contract, which is why it is stated flat and not in
-           AiMY's voice.
-
-           It says the uncomfortable half too. A sixty-day notice on a
-           thirtieth-of-September end closed on the first of August, and a
-           report that shows a client five promises behind without telling
-           them the window to act on it has already gone is keeping the
-           most useful thing on the page to itself. */
-        (function () {
-          if (!isBuyer() || !myDeal() || !myDeal().notice) return '';
-          const pd = periodOf('deal');
-          const left = pd.end ? daysBetween(TODAY_ISO, pd.end) : null;
-          if (left == null) return '';
-          const shut = isoAdd(pd.end, -myDeal().notice);
-          const gone = TODAY_ISO > shut;
-          return '<p class="s-exec-note">Your year ends in ' +
-            esc(plural(Math.max(0, left), 'day')) + ', and notice is ' +
-            esc(plural(myDeal().notice, 'day')) + ' &mdash; ' +
-            (gone ? 'that window closed on ' + esc(sayDay(shut)) +
-              ', so it renews unless we agree otherwise.'
-              : 'you have until ' + esc(sayDay(shut)) + ' to say otherwise.') + '</p>' +
-          '';
-        }()) +
+        periodChips() +
       '</header>' +
 
       '<section class="slv" aria-label="What AiMY makes of it">' +
@@ -12961,6 +12963,7 @@
              floor, which is the outbound one, the overview and every desk
              that is not a client's. */
           qaLine() +
+          renewFlag() +
         '</div>' +
       '</section>' +
 

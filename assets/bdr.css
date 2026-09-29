@@ -6802,15 +6802,29 @@ textarea::placeholder,
 .b-cur-card > .s-skel-line { margin-inline: 14px; max-width: calc(100% - 28px); }
 
 /* ══ 98. THE CLIENT'S REPORT HEADER IS THE MANAGER'S ═══════════════════════
-   The client's report reads by quarter now and carries the same chips as
-   Financials, so its header takes the same shape: the heading and what it
-   counts on the left, the controls level with them at the far end. The
-   book menu sits just before the chips in one group (bdr.js, THE CLIENT'S
-   CONTROLS SIT WHERE THE MANAGER'S DO), and the renewal note takes a full
-   line under the row instead of lengthening the title block, which is what
-   pushed the chips down and the menu onto a line of its own. */
-/* No auto margin: the header is `space-between`, so beside the heading the
-   group sits at the far end, and on a phone it wraps to a line of its own
-   and starts at the left, which is exactly what the manager's chips do. */
-.s-exec-top > .b-exec-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.s-exec-top > .s-exec-note { flex: 1 0 100%; margin: -12px 0 0; }
+   The client's report reads by quarter and carries the manager's chips, so
+   its header is the manager's: the heading and what it counts on the left,
+   the chips level with them at the far end. The book menu is on the back
+   row (bdr.js, `moneyPage`), pushed to its far end, and the renewal note is
+   a callout inside AiMY's block rather than a grey line in the header. */
+.b-topbar > .s-engpick { margin-left: auto; }
+/* The renewal callout. A ground of its own inside the block so it is the
+   thing the eye lands on: amber once the notice window has closed, the
+   accent while there is still time. Ink at --d100, never muted. */
+.b-renew {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-top: 14px; padding: 12px 14px; border-radius: var(--r-md);
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.32);
+}
+.b-renew.is-shut {
+  background: rgba(var(--warn-rgb), 0.12);
+  border-color: rgba(var(--warn-rgb), 0.36);
+}
+.b-renew > svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--accent); }
+.b-renew.is-shut > svg { color: var(--warn-text); }
+.b-renew > p {
+  margin: 0; font-size: var(--t-ui); line-height: var(--lh-base); color: var(--d100);
+  text-wrap: pretty;
+}
+.b-renew > p b { color: var(--d50); font-weight: var(--fw-semibold); }
