@@ -12363,7 +12363,17 @@
         attFig('Behind', behind.length ? commas(behind.length) : 'None',
           behind.length && worst ? 'furthest is ' + (PROM_SAY[worst.r.k] || worst.r.k)
             : 'every promise is being kept',
-          behind.length ? null : 'ok');
+          behind.length ? null : 'ok') +
+        /* The fourth tile, so the row has the manager's four columns rather
+           than three and a gap: how much of the quarter is left, which is
+           the clock every figure beside it is read against. */
+        (reportQ() ? (function () {
+          const q = periodOf(S.period);
+          return q.whole
+            ? attFig('Time left', 'None', 'the quarter closed on ' + sayDay(q.to))
+            : attFig('Time left', plural(Math.max(0, q.span - q.days - 1), 'day'),
+              'of the quarter, to ' + sayDay(qEnd(q)));
+        }()) : '');
     }
   }
 
@@ -12894,36 +12904,44 @@
               : (isWhole() ? 'FlairsTech' : 'Everything') + ' &middot; ' +
                 esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
                 esc(plural(deals.length, 'deal'))) + '</p>' +
-          /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
-             Thirteen days from the end of a year, the question a C-level
-             came to this page with is not how the quarter went — it is what
-             happens on the first of October and whether they still have a
-             say in it. Every other figure here is a reading; this is a fact
-             off the contract, which is why it is stated flat and not in
-             AiMY's voice.
-
-             It says the uncomfortable half too. A sixty-day notice on a
-             thirtieth-of-September end closed on the first of August, and a
-             report that shows a client five promises behind without telling
-             them the window to act on it has already gone is keeping the
-             most useful thing on the page to itself. */
-          (function () {
-            if (!isBuyer() || !myDeal() || !myDeal().notice) return '';
-            const pd = periodOf('deal');
-            const left = pd.end ? daysBetween(TODAY_ISO, pd.end) : null;
-            if (left == null) return '';
-            const shut = isoAdd(pd.end, -myDeal().notice);
-            const gone = TODAY_ISO > shut;
-            return '<p class="s-exec-note">Your year ends in ' +
-              esc(plural(Math.max(0, left), 'day')) + ', and notice is ' +
-              esc(plural(myDeal().notice, 'day')) + ' &mdash; ' +
-              (gone ? 'that window closed on ' + esc(sayDay(shut)) +
-                ', so it renews unless we agree otherwise.'
-                : 'you have until ' + esc(sayDay(shut)) + ' to say otherwise.') + '</p>' +
-            '';
-          }()) +
         '</div>' +
-        periodChips() + engChips() +
+        /* ══ THE CLIENT'S CONTROLS SIT WHERE THE MANAGER'S DO ══════════════
+           Level with the heading, at the far end of the row: the chips last,
+           and the book being read just before them, so the two things that
+           change what the page reads are one group. The renewal note was
+           inside the title block and made it three lines tall, so the chips
+           sat on its last line and the book menu wrapped to a row of its own;
+           it is its own full-width line under the row now. */
+        (isBuyer() ? '<div class="b-exec-ctl">' + engChips() + periodChips() + '</div>'
+          : periodChips() + engChips()) +
+        /* ══ WHAT HAPPENS AT THE END OF IT ══════════════════════════════
+           Thirteen days from the end of a year, the question a C-level
+           came to this page with is not how the quarter went — it is what
+           happens on the first of October and whether they still have a
+           say in it. Every other figure here is a reading; this is a fact
+           off the contract, which is why it is stated flat and not in
+           AiMY's voice.
+
+           It says the uncomfortable half too. A sixty-day notice on a
+           thirtieth-of-September end closed on the first of August, and a
+           report that shows a client five promises behind without telling
+           them the window to act on it has already gone is keeping the
+           most useful thing on the page to itself. */
+        (function () {
+          if (!isBuyer() || !myDeal() || !myDeal().notice) return '';
+          const pd = periodOf('deal');
+          const left = pd.end ? daysBetween(TODAY_ISO, pd.end) : null;
+          if (left == null) return '';
+          const shut = isoAdd(pd.end, -myDeal().notice);
+          const gone = TODAY_ISO > shut;
+          return '<p class="s-exec-note">Your year ends in ' +
+            esc(plural(Math.max(0, left), 'day')) + ', and notice is ' +
+            esc(plural(myDeal().notice, 'day')) + ' &mdash; ' +
+            (gone ? 'that window closed on ' + esc(sayDay(shut)) +
+              ', so it renews unless we agree otherwise.'
+              : 'you have until ' + esc(sayDay(shut)) + ' to say otherwise.') + '</p>' +
+          '';
+        }()) +
       '</header>' +
 
       '<section class="slv" aria-label="What AiMY makes of it">' +

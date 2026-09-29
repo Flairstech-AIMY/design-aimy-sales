@@ -6800,3 +6800,17 @@ textarea::placeholder,
 /* The card's children carry the 14px inset themselves, so the shimmer
    does too, and lines up with the words the finished card will have. */
 .b-cur-card > .s-skel-line { margin-inline: 14px; max-width: calc(100% - 28px); }
+
+/* ══ 98. THE CLIENT'S REPORT HEADER IS THE MANAGER'S ═══════════════════════
+   The client's report reads by quarter now and carries the same chips as
+   Financials, so its header takes the same shape: the heading and what it
+   counts on the left, the controls level with them at the far end. The
+   book menu sits just before the chips in one group (bdr.js, THE CLIENT'S
+   CONTROLS SIT WHERE THE MANAGER'S DO), and the renewal note takes a full
+   line under the row instead of lengthening the title block, which is what
+   pushed the chips down and the menu onto a line of its own. */
+/* No auto margin: the header is `space-between`, so beside the heading the
+   group sits at the far end, and on a phone it wraps to a line of its own
+   and starts at the left, which is exactly what the manager's chips do. */
+.s-exec-top > .b-exec-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.s-exec-top > .s-exec-note { flex: 1 0 100%; margin: -12px 0 0; }
