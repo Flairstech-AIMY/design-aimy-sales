@@ -3889,7 +3889,9 @@
     if (S.on === 'deals' && !onBook()) S.on = 'calls';
     /* Same refusal as `as` two branches up: a key that silently means a
        window this desk cannot read is worse than one that resolves. */
-    if (isBuyer()) S.period = 'deal';
+    /* The report reads by calendar quarter (below, A CLIENT'S REPORT READS BY
+       CALENDAR QUARTER); every other surface on this desk keeps the term. */
+    if (isBuyer()) S.period = S.on !== 'money' ? 'deal' : S.period === 'lq' ? 'lq' : 'q';
     /* Two surfaces a buyer has no reading of, refused the way `as` is
        refused above rather than left to resolve into something else. The
        lists are our suppliers'; the notes are `t.by === me().id`, so a
@@ -5668,7 +5670,7 @@
               commas(scored.length) + '</b> on your year.'
             : 'All <b>' + commas(scored.length) + '</b> promises on your year are being kept.',
           evidence: [{ val: commas(kept.length), cap: 'kept' },
-            { val: commas(leftD), cap: 'days of the year left' }],
+            { val: commas(leftD), cap: (leftD === 1 ? 'day' : 'days') + ' of the year left' }],
           act: null, q: null,
         },
       };
@@ -8794,7 +8796,12 @@
      overlay with another name and the one thing this build refuses. The
      diary is a page now, so the gate is a gate. */
   function railDoors() {
-    const worth = bookAttain().booked;
+    /* The door keeps the contract's figure on every page, the report
+       included, which reads by quarter on this desk. */
+    const worth = isBuyer()
+      ? dealBook().filter((c) => { const w = wonAt(c); return w && inPeriod(w, periodOf('deal')); })
+        .reduce((n, c) => n + acvOf(c).value, 0)
+      : bookAttain().booked;
     return '<div class="rail-doors">' +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
@@ -8804,10 +8811,10 @@
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         /* Financials is our word for it and the page it opens is titled
-           "Your year with AiMY" on this desk. A door that names the page
+           "Your journey with AiMY" on this desk. A door that names the page
            something the page does not call itself is the reader doing
            translation — and "gained" with it: we gain it, they signed it. */
-        '<span class="b-door-cap">' + (isBuyer() ? 'Your year' : 'Financials') + '</span>' +
+        '<span class="b-door-cap">' + (isBuyer() ? 'Your journey' : 'Financials') + '</span>' +
         '<span class="b-door-fig">' + esc(euro(worth)) +
           '<span class="b-door-of">' + (isBuyer() ? 'signed' : 'gained') + '</span></span>' +
         bookBar() +
@@ -8855,7 +8862,7 @@
     return '<div class="rail-doors">' +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
-        '<span class="b-door-cap">Your year</span>' +
+        '<span class="b-door-cap">Your journey</span>' +
         '<span class="b-door-fig">' + esc(commas(y.left)) +
           '<span class="b-door-of">' + (y.left === 1 ? 'day left' : 'days left') +
           '</span></span>' +
@@ -9102,7 +9109,39 @@
      So the control is not narrowed, it is gone, and what replaces it is the
      term said in words beside the heading. A switcher offering one option is
      a control that cannot be worked. */
-  const periodsFor = () => (isBuyer() ? [] : PERIODS);
+  /* ══ A CLIENT'S REPORT READS BY CALENDAR QUARTER ══════════════════════
+     Nour, 29 Sep 2026, overruling the paragraph above: the report on this
+     desk is quarterly, on calendar quarters, with the same This quarter /
+     Last quarter chips the manager has. The term still exists and still
+     matters (it is when they renew), so the renewal note keeps it, and so
+     does every surface off this page: the rail door, Today and the bell
+     read the contract year exactly as before.
+
+     WHAT A QUARTER OF A PROMISE IS. A promise that accumulates (meetings,
+     people reached, hires, revenue) is counted inside the quarter against
+     the quarter's share of the year's number, by days, rounded to the unit
+     it was written in; the row says whose share it is. A promise that is a
+     rate or a state (a quality score, minutes to a reply, regions covered)
+     has no share: it is the same bar in any quarter. The fee is shown as
+     the quarter's share of the year's. */
+  const periodsFor = () => (isBuyer()
+    ? PERIODS.filter((r) => r.k === 'q' || r.k === 'lq') : PERIODS);
+  const reportQ = () => isBuyer() && S.on === 'money' && (S.period === 'q' || S.period === 'lq');
+  const qShare = (p) => (p.span || (daysBetween(p.from, p.to) + 1)) /
+    (periodOf('deal').span || 365);
+  const qEnd = (p) => (p.span ? isoAdd(p.from, p.span - 1) : p.to);
+  const PROM_FLOW = { 'funnel.met': 1, 'funnel.reachable': 1, 'funnel.won': 1, arr: 1 };
+  function qTo(r, p) {
+    const n = r.to * qShare(p);
+    return r.unit === 'money' ? Math.max(500, Math.round(n / 500) * 500) : Math.max(1, Math.round(n));
+  }
+  function qProms(list) {
+    if (!reportQ()) return list || [];
+    const p = periodOf(S.period);
+    return (list || []).map((r) => (r.was == null && PROM_FLOW[r.read]
+      ? Object.assign({}, r, { to: qTo(r, p), ofYear: r.to }) : r));
+  }
+  const qFee = (n) => (reportQ() ? Math.round(n * qShare(periodOf(S.period)) / 1000) * 1000 : n);
   const inPeriod = (at, p) => !!at && at >= p.from && at <= p.to;
 
   /* ══ A PART-FINISHED PERIOD COMPARES AGAINST A PART OF THE LAST ONE ════
@@ -10647,7 +10686,7 @@
   };
   const targetFor = (p) => {
     const arr = promiseOf('arr');
-    if (arr) return arr.to;
+    if (arr) return reportQ() ? qTo(arr, p) : arr.to;
     /* ══ AND A FLOOR HAS NO MONEY TARGET AT ALL ══════════════════════════
        Falling through here put the sales desk's €300k on Nordwind's rail
        door, which is the same leak the client desk was built to close
@@ -11590,7 +11629,7 @@
   function promiseLedger(now, pipe, p) {
     const d = myDeal();
     if (!d || !d.promises) return '';
-    const rows = d.promises.map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+    const rows = qProms(d.promises).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
       .filter((x) => x.got != null);
     if (!rows.length) return '';
     const draw = (x) => {
@@ -11610,8 +11649,14 @@
            value-realisation literature says almost no vendor shows. */
         trend = ' &middot; ' + esc(promFig(r, r.was)) + ' at signing, ' +
           esc(promFig(r, r.to)) + ' promised';
-      } else if (due != null && !kept) {
+      } else if (due != null && !kept && !p.whole) {
+        /* Not on a window that is over: "by now" there is the target again. */
         trend = ' &middot; ' + esc(promFig(r, due)) + ' by now';
+      }
+      /* Whose share the figure on the right is, so a row reading "8 of 8"
+         under a sentence promising thirty is not a contradiction. */
+      if (r.ofYear != null) {
+        trend += ' &middot; the quarter\u2019s share of ' + esc(promFig(r, r.ofYear)) + ' a year';
       }
       return '<span class="s-pan-p">' +
         '<span class="s-pan-who">' +
@@ -11668,11 +11713,20 @@
     const kept = rows.filter((x) => promKept(x.r, x.got)).length;
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
-        '<h2 class="s-exec-eyebrow">What the year promised</h2>' +
-        secAsk('Which of these will we miss',
+        '<h2 class="s-exec-eyebrow">' + (reportQ()
+          ? 'The promises, ' + (p.k === 'lq' ? 'last quarter' : 'this quarter')
+          : 'What the year promised') + '</h2>' +
+        /* A quarter that is over has nothing left to catch, so it asks why. */
+        (reportQ() && p.whole
+          ? secAsk('Why these fell behind',
+            commas(rows.length - kept) + ' of my ' + plural(rows.length, 'promise') +
+            ' fell behind last quarter. Say why each one did and what would stop it ' +
+            'happening again.')
+          : secAsk('Which of these will we miss',
           commas(rows.length - kept) + ' of my ' + plural(rows.length, 'promise') +
           ' are behind with ' + (p.end ? plural(Math.max(0, daysBetween(TODAY_ISO, p.end)), 'day')
-            : 'weeks') + ' to run. Say which of them can still be caught and what it would take.') +
+            : p.span && p.days != null ? plural(Math.max(0, p.span - p.days - 1), 'day')
+            : 'weeks') + ' to run. Say which of them can still be caught and what it would take.')) +
       '</div>' +
       group('Ours to keep', ourRows) +
       group(theirs, theirRows) +
@@ -11779,7 +11833,7 @@
         '<h2 class="s-exec-eyebrow">What you bought</h2>' +
       '</div>' +
       '<div class="s-odds-rows">' + es.map((e) => {
-        const scored = (e.promises || [])
+        const scored = qProms(e.promises)
           .map((p) => { const r = Object.assign({}, p, { eng: e });
             return { r: r, got: promiseGot(r, now, pipe) }; })
           .filter((x) => x.got != null);
@@ -11794,7 +11848,7 @@
               esc(commas(kept)) + ' of ' + esc(plural(scored.length, 'promise')) +
               ' kept</span>' +
           '</span>' +
-          '<span class="s-pan-cost">' + esc(fmtMoney(e.fee || 0)) + '</span>' +
+          '<span class="s-pan-cost">' + esc(fmtMoney(qFee(e.fee || 0))) + '</span>' +
         '</button>';
       }).join('') + '</div>' +
       /* ══ AND THE SUM NOBODY SHOULD MAKE ═══════════════════════════════
@@ -11820,7 +11874,7 @@
           esc(other.map(engName).join(' and ')) +
           (other.length === 1 ? ' answers' : ' answer') + ' in coverage, speed and hours that ' +
           'were not being covered &mdash; which is not money and is not added to it. ' +
-          'The figure above is what the year cost, not what it was worth.</p>';
+          'The figure above is what the ' + (reportQ() ? 'quarter' : 'year') + ' cost, not what it was worth.</p>';
       }()) +
     '</section>';
   }
@@ -11844,7 +11898,7 @@
      takes a position at the end of it, because a position before the
      evidence is an assertion. */
   function engStand(e, now, pipe, scope) {
-    const scored = (e.promises || [])
+    const scored = qProms(e.promises)
       .map((p) => { const r = Object.assign({}, p, { eng: e });
         return { r: r, got: promiseGot(r, now, pipe) }; })
       .filter((x) => x.got != null);
@@ -11940,7 +11994,9 @@
   function buyerWork(now) {
     return '<section class="s-exec-sec">' +
       '<div class="s-sec-head">' +
-        '<h2 class="s-exec-eyebrow">What we did with your year</h2>' +
+        '<h2 class="s-exec-eyebrow">' + (reportQ()
+          ? 'What we did ' + (S.period === 'lq' ? 'last quarter' : 'this quarter')
+          : 'What we did with your year') + '</h2>' +
       '</div>' +
       buyerFunnel(now) +
     '</section>';
@@ -12296,7 +12352,7 @@
       }).join('');
     }
     {
-      const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      const scored = qProms(d.promises).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
         .filter((x) => x.got != null);
       const kept = scored.filter((x) => promKept(x.r, x.got));
       const behind = scored.filter((x) => !promKept(x.r, x.got));
@@ -12317,19 +12373,21 @@
      campaigns by it. This says the three things their deal is about. */
   function buyerBrief(now, a, pipe, p) {
     const d = myDeal();
-    const scored = (d ? d.promises : [])
+    const scored = qProms(d ? d.promises : [])
       .map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
       .filter((x) => x.got != null);
     const kept = scored.filter((x) => promKept(x.r, x.got));
     const short = scored.filter((x) => !promKept(x.r, x.got));
-    const left = p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end)) : null;
+    const left = p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end))
+      : p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : null;
     const fn = Object.create(null);
     (now.funnel || []).forEach((x) => (fn[x.k] = x.n));
     const bits = [];
     if (scored.length) {
       bits.push('<b>' + commas(kept.length) + ' of ' + esc(plural(scored.length, 'promise')) +
         '</b> kept' +
-        (left == null ? '' : ', with <b>' + esc(plural(left, 'day')) + '</b> of the year to run') +
+        (left == null ? '' : ', with <b>' + esc(plural(left, 'day')) + '</b> of the ' +
+          (p.end ? 'year' : 'quarter') + ' to run') +
         '.');
     }
     /* ══ AND THE LINE GOES IN THE PARAGRAPH, NOT IN A FOOTNOTE ═══════════
@@ -12419,7 +12477,7 @@
        one, and it was not. */
     if (bookKind() === 'all') {
       const d = myDeal();
-      const scored = (d.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      const scored = qProms(d.promises).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
         .filter((x) => x.got != null && !promKept(x.r, x.got));
       const byEng = Object.create(null);
       scored.forEach((x) => { const k = x.r.eng ? engName(x.r.eng) : 'it';
@@ -12471,7 +12529,7 @@
             fmtMoney(d0.fee) + ' now. What did the difference buy, in the figures on ' +
             'this page?' });
       }
-      const bad = (d0.promises || []).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
+      const bad = qProms(d0.promises).map((r) => ({ r: r, got: promiseGot(r, now, pipe) }))
         .filter((x) => x.got != null && !promKept(x.r, x.got));
       /* Last of the three and the only one with a clock in it, which is
          the order the overview's own three keep. */
@@ -12566,8 +12624,7 @@
     /* `deal` is not one of the chips, so this fell through to the first of
        them and stamped "this quarter" on a page measuring a year. A client's
        window is not a chip anybody picked; it is the term they signed. */
-    const when = isBuyer() ? 'this year'
-      : (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
+    const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
 
     const a = attainment(now, pipe, p);
     const camps = campaignCosts(p);
@@ -12813,7 +12870,7 @@
              what it counts is a page whose every figure is wrong by an
              unknown amount. So it stays, under the heading, as a sentence
              rather than as capitals. */
-          '<h1 class="s-exec-h">' + (isBuyer() ? 'Your year with AiMY' : 'Financials') + '</h1>' +
+          '<h1 class="s-exec-h">' + (isBuyer() ? 'Your journey with AiMY' : 'Financials') + '</h1>' +
           /* The scope line is the page saying what it counted, and on this
              desk the window is not a chip anybody chose — it is the term
              they signed, so it is named here instead. */
@@ -12830,8 +12887,8 @@
                   : onPipeline() ? plural(myCamps().length, 'campaign')
                   : myDeal().seats ? plural(myDeal().seats, 'seat')
                   : plural((myDeal().team || {}).agents || 0, 'person') + ' on the desk') +
-                ' &middot; to ' +
-                esc(sayDay(periodOf('deal').end))
+                ' &middot; ' +
+                esc(sayDay(p.from) + ' to ' + sayDay(qEnd(p)))
               /* True of this reader again, and only of him: the page he
                  reads counts every campaign the company runs. */
               : (isWhole() ? 'FlairsTech' : 'Everything') + ' &middot; ' +
@@ -12873,7 +12930,7 @@
         '<div class="slv-head">' +
           '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
           '<h2 class="slv-title">' +
-            (isBuyer() ? 'How the year is going' : 'How the quarter is going') + '</h2>' +
+            (isBuyer() && p.k === 'lq' ? 'How last quarter went' : 'How the quarter is going') + '</h2>' +
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
@@ -13120,11 +13177,11 @@
            and forty against a hundred and thirty-eight the answer is "about
            the same", which two figures on one tile already say. */
         (isBuyer()
-          ? attFig('Your fee', myDeal() ? fmtMoney(myDeal().fee) : '—',
+          ? attFig('Your fee', myDeal() ? fmtMoney(qFee(myDeal().fee)) : '—',
             !myDeal() ? ''
               : myDeal().spend && myDeal().spend.was != null
-                ? 'was ' + fmtMoney(myDeal().spend.was) + ' to run it yourselves'
-                : 'for the year to ' + sayDay(periodOf('deal').end))
+                ? 'was ' + fmtMoney(qFee(myDeal().spend.was)) + ' to run it yourselves'
+                : 'the quarter\u2019s share of ' + fmtMoney(myDeal().fee) + ' a year')
           : attFig('Spent', fmtMoney(now.spend.total),
           !now.spend.total ? 'nothing spent in this window'
             : now.cac == null ? 'nothing signed against it yet'
@@ -14403,7 +14460,7 @@
                 'Say what next year should ask for instead.',
               label: 'Ask what next year should be',
               why: 'every promise on your year is being kept' }),
-        { k: 'money', label: 'See the year',
+        { k: 'money', label: 'Your journey with AiMY',
           why: 'what was promised, and what has happened against it' },
       ];
     } else if (isWhole()) {
