@@ -15,3 +15,7 @@ old/AUDIT.md
 !.dev.vars.example
 .env*
 !.env.example
+
+# The walkthrough films, their capture scripts and renders. Local only:
+# hundreds of megabytes that must never be committed or pushed.
+walkthroughs/
