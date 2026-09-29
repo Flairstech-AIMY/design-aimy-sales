@@ -6599,10 +6599,38 @@ textarea::placeholder,
    that says it is going and for how long, and under it a rail of steps that
    appear as they start. The live step's words shimmer, a finished step draws
    its tick and says what it found, and when the run is over the heading
-   becomes "Curated in 7.6s" and the rail folds away under it. Native
+   becomes "Curated in 6.0s" and the rail folds away under it. Native
    <details>, so folding and reopening is the browser's and the keyboard's
    without a line of script. */
-.b-cur { margin-top: 14px; }
+/* ══ OUT OF THE BUBBLE, AND NOTHING POPS ══════════════════════════════════
+   It sat inside a message bubble, a frame around a frame, and every change
+   was a jump: a step arrived by flipping from `display: none`, so the thread
+   grew a whole row in one frame and the scroll snapped after it; a finished
+   step's result line did the same; and the fold at the end was a redraw, not
+   a motion. Nour: "not smooth at all", and "no need to make it in a chat
+   bubble".
+
+   So the line is its own row beside the mark, and every change is a
+   transition on a state class. A step grows from nothing with the 0fr to
+   1fr grid-row trick (the row's content is measured by the browser, never
+   by script), fades up 4px as it does, and the result line under a finished
+   step grows the same way. The rail between two pins fades in as the next
+   step grows. The thread scroll follows the growth frame by frame
+   (`curFollow`), and the fold at the end is the platform's own
+   ::details-content height transition, started a frame after the line is
+   drawn so there is something to transition from.
+
+   Timings are transitions.dev's: a step opens like a panel (400ms), a
+   result line reveals like text (350ms), the rail and the note fade at
+   250ms, and the fold closes like a panel (350ms), all on the smooth-out
+   curve. */
+.b-cur-msg .b-cur-wrap { flex: 1; min-width: 0; padding-top: 5px; }
+.b-cur { interpolate-size: allow-keywords; }
+.b-cur::details-content {
+  height: 0; overflow: clip;
+  transition: height 350ms var(--ease-out), content-visibility 350ms allow-discrete;
+}
+.b-cur[open]::details-content { height: auto; }
 .b-cur-sum {
   display: inline-flex; align-items: center; gap: 8px;
   list-style: none; cursor: pointer; user-select: none;
@@ -6612,7 +6640,7 @@ textarea::placeholder,
 .b-cur-sum::-webkit-details-marker { display: none; }
 .b-cur-sum:hover { color: var(--d50); }
 .b-cur-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: var(--r-xs); }
-.b-cur-sum > svg { flex: none; color: var(--d200); transition: transform var(--t-fast) var(--ease-out); }
+.b-cur-sum > svg { flex: none; color: var(--d200); transition: transform 250ms var(--ease-out); }
 .b-cur[open] > .b-cur-sum > svg { transform: rotate(180deg); }
 .b-cur-time, .b-cur-peek-time {
   font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200);
@@ -6621,8 +6649,7 @@ textarea::placeholder,
 .b-cur-time:empty { display: none; }
 
 /* The words that are still happening. A light passes across them left to
-   right, which is the only part of the state that is decoration: the
-   words say what is happening and are readable at every frame of it. */
+   right; the words are readable at every frame of it. */
 .b-cur.is-live .b-cur-say,
 .b-cur-step.is-live .b-cur-label,
 .b-cur-peek-say .pipe-say,
@@ -6648,36 +6675,62 @@ textarea::placeholder,
 }
 @keyframes b-cur-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
-.b-cur-steps { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+/* What closing the canvas does, said while it matters and folded away
+   once it does not. */
+.b-cur-note {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows 350ms var(--ease-out), opacity 250ms var(--ease-out);
+}
+.b-cur.is-live .b-cur-note { grid-template-rows: 1fr; opacity: 1; }
+.b-cur-note > p {
+  min-height: 0; overflow: hidden; margin: 0;
+  font-size: var(--t-small); line-height: 20px; color: var(--d200);
+}
+.b-cur-note > p::before { content: ''; display: block; height: 4px; }
+
+.b-cur-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.b-cur-steps::before { content: ''; display: block; height: 12px; }
+/* A step grows from nothing when it starts. The padding that spaces it
+   from the step above lives INSIDE the part that grows, so the gap arrives
+   with the step instead of before it. */
 .b-cur-step {
+  display: grid; grid-template-rows: 1fr; opacity: 1; transform: none;
+  transition: grid-template-rows 400ms var(--ease-out), opacity 300ms var(--ease-out) 60ms,
+    transform 400ms var(--ease-out);
+}
+.b-cur-step.is-wait { grid-template-rows: 0fr; opacity: 0; transform: translateY(4px); }
+.b-cur-in { min-height: 0; overflow: hidden; }
+.b-cur-row {
   position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr);
-  column-gap: 12px; padding-bottom: 14px;
+  column-gap: 12px; padding-top: 14px;
 }
-/* Not drawn until it starts. A step list that shows its whole future is a
-   progress bar in words; one that grows is somebody working. */
-.b-cur-step.is-wait { display: none; }
-.b-cur-step:last-child, .b-cur-step.is-live, .b-cur-step:has(+ .is-wait) { padding-bottom: 0; }
-/* The rail, from one pin to the next. */
-.b-cur-step::before {
-  content: ''; position: absolute; left: 8.5px; top: 22px; bottom: 3px;
-  width: 1px; background: var(--card-border);
+.b-cur-step:first-child .b-cur-row { padding-top: 0; }
+/* The rail: a segment above each pin but the first, which grows with its
+   step, and one below each pin that fades in once the next step exists. */
+.b-cur-row::before, .b-cur-row::after {
+  content: ''; position: absolute; left: 8.5px; width: 1px; background: var(--card-border);
 }
-.b-cur-step:last-child::before, .b-cur-step.is-live::before,
-.b-cur-step:has(+ .is-wait)::before { display: none; }
+.b-cur-row::before { top: 0; height: 15px; }
+.b-cur-step:first-child .b-cur-row::before { display: none; }
+.b-cur-row::after { top: 34px; bottom: 0; opacity: 0; transition: opacity 250ms var(--ease-out); }
+.b-cur-step:first-child .b-cur-row::after { top: 20px; }
+.b-cur-step:has(+ .b-cur-step:not(.is-wait)) .b-cur-row::after { opacity: 1; }
 .b-cur-pin {
   position: relative; z-index: 1; width: 18px; height: 18px; margin-top: 1px;
   border-radius: 50%; background: var(--card-bg); border: 1.5px solid var(--card-border);
-  transition: background-color 360ms var(--ease-out), border-color 360ms var(--ease-out);
+  transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out);
 }
 .b-cur-step.is-live .b-cur-pin { border-color: var(--accent); }
-.b-cur-step.is-live .b-cur-pin::after {
+.b-cur-pin::after {
   content: ''; position: absolute; inset: 0; margin: auto; width: 6px; height: 6px;
-  border-radius: 50%; background: var(--accent);
+  border-radius: 50%; background: var(--accent); opacity: 0; transform: scale(0.4);
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
 }
+.b-cur-step.is-live .b-cur-pin::after { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .b-cur-step.is-live .b-cur-pin::after { animation: b-cur-beat 1s var(--ease-out) infinite alternate; }
+  .b-cur-step.is-live .b-cur-pin::after { animation: b-cur-beat 1.2s ease-in-out infinite alternate; }
 }
-@keyframes b-cur-beat { from { transform: scale(0.7); opacity: 0.6; } to { transform: scale(1.15); opacity: 1; } }
+@keyframes b-cur-beat { from { transform: scale(0.75); } to { transform: scale(1.1); } }
 .b-cur-step.is-done .b-cur-pin { background: var(--ok-text); border-color: var(--ok-text); }
 /* The tick draws itself, off the same pathLength="1" trick the pipeline's
    pins used, so nothing is measured to do it. */
@@ -6685,22 +6738,28 @@ textarea::placeholder,
   position: absolute; inset: 0; margin: auto; width: 10px; height: 10px;
   color: var(--card-bg); opacity: 0;
   stroke-dasharray: 1; stroke-dashoffset: 1;
-  transition: stroke-dashoffset var(--t-open) var(--ease-out), opacity var(--t-fast) var(--ease-out);
+  transition: stroke-dashoffset 350ms var(--ease-out) 80ms, opacity 150ms var(--ease-out) 80ms;
 }
 .b-cur-step.is-done .b-cur-pin > svg { stroke-dashoffset: 0; opacity: 1; }
-.b-cur-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b-cur-body { display: flex; flex-direction: column; min-width: 0; }
 .b-cur-label {
   font-size: var(--t-ui); line-height: 20px; font-weight: var(--fw-semibold); color: var(--d100);
 }
-.b-cur-said { font-size: var(--t-small); line-height: 20px; color: var(--d200); }
-.b-cur-step:not(.is-done) .b-cur-said { display: none; }
-@media (prefers-reduced-motion: no-preference) {
-  .b-cur-step.is-enter { animation: b-arrive 260ms var(--ease-out) both; }
-  .b-cur-step.is-settle .b-cur-said { animation: b-cur-said-in 300ms var(--ease-out) both; }
+/* What a step found grows in under it when it finishes. */
+.b-cur-saidw {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows 350ms var(--ease-out), opacity 250ms var(--ease-out) 80ms;
 }
-@keyframes b-cur-said-in { from { opacity: 0; transform: translateY(-3px); } }
+.b-cur-step.is-done .b-cur-saidw { grid-template-rows: 1fr; opacity: 1; }
+.b-cur-said {
+  min-height: 0; overflow: hidden;
+  font-size: var(--t-small); line-height: 20px; color: var(--d200);
+}
+.b-cur-said::before { content: ''; display: block; height: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .b-cur-pin, .b-cur-pin > svg, .b-cur-sum > svg { transition: none; }
+  .b-cur::details-content, .b-cur-step, .b-cur-saidw, .b-cur-note, .b-cur-row::after,
+  .b-cur-pin, .b-cur-pin::after, .b-cur-pin > svg, .b-cur-sum > svg { transition: none; }
+  .b-cur-step.is-wait { transform: none; }
 }
 
 /* ══ THE PRIMARY ANSWER IN A TURN ════════════════════════════════════════

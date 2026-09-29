@@ -25109,6 +25109,13 @@
       return '<div class="chat-msg aimy is-thinking">' + msgAvatar('aimy') +
         '<div class="msg-bubble">' + t.html + '</div></div>';
     }
+    /* A curation is AiMY working, not AiMY saying something: her mark and
+       the line of steps beside it, with no bubble around them. Drawn from
+       the run's own record, because it changes after the turn is written. */
+    if (t.cur) {
+      return '<div class="chat-msg aimy b-cur-msg">' + msgAvatar('aimy') +
+        '<div class="b-cur-wrap">' + curStepper(t.cur) + '</div></div>';
+    }
     return '<div class="chat-msg aimy">' + msgAvatar('aimy') +
       '<div class="msg-bubble">' + t.html +
         (t.hint ? '<p class="s-cb-hint">' + kbdify(t.hint) + '</p>' : '') +
@@ -25117,9 +25124,7 @@
            question to mean anything — so a turn may carry markup between its
            sentence and its shortcuts. It is the card the record will carry,
            drawn by the renderer the record uses. */
-        /* A run is drawn from its own record rather than stored as markup,
-           because it changes after the turn is written. */
-        (t.cur ? curStepper(t.cur) : (t.card || '')) +
+        (t.card || '') +
         (t.opts && t.opts.length
           ? '<div class="s-cb-opts">' + t.opts.map((o) =>
               '<button class="s-cb-opt' + (o.quiet ? ' is-quiet' : '') +
@@ -29568,71 +29573,30 @@
       ? 'Added <b>' + added.map((p) => esc(lbuildLabel(p))).join(', ') + '</b>.' : '');
   }
 
-  /* ══ WHERE THE LIST GOES, DECIDED BY WHAT IT IS ═══════════════════════
-     The page asked this with a menu of every open campaign after the run.
-     A list whose sector is a campaign's sector is almost always for that
-     campaign, so AiMY proposes it in the plan and the plan can be told
-     otherwise in one press. The sector has to match; where a country was
-     named it has to be inside the campaign's region too, because Dutch
-     software companies are not a MENA software campaign's people. */
-  function lbuildCampPick() {
-    const t = lbuildT();
-    const ind = t.industry || [];
-    const cc = t.where || [];
-    let best = null;
-    let top = 0;
-    myCampaigns().filter(campOpen).forEach((k) => {
-      if (ind.indexOf(k.industry) < 0) return;
-      const reg = REGION[k.region];
-      const inReg = !!reg && cc.some((x) => reg.cc.indexOf(x) >= 0);
-      if (cc.length && !inReg) return;
-      const s = inReg ? 2 : 1;
-      if (s > top) { top = s; best = k; }
-    });
-    return best ? best.id : null;
-  }
-  /* Who calls it. A caller's list is theirs; a manager's list for a
-     campaign goes to the people already working that campaign, dealt out
-     evenly, which is what the page's team menu was mostly used to say. */
-  function lbuildCrew() {
-    const k = LBUILD.to ? DB.byCamp[LBUILD.to] : null;
-    if (isMgr() && k && k.crew && k.crew.length) return k.crew.slice();
-    return [me().id];
-  }
-
-  /* ══ THE PLAN, IN ONE SENTENCE, BEFORE ANYTHING RUNS ══════════════════
-     Everything the page used to ask after the run, asked before it: which
-     campaign, who calls, what it is called. Said as a plan rather than as
-     three questions, because each has a right answer AiMY can already see
-     and three questions would make you confirm three things you agree with.
-     Curate is the one press; the campaign can be taken off or put back, and
-     typing anything renames it. */
+  /* ══ A NEW LIST, EVERY TIME ═══════════════════════════════════════════
+     The plan used to propose a campaign for the list (the one whose sector
+     matched), with a press to take it off or put it back, and a manager's
+     list for a campaign was dealt to that campaign's callers. Nour, 29 Sep
+     2026: no list is created attached to a campaign; every run makes a
+     brand new list of its own, and putting it on a campaign is a separate
+     decision made from the list afterwards. A finder opened from a campaign
+     still starts from that campaign's market, because those are criteria,
+     not a destination. */
   function lbuildPlan() {
-    if (!lbuildMatched().length && !LBUILD.take.length) { lbuildTurn(''); return; }
+    const hit = lbuildMatched().length;
+    if (!hit && !LBUILD.take.length) { lbuildTurn(''); return; }
     LBUILD.step = 'plan';
     if (!LBUILD.kind) LBUILD.kind = 'con';
-    /* Read again on every plan, because the criteria may have changed
-       since the last one; only a choice somebody made by hand is kept. */
-    LBUILD.pick = lbuildCampPick();
-    if (!LBUILD.toSet) LBUILD.to = LBUILD.camp || LBUILD.pick;
     /* The name follows the criteria until somebody types one. */
     if (!LBUILD.named) LBUILD.name = lbuildAutoName();
-    const k = LBUILD.to ? DB.byCamp[LBUILD.to] : null;
-    const crew = lbuildCrew();
-    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
-    const who = crew.length === 1 ? 'for ' + first(crew[0]) + ' to call'
-      : 'split evenly between ' + listSay(crew.map(first));
     const take = LBUILD.take.length;
-    const alt = LBUILD.camp ? null
-      : k ? { k: 'nocamp', label: 'Leave it off a campaign', quiet: true }
-      : LBUILD.pick ? { k: 'camp', label: 'Put it on ' + DB.byCamp[LBUILD.pick].name, quiet: true }
-      : null;
-    lbuildPush('Here is the plan. I will look for <b>' +
-      esc(describeSentence(lbuildT(), LBUILD.kind)) + '</b>' +
-      (take ? ', bring <b>' + commas(take) + '</b> of yours along' : '') + ', ' +
-      (k ? 'put them on <b>' + esc(k.name) + '</b>' : 'keep them off a campaign for now') +
-      ', ' + esc(who) + ', and call the list <b>“' + esc(LBUILD.name) + '”</b>.',
-      [{ k: 'curate', label: 'Curate the list', primary: true }].concat(alt ? [alt] : []),
+    const n = Math.min(hit, 500 - take);
+    lbuildPush('Here is the plan. A new list called <b>“' + esc(LBUILD.name) + '”</b>: ' +
+      '<b>' + esc(describeSentence(lbuildT(), LBUILD.kind)) + '</b>, about <b>' + commas(n) +
+      '</b> of them' +
+      (take ? ', with <b>' + commas(take) + '</b> of yours brought along' : '') +
+      ', each with the number and email I can find, for you to call.',
+      [{ k: 'curate', label: 'Curate the list', primary: true }],
       'Type a name to call it something else.');
   }
 
@@ -29644,7 +29608,7 @@
     lbuildSpend();
     const spec = { name: L.name || lbuildAutoName(), kind: L.kind || 'con', t: lbuildT(),
       bt: L.terms.map((p) => p[0] + ':' + p[1]).join(','), take: L.take.slice(),
-      camp: L.to || null, crew: lbuildCrew() };
+      camp: null, crew: [me().id] };
     LBUILD = null;
     curateStart(spec);
   }
@@ -29656,12 +29620,9 @@
     if (k === 'offer') { lbuildTake(); return; }
     if (k === 'go') { lbuildPlan(); return; }
     if (k === 'curate') { lbuildCurate(); return; }
-    if (k === 'nocamp') { LBUILD.to = null; LBUILD.toSet = true; lbuildPlan(); return; }
-    if (k === 'camp') { LBUILD.to = LBUILD.pick || null; LBUILD.toSet = true; lbuildPlan(); return; }
     if (k === 'reset') {
       LBUILD.terms = [];
       LBUILD.take = [];
-      LBUILD.toSet = false;
       LBUILD.step = LBUILD.kind ? 'said' : 'kind';
       /* Clearing a seeded builder before the first question is answered puts
          you back at that question, not past it. */
@@ -29717,13 +29678,13 @@
     const known = rows.filter((x) => x.known).length;
     const camp = c.camp ? DB.byCamp[c.camp] : null;
     return [
-      { label: 'Reading what you asked for', dur: 1.2,
+      { label: 'Reading what you asked for', dur: 0.9,
         said: describeSentence(c.t, c.kind) },
-      { label: 'Asking ' + f.name + (other ? ' and ' + other.name : ''), dur: 2.3,
+      { label: 'Asking ' + f.name + (other ? ' and ' + other.name : ''), dur: 1.6,
         said: curNoun(c, rows.length) + ' came back once the duplicates were out' },
-      { label: 'Finding their numbers and emails', dur: 1.8,
+      { label: 'Finding their numbers and emails', dur: 1.4,
         said: commas(withNum) + ' with a number, ' + commas(withMail) + ' with an email' },
-      { label: 'Checking them against your contacts', dur: 1.3,
+      { label: 'Checking them against your contacts', dur: 1.1,
         said: (known ? commas(known) + ' of them you already have' : 'None of them are yours yet') +
           (c.take.length ? ', and ' + commas(c.take.length) + ' of yours are coming along' : '') },
       { label: 'Putting the list together', dur: 1.0,
@@ -29748,8 +29709,7 @@
     c.view = { id: c.id, name: c.name, at: 0, done: false, secs: 0,
       steps: c.steps.map((x) => ({ label: x.label, said: x.said })) };
     CURATE = c;
-    say('aimy', 'Curating <b>“' + esc(c.name) + '”</b>. You can close this: it keeps ' +
-      'going, and I will tell you when it is ready.', { cur: c.view });
+    say('aimy', '', { cur: c.view });
     c.timer = setInterval(curateTick, CUR_TICK);
     if (!canvasShown()) curPeekShow();
     paint();
@@ -29772,11 +29732,14 @@
 
   /* ══ A CLASS, NOT A REPAINT ════════════════════════════════════════════
      The thread is rebuilt from a string on every turn, which would restart
-     every animation on this line ten times a second. Between turns the line
+     every transition on this line ten times a second. Between turns the line
      is touched in place: a step's class when its state changes, the clock's
      text, and the one label in the card or on Lists that is crossing over.
+     Every visible change is a CSS transition on those classes (bdr.css §97).
      `was` is the step that was running on the last tick, so only a real
      change announces itself. */
+  /* Written out rather than composed, so the audit can pair each with its rule. */
+  const CUR_STATE = { done: 'is-done', live: 'is-live', wait: 'is-wait' };
   function curPaint(was) {
     const c = CURATE;
     if (!c) return;
@@ -29790,14 +29753,14 @@
       if (moved || v.done) {
         box.querySelectorAll('.b-cur-step').forEach((li, i) => {
           const st = v.done || i < v.at ? 'done' : i === v.at ? 'live' : 'wait';
-          if (li.classList.contains('is-' + st)) return;
-          const from = li.classList.contains('is-wait') ? 'wait' : 'live';
-          li.className = 'b-cur-step is-' + st +
-            (st === 'live' && from === 'wait' ? ' is-enter' : '') +
-            (st === 'done' ? ' is-settle' : '');
+          if (!li.classList.contains(CUR_STATE[st])) li.className = 'b-cur-step ' + CUR_STATE[st];
         });
-        const host = byId('overlayThread');
-        if (host && canvasShown()) host.scrollTop = host.scrollHeight;
+        if (v.done) {
+          box.classList.remove('is-live');
+          const head = box.querySelector('.b-cur-say');
+          if (head) head.textContent = 'Curated in ' + v.secs.toFixed(1) + 's';
+        }
+        curFollow();
       }
     }
     const pt = byId('curPeekTime');
@@ -29808,29 +29771,51 @@
     }
   }
 
-  /* The line in the thread, drawn from the turn's own record of the run so
-     a conversation reopened later draws what happened. A run the page was
-     reloaded out of says so rather than pretending to still be going. */
+  /* ══ THE THREAD FOLLOWS THE LINE AS IT GROWS ═══════════════════════════
+     A step grows over 400ms, so one jump to the bottom when it starts lands
+     short and a second one later snaps. The scroll is held to the bottom on
+     every frame of the growth instead, which reads as the thread moving with
+     the line. Only for a reader already at the bottom: somebody who has
+     scrolled up to read an earlier turn is not pulled away from it. */
+  function curFollow() {
+    const host = byId('overlayThread');
+    if (!host || !canvasShown()) return;
+    if (host.scrollHeight - host.scrollTop - host.clientHeight > 160) return;
+    const end = performance.now() + 520;
+    const step = () => {
+      host.scrollTop = host.scrollHeight;
+      if (performance.now() < end) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* The line, drawn from the turn's own record of the run so a
+     conversation reopened later draws what happened. A run the page was
+     reloaded out of says so rather than pretending to still be going.
+     NOT IN A BUBBLE: it is AiMY working, not AiMY saying something, so it
+     sits beside her mark with no frame of its own (`turnHtml`). */
   function curStepper(v) {
     const live = !!(CURATE && CURATE.id === v.id && !v.done);
     const head = v.done ? 'Curated in ' + v.secs.toFixed(1) + 's'
-      : live ? 'Curating the list' : 'Stopped before it finished';
+      : live ? 'Curating “' + v.name + '”' : 'Stopped before it finished';
     const st = (i) => (v.done || i < v.at ? 'done' : i === v.at && live ? 'live' : 'wait');
     return '<details class="b-cur' + (live ? ' is-live' : '') + '" id="cur-' + esc(v.id) + '"' +
-        (v.done ? '' : ' open') + '>' +
+        (v.folded ? '' : ' open') + '>' +
       '<summary class="b-cur-sum">' +
         '<span class="b-cur-say">' + esc(head) + '</span>' +
         '<span class="b-cur-time">' + (live ? v.secs.toFixed(1) + 's' : '') + '</span>' +
         chIcon('down', 14) +
       '</summary>' +
+      '<div class="b-cur-note"><p>You can close this. It keeps going, and I will tell you ' +
+        'when it is ready.</p></div>' +
       '<ol class="b-cur-steps">' + v.steps.map((x, i) =>
-        '<li class="b-cur-step is-' + st(i) + '">' +
+        '<li class="b-cur-step ' + CUR_STATE[st(i)] + '"><div class="b-cur-in"><div class="b-cur-row">' +
           '<span class="b-cur-pin">' + pipeCheck(10) + '</span>' +
           '<span class="b-cur-body">' +
             '<span class="b-cur-label">' + esc(x.label) + '</span>' +
-            '<span class="b-cur-said">' + esc(x.said) + '</span>' +
+            '<span class="b-cur-saidw"><span class="b-cur-said">' + esc(x.said) + '</span></span>' +
           '</span>' +
-        '</li>').join('') + '</ol>' +
+        '</div></div></li>').join('') + '</ol>' +
     '</details>';
   }
 
@@ -29950,7 +29935,13 @@
      you want to see. With the canvas shut: said in the card above the bar
      with the one press that opens it, because you have gone and done
      something else and a page swapped out from under that is not news, it
-     is an interruption. Either way the thread keeps the sentence. */
+     is an interruption. Either way the thread keeps the sentence.
+
+     THREE BEATS, NOT ONE REDRAW. The last step ticks and the heading turns
+     to "Curated in 6.0s" in place, on the line already on screen; then the
+     message arrives and, a frame after it is drawn, the line folds under its
+     heading; then (in the canvas) the list opens. Doing it all in the one
+     redraw the message causes is what made the end snap. */
   function curateEnd() {
     const c = CURATE;
     clearInterval(c.timer);
@@ -29958,32 +29949,34 @@
     c.view.done = true;
     c.view.at = c.steps.length;
     c.view.secs = c.total;
+    curPaint(-1);
     const l = writeList(c);
-    const camp = c.camp ? DB.byCamp[c.camp] : null;
-    const html = 'Your list is ready. <b>“' + esc(c.name) + '”</b> has <b>' +
-      esc(curNoun(c, l.has.length)) + '</b>' +
-      (camp ? ' and is on <b>' + esc(camp.name) + '</b>' : '') + '.';
-    CURATE = null;
-    say('aimy', html, { step: 'curdone', opts: [{ k: l.id, label: 'Open the list', primary: true }] });
-    const openIt = () => {
-      hideCanvas();
-      go(Object.assign(cleared(), { on: 'lists', list: l.id }));
-      toast('Saved ' + curNoun(c, l.has.length) + ' as “' + l.name + '”', () => {
-        l.undo();
-        if (S.list === l.id) go(Object.assign(cleared(), { on: 'lists' }));
-        else paint();
-      });
-    };
-    if (canvasShown()) {
+    const html = 'Your list is ready. <b>“' + esc(c.name) + '”</b> is a new list with <b>' +
+      esc(curNoun(c, l.has.length)) + '</b>.';
+    const shown = canvasShown();
+    if (!shown) { CURATE = null; paint(); curDonePeek(l, html); }
+    setTimeout(() => {
+      if (CURATE === c) CURATE = null;
+      say('aimy', html, { step: 'curdone', opts: [{ k: l.id, label: 'Open the list', primary: true }] });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        c.view.folded = true;
+        const d = byId('cur-' + c.view.id);
+        if (d) d.open = false;
+        chatSync();
+      }));
+      if (!shown) return;
       setTimeout(() => {
         if (!DB.byList[l.id]) return;
-        if (canvasShown()) openIt();
-        else curDonePeek(l, html);
-      }, 1200);
-      return;
-    }
-    paint();
-    curDonePeek(l, html);
+        if (!canvasShown()) { curDonePeek(l, html); return; }
+        hideCanvas();
+        go(Object.assign(cleared(), { on: 'lists', list: l.id }));
+        toast('Saved ' + curNoun(c, l.has.length) + ' as “' + l.name + '”', () => {
+          l.undo();
+          if (S.list === l.id) go(Object.assign(cleared(), { on: 'lists' }));
+          else paint();
+        });
+      }, 1300);
+    }, 500);
   }
 
   function curDonePeek(l, html) {
