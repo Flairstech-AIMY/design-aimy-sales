@@ -6841,3 +6841,37 @@ textarea::placeholder,
    runs it straight after, on the same baseline, one weight down and at the
    ink floor rather than below it. */
 .b-owed-by { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d200); }
+
+/* ══ 101. THE DRAFT PAGE, BACK ════════════════════════════════════════════
+   The curated list lands on the draft page again (bdr.js, THE CURATED LIST
+   IS A DRAFT UNTIL YOU KEEP IT), so the rules that drew it come back as
+   they were when the builder was removed: the name field in the heading,
+   the candidate card with its links and Keep tick, an unticked card going
+   quiet, the team menu's ticks and the findings' buttons. Lifted from the
+   stylesheet at 622bf8a rather than rewritten, so the page looks exactly
+   as it did. */
+.s-rec-title > .s-rec-name.is-field { min-width: 0; margin-top: 0; }
+.s-rec-title .s-build-name { width: auto; max-width: 100%;
+  field-sizing: content; }
+.b-net-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
+  padding: 0 14px; margin: 10px 0 14px; min-width: 0; }
+.b-net-link { display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--accent-label); text-decoration: none;
+  transition: color var(--t-fast); }
+.b-net-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-net-link > svg { flex: none; width: 10px; height: 10px; }
+.b-net-link:hover { color: var(--accent); text-decoration: underline; }
+.b-net-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-net-keep { display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: color var(--t-fast); }
+.b-net-keep .s-tick { opacity: 1; width: 15px; height: 15px; }
+.b-net-keep:hover { color: var(--d50); }
+.b-netcard.is-dropped > *:not(.b-qcard-foot) { opacity: 0.45; }
+.b-netcard.is-dropped:hover > *:not(.b-qcard-foot),
+.b-netcard.is-dropped:focus-within > *:not(.b-qcard-foot) { opacity: 0.85; }
+@media (prefers-reduced-motion: no-preference) {
+  .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
+}
+.b-netcard .b-net-contact { padding-top: 8px; }

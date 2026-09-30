@@ -3915,7 +3915,7 @@
     if (isBuyer()) { S.build = ''; S.list = ''; S.con = ''; S.acc = ''; }
     /* There is no builder page any more: finding people is a conversation.
        A bookmark to the old one lands on the lists. */
-    if (S.build) { S.build = ''; S.bt = ''; S.bk = ''; S.on = 'lists'; }
+    if (S.build && !(S.build === 'done' && DRAFT)) { S.build = ''; S.bt = ''; S.bk = ''; S.on = 'lists'; }
     if (isBuyer() && S.on === 'deals') S.on = '';
     /* ══════════════ AND THE CLIENT ALREADY HAS A SCOPE CONTROL ══════════════
        `by` switches the money between two dimensions — what SPENT it and
@@ -15171,6 +15171,7 @@
   };
 
   function listsPage() {
+    if (S.build === 'done' && DRAFT) return draftPage();
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
     const found = DB.list.slice().reverse().filter((l) => matches(listHay(l)));
@@ -26827,6 +26828,8 @@
       return;
     }
 
+    if (draftChat(t)) return;
+
     const addM = t.match(ADD_RE);
     if (addM) {
       const f = readLead(addM[1]);
@@ -29972,8 +29975,9 @@
      are written; everything the run has not produced yet shimmers in the
      shape the finished card will have. */
   function curSlot() {
+    if (S.on !== 'lists' || S.list || S.build || S.find || pageAt() > 0) return '';
     const c = CURATE;
-    if (!c || c.done || S.on !== 'lists' || S.list || S.find || pageAt() > 0) return '';
+    if (!c || c.done) return DRAFT ? draftCard() : '';
     const bar = (h, w, extra) => SKEL_BAR(h, w, extra);
     return '<div class="b-slot" style="--i:0">' +
       '<article class="type-card s-card b-qcard b-cur-card" aria-busy="true">' +
@@ -30048,7 +30052,9 @@
   }
 
   /* ══ DONE, SAID WHERE YOU ARE ══════════════════════════════════════════
-     In the canvas: said in the thread, and a beat later the list opens,
+     It opens the DRAFT, not a saved list (THE CURATED LIST IS A DRAFT UNTIL
+     YOU KEEP IT, below). In the canvas: said in the thread, and a beat later
+     the draft opens,
      because you were watching it being made and the list is the next thing
      you want to see. With the canvas shut: said in the card above the bar
      with the one press that opens it, because you have gone and done
@@ -30068,36 +30074,31 @@
     c.view.at = c.steps.length;
     c.view.secs = c.total;
     curPaint(-1);
-    const l = writeList(c);
-    const html = 'Your list is ready. <b>“' + esc(c.name) + '”</b> is a new list with <b>' +
-      esc(curNoun(c, l.has.length)) + '</b>.';
+    const d = draftFrom(c);
+    const key = 'draft:' + d.id;
+    const html = 'Your list is ready to review. <b>\u201c' + esc(c.name) + '\u201d</b> came back with <b>' +
+      esc(curNoun(c, c.rows.length + c.take.length)) + '</b>: keep who you want, then save it.';
     const shown = canvasShown();
-    if (!shown) { CURATE = null; paint(); curDonePeek(l, html); }
+    if (!shown) { CURATE = null; paint(); curDonePeek(key, html); }
     setTimeout(() => {
       if (CURATE === c) CURATE = null;
-      say('aimy', html, { step: 'curdone', opts: [{ k: l.id, label: 'Open the list', primary: true }] });
+      say('aimy', html, { step: 'curdone', opts: [{ k: key, label: 'Open the list', primary: true }] });
       requestAnimationFrame(() => requestAnimationFrame(() => {
         c.view.folded = true;
-        const d = byId('cur-' + c.view.id);
-        if (d) d.open = false;
+        const el = byId('cur-' + c.view.id);
+        if (el) el.open = false;
         chatSync();
       }));
       if (!shown) return;
       setTimeout(() => {
-        if (!DB.byList[l.id]) return;
-        if (!canvasShown()) { curDonePeek(l, html); return; }
-        hideCanvas();
-        go(Object.assign(cleared(), { on: 'lists', list: l.id }));
-        toast('Saved ' + curNoun(c, l.has.length) + ' as “' + l.name + '”', () => {
-          l.undo();
-          if (S.list === l.id) go(Object.assign(cleared(), { on: 'lists' }));
-          else paint();
-        });
+        if (DRAFT !== d) return;
+        if (!canvasShown()) { curDonePeek(key, html); return; }
+        openDraft();
       }, 1300);
     }, 500);
   }
 
-  function curDonePeek(l, html) {
+  function curDonePeek(key, html) {
     const box = peekEl();
     if (!box) return;
     peekStop();
@@ -30108,9 +30109,632 @@
     body.style.maxHeight = '';
     byId('peekActs').innerHTML = '';
     PEEK_ACTS = '<div class="b-cuts"><button class="s-insight-lnk primary" type="button" ' +
-      'data-curopen="' + esc(l.id) + '">Open the list</button></div>';
+      'data-curopen="' + esc(key) + '">Open the list</button></div>';
     byId('aimyFloatWrap').classList.add('has-peek');
     peekStream(body, html, peekSettle);
+  }
+
+  const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
+    ? DRAFT.assign : [me().id]);
+
+  /* Untouched, it is the verb; touched, it is the answer. The campaign button
+     beside it works the same way, and "You are calling them" read as a fact
+     somebody was telling you rather than a control.
+
+     Names, while there are few enough to name. "Split between 2" makes you
+     open the menu to find out which two.
+
+     AND THE LADDER IS GONE, BECAUSE THE FACES SAY IT. `assignSay` wrote the
+     answer into the opener's label — "You are calling them", "Split between
+     Omar and Salma", "Split between 5 of you" — which is a sentence doing a
+     roster's job, and it was the only thing on the page that named anybody.
+     The draft draws `buildTeam` now: the block a saved list draws, with the
+     faces, the names and a cross on each. A label repeating what the faces
+     beside it already show is the fact twice, and the shorter of the two is
+     the one that cannot name a single person. The opener is a verb again. */
+
+  /* ══ A MULTIPLE CHOICE DOES NOT REPAINT THE PAGE UNDER ITSELF ═══════════
+     Ticking a caller called paint(), which rebuilds the surface from a string
+     — so the open menu was destroyed and a new one built in its place on every
+     press. It came back because the handler re-showed it by id, and it came
+     back NEW: the entrance animation replayed, the search box lost what was
+     typed in it and the focus ring went with the element it was on. Four names
+     is four flashes.
+
+     The rule is already written at [data-pickopen]: opening, choosing and
+     filtering happen in the DOM, and only the confirm writes. This is the
+     choosing. Nothing else on the page reads the assignment — saveList()
+     reads it at commit time, and that is a write, which repaints — so the
+     two things that show it are the ticks and the opener's own label. */
+  function assignSync() {
+    const who = assignedTo();
+    const set = !!(DRAFT && DRAFT.assign);
+    const menu = byId('assignPick');
+    if (menu) {
+      menu.querySelectorAll('[data-pickrep]').forEach((b) => {
+        const on = who.indexOf(b.getAttribute('data-pickrep')) >= 0;
+        b.setAttribute('aria-pressed', String(on));
+        const tick = b.querySelector('.b-menu-tick');
+        if (tick) tick.classList.toggle('is-on', on);
+      });
+    }
+    /* ══ AND THE FACES BESIDE IT ARE MARKUP, SO THEY ARE REBUILT ═══════
+       The opener used to carry the answer as a label, and a label is a
+       string, so syncing it was one assignment. The answer is a roster now
+       — faces, names, crosses, and a stack once there are more than four —
+       and none of that can be written as text.
+
+       So everything after the caption row is thrown away and drawn again.
+       That is safe for exactly the reason the note above gives: the open
+       menu is NOT in here. It lives in the caption row beside the verb,
+       which this does not touch, so the filter you typed and the focus ring
+       survive a tick the way they did when this only moved a string. */
+    const team = byId('buildTeam');
+    const head = team && team.querySelector('.b-team-head');
+    if (head) {
+      while (head.nextSibling) team.removeChild(head.nextSibling);
+      head.insertAdjacentHTML('afterend', buildFaces(who));
+    }
+  }
+  /* ══ THE VERB ON A CAPTION ROW, WHICH IS WHERE THIS BUILD PUTS ONE ═════
+     It was a pill in the action row reading whatever `assignSay` made of the
+     choice, standing between Save and Discard as though staging a crew were
+     a fourth thing to do to the list. It is the team block's verb now, on
+     the caption's row, exactly where `listCrewPick` sits on a saved list and
+     where the note above `teamFaces` says an assigning verb belongs.
+
+     IT STAYS A TOGGLE, and that is the one place this differs from the saved
+     list's. `listCrewPick` only ever adds, because taking somebody off lives
+     on their own row and a saved list repaints on every write. Nothing here
+     is written until Save — the whole builder's rule — so this menu cannot
+     repaint the page to rebuild itself, and a toggle with ticks is a list
+     that never needs rebuilding. The cross on a face writes through the same
+     attribute, so the two agree without either one redrawing the other. */
+  const assignPickMenu = () => {
+    const who = assignedTo();
+    /* ══ A CROSS THE MENU CANNOT UNDO IS A DECISION TAKEN AWAY ══════════
+       The menu was `BDRS`, the calling floor, which is right until you read
+       it on a manager's desk: `assignedTo()` starts at whoever is looking,
+       a manager is not a caller, and so the one name already on the team was
+       the one name the menu did not hold. Nothing exposed that while the
+       block was a pill — there was no way to take anybody off. The faces
+       carry a cross now, and pressing yours left you unable to put yourself
+       back.
+
+       So the roster is the floor plus anybody already on it who is not part
+       of the floor. The invariant is the whole point and it is worth saying
+       plainly: every face this block draws a cross on is a row this menu can
+       tick back on. */
+    const extra = who.filter((id) => !BDRS.some((r) => r.id === id))
+      .map((id) => actor(id)).filter(Boolean);
+    return '<span class="b-menu-wrap">' +
+      '<button class="s-inline-btn b-menu-open" ' +
+        'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
+        'Change the team</button>' +
+      '<div class="b-menu" id="assignPick" role="menu" hidden>' +
+        '<span class="b-menu-cap">Who is calling them</span>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+          'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
+        extra.concat(BDRS).map((r) =>
+          '<button class="b-menu-item" type="button" role="menuitem" ' +
+          'data-pickrep="' + esc(r.id) + '" aria-pressed="' + (who.indexOf(r.id) >= 0) + '">' +
+            '<span class="b-menu-tick' + (who.indexOf(r.id) >= 0 ? ' is-on' : '') + '"></span>' +
+            faceOf(r.id, 24) +
+            '<span class="b-menu-name">' + esc(r.id === me().id ? 'You' : r.name) + '</span>' +
+          '</button>').join('') +
+      '</div>' +
+    '</span>';
+  };
+  /* ══ WHO WILL CALL THEM, AS THE BLOCK THAT SAYS SO ═════════════════════
+     A saved list draws `listTeam` under its action row — a caption, the
+     faces, a cross on each, the verb to change it — and it is the block that
+     makes that page look like itself. The draft answered the same question
+     with a pill in the action row, which is the same fact one rank quieter
+     in a different place, and it was the first difference anybody saw with
+     the two pages side by side.
+
+     Same block, same caption, same component. `teamFaces` does the drawing
+     for the campaign, for a saved list and now for this, so a team of two is
+     two rows here and a team of seven is three and a stack, identically.
+
+     ONE REAL DIFFERENCE, AND IT IS ABOUT WHERE THE TRUTH LIVES. A saved
+     list's team is DERIVED: it counts `owner` across the records and so it
+     cannot disagree with them. A draft has no records — that is what a draft
+     is — so this reads `assignedTo()`, the choice staged on `DRAFT`,
+     defaulting to you. Save deals the list against it, and from that moment
+     the same block is reading records instead, without the reader ever being
+     shown a different block. */
+  function buildTeam() {
+    return '<div class="b-team" id="buildTeam">' +
+      '<div class="b-team-head">' +
+        '<span class="b-cmeta-cap b-team-cap">The team</span>' +
+        assignPickMenu() +
+      '</div>' +
+      buildFaces(assignedTo()) +
+    '</div>';
+  }
+  /* Its own function because two things draw it: the paint, and `assignSync`
+     putting it back after a tick. The same split, and the same reason, that
+     `assignSay` used to have. */
+  function buildFaces(who) {
+    /* NEVER THE LAST ONE. `listTeam` refuses the same press because a list
+       held by nobody loses the only block that can give it back; here the
+       write refuses it too — `data-pickrep` will not splice below one — so
+       drawing a cross that cannot work would be the product offering a press
+       it has already decided against. */
+    const off = who.length > 1 ? buildOff : (() => '');
+    return teamFaces(who, (id, x) => mateRow(id, null, x), { off: off });
+  }
+  /* `data-pickrep` is the attribute the menu already toggles on, so a cross
+     on a face and an untick in the menu are one write with one sync behind
+     it. `crewOff` makes the same argument for the campaign: one attribute
+     for both directions, because the model already knows which way it is
+     going. */
+  const buildOff = (id) =>
+    '<button class="b-crew-x" type="button" data-pickrep="' + esc(id) + '" ' +
+      'aria-label="' + esc('Take ' + actor(id).name + ' off this list') + '">' +
+      chIcon('x') + '</button>';
+
+  function netCard(n, i) {
+    const tel = netPhone(n, DRAFT.rows);
+    const mail = netEmail(n);
+    const dropped = !!(DRAFT && DRAFT.drop.indexOf(n.id) >= 0);
+    const person = DRAFT.kind === 'con';
+    const who = person ? n.name : n.co;
+    const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return '<article class="type-card s-card b-qcard b-netcard' +
+      (dropped ? ' is-dropped' : '') + '" style="--i:' + Math.min(i || 0, 8) + '">' +
+      '<div class="tc-head">' +
+        (n.known
+          ? '<span class="tag tag-warn">Already yours</span>'
+          : '<span class="tag tag-neutral">New</span>') +
+        '<span class="tc-type b-fact">' + chIcon('industry') + '<span>' +
+          esc((INDUSTRY[n.industry] || { label: n.industry }).label) + '</span></span>' +
+      '</div>' +
+      '<div class="b-qcard-top">' +
+        /* A span, not a button. The audit's first check is a control that is
+           drawn and not wired, and a card title you can press that opens
+           nothing is exactly that with the styling to prove it. */
+        '<span class="tc-title s-card-title">' + esc(who) + '</span>' +
+      '</div>' +
+      /* TWO DIFFERENT LINES WEARING ONE CLASS. `b-qcard-role` is the job
+         under a name — short, semibold, one step down — and a person's is
+         exactly that. A company's is a sentence about what the place does,
+         which is the slot `lcard` fills with `b-qcard-what`: a step larger
+         and a weight lighter, because it is read rather than recognised.
+         Setting a sentence in the job's clothes made it the loudest thing
+         on a company card after the name. */
+      (person
+        ? '<p class="tc-summary b-qcard-role">' + esc(n.title) + ' at ' +
+          esc(n.co) + '</p>'
+        : '<p class="tc-summary b-qcard-what">' + esc(n.about) + '</p>') +
+      '<p class="b-qcard-where">' +
+        fact('where', esc(n.city)) +
+        fact('staff', esc(commas(n.size) + ' staff')) + '</p>' +
+      '<p class="b-qcard-where">' +
+        fact('money', esc(n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm')) +
+        fact('company', esc(person ? n.type : n.type + ' · founded ' + n.founded)) + '</p>' +
+      /* ══ AND ON A COMPANY CARD, WHOSE NUMBER IT IS ══════════════════════
+         `saveList` mints one contact per row whichever kind you asked for —
+         a company list is a list of people at companies, and always has been.
+         So the address under a company card belongs to somebody, and the
+         card was not saying who: the name and the job were in the row and
+         drawn nowhere. A person's card has them in the line under the name
+         already, so this is the company card catching up rather than a new
+         fact. */
+      (person ? ''
+        : '<p class="b-qcard-where b-net-contact">' +
+          fact('user', esc(n.name)) + fact('role', esc(n.title)) + '</p>') +
+      /* ══ THE NUMBER ITSELF, NOT THE FACT THAT THERE IS ONE ═══════════════
+         These were two pills in the foot reading "A number" and "An address",
+         which is the card describing its own data instead of showing it. The
+         queue card in the same slot prints +31 6 4786055, because a number is
+         a thing you read, check against what you already hold, and act on. A
+         euphemism for it is none of those.
+
+         ONE FACT TO A LINE, and that is not a rhythm decision. An email runs
+         to thirty-eight characters on a long name and a domain, a number to
+         thirteen, and the pair on one wrapping line means some cards break
+         and their neighbours do not — which in a grid that stretches a row to
+         its tallest is the hole this card has already been fixed for once.
+         Separately they cannot wrap at any width this is drawn at.
+
+         AND WHERE NOTHING CAME BACK IT SAYS SO. The supplier not finding an
+         address is the more useful of the two answers on this page: it is
+         what the panel above is offering to fix, and it is a reason to
+         untick. A blank line would hide it. */
+      '<p class="b-qcard-where' + (person ? ' b-net-contact' : '') + '">' +
+        (tel ? fact('phone', esc(tel))
+          : fact('no', 'No number came back')) + '</p>' +
+      '<p class="b-qcard-where">' +
+        (mail ? fact('mail', esc(mail))
+          : fact('no', 'No address came back')) + '</p>' +
+      /* The two addresses the row carried, kept because they are the only
+         way to check a stranger before you keep them — and drawn as links
+         rather than as two more grey facts, because that is what they are.
+         The domain reads as itself; the profile does not, so it is named. */
+      '<p class="b-net-links">' +
+        '<a class="b-net-link" href="https://' + esc(n.domain) + '" target="_blank" ' +
+          'rel="noopener">' + chIcon('web') + '<span>' + esc(n.domain) + '</span></a>' +
+        '<a class="b-net-link" href="https://www.linkedin.com/company/' + esc(slug) + '" ' +
+          'target="_blank" rel="noopener">' + chIcon('linkedin') +
+          '<span>LinkedIn</span></a>' +
+      '</p>' +
+      /* ══ AND THE FOOT IS THE DECISION, WITH NOTHING BESIDE IT ════════════
+         It held the two reach pills on its left. With those gone to the
+         facts where they belong, the one thing you can do to this card is
+         the only thing in its foot — which is what the foot was for. The
+         build already answers the lone-child case: `.b-qcard-foot >
+         :only-child` takes `margin-left: auto`, so it sits where every
+         other card's verb sits rather than sliding to the left. */
+      '<div class="tc-gov b-qcard-foot">' +
+        /* The label is the control, so the word is pressable along with the
+           box — a 15px tick on its own is the smallest target on the page.
+
+           AND THE WORD DOES NOT CHANGE WITH THE STATE. It read "Left out"
+           when unticked, which is 25px wider than "Keep" — enough to push
+           the foot onto a second line on a narrow card, so unticking
+           somebody made their card 10px taller and every card in that row of
+           the grid taller with it. A control that resizes the thing it sits
+           in is a control you can feel through the page.
+
+           Nothing is lost by dropping it. The box is unticked, which is what
+           a box is for, and the whole card has gone quiet around it. Two of
+           those already say left-out; the third was only saying it again, in
+           the one place where saying it cost a reflow. The word stays what
+           pressing it does. */
+        '<label class="b-net-keep">' +
+          '<input class="s-tick" type="checkbox" data-bdrop="' + esc(n.id) + '"' +
+          (dropped ? '' : ' checked') + ' aria-label="Keep ' + esc(who) + '" />' +
+          '<span>Keep</span>' +
+        '</label>' +
+      '</div>' +
+    '</article>';
+  }
+
+  /* ── WHAT IS MISSING FROM WHAT CAME BACK, AND WHO WOULD FILL IT ──
+     Named suppliers with the share each actually fills, so the offer is a
+     measurement rather than a promise. Pressing one re-asks that supplier
+     and the numbers on the page move. */
+  function fillOffers(rows) {
+    const f = finderOf();
+    /* "The best of the three" is not true while one of the three is not
+       answering, and the listing on the builder says which one that is. */
+    const ofThem = finderUp().length < FINDERS.length ? 'the ones answering' : 'the three';
+    const floor = fillRate(rows);
+    const noPhone = rows.filter((n) => n.seedPhone >= floor);
+    const noMail = rows.filter((n) => n.seedEmail >= f.email);
+    const known = rows.filter((n) => n.known);
+    const out = [];
+    if (noPhone.length) {
+      const better = finderUp().filter((x) => x.phone > f.phone)
+        .sort((a, b) => b.phone - a.phone)[0];
+      out.push({ n: noPhone.length, act: better ? 'Ask ' + better.name : 'No better source',
+        attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
+        say: 'came back without a number, so they cannot be called. ' +
+          (better ? esc(better.name) + ' fills ' + Math.round(better.phone * 100) +
+            '% against ' + esc(f.name) + '&rsquo;s ' + Math.round(f.phone * 100) + '%.'
+            : esc(f.name) + ' is the best of ' + ofThem + ' for numbers.') });
+    }
+    if (noMail.length) {
+      const better = finderUp().filter((x) => x.email > f.email)
+        .sort((a, b) => b.email - a.email)[0];
+      out.push({ n: noMail.length, act: better ? 'Ask ' + better.name : 'No better source',
+        attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
+        say: verbFor(noMail.length, 'has') + ' no email address. ' + (better
+          ? esc(better.name) + ' fills ' + Math.round(better.email * 100) + '% of them.'
+          : esc(f.name) + ' is the best of ' + ofThem + ' for addresses.') });
+    }
+    if (known.length) {
+      out.push({ n: known.length, act: 'Leave them out', attr: 'data-draftdo="new"',
+        say: verbFor(known.length, 'is') + ' already in your contacts, so saving ' +
+          (known.length === 1 ? 'them' : 'these') + ' would give you a second copy ' +
+          'of somebody you may already have called.' });
+    }
+    return out;
+  }
+
+  function fillBlock(rows) {
+    const offers = fillOffers(rows);
+    /* The bar edits the draft (THE CURATED LIST IS A DRAFT UNTIL YOU KEEP
+       IT), and this block is where AiMY talks about it, so it says so. */
+    const also = ' Anything else, say it in the bar and it changes here.';
+    if (!offers.length) {
+      return '<div class="s-findings is-panel s-block-wide">' +
+        '<p class="s-lead-mark"><svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>AiMY reads it</p>' +
+        '<p class="s-findings-say">Nothing is missing from what came back.' + also + '</p></div>';
+    }
+    return '<div class="s-findings is-panel s-block-wide">' +
+      '<p class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>AiMY reads it</p>' +
+      '<p class="s-findings-say">' + (['', 'One thing', 'Two things', 'Three things', 'Four things'][offers.length] || plural(offers.length, 'thing')) +
+        ' about what came back, before you keep it.' + also + '</p>' +
+      '<div class="s-findings-list">' + offers.map((o) =>
+        '<div class="s-finding">' +
+          '<span class="s-finding-say"><b>' + commas(o.n) + '</b> ' + o.say + '</span>' +
+          '<button class="s-finding-go" type="button" ' + o.attr + '>' +
+            esc(o.act) + '</button>' +
+        '</div>').join('') + '</div>' +
+    '</div>';
+  }
+
+  /* ══ THE CURATED LIST IS A DRAFT UNTIL YOU KEEP IT ═════════════════════
+     The curation used to save itself and open the saved list, which took
+     away the one decision a curated list exists for: who on it is worth
+     keeping. Nour, 30 Sep 2026: it lands on the draft page the builder had,
+     where every candidate is a card with a Keep tick, AiMY says what is
+     missing from what came back and who would fill it, the team is chosen,
+     and nothing is a record until Save.
+
+     AND THE CONVERSATION THAT MADE IT STILL WORKS ON IT. While the draft is
+     on screen, what you type in the bar (or in the canvas) is read as an
+     edit to it when it is one: leave out who you already have, only ones
+     with a number, only Germany, drop a name, keep everyone, split it
+     between two callers, call it something else, save it, discard it. The
+     page changes as the answer lands, and the answer is written into the
+     conversation the list came from, so its thread is the draft's history.
+     Anything that is not an edit falls through to the bar as usual.
+
+     IN MEMORY, LIKE A DRAFT. It is not written to the store, so a reload
+     loses it; until then it is on Lists as the card it will be, marked Not
+     saved, and the thread's "Open the list" keeps opening it. */
+  let DRAFT = null;
+  const draftOpen = () => !!DRAFT && S.on === 'lists' && S.build === 'done';
+  const draftFlat = (t) => {
+    const out = [];
+    Object.keys(t).forEach((a) => (t[a] || []).forEach((v) => out.push(a + ':' + v)));
+    return out.join(',');
+  };
+  const draftNoun = (n) => (DRAFT && DRAFT.kind === 'acc'
+    ? plural(n, 'company', 'companies') : plural(n, 'person'));
+  const draftKept = () => DRAFT.rows.filter((x) => DRAFT.drop.indexOf(x.id) < 0).length +
+    DRAFT.take.length;
+
+  function draftFrom(c) {
+    DRAFT = { id: c.id, chat: CHAT_AT, name: c.name, auto: c.name, kind: c.kind,
+      t: Object.assign(Object.create(null), c.t), rows: c.rows.slice(), take: c.take.slice(),
+      drop: [], assign: null };
+    return DRAFT;
+  }
+  function openDraft() {
+    if (!DRAFT) { toast('That list was not kept, so there is nothing to open.'); return; }
+    hideCanvas();
+    go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
+  }
+
+  /* The page, as the builder drew it: the list page before it is a list. */
+  function draftPage() {
+    const d = DRAFT;
+    const rows = d.rows;
+    const f = finderOf();
+    const kept = rows.filter((x) => d.drop.indexOf(x.id) < 0).length;
+    const withNum = rows.filter((x) => x.seedPhone < fillRate(rows)).length;
+    const keeping = kept + d.take.length;
+    const pg = paged(rows);
+    return '<div class="s-home">' +
+      backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"',
+        'Back to lists') +
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">List · ' + esc(draftNoun(keeping)) + ' · curated just now</span>' +
+        '<div class="s-rec-title">' +
+          /* A field rather than a heading, because it has not been decided
+             yet; `field-sizing` grows it as you type. */
+          '<h1 class="s-rec-name is-field"><input class="s-build-name" type="text" ' +
+            'spellcheck="false" size="' + Math.max(8, Math.min(36, d.name.length + 1)) + '" ' +
+            'value="' + esc(d.name) + '" data-auto="' + esc(d.auto) + '" ' +
+            'data-bname aria-label="Name this list" /></h1>' +
+          '<span class="s-meta-st tone-warn">Not saved yet</span>' +
+        '</div>' +
+        '<div class="s-rec-facts">' +
+          '<div><span>' + esc(describeSentence(d.t, d.kind)) + '</span></div>' +
+          '<div>' +
+            '<span><b>' + commas(rows.length + d.take.length) + '</b> came back</span>' +
+            (kept < rows.length ? '<span><b>' + commas(rows.length - kept) + '</b> unticked</span>' : '') +
+            (d.take.length ? '<span><b>' + commas(d.take.length) + '</b> already yours</span>' : '') +
+            '<span>' + esc(f.name) + ' found a number for <b>' + commas(withNum) + '</b></span>' +
+          '</div>' +
+        '</div>' +
+        /* A brand new list every time: putting it on a campaign is done from
+           the saved list, so the draft has the two verbs that decide it. */
+        '<div class="s-rec-actions">' +
+          '<button class="s-insight-lnk primary" type="button" data-save>Save the list</button>' +
+          '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
+        '</div>' +
+        buildTeam() +
+      '</section>' +
+      fillBlock(rows) +
+      '<section class="s-block s-block-wide" aria-label="Who came back">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Who came back</h2></div>' +
+        '<p class="b-tocall">' + esc(draftNoun(rows.length)) + ' · untick ' +
+          (d.kind === 'con' ? 'anybody' : 'anything') + ' you do not want</p>' +
+        cardGrid(pg.rows, netCard) +
+        pager(pg, 'row') +
+      '</section>' +
+    '</div>';
+  }
+
+  /* On Lists, the draft is the card it will be, marked as not kept yet. */
+  function draftCard() {
+    const d = DRAFT;
+    return '<div class="b-slot" style="--i:0">' +
+      '<article class="type-card s-card b-qcard">' +
+        '<div class="tc-head"><span class="tag tag-warn">Not saved</span></div>' +
+        '<button class="tc-title s-card-title" type="button" data-curopen="draft:' + esc(d.id) + '">' +
+          esc(d.name) + '</button>' +
+        '<p class="tc-summary b-qcard-what">' + esc(describeSentence(d.t, d.kind)) + '.</p>' +
+        '<div class="b-qcard-why"><b>' + commas(draftKept()) + '</b> kept of <b>' +
+          commas(d.rows.length + d.take.length) + '</b> that came back</div>' +
+        '<div class="tc-gov b-qcard-foot">' +
+          '<span class="b-qcard-num b-fact">' + chIcon('calendar') + '<span>curated today</span></span>' +
+          '<button class="s-insight-lnk primary" type="button" data-curopen="draft:' + esc(d.id) + '">' +
+            'Review it</button>' +
+        '</div>' +
+      '</article>' +
+    '</div>';
+  }
+
+  /* ══ WHAT THE CONVERSATION CAN DO TO THE DRAFT ═════════════════════════
+     Each branch returns the sentence AiMY answers with, or null when the
+     words are not an edit at all, so the bar can do what it would have done
+     anyway. Criteria re-run the search against the index (it is instant),
+     keeping every untick that is still in the set; "only" and a plain
+     criterion replace that axis, "also" and "and" add to it. */
+  function draftDo(k) {
+    const d = DRAFT;
+    if (k === 'new' || k === 'phone') {
+      d.t.only = (d.t.only || []).filter((x) => x !== k).concat([k]);
+      return draftRerun(k === 'new' ? 'Left out everyone already in your contacts.'
+        : 'Only the ones with a number now.');
+    }
+    return null;
+  }
+  function draftRerun(head) {
+    const d = DRAFT;
+    const found = buildMatched(d.t);
+    d.rows = found.slice(0, Math.max(0, 500 - d.take.length));
+    const ids = Object.create(null);
+    d.rows.forEach((r) => (ids[r.id] = 1));
+    d.drop = d.drop.filter((id) => ids[id]);
+    return head + ' <b>' + esc(draftNoun(draftKept())) + '</b> on it: ' +
+      esc(describeSentence(d.t, d.kind)) + '.';
+  }
+  function draftEdit(text) {
+    const d = DRAFT;
+    const t = String(text || '').trim();
+    const low = t.toLowerCase();
+    let m;
+    if (/^(save|save it|save the list|keep it|that is it|done)\.?$/.test(low)) {
+      saveDraft();
+      return '';
+    }
+    if (/^(discard|discard it|throw it away|bin it|scrap it)\.?$/.test(low)) {
+      discardDraft();
+      return '';
+    }
+    if ((m = t.match(/^\s*(?:call it|name it|rename(?: it)?(?: to)?)\s+(.+)$/i))) {
+      d.name = m[1].replace(/^["“']+|["”']+$/g, '').trim().slice(0, 70) || d.name;
+      return 'It is called <b>“' + esc(d.name) + '”</b> now.';
+    }
+    if (/already (have|hold|in (my|our) contacts)|leave out (mine|ours|who i)|new ones only|only new/.test(low)) {
+      return draftDo('new');
+    }
+    if (/with a (phone )?number|can be called|callable|have a (phone|number)/.test(low)) {
+      return draftDo('phone');
+    }
+    if (/^(keep|tick|add back) (everyone|everybody|all|them all)\.?$/.test(low)) {
+      d.drop = [];
+      return 'Everyone is ticked again. <b>' + esc(draftNoun(draftKept())) + '</b> on it.';
+    }
+    if (/bring (mine|my own|ours|them) in|include (mine|my own)/.test(low)) {
+      const mine2 = bookFit(d.t).map((c) => c.id).filter((id) => d.take.indexOf(id) < 0);
+      if (!mine2.length) return 'None of your own match this, so there is nobody to bring.';
+      d.take = d.take.concat(mine2);
+      return 'Brought <b>' + commas(mine2.length) + '</b> of yours in. <b>' +
+        esc(draftNoun(draftKept())) + '</b> on it.';
+    }
+    if ((m = t.match(/^\s*(?:split (?:it |them )?(?:between|across)|give (?:it|them) to|assign (?:it |them )?to)\s+(.+)$/i))) {
+      const pool = BDRS.concat(me().fn === 'bdr' ? [] : [me()]);
+      const who = pool.filter((r) => new RegExp('\\b' + r.name.split(' ')[0] + '\\b', 'i').test(m[1]) ||
+        (/\b(me|myself)\b/i.test(m[1]) && r.id === me().id));
+      if (!who.length) return 'I could not find a caller in that. Name them the way the team block does.';
+      d.assign = who.map((r) => r.id);
+      return 'Split between <b>' + esc(listSay(who.map((r) => (r.id === me().id ? 'you' : r.name)))) +
+        '</b>, dealt out evenly when you save it.';
+    }
+    if ((m = t.match(/^\s*(?:drop|remove|untick|take out|leave out)\s+(.+)$/i))) {
+      const q = m[1].toLowerCase().replace(/[.!]$/, '').trim();
+      const hit = d.rows.filter((r) => d.drop.indexOf(r.id) < 0 &&
+        (r.name.toLowerCase().indexOf(q) >= 0 || String(r.co).toLowerCase().indexOf(q) >= 0));
+      if (hit.length && hit.length <= 25) {
+        hit.forEach((r) => d.drop.push(r.id));
+        return 'Unticked <b>' + esc(hit.length === 1 ? hit[0].name : plural(hit.length, 'person')) +
+          '</b>. <b>' + esc(draftNoun(draftKept())) + '</b> on it.';
+      }
+    }
+    const read = readSaid(t, d.kind).filter((p) => p[0] !== 'only');
+    /* Said like an edit and nothing in it could be read: answered, rather
+       than handed to the bar to do something else with. */
+    if (!read.length && /^\s*(only|also|just|add|plus)\b/i.test(t)) {
+      return 'I could not read a sector, a country I can reach, a size or a job title in that, ' +
+        'so the list is as it was.';
+    }
+    if (read.length) {
+      const add = /^\s*(also|and|add|plus)\b/i.test(t);
+      const axes = Object.create(null);
+      read.forEach((p) => (axes[p[0]] = (axes[p[0]] || []).concat([p[1]])));
+      /* Tried on a copy first: a criterion that would leave nobody is said
+         back, and the list stays as it was. */
+      const next = Object.assign(Object.create(null), d.t);
+      Object.keys(axes).forEach((ax) => {
+        next[ax] = add ? (next[ax] || []).concat(axes[ax].filter((v) => (next[ax] || []).indexOf(v) < 0))
+          : axes[ax];
+      });
+      if (!buildMatched(next).length && !d.take.length) {
+        return 'Nothing I can reach matches all of that, so I left the list as it was.';
+      }
+      d.t = next;
+      return draftRerun(add ? 'Widened it.' : 'Narrowed it.');
+    }
+    return null;
+  }
+
+  /* An edit said in the bar is said in the list's own conversation, and
+     answered the way the bar answers anything: in the canvas if it is open,
+     in the card above the bar if it is not. */
+  function draftChat(text) {
+    if (!draftOpen()) return false;
+    const chat = DRAFT.chat;
+    const reply = draftEdit(text);
+    if (reply == null) return false;
+    if (reply === '') return true;
+    /* Into the list's own conversation before anything is said, so the
+       edit and its answer land in the thread the list came from. */
+    if (chat && CHAT_AT !== chat && CHATS.some((x) => x.id === chat)) openChat(chat);
+    say('you', esc(text));
+    peekAsk(reply);
+    paint();
+    return true;
+  }
+
+  function saveDraft() {
+    const d = DRAFT;
+    if (!d) return;
+    const rows = d.rows.filter((r) => d.drop.indexOf(r.id) < 0);
+    if (!rows.length && !d.take.length) { toast('Nothing is ticked, so there is nothing to save.'); return; }
+    const name = String(d.name || '').trim() || d.auto;
+    const l = writeList({ id: 'l' + Date.now().toString(36), name: name, kind: d.kind, t: d.t,
+      bt: draftFlat(d.t), rows: rows, take: d.take, camp: null, crew: assignedTo() });
+    /* The thread's "Open the list" opened the draft; from now on it opens
+       what the draft became. */
+    const key = 'draft:' + d.id;
+    const retarget = (turns) => (turns || []).forEach((x) => (x.opts || []).forEach((o) => {
+      if (x.step === 'curdone' && o.k === key) { o.k = l.id; o.label = 'Open the list'; }
+    }));
+    retarget(TURNS);
+    CHATS.forEach((r) => retarget(r.turns));
+    DELTA.chat = CHATS;
+    saveSoon();
+    DRAFT = null;
+    go(Object.assign(cleared(), { on: 'lists', list: l.id }));
+    const crew = d.assign && d.assign.length ? d.assign : [me().id];
+    toast('Saved ' + plural(l.has.length, 'person') + ' as “' + l.name + '”' +
+      (crew.length > 1 ? ' · split between ' + commas(crew.length) + ' of you' : ''), () => {
+      l.undo();
+      DRAFT = d;
+      go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
+    });
+  }
+  function discardDraft() {
+    const d = DRAFT;
+    if (!d) return;
+    DRAFT = null;
+    go(Object.assign(cleared(), { on: 'lists' }));
+    toast('Threw away “' + d.name + '”', () => {
+      DRAFT = d;
+      go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
+    });
   }
 
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
@@ -30176,11 +30800,44 @@
       const id = curo.getAttribute('data-curopen');
       peekAll();
       peekHide();
+      if (id.indexOf('draft:') === 0) {
+        if (DRAFT && id === 'draft:' + DRAFT.id) openDraft();
+        else toast('That list was not kept, so there is nothing to open.');
+        return;
+      }
       hideCanvas();
       if (DB.byList[id]) go(Object.assign(cleared(), { on: 'lists', list: id }));
       else toast('That list has been taken back.');
       return;
     }
+    /* The draft's own controls: a tick, the team, a supplier, AiMY's offer,
+       and the two verbs that decide it. */
+    const bdrop = t.closest('[data-bdrop]');
+    if (bdrop && DRAFT) {
+      const id = bdrop.getAttribute('data-bdrop');
+      const at = DRAFT.drop.indexOf(id);
+      if (at >= 0) DRAFT.drop.splice(at, 1);
+      else DRAFT.drop.push(id);
+      paint();
+      return;
+    }
+    const pr = t.closest('[data-pickrep]');
+    if (pr && DRAFT) {
+      const id = pr.getAttribute('data-pickrep');
+      const now = assignedTo().slice();
+      const at = now.indexOf(id);
+      if (at >= 0) { if (now.length > 1) now.splice(at, 1); } else now.push(id);
+      DRAFT.assign = now;
+      assignSync();
+      return;
+    }
+    const finder = t.closest('[data-finder]');
+    if (finder) { FINDER = finder.getAttribute('data-finder'); paint(); return; }
+    const ddo = t.closest('[data-draftdo]');
+    if (ddo && DRAFT) { draftDo(ddo.getAttribute('data-draftdo')); paint(); return; }
+    if (t.closest('[data-save]')) { saveDraft(); return; }
+    if (t.closest('[data-discard]')) { discardDraft(); return; }
+
     /* More like a list you have: the conversation, opened on its criteria. */
     const bmore = t.closest('[data-bmore]');
     if (bmore) {
@@ -31375,6 +32032,12 @@
       if (genStop()) return;
       const el = byId('overlayInput'); const v = el.value; el.value = ''; runInput(v);
     }
+  });
+
+  /* The draft's name is yours the moment you type in it. */
+  document.addEventListener('input', (e) => {
+    const nm = e.target.closest && e.target.closest('[data-bname]');
+    if (nm && DRAFT) DRAFT.name = nm.value;
   });
 
   /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════
