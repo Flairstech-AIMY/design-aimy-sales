@@ -5761,7 +5761,9 @@
               commas(scored.length) + '</b> on your year.'
             : 'All <b>' + commas(scored.length) + '</b> promises on your year are being kept.',
           evidence: [{ val: commas(kept.length), cap: 'kept' },
-            { val: commas(leftD), cap: (leftD === 1 ? 'day' : 'days') + ' of the year left' }],
+            /* "0 days of the year left" on its last day, which is still a day. */
+            leftD ? { val: commas(leftD), cap: (leftD === 1 ? 'day' : 'days') + ' of the year left' }
+              : { val: 'Last', cap: 'day of the year' }],
           act: null, q: null,
         },
       };
@@ -11471,7 +11473,8 @@
     const left = p && p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end)) : null;
     let say = '<b>' + esc(promFig(r, Math.abs(r.to - x.got))) + ' ' +
       (down ? 'over' : 'short') + '</b>' +
-      (left == null ? '.' : ', with <b>' + esc(plural(left, 'day')) + '</b> to run.');
+      (left == null ? '.' : left === 0 ? ', on the last day.'
+        : ', with <b>' + esc(plural(left, 'day')) + '</b> to run.');
     const bits = [];
     if (r.read.indexOf('funnel.') === 0 || r.read.indexOf('lines.') === 0) {
       const cold = bookScope().filter((c) => c.checkpoint === 'not-called').length;
@@ -11782,7 +11785,7 @@
         '</span>' +
         '<span class="s-pan-cost">' +
           esc(r.was != null ? promFig(r, x.got)
-            : promFig(r, x.got) + ' of ' + promFig(r, r.to)) + '</span>' +
+            : promOf(r, x.got)) + '</span>' +
       '</span>';
     };
     const ourRows = rows.filter((x) => x.r.ours);
@@ -12465,7 +12468,9 @@
           const q = periodOf(S.period);
           return q.whole
             ? attFig('Time left', 'None', 'the quarter closed on ' + sayDay(q.to))
-            : attFig('Time left', plural(Math.max(0, q.span - q.days - 1), 'day'),
+            : q.span - q.days - 1 <= 0
+            ? attFig('Time left', 'Today', 'is the last day of the quarter')
+            : attFig('Time left', plural(q.span - q.days - 1, 'day'),
               'of the quarter, to ' + sayDay(qEnd(q)));
         }()) : '');
     }
@@ -12500,8 +12505,9 @@
     const gone = TODAY_ISO > shut;
     return '<div class="b-renew' + (gone ? ' is-shut' : '') + '" role="note">' +
       chIcon('calendar', 16) +
-      '<p>Your year ends in <b>' + esc(plural(Math.max(0, left), 'day')) +
-        '</b>, and notice is ' + esc(plural(myDeal().notice, 'day')) + '. ' +
+      '<p>Your year ends ' + (left <= 0 ? '<b>today</b>'
+        : 'in <b>' + esc(plural(left, 'day')) + '</b>') +
+        ', and notice is ' + esc(plural(myDeal().notice, 'day')) + '. ' +
         (gone ? 'That window closed on <b>' + esc(sayDay(shut)) +
           '</b>, so it renews on <b>' + esc(sayDay(isoAdd(pd.end, 1))) +
           '</b> unless we agree otherwise.'
@@ -12524,7 +12530,8 @@
     if (scored.length) {
       bits.push('<b>' + commas(kept.length) + ' of ' + esc(plural(scored.length, 'promise')) +
         '</b> kept' +
-        (left == null ? '' : ', with <b>' + esc(plural(left, 'day')) + '</b> of the ' +
+        (left == null ? '' : left === 0 ? ', on the last day of the ' + (p.end ? 'year' : 'quarter')
+          : ', with <b>' + esc(plural(left, 'day')) + '</b> of the ' +
           (p.end ? 'year' : 'quarter') + ' to run') +
         '.');
     }
@@ -23271,6 +23278,10 @@
      hedging it would teach the reader to doubt the one thing here that is
      simply known. A reading that hedges everything equally is a reading
      nobody can calibrate against. */
+  /* A count against its target. "26 of 8" is how a promise read once it
+     was beaten, which is a fraction nobody can say out loud; past the
+     target it is the figure against the target. */
+  const promOf = (r, got) => promFig(r, got) + (got > r.to ? ' against ' : ' of ') + promFig(r, r.to);
   function ringRead(c) {
     if (!c) return null;
     const ts = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
@@ -24323,7 +24334,8 @@
         tasks.push({ id: 'client-prom:' + x.k, sev: 'p2', type: 'Promises', when: commas(ours.length) + ' behind',
           body: CLIENT[x.k].name + ': ' + plural(ours.length, 'promise') + ' we answer for ' +
             (ours.length === 1 ? 'is' : 'are') + ' behind' +
-            (y.left != null ? ', with ' + plural(y.left, 'day') + ' of the year left' : '') + '. Furthest: ' +
+            (y.left == null ? '' : y.left === 0 ? ', on the last day of the year'
+              : ', with ' + plural(y.left, 'day') + ' of the year left') + '. Furthest: ' +
             (PROM_SAY[f.r.k] || f.r.say) + ', ' + promFig(f.r, f.got) + ' of ' + promFig(f.r, f.r.to) + '.',
           cta: t ? 'Prepare me' : 'Show the campaigns',
           ask: t ? 'cprep:' + t.iso + '|' + t.title : 'go:' + JSON.stringify({ on: 'camps' }),
@@ -24489,7 +24501,8 @@
           when: plural(behind.length, 'promise') + ' behind',
           body: said.charAt(0).toUpperCase() + said.slice(1) + ' is at ' +
             promFig(one.r, one.got) + ' of ' + promFig(one.r, one.r.to) +
-            (leftD == null ? '' : ', with ' + plural(leftD, 'day') + ' of the year left') + '.',
+            (leftD == null ? '' : leftD === 0 ? ', on the last day of the year'
+              : ', with ' + plural(leftD, 'day') + ' of the year left') + '.',
           cta: 'Show the year',
           ask: 'go:' + JSON.stringify({ on: 'money' }) });
       }
@@ -27943,20 +27956,21 @@
     if (y.scored.length) {
       body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Where ' + esc(clS) + ' year stands' : 'Where the year stands') + '</h3>' +
         '<p class="b-prep-most">' + esc(commas(y.kept.length) + ' of ' + plural(y.scored.length, 'promise') + ' kept') +
-          (y.left == null ? '' : ', with ' + esc(plural(y.left, 'day')) + ' to run') + '.' +
+          (y.left == null ? '' : y.left === 0 ? ', on its last day'
+            : ', with ' + esc(plural(y.left, 'day')) + ' to run') + '.' +
           (y.shut && TODAY_ISO > y.shut ? ' It renews on ' + esc(sayDay(isoAdd(y.p.end, 1))) +
             (mgrSide ? ' unless we agree otherwise with them.' : ' unless you agree otherwise with us.') : '') + '</p>';
       if (year || !brief) {
         if (ours.length) {
           body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Behind, and yours to answer for' : 'Behind, and ours') +
             '</h3><div class="b-back">' +
-            ours.map((x) => row(nm(x), promDoing(x, y.p) || esc(promFig(x.r, x.got) + ' of ' + promFig(x.r, x.r.to)))).join('') +
+            ours.map((x) => row(nm(x), promDoing(x, y.p) || esc(promOf(x.r, x.got)))).join('') +
             '</div>';
         }
         if (theirs.length && year) {
           body += '<h3 class="b-brief-cap">' + (mgrSide ? 'Behind, and theirs to carry' : 'Behind, and yours to carry') +
             '</h3><div class="b-back">' +
-            theirs.map((x) => row(nm(x), esc(promFig(x.r, x.got) + ' of ' + promFig(x.r, x.r.to)))).join('') +
+            theirs.map((x) => row(nm(x), esc(promOf(x.r, x.got)))).join('') +
             '</div>';
         }
       }
