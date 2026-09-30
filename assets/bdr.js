@@ -23237,7 +23237,9 @@
         esc(o ? o.label : last.objections[0]) + '</b> is what stopped it last time.';
     }
     if (owed) {
-      return 'You owe them ' + step + ' ' + esc(sayWhen(c.next.due)) + '.';
+      /* "You owe them Dinner with them 8 Oct" had no verb between the step
+         and its date. The step is the subject; the date is when. */
+      return step + ' is due ' + esc(sayWhen(c.next.due)) + '.';
     }
     if (last && last.openings && last.openings.length) {
       return 'Last call flagged them: <b>' +
