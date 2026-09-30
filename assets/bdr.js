@@ -7818,7 +7818,10 @@
     const booked = deals.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); })
       .reduce((n, c) => n + acvOf(c).value, 0);
     const target = TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
-    const open = !p.whole && p.elapsed != null && p.elapsed < 1;
+    /* Open until the period is over, its last day included: today counts
+       toward `elapsed`, which reached 1 on 30 Sep and read every team as
+       "the window has closed" while the day was still being worked. */
+    const open = !p.whole && p.elapsed != null;
     return { m: m, booked: booked, target: target,
       /* The report's own formula for what AiMY expects, per desk. */
       more: open ? Math.round(pipelineOf(deals).weighted * Math.max(0, 1 - p.elapsed)) : 0,
@@ -24510,14 +24513,14 @@
     if (due.length) {
       const one = due[0];
       tasks.push({ id: 'cust-renew', sev: 'p2', type: 'Renewals',
-        when: plural(due.length, 'contract') + ' inside a quarter',
+        when: plural(due.length, 'contract') + ' in the next three months',
         body: one.a.name + ' renews ' + SELL[one.r.sub.sell].name + ' in ' +
           plural(one.r.days, 'day') + ', worth ' + euro(one.r.sub.acv) + ' a year' +
           (due.length > 1 ? ', and ' + plural(due.length - 1, 'other') + ' follow' : '') + '.',
         cta: 'Show the accounts',
         ask: 'go:' + JSON.stringify({ on: 'deals', q: 'won' }),
         line: briefN(due.length, 'contract', { on: 'deals', q: 'won' }) +
-          ' renew' + (due.length === 1 ? 's' : '') + ' inside a quarter' });
+          ' renew' + (due.length === 1 ? 's' : '') + ' in the next three months' });
     }
     /* News at an account is the next thing to sell there, which is a
        manager's to act on and not a row for the CEO's day. */
