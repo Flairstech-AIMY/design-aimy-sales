@@ -31684,7 +31684,7 @@
     if (oc) { openChat(oc.getAttribute('data-chat')); return; }
 
     /* \u2550\u2550 A ROW ON THE BRIEFING HANDS OVER TO THE CANVAS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-       It writes nothing. The record is looked up again rather than carried
+       It writes nothing to the record. The record is looked up again rather than carried
        on the button, because `reachHit` is where the two refusals live and a
        button that carried a stale hit would be offering a path that is no
        longer there. Before `[data-reach]` in this file only for reading
@@ -31697,7 +31697,16 @@
       const hit = n ? reachHit(n) : null;
       if (!hit) return;
       openCanvas();
-      reachTurn(hit);
+      /* The row says "Write the message", so pressing it writes it. It
+         used to post the offer again, and for the person AiMY had already
+         offered this morning that was the same turn twice with the draft
+         still a second press away. The offer is said only if it is not the
+         one already live; either way it is spent, and the draft follows. */
+      const live = REACH_HIT && REACH_HIT.c.id === hit.c.id &&
+        TURNS.some((x) => x.step === 'reach' && !x.spent);
+      if (live) REACH_HIT = hit; else reachTurn(hit);
+      TURNS.forEach((x) => { if (x.step === 'reach') x.spent = true; });
+      say('aimy', reachDraft(hit));
       return;
     }
 
