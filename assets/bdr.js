@@ -14291,7 +14291,10 @@
           (isLine()
             ? ' been handed over on <b>' + plural(camps.length, 'campaign') + '</b> selling ' +
               esc(sellSay(myLine())) + '.'
-            : ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.')
+            /* An unclaimed request is on this desk to be picked up, not owned:
+               running it is what claims it. It sits under Requests instead. */
+            : ' been handed to you, across <b>' +
+              plural(camps.filter((k) => !campFree(k)).length, 'campaign') + '</b> you own.')
         : (isLine() ? 'Nothing has been handed over on ' + esc(sellSay(myLine())) + ' yet.'
           : 'Nothing has been handed to you yet.');
       /* The surface is called Diary — on the tab, on the rail door and on
@@ -28901,7 +28904,11 @@
     cbuildPush('<b>' + esc(said) + '</b>' +
       (who ? ', asking for <b>' + esc(who) + '</b>' : '') +
       '. What is it worth having worked?',
-      [0, 1, 2, 3].map((kind) => ({ k: 'goal-' + kind, label: goalSay(cbuildGoalParts(kind)) })),
+      /* Without a region the foothold falls back to logos, which is kind 0
+         again: the same answer twice. Offered once, as the ring on the
+         record already does. */
+      [0, 1, 2, 3].map((kind) => ({ k: 'goal-' + kind, label: goalSay(cbuildGoalParts(kind)) }))
+        .filter((o, i, all) => all.findIndex((x) => x.label === o.label) === i),
       'The outcome at the end of it, not the calls along the way — say it in ' +
       'your own words if none of those is it.');
   }
@@ -29157,7 +29164,10 @@
     if (!x) return null;
     const who = (INDUSTRY[p.industry] ? INDUSTRY[p.industry].label.toLowerCase() + ' companies'
       : 'companies') + (p.region ? ' in ' + regionLabel(p.region) : '');
-    return x.name + ' gives ' + who + ' ' + x.blurb + '. Right now ' +
+    /* The blurbs are said TO a prospect ("run for you", "your team"); in a
+       sentence about them they are about them. */
+    const about = x.blurb.replace(/\bfor you\b/g, 'for them').replace(/\byour\b/g, 'their');
+    return x.name + ' gives ' + who + ' ' + about + '. Right now ' +
       (WHY_NOW[p.sell] || 'they are running it with people rather than with a system') +
       '. Open on what that is costing them today, not on what we do.';
   }
