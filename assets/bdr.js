@@ -8959,14 +8959,14 @@
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Your journey</span>' +
-        '<span class="b-door-fig">' + esc(commas(y.left)) +
-          '<span class="b-door-of">' + (y.left === 1 ? 'day left' : 'days left') +
+        '<span class="b-door-fig">' + esc(y.left === 0 ? 'Last' : commas(y.left)) +
+          '<span class="b-door-of">' + (y.left === 0 ? 'day of the year' : y.left === 1 ? 'day left' : 'days left') +
           '</span></span>' +
         '<span class="b-door-say">' + esc(y.shut
           ? (TODAY_ISO > y.shut
-            ? 'Renews ' + sayDay(y.p.end) + ' — the window to say otherwise closed on ' +
+            ? 'Renews ' + sayDay(isoAdd(y.p.end, 1)) + ' — the window to say otherwise closed on ' +
               sayDay(y.shut)
-            : 'Renews ' + sayDay(y.p.end) + ' unless you say otherwise by ' + sayDay(y.shut))
+            : 'Renews ' + sayDay(isoAdd(y.p.end, 1)) + ' unless you say otherwise by ' + sayDay(y.shut))
           : 'Ends ' + sayDay(y.p.end)) + '</span>' +
         doorGo('Open the report') +
       '</button>' +
@@ -11821,9 +11821,12 @@
             'happening again.')
           : secAsk('Which of these will we miss',
           commas(rows.length - kept) + ' of my ' + plural(rows.length, 'promise') +
-          ' are behind with ' + (p.end ? plural(Math.max(0, daysBetween(TODAY_ISO, p.end)), 'day')
-            : p.span && p.days != null ? plural(Math.max(0, p.span - p.days - 1), 'day')
-            : 'weeks') + ' to run. Say which of them can still be caught and what it would take.')) +
+          ' are behind' + (function () {
+            const n = p.end ? Math.max(0, daysBetween(TODAY_ISO, p.end))
+              : p.span && p.days != null ? Math.max(0, p.span - p.days - 1) : null;
+            return n == null ? ' with weeks to run' : n === 0 ? ' on the last day'
+              : ' with ' + plural(n, 'day') + ' to run';
+          }()) + '. Say which of them can still be caught and what it would take.')) +
       '</div>' +
       group('Ours to keep', ourRows) +
       group(theirs, theirRows) +
@@ -14562,6 +14565,8 @@
       const y = myYear();
       const nBehind = y.behind.length;
       const run = y.left == null ? 'weeks' : plural(y.left, 'day');
+      /* "behind with 0 days to run" on the year's last day. */
+      const runSay = y.left === 0 ? ' on the last day of the year' : ' with ' + run + ' to run';
       opens = [
         /* First, because it is the only thing on this row that starts
            something rather than continuing it. */
@@ -14582,12 +14587,12 @@
         (nBehind
           ? { k: 'ask:' + commas(nBehind) + ' of my ' + plural(y.scored.length, 'promise') +
                 (nBehind === 1 ? ' is' : ' are') +
-                ' behind with ' + run + ' to run. Say which of them can still be caught ' +
+                ' behind' + runSay + '. Say which of them can still be caught ' +
                 'and what it would take.',
               label: 'Ask what can still be caught', n: nBehind,
               why: 'behind, of the ' + esc(plural(y.scored.length, 'promise')) +
                 ' on your year' }
-          : { k: 'ask:Every promise on my year is being kept with ' + run + ' to run. ' +
+          : { k: 'ask:Every promise on my year is being kept' + runSay + '. ' +
                 'Say what next year should ask for instead.',
               label: 'Ask what next year should be',
               why: 'every promise on your year is being kept' }),
@@ -27270,6 +27275,40 @@
         (v.lost.length ? '<div class="b-cuts"><button class="s-insight-lnk" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'deals', q: 'lost' }))) + '">Show the ' +
           esc(plural(v.lost.length, 'lost deal')) + '</button></div>' : '');
+    }
+    /* ══ THE CLIENT'S OWN QUESTION ══════════════════════════════════════
+       Her Start row asks which late promises can still be caught, and
+       nothing here read it: the question fell through to the list of what
+       AiMY can answer. It is answered off `myYear`, the same rows the
+       report and her prep brief draw, split the way they split them —
+       ours to answer for, hers to carry. */
+    if (isBuyer() && /still be (caught|met)|will we miss|fell behind|promises? (are|is) behind/.test(q)) {
+      const y = myYear();
+      if (y.scored.length) {
+        const nm = (x) => '<b>' + esc(PROM_SAY[x.r.k] || x.r.say) + '</b>' +
+          (x.r.eng ? ' on ' + esc(engName(x.r.eng)) : '') + ', at ' + esc(promOf(x.r, x.got));
+        const list = (xs) => xs.map(nm).join('; ');
+        const ours = y.behind.filter((x) => x.r.ours);
+        const theirs = y.behind.filter((x) => !x.r.ours);
+        const go = '<div class="b-cuts"><button class="s-insight-lnk" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">Show the year</button></div>';
+        if (!y.behind.length) {
+          return 'Every one of your <b>' + esc(plural(y.scored.length, 'promise')) + '</b> is being kept.' + go;
+        }
+        const bits = ['<b>' + esc(commas(y.behind.length)) + ' of ' + esc(plural(y.scored.length, 'promise')) +
+          '</b> ' + (y.behind.length === 1 ? 'is' : 'are') + ' behind' +
+          (y.left === 0 ? ', and the year closes today, so none of them can be caught inside it.'
+            : y.left == null ? '.' : ', with <b>' + esc(plural(y.left, 'day')) + '</b> to run.')];
+        if (ours.length) {
+          bits.push('Ours to answer for: ' + list(ours) + '. ' + (y.left === 0
+            ? 'They carry into the new year, and we say at the review what changes.'
+            : 'These are the ones we can still move.'));
+        }
+        if (theirs.length) {
+          bits.push('Yours to carry: ' + list(theirs) + '. These move at your end: we score them, your people act on them.');
+        }
+        return bits.join(' ') + go;
+      }
     }
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
