@@ -5095,7 +5095,11 @@ textarea::placeholder,
 
 /* Greyed, and the reason is the sentence beside it rather than a tooltip
    nobody hovers. */
-.s-rec-actions .s-insight-lnk[disabled] { opacity: 0.45; cursor: not-allowed; }
+/* And in a draft's header, where Run it waits on what is still missing: a
+   greyed primary that still wore the full brand fill read as the next step
+   while the real next step sat beside it as a ghost. */
+.s-rec-actions .s-insight-lnk[disabled],
+.b-draft-acts .s-insight-lnk[disabled] { opacity: 0.45; cursor: not-allowed; }
 .b-draft-empty { display: block; padding: 4px 10px 6px; max-width: 30ch; }
 /* Throwing it away is not a peer of running it: last, and out of the way of
    the two things you actually came to press. */
