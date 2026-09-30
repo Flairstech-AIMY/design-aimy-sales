@@ -5619,7 +5619,10 @@
        company paying for it came to know is how far the finding has got,
        which is the same funnel Where it stands draws underneath, said in
        the one number that is the hand-over. */
-    if (k && mine(k) && isBuyer()) {
+    /* Not a request: one she has sent has not run, and read through this
+       branch it said "Done. It closed 24 Nov". The branch below it says
+       what a request is waiting on. */
+    if (k && mine(k) && isBuyer() && !isDraft(k)) {
       const members = membersOf(k.id);
       const reached = members.filter((c) => c.checkpoint !== 'not-called').length;
       const handed = members.filter((c) => c.checkpoint === 'handed-over').length;
@@ -14258,8 +14261,8 @@
         ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' sells ' : ' sell ') +
           esc(sellSay(myLine())) + '.'
         : isBuyer()
-        ? plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') +
-          ' running for you.'
+        ? plural(camps.filter((k) => !isDraft(k)).length, 'campaign') +
+          (camps.filter((k) => !isDraft(k)).length === 1 ? ' is' : ' are') + ' running for you.'
         : plural(camps.length, 'campaign') + (camps.length === 1 ? ' is' : ' are') + ' yours.') +
         (isBuyer()
           ? ' <b>' + esc(best.name) + '</b> has handed over the most at <b>' +
@@ -14318,9 +14321,9 @@
          finding PRODUCED is a promise with a number on it, and that is the
          report's answer rather than a clause in a briefing. */
       const book = isBuyer()
-        ? (camps.length
-          ? briefN(camps.length, 'campaign', { on: 'camps' }) + ' ' +
-            (camps.length === 1 ? 'is' : 'are') + ' running for you.'
+        ? (camps.filter((k) => !isDraft(k)).length
+          ? briefN(camps.filter((k) => !isDraft(k)).length, 'campaign', { on: 'camps' }) + ' ' +
+            (camps.filter((k) => !isDraft(k)).length === 1 ? 'is' : 'are') + ' running for you.'
           : 'No campaign is running for you at the moment.')
         : all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
