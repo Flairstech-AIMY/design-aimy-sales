@@ -6875,3 +6875,19 @@ textarea::placeholder,
   .b-netcard > *, .b-netcard .b-qcard-num { transition: opacity var(--t-fast); }
 }
 .b-netcard .b-net-contact { padding-top: 8px; }
+
+/* ══ 102. THE GATE ON LEAVING AN UNSAVED DRAFT, BACK ════════════════════════
+   The block that stops a curated draft being left with nobody deciding about
+   it: Save, Discard or Stay (bdr.js, THE GATE ON LEAVING AN UNSAVED RESULT).
+   Restored from 622bf8a with the Add to campaign menu beside it. */
+.s-insight.is-lead.b-gate { background: color-mix(in srgb, var(--warn) 6%, transparent); border-color: color-mix(in srgb, var(--warn) 22%, transparent); }
+.b-gate-note { margin: -6px 0 14px; font-size: var(--t-ui); color: var(--d200); max-width: 62ch; text-wrap: pretty; }
+.b-gate .s-lead-acts { align-items: center; gap: 8px 10px; }
+.b-gate { animation: b-arrive 200ms var(--ease-out) both,
+                     b-arrive-blur 200ms var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .b-gate { animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-gate:active { transform: none; }
+}

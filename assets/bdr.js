@@ -4008,6 +4008,42 @@
     SCALAR.forEach((k) => { if (k !== 'as' && k !== 'eng') over[k] = ''; });
     return over;
   }
+  /* ══ THE GATE ON LEAVING AN UNSAVED RESULT ═════════════════════════════
+     V3 guarded a drafted list with its decision surface — the list's name,
+     how many are in it, and the two ways out — after trying a browser
+     `beforeunload` prompt and throwing it out: the browser draws that one,
+     so it cannot say what it is about, and it only ever offers leave or
+     stay when the decision has three answers.
+
+     Ours is that decision, drawn INLINE at the top of the result rather
+     than as a modal: a press that would leave the builder with a result
+     nobody has saved does not navigate; it paints the gate, which names
+     the count and offers Save, Save onto a campaign, Discard, Stay. Only
+     a door out of the builder trips it — changing the criteria or the
+     supplier stays inside and is not a decision about the result. */
+  let LEAVE = null;
+  let LEAVE_OK = false;
+  function leavingResult(over) {
+    if (LEAVE_OK || S.build !== 'done' || !DRAFT || !(DRAFT.rows || []).length) return false;
+    const next = Object.assign(Object.create(null), S, over || {});
+    return !next.build;
+  }
+  function goFree(over, replace) { LEAVE_OK = true; try { go(over, replace); } finally { LEAVE_OK = false; } }
+
+  /* ══ AND THE BROWSER'S BACK BUTTON ═══════════════════════════════════════
+     A door in the product can be intercepted; the browser's Back cannot be
+     refused, only answered. So while an unsaved result is on screen the
+     history carries one extra entry — the same URL, marked — and Back lands
+     on the entry beneath it, which is still the result. The popstate handler
+     sees the mark is gone, puts it back, and paints the gate. Stay leaves
+     the guard standing; Save and Discard move on through goFree. */
+  let BACK_GUARD = false;
+  function guardBack() {
+    const want = S.build === 'done' && DRAFT && (DRAFT.rows || []).length > 0;
+    if (want && !BACK_GUARD) { history.pushState({ aimyGuard: 1 }, '', location.href); BACK_GUARD = true; }
+    if (!want) BACK_GUARD = false;
+  }
+
   /* ══ WHAT COUNTS AS A DIFFERENT SURFACE ══════════════════════════════════
      Written once and read twice — once before the paint to remember where we
      were, once after it to ask whether that changed — because two copies of
@@ -4034,6 +4070,12 @@
   const recordKey = () => [S.con, S.camp, S.eng].join('|');
 
   function go(over, replace) {
+    if (leavingResult(over)) {
+      LEAVE = { over: over, replace: !!replace };
+      paint();
+      byId('pageScroll').scrollTop = 0;
+      return;
+    }
     const wasOn = recordKey();
     const wasSurface = surfaceKey();
     const url = qs(over);
@@ -4297,6 +4339,7 @@
     paintRail();
     refreshTasks();
     paintProto();
+    guardBack();
     postPaint(pre);
     /* Put down by the paint that used it, so the next one — a write, a page
        of the queue — draws its cards plain unless go() says otherwise. */
@@ -29535,6 +29578,12 @@
       toast('Still curating “' + CURATE.name + '”. One list at a time.');
       return;
     }
+    /* Nor over a draft nobody has decided about: it would replace it. */
+    if (DRAFT) {
+      toast('\u201c' + DRAFT.name + '\u201d is not saved yet. Save it or discard it first.');
+      openDraft();
+      return;
+    }
     const k = (campId && DB.byCamp[campId] && mine(DB.byCamp[campId]))
       ? DB.byCamp[campId] : null;
     LBUILD = { kind: seed ? (seed.kind || 'con') : null,
@@ -30504,6 +30553,70 @@
     go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
   }
 
+  /* ══ A LIST ON NO CAMPAIGN IS A LIST NOBODY IS WORKING ═════════════════
+     Save led and the campaign hung off it as a second thought, so the easy
+     press produced a set of five hundred people sitting in a drawer. Putting
+     them on a campaign is the point of having found them: it is the primary,
+     it opens the menu, and a name in that menu saves and attaches in the one
+     press.
+
+     AND THE OTHER ONE IS CALLED SAVE. It read "Save as draft", to say what
+     it left you with — and what it leaves you with is a list. A list has no
+     draft: there is no flag on the record, the page you land on is the same
+     page either way, and the only difference is `for` being null, which that
+     page already states in as many words with "Not on a campaign yet". So
+     the word was naming a state the model does not have, and naming it on
+     the one control a caller presses when they have decided to keep
+     something. Keeping something is Save.
+
+     It still reads as the quieter of the two, because it is: the campaign is
+     the primary and the filled button, and this is the inline one beside it.
+     Weight says which is the better idea; the label should only say what the
+     press does. */
+  const campPickMenu = () => {
+    const ks = myCampaigns().filter(campOpen);
+    if (!ks.length) return '';
+    return '<span class="b-menu-wrap">' +
+      '<button class="entry-action em-direct s-build-go b-menu-open" type="button" ' +
+        'data-pickopen="campPick" aria-haspopup="menu">Add to campaign</button>' +
+      '<div class="b-menu" id="campPick" role="menu" hidden>' +
+        '<span class="b-menu-cap">Put them on</span>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+          'placeholder="Find a campaign" aria-label="Find a campaign" spellcheck="false" />' +
+        ks.map((k) =>
+          '<button class="b-menu-item" type="button" role="menuitem" ' +
+          'data-pickcamp="' + esc(k.id) + '">' +
+            '<span class="b-menu-line"><span class="b-menu-name">' + esc(k.name) + '</span>' +
+            '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) +
+            ' on it · ' + esc(plural(daysBetween(TODAY_ISO, k.to), 'day')) + ' left</span></span>' +
+          '</button>').join('') +
+      '</div>' +
+    '</span>';
+  };
+  function leaveGate(n) {
+    if (!LEAVE) return '';
+    return '<section class="s-insight is-lead b-lead-slim b-gate s-block-wide" aria-label="Not saved">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-staged" data-work-state="staged">Awaiting You</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">This list is not saved. <b>' + esc(plural(n, 'person')) +
+        '</b> came back and nothing is working them.</p>' +
+      '<p class="b-gate-note">Leaving throws them away. Save it and it is yours; put it on a campaign ' +
+        'and they join your queue.</p>' +
+      '<div class="s-lead-acts">' +
+        /* The same two words the action row uses, forty pixels up. They were
+           "Save as draft" and "Discard it" here against "Save as draft" and
+           "Discard" there — one control with two labels, which this build
+           keeps finding and keeps saying is two controls to learn. */
+        '<button class="s-insight-lnk primary" type="button" data-save>Save</button>' +
+        '<button class="s-insight-lnk" type="button" data-discard>Discard</button>' +
+        '<button class="s-inline-btn" type="button" data-stay>Stay</button>' +
+      '</div>' +
+    '</section>';
+  }
+
   /* The page, as the builder drew it: the list page before it is a list. */
   function draftPage() {
     const d = DRAFT;
@@ -30514,6 +30627,7 @@
     const keeping = kept + d.take.length;
     const pg = paged(rows);
     return '<div class="s-home">' +
+      leaveGate(keeping) +
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"',
         'Back to lists') +
       '<section class="s-rec-head s-block-wide">' +
@@ -30536,10 +30650,14 @@
             '<span>' + esc(f.name) + ' found a number for <b>' + commas(withNum) + '</b></span>' +
           '</div>' +
         '</div>' +
-        /* A brand new list every time: putting it on a campaign is done from
-           the saved list, so the draft has the two verbs that decide it. */
+        /* The builder's action row, as it was: putting them on a campaign is
+           the primary and saves in the same press, Save keeps it as a list on
+           its own, Discard throws it away. With no campaign open to put them
+           on, Save is the primary instead. */
         '<div class="s-rec-actions">' +
-          '<button class="s-insight-lnk primary" type="button" data-save>Save the list</button>' +
+          (campPickMenu() || '') +
+          '<button class="' + (campPickMenu() ? 's-inline-btn' : 's-insight-lnk primary') +
+            '" type="button" data-save>Save</button>' +
           '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
         '</div>' +
         buildTeam() +
@@ -30698,14 +30816,15 @@
     return true;
   }
 
-  function saveDraft() {
+  function saveDraft(campId) {
     const d = DRAFT;
     if (!d) return;
     const rows = d.rows.filter((r) => d.drop.indexOf(r.id) < 0);
     if (!rows.length && !d.take.length) { toast('Nothing is ticked, so there is nothing to save.'); return; }
     const name = String(d.name || '').trim() || d.auto;
     const l = writeList({ id: 'l' + Date.now().toString(36), name: name, kind: d.kind, t: d.t,
-      bt: draftFlat(d.t), rows: rows, take: d.take, camp: null, crew: assignedTo() });
+      bt: draftFlat(d.t), rows: rows, take: d.take, camp: campId || null, crew: assignedTo() });
+    const k = campId ? DB.byCamp[campId] : null;
     /* The thread's "Open the list" opened the draft; from now on it opens
        what the draft became. */
     const key = 'draft:' + d.id;
@@ -30717,9 +30836,11 @@
     DELTA.chat = CHATS;
     saveSoon();
     DRAFT = null;
-    go(Object.assign(cleared(), { on: 'lists', list: l.id }));
+    LEAVE = null;
+    goFree(Object.assign(cleared(), { on: 'lists', list: l.id }));
     const crew = d.assign && d.assign.length ? d.assign : [me().id];
     toast('Saved ' + plural(l.has.length, 'person') + ' as “' + l.name + '”' +
+      (k ? ' \u00b7 on ' + k.name : '') +
       (crew.length > 1 ? ' · split between ' + commas(crew.length) + ' of you' : ''), () => {
       l.undo();
       DRAFT = d;
@@ -30729,8 +30850,13 @@
   function discardDraft() {
     const d = DRAFT;
     if (!d) return;
+    /* Out through the gate goes where you were going; the page's own
+       Discard goes to Lists. */
+    const to = LEAVE ? LEAVE.over : Object.assign(cleared(), { on: 'lists' });
+    const rep = LEAVE ? LEAVE.replace : false;
     DRAFT = null;
-    go(Object.assign(cleared(), { on: 'lists' }));
+    LEAVE = null;
+    goFree(to, rep);
     toast('Threw away “' + d.name + '”', () => {
       DRAFT = d;
       go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
@@ -30836,6 +30962,11 @@
     const ddo = t.closest('[data-draftdo]');
     if (ddo && DRAFT) { draftDo(ddo.getAttribute('data-draftdo')); paint(); return; }
     if (t.closest('[data-save]')) { saveDraft(); return; }
+    /* A name in the campaign menu is the commit, not a staged choice: it
+       saves the list and puts it on that campaign in one press. */
+    const pc = t.closest('[data-pickcamp]');
+    if (pc && DRAFT) { shutMenus(null); saveDraft(pc.getAttribute('data-pickcamp')); return; }
+    if (t.closest('[data-stay]')) { LEAVE = null; paint(); return; }
     if (t.closest('[data-discard]')) { discardDraft(); return; }
 
     /* More like a list you have: the conversation, opened on its criteria. */
@@ -32476,6 +32607,13 @@
      the bar; it is placed again when the fonts are in. */
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSwitchBar(null));
   window.addEventListener('popstate', (e) => {
+    if (BACK_GUARD && !(e.state && e.state.aimyGuard) && S.build === 'done' && DRAFT && (DRAFT.rows || []).length) {
+      history.pushState({ aimyGuard: 1 }, '', location.href);
+      LEAVE = { over: Object.assign(cleared(), { on: 'lists' }), replace: true, back: true };
+      paint();
+      byId('pageScroll').scrollTop = 0;
+      return;
+    }
     parse(); paint();
   });
   window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
