@@ -24788,6 +24788,12 @@
      is a store that fails late and silently, which is the one failure this
      build's own note on `KEY_DB` exists to refuse. */
   const CHAT_KEEP = 12;
+  /* ══ A CONVERSATION IS THE DESK'S IT WAS HAD ON ═══════════════════
+     One store for the browser, and every desk read all of it: the client
+     opened her canvas on the manager's voice notes and LinkedIn drafts.
+     Each record carries the desk that started it; one minted before that
+     carries none and stays visible, rather than vanishing on an upgrade. */
+  const mineChat = (r) => !!r && (!r.desk || r.desk === me().id);
   /* `save` is the board's debounced writer and it sets `FIG_TICK`, which
      makes every figure on the next paint animate as though it had changed.
      A turn landing in a conversation has changed no figure, and a screen
@@ -24817,13 +24823,22 @@
        So the greeting is skipped and the fallback goes on doing what it was
        written to do. `hello` and not `opener`: her finding makes a perfectly
        good title and always did. */
+    /* Nor after her unprompted finding when the thread went somewhere
+       else: a call brief or a prep sheet opened under it was titled "Jack
+       Cook is a connection of yours" three times in one column. The
+       finding still names a thread that is only about it. */
     const said = turns.filter((t) => t.who === 'you')[0]
+      || turns.filter((t) => !t.hello && t.step !== 'reach')[0]
       || turns.filter((t) => !t.hello)[0] || turns[0];
     if (!said) return 'New conversation';
     /* Inline marks go without leaving a gap ("Retail ." was a bold word and
        a full stop), and the escapes `esc` wrote are read back as the
        characters they stand for, or a title says "&amp;". */
-    const flat = String(said.html || '').replace(/<\/?(b|i|em|strong|span)\b[^>]*>/g, '')
+    /* An answer with a heading is named by its heading. Its first sentence
+       ran on into the body — "Before you speak to Charlotte Wilson Head of
+       Digit…" — because a heading has no full stop to end it. */
+    const head = /class="s-ans-title">([^<]+)</.exec(String(said.html || ''));
+    const flat = String(head ? head[1] : said.html || '').replace(/<\/?(b|i|em|strong|span)\b[^>]*>/g, '')
       .replace(/<[^>]+>/g, ' ')
       .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"').replace(/&#39;/g, '\'')
@@ -24833,7 +24848,7 @@
       || 'New conversation';
   }
   function chatRec() {
-    return CHAT_AT ? CHATS.filter((x) => x.id === CHAT_AT)[0] : null;
+    return CHAT_AT ? CHATS.filter((x) => x.id === CHAT_AT && mineChat(x))[0] : null;
   }
   /* ══ THE SECOND LINE, AND WHY IT IS NOT THE ANSWERER ═══════════════════
      Knowledge's row carries the agent that answered under the title, which
@@ -24883,7 +24898,7 @@
     let rec = chatRec();
     if (!rec) {
       rec = { id: 'ch' + Date.now().toString(36), at: new Date().toISOString(),
-        title: '', on: chatOn(), turns: [] };
+        title: '', on: chatOn(), desk: me().id, turns: [] };
       CHATS.unshift(rec);
       CHAT_AT = rec.id;
     }
@@ -24892,7 +24907,8 @@
        re-derives the title from the first question, which would put the
        question back the moment you said anything else. */
     if (!rec.named) rec.title = chatTitle(rec.turns);
-    if (CHATS.length > CHAT_KEEP) CHATS = CHATS.slice(0, CHAT_KEEP);
+    const kept = Object.create(null);
+    CHATS = CHATS.filter((r) => (kept[r.desk || ''] = (kept[r.desk || ''] || 0) + 1) <= CHAT_KEEP);
     DELTA.chat = CHATS;
     saveSoon();
   }
@@ -24906,7 +24922,7 @@
   }
   function openChat(id) {
     chatSync();
-    const rec = CHATS.filter((x) => x.id === id)[0];
+    const rec = CHATS.filter((x) => x.id === id && mineChat(x))[0];
     if (!rec) return;
     CHAT_AT = id;
     TURNS.length = 0;
@@ -25014,7 +25030,7 @@
     /* WHAT YOU HAVE OPEN IS NEVER FILTERED OUT. A search that could hide the
        conversation in front of you would be answering a different question
        from the one being asked. */
-    const found = CHATS.filter((r) => r.id === CHAT_AT || hits(r));
+    const found = CHATS.filter(mineChat).filter((r) => r.id === CHAT_AT || hits(r));
     /* … WHICH IS WHY THE MISS IS COUNTED WITHOUT IT. Keyed off `found`, a
        search matching nothing would look exactly like a search matching one
        thing, with no line saying so. What the reader wants to know is
@@ -25100,7 +25116,7 @@
            for it: there the thread you are standing in is always in the list.
            Here the store starts empty, and the column would open as a control
            over a search box with nothing under either. */
-        : !q && !CHATS.length
+        : !q && !CHATS.some(mineChat)
           ? '<p class="ov-chat-none">Nothing yet. Ask AiMY something and it lands here.</p>'
           : '');
     /* The caret goes back where it was: repainting the column on every
@@ -32821,7 +32837,7 @@
      It takes precedence over the morning greeting: somebody who opened a
      link came for that conversation, and a thread that answered them with
      an unrelated introduction would be the product not listening. */
-  const linked = S.chat && CHATS.filter((x) => x.id === S.chat)[0];
+  const linked = S.chat && CHATS.filter((x) => x.id === S.chat && mineChat(x))[0];
   if (linked) {
     openChat(S.chat);
     openCanvas();
