@@ -25208,6 +25208,12 @@
   function openCanvas() {
     peekAll();
     peekHide();
+    /* On a draft, the canvas opens on the conversation that made it, which
+       is also where its edits are answered. After a reload that is the only
+       way back to it short of the column. Never over a conversation that is
+       under way: only when the open thread is empty or AiMY's own opener. */
+    if (draftOpen() && DRAFT.chat && CHAT_AT !== DRAFT.chat && unasked() &&
+        CHATS.some((x) => x.id === DRAFT.chat)) openChat(DRAFT.chat);
     /* Reading it is what makes it read. The mark on the composer stops
        counting the moment the thread is on screen. */
     markRead();
@@ -30526,10 +30532,45 @@
      conversation the list came from, so its thread is the draft's history.
      Anything that is not an edit falls through to the bar as usual.
 
-     IN MEMORY, LIKE A DRAFT. It is not written to the store, so a reload
-     loses it; until then it is on Lists as the card it will be, marked Not
-     saved, and the thread's "Open the list" keeps opening it. */
+     KEPT UNTIL IT IS DECIDED. It is written to the store on every change
+     (AND IT SURVIVES A RELOAD, below), is on Lists as the card it will be,
+     marked Not saved, and the thread's "Open the list" keeps opening it. */
   let DRAFT = null;
+  /* ══ AND IT SURVIVES A RELOAD ══════════════════════════════════════════
+     It was held in memory, so a reload threw away a curated list nobody had
+     decided about yet, which is the one thing the leave gate exists to
+     stop. It is written into the store the conversations already live in,
+     and every change to it writes it again.
+
+     IDS, NOT ROWS. What came back is up to five hundred rows of the index,
+     and the index is the seed: the same ids mean the same people on every
+     load. So the store keeps their ids and the reload finds them again,
+     and a person the index no longer holds is simply not on the draft
+     rather than a stale copy of them. Everything else on it (the name, the
+     criteria, the unticks, the people of yours brought along, the team)
+     is small and kept as it is. */
+  function draftStore() {
+    const d = DRAFT;
+    DELTA.draft = d ? { id: d.id, chat: d.chat || null, name: d.name, auto: d.auto, kind: d.kind,
+      t: JSON.parse(JSON.stringify(d.t || {})), rows: d.rows.map((r) => r.id),
+      take: d.take.slice(), drop: d.drop.slice(), assign: d.assign ? d.assign.slice() : null } : null;
+    saveSoon();
+  }
+  function draftRestore() {
+    const d = DELTA.draft;
+    if (!d || !d.id || !Array.isArray(d.rows)) return;
+    const byId = Object.create(null);
+    (DB.net || []).forEach((n) => (byId[n.id] = n));
+    const rows = d.rows.map((id) => byId[id]).filter(Boolean);
+    const take = (d.take || []).filter((id) => DB.byCon[id]);
+    if (!rows.length && !take.length) { DELTA.draft = null; return; }
+    const kept = Object.create(null);
+    rows.forEach((r) => (kept[r.id] = 1));
+    DRAFT = { id: d.id, chat: d.chat || null, name: d.name || d.auto || 'New list',
+      auto: d.auto || d.name || 'New list', kind: d.kind || 'con',
+      t: Object.assign(Object.create(null), d.t || {}), rows: rows, take: take,
+      drop: (d.drop || []).filter((id) => kept[id]), assign: d.assign || null };
+  }
   const draftOpen = () => !!DRAFT && S.on === 'lists' && S.build === 'done';
   const draftFlat = (t) => {
     const out = [];
@@ -30545,6 +30586,7 @@
     DRAFT = { id: c.id, chat: CHAT_AT, name: c.name, auto: c.name, kind: c.kind,
       t: Object.assign(Object.create(null), c.t), rows: c.rows.slice(), take: c.take.slice(),
       drop: [], assign: null };
+    draftStore();
     return DRAFT;
   }
   function openDraft() {
@@ -30812,6 +30854,7 @@
     if (chat && CHAT_AT !== chat && CHATS.some((x) => x.id === chat)) openChat(chat);
     say('you', esc(text));
     peekAsk(reply);
+    draftStore();
     paint();
     return true;
   }
@@ -30837,6 +30880,7 @@
     saveSoon();
     DRAFT = null;
     LEAVE = null;
+    draftStore();
     goFree(Object.assign(cleared(), { on: 'lists', list: l.id }));
     const crew = d.assign && d.assign.length ? d.assign : [me().id];
     toast('Saved ' + plural(l.has.length, 'person') + ' as “' + l.name + '”' +
@@ -30844,6 +30888,7 @@
       (crew.length > 1 ? ' · split between ' + commas(crew.length) + ' of you' : ''), () => {
       l.undo();
       DRAFT = d;
+      draftStore();
       go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
     });
   }
@@ -30856,9 +30901,11 @@
     const rep = LEAVE ? LEAVE.replace : false;
     DRAFT = null;
     LEAVE = null;
+    draftStore();
     goFree(to, rep);
     toast('Threw away “' + d.name + '”', () => {
       DRAFT = d;
+      draftStore();
       go(Object.assign(cleared(), { on: 'lists', build: 'done' }));
     });
   }
@@ -30944,6 +30991,7 @@
       const at = DRAFT.drop.indexOf(id);
       if (at >= 0) DRAFT.drop.splice(at, 1);
       else DRAFT.drop.push(id);
+      draftStore();
       paint();
       return;
     }
@@ -30954,13 +31002,14 @@
       const at = now.indexOf(id);
       if (at >= 0) { if (now.length > 1) now.splice(at, 1); } else now.push(id);
       DRAFT.assign = now;
+      draftStore();
       assignSync();
       return;
     }
     const finder = t.closest('[data-finder]');
     if (finder) { FINDER = finder.getAttribute('data-finder'); paint(); return; }
     const ddo = t.closest('[data-draftdo]');
-    if (ddo && DRAFT) { draftDo(ddo.getAttribute('data-draftdo')); paint(); return; }
+    if (ddo && DRAFT) { draftDo(ddo.getAttribute('data-draftdo')); draftStore(); paint(); return; }
     if (t.closest('[data-save]')) { saveDraft(); return; }
     /* A name in the campaign menu is the commit, not a staged choice: it
        saves the list and puts it on that campaign in one press. */
@@ -32168,7 +32217,7 @@
   /* The draft's name is yours the moment you type in it. */
   document.addEventListener('input', (e) => {
     const nm = e.target.closest && e.target.closest('[data-bname]');
-    if (nm && DRAFT) DRAFT.name = nm.value;
+    if (nm && DRAFT) { DRAFT.name = nm.value; draftStore(); }
   });
 
   /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════
@@ -32678,6 +32727,7 @@
 
   loadUI();
   load();
+  draftRestore();
   fillProdMenu();
   parse();
   paint();
