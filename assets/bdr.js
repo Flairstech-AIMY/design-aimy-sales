@@ -5638,6 +5638,21 @@
         },
       };
     }
+    /* A request or a draft is not open either, and it fell into the branch
+       below: an unrun request read "Done. It closed 24 Nov" with its end
+       date still weeks away. It has not started, so it says what it waits on. */
+    if (k && mine(k) && isDraft(k)) {
+      return {
+        card: {
+          state: 'staged',
+          text: isAsked(k)
+            ? '<b>' + esc(actor(k.by).name) + '</b> asked for this' +
+              (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') + '. Nobody is called on it until it runs.'
+            : 'A draft. Nobody is called on it until it runs.',
+          evidence: [], act: null, q: null,
+        },
+      };
+    }
     if (k && mine(k) && !campOpen(k)) {
       const members = membersOf(k.id);
       return {
@@ -20683,10 +20698,20 @@
     if (!c || !st) return;
     const before = { checkpointAt: c.checkpointAt, next: c.next };
     const now = new Date().toISOString();
+    /* The meeting happened when the diary had it, not when it was written
+       up: logged at 12:40, an 11:30 meeting moved to 12:40 on the diary
+       and the desk. Today's slot is used once it has passed. */
+    let at = now;
+    if (c.next && c.next.due === TODAY_ISO && kindOfNext(c.next.what) !== 'owed') {
+      const mt = meetTime(c.id, c.next.due, kindOfNext(c.next.what));
+      const d = new Date();
+      d.setHours(mt.h, mt.m, 0, 0);
+      if (d.getTime() <= Date.now()) at = d.toISOString();
+    }
     const ended = k === 'won' || k === 'lost' || k === 'later';
     const t = {
       id: 'd' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
-      con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: now, secs: 0,
+      con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: at, secs: 0,
       outcome: 'phase', phase: ended ? 'resolution' : k, decision: ended ? k : null,
       /* Only when somebody said it. A meeting with no reading is a meeting
          nobody described, which is a different record from one that went
