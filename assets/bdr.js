@@ -5655,7 +5655,10 @@
           state: isAsked(k) && !mineAsk ? 'staged' : 'drafted',
           label: mineAsk ? 'Sent' : null,
           text: mineAsk
-            ? 'You asked for this' + when + '. A sales manager picks it up and runs it.'
+            ? 'You asked for this' + when + '. ' + (clientAsk(k) && REP[k.owner]
+              ? (k.talk ? esc(REP[k.owner].name) + ' meets you ' + esc(talkSay(k)) + ' to talk it through.'
+                : esc(REP[k.owner].name) + ' sets a time to talk it through with you first.')
+              : 'A sales manager picks it up and runs it.')
             : isAsked(k)
             ? '<b>' + esc(actor(k.by).name) + '</b> asked for this' + when +
               '. Nobody is called on it until it runs.'
@@ -7491,6 +7494,15 @@
      `owner` before anybody runs it. This filter goes on reading `owner`
      unchanged — a given request is on its manager's briefing only — and the
      only new thing is who wrote the field. */
+  /* ══ A CLIENT'S REQUEST IS TALKED THROUGH BEFORE IT RUNS ═══════════════
+     A stakeholder's request is ours: somebody here wrote it, and the
+     manager who picks it up can run it. A client's is a purchase. It goes
+     to the manager who runs their work, not to whoever is free, and it is
+     talked through with them before a caller is put on it: `talk` is the
+     meeting that manager set, `talked` the day it happened, and Run it
+     waits for the second. */
+  const clientAsk = (k) => isAsked(k) && !!k.client && !!REP[k.by] && REP[k.by].fn === 'client';
+  const talkSay = (k) => (k && k.talk ? 'on ' + sayDay(k.talk.iso) + ' at ' + clockOf(k.talk) : '');
   const campAsks = () =>
     DB.camp.filter((k) => isAsked(k) && (isWhole() || !k.owner || k.owner === me().id))
     /* Longest waiting first, which is the order every other list of things
@@ -7682,6 +7694,11 @@
             '</span>' +
             '<span class="b-owed-body">' + esc(what(k)) +
               '. ' + campGoalSay(k) +
+              (clientAsk(k) && !isWhole()
+                ? (k.talked ? ' <b>Talked through.</b>'
+                  : k.talk ? ' <b>Talk it through ' + esc(talkSay(k)) + '.</b>'
+                  : ' <b>Set a time to talk it through first.</b>')
+                : '') +
               /* On the desk it was assigned to, who assigned it. */
               (k.givenBy && !isWhole() ? ' <b>' + esc(actor(k.givenBy).name) + ' assigned it to you.</b>' +
                 (k.givenWhy ? ' The reason: ' + esc(k.givenWhy) + '.' : '') : '') +
@@ -16742,6 +16759,9 @@
        a sentence naming a field the page does not draw is the worst
        combination this build has: it says no and will not say where. */
     if (!k.crew.length && !asking) miss.push('somebody to work it');
+    if (clientAsk(k) && !asking && !k.talked) {
+      miss.push((k.talk ? 'the talk with ' : 'a talk with ') + firstOf(REP[k.by]));
+    }
     return miss;
   }
   function draftMissSay(miss, editing) {
@@ -16848,6 +16868,18 @@
               '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>') +
             (backable(k, 'camp') ? '<button class="b-ghost" type="button" data-giveback="camp|' + esc(k.id) +
               '">Hand it back</button>' : '') +
+            /* A client's request is talked through first: set the meeting, and
+               once it has happened say so. Run it is greyed until then, with
+               the talk named in the sentence under the fields. */
+            (clientAsk(k) && !asking && !editing
+              ? (!k.talk
+                ? '<button class="s-insight-lnk" type="button" data-ctalk="' + esc(k.id) + '">Set a meeting with ' +
+                  esc(firstOf(REP[k.by])) + '</button>'
+                : !k.talked
+                ? '<button class="s-insight-lnk" type="button" data-ctalked="' + esc(k.id) +
+                  '">We talked it through</button>'
+                : '')
+              : '') +
             /* Greyed for the same reason and with the same sentence under it:
                a campaign is already running, and leaving it without a name or
                without a market would take those off a page somebody is
@@ -16876,7 +16908,19 @@
            back to about it and what is left to decide. Under the name rather
            than in the action row: it is a fact about the record, and the row
            above holds the things you can do. */
-        (isAsked(k)
+        (isAsked(k) && clientAsk(k) && !asking
+          ? '<p class="s-block-sub"><b>' + esc(actor(k.by).name) + '</b> at ' +
+            esc((CLIENT[k.client] || {}).name || 'the client') + ' asked for this' +
+            (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') + '. ' +
+            (k.talked
+              ? 'You talked it through ' + esc(sayWhen(k.talked)) + '. ' +
+                (k.region ? 'Put a team on it' : 'Set the region, put a team on it,') + ' and run it.'
+              : k.talk
+              ? 'You meet ' + esc(firstOf(REP[k.by])) + ' <b>' + esc(talkSay(k)) + '</b> to talk it through. ' +
+                'After that, set the region and the team and run it.'
+              : 'It is talked through with ' + esc(firstOf(REP[k.by])) + ' before it runs: set a meeting first.') +
+            '</p>'
+          : isAsked(k)
           ? '<p class="s-block-sub"><b>' + esc(actor(k.by).name) + '</b> asked for this' +
             (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') +
             '. ' + (k.region ? 'Put a team on it' : 'Set the region, put a team on it,') +
@@ -17041,7 +17085,17 @@
              here would say somebody has it on exactly the records where that
              is least true \u2014 the ones saved before the field stopped carrying
              a placeholder. */
-          ? (k.givenBy && REP[k.owner]
+          ? (clientAsk(k) && REP[k.owner]
+            ? '<b>' + esc(REP[k.owner].name) + '</b>, who runs your campaigns, has it. ' +
+              (k.talked
+                ? 'You talked it through ' + esc(sayWhen(k.talked)) + ', and ' + esc(firstOf(REP[k.owner])) +
+                  ' sets the region and the team and starts it.'
+                : k.talk
+                ? 'You meet <b>' + esc(talkSay(k)) + '</b> to talk it through; after that ' +
+                  esc(firstOf(REP[k.owner])) + ' sets the region and the team and starts it.'
+                : esc(firstOf(REP[k.owner])) + ' sets a time to talk it through with you first, then sets ' +
+                  'the region and the team and starts it.')
+            : k.givenBy && REP[k.owner]
             ? '<b>' + esc(actor(k.givenBy).name) + '</b> assigned it to <b>' + esc(REP[k.owner].name) +
               '</b>' + (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. ' +
               esc(firstOf(REP[k.owner])) + ' sets the region, puts a team and the lists on it and starts it, ' +
@@ -20989,7 +21043,9 @@
        tomorrow the brief for the next one, which is what the Start row's
        "Request a campaign" leads to. */
     put(TODAY_ISO, mgr.name, 'This week’s campaigns');
-    put(dayAdd(1), mgr.name, 'Brief for the next campaign');
+    if (!DB.camp.some((k) => k.talk && k.client === myClient() && k.talk.iso === dayAdd(1))) {
+      put(dayAdd(1), mgr.name, 'Brief for the next campaign');
+    }
     return out;
   }
 
@@ -21011,6 +21067,16 @@
       out.push({ con: { id: '', name: e.who }, iso: e.iso, h: e.h, m: e.m,
         set: e.h != null, kind: e.kind || 'meeting', held: false, free: true,
         title: e.why || 'In the calendar' });
+    });
+    /* The talk a client's request waits on, in the client's diary and in the
+       diary of the manager who set it. Kept after it runs: it happened. */
+    DB.camp.forEach((k) => {
+      if (!k.talk || !k.client || k.talk.iso < from || k.talk.iso > to) return;
+      if (isBuyer() ? k.client !== myClient() : k.owner !== me().id) return;
+      out.push({ con: { id: '', name: isBuyer() ? (REP[k.owner] || acctMgr()).name
+        : actor(k.by).name + ', ' + ((CLIENT[k.client] || {}).name || '') },
+        iso: k.talk.iso, h: k.talk.h, m: k.talk.m, set: true, kind: 'meeting',
+        held: k.talk.iso < TODAY_ISO, free: true, title: 'Talk through: ' + campName(k) });
     });
     /* ══════════════ AND WHOSE DIARY THIS IS ══════════════
        Everything below is a room somebody from this company is in. On a
@@ -29134,7 +29200,10 @@
     const ask = asksOnly();
     cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
       (ask
-        ? 'A sales manager picks it up, sets the region, puts a team and the lists on it, and runs it.'
+        ? (isBuyer()
+          ? esc(acctMgr().name) + ' gets it and sets a time to talk it through with you, then sets ' +
+            'the region and the team and runs it.'
+          : 'A sales manager picks it up, sets the region, puts a team and the lists on it, and runs it.')
         : 'Nobody to call on it yet — a list goes on from its own page.'),
       [{ k: 'make', label: ask ? 'Request it' : 'Make it' },
         { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
@@ -29466,6 +29535,10 @@
      `campFill` the button above the fields calls. */
   function campRun(k) {
     if (!k) return;
+    if (clientAsk(k) && !k.talked) {
+      toast('Talk it through with ' + firstOf(REP[k.by]) + ' first.');
+      return;
+    }
     /* Both, because a request goes back to being a request rather than
        becoming a draft with your name on it. */
     const was = { state: k.state, owner: k.owner };
@@ -29512,12 +29585,15 @@
     patch.state = 'asked';
     patch.by = me().id;
     patch.askedAt = TODAY_ISO;
+    /* A client's goes to the manager who runs their work. */
+    if (isBuyer()) patch.owner = acctMgr().id;
     campSet(k, patch);
     go(Object.assign(cleared(), { camp: k.id }));
     /* Undone the way running one is undone: back to a draft, still yours,
        still every word of it where you left it. */
-    toast('Requested \u2014 waiting for a sales manager', () => {
-      campSet(k, { state: 'draft', askedAt: null });
+    toast(isBuyer() ? 'Sent to ' + acctMgr().name + ', to talk through with you first'
+      : 'Requested \u2014 waiting for a sales manager', () => {
+      campSet(k, { state: 'draft', askedAt: null, owner: isBuyer() ? '' : k.owner });
       go(Object.assign(cleared(), { camp: k.id }));
     });
   }
@@ -29578,7 +29654,7 @@
         { name: 'What it costs, and against what', kind: 'pricing' },
       ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
       from: TODAY_ISO, to: dayAdd(b.weeks * 7),
-      owner: campOwner(),
+      owner: ask && isBuyer() ? acctMgr().id : campOwner(),
       /* Somebody has to work it, and there is one desk that calls \u2014 unless
          nobody has agreed to work it yet, which is the whole of what a
          request is. Empty, so the manager who opens it picks. */
@@ -29605,7 +29681,9 @@
     lbuildSpend();
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
-    toast(ask ? (isWhole() ? 'Written \u2014 now assign it to a manager' : 'Requested \u2014 waiting for a sales manager')
+    toast(ask ? (isWhole() ? 'Written \u2014 now assign it to a manager'
+      : isBuyer() ? 'Sent to ' + acctMgr().name + ', to talk through with you first'
+      : 'Requested \u2014 waiting for a sales manager')
       : k.name + ' is running \u2014 nobody to call on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
@@ -31516,6 +31594,35 @@
 
     /* The other ending. Same guard, because the same list of what is missing
        greys both. */
+    const ctalk = t.closest('[data-ctalk]');
+    if (ctalk) {
+      const k = DB.byCamp[ctalk.getAttribute('data-ctalk')];
+      if (!k) return;
+      /* One press, no picker: the next morning slot, which the client's
+         diary and this one both show. The toast says when; Undo takes it
+         back out of both. */
+      const at = dayAdd(1);
+      const sl = slotOf(k.id + '|talk', 'meeting');
+      campSet(k, { talk: { iso: at, h: sl.h, m: sl.m } });
+      paint();
+      toast('Meeting set with ' + actor(k.by).name + ', ' + sayDay(at) + ' at ' + clockOf(sl), () => {
+        campSet(k, { talk: null });
+        paint();
+      });
+      return;
+    }
+    const ctalked = t.closest('[data-ctalked]');
+    if (ctalked) {
+      const k = DB.byCamp[ctalked.getAttribute('data-ctalked')];
+      if (!k) return;
+      campSet(k, { talked: TODAY_ISO });
+      paint();
+      toast('Talked through \u2014 set the region and the team, then run it', () => {
+        campSet(k, { talked: null });
+        paint();
+      });
+      return;
+    }
     const cask = t.closest('[data-cask]');
     if (cask) {
       if (cask.disabled) return;
