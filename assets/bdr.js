@@ -26938,9 +26938,53 @@
     return true;
   }
 
+  /* A day said as a date ("2 Oct", "14 October") or the way the calendar
+     already reads days ("Thursday", "tomorrow", "next week"). */
+  const TALK_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function talkDay(text) {
+    const m = String(text).match(/\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/i);
+    if (m) {
+      const mo = TALK_MONTHS.indexOf(m[2].toLowerCase().slice(0, 3));
+      let iso = isoDay(new Date(TODAY.getFullYear(), mo, Number(m[1])));
+      /* A date a few weeks back is a slip, not next year: it is refused as gone. */
+      if (iso < TODAY_ISO && daysBetween(iso, TODAY_ISO) > 90) {
+        iso = isoDay(new Date(TODAY.getFullYear() + 1, mo, Number(m[1])));
+      }
+      return iso;
+    }
+    const n = saidWhen(text);
+    return n == null ? null : dayAdd(n);
+  }
+  /* "Meet Marit on Thursday at 11:00", on the page of a client's request:
+     the talk it waits on, in both diaries. Anything without a day is asked
+     again rather than guessed; an hour not said is the morning slot, and the
+     toast says which it took. */
+  function talkBook(t) {
+    const k = S.camp && DB.byCamp[S.camp];
+    if (!k || !clientAsk(k) || k.owner !== me().id || !/^meet\b/i.test(t)) return false;
+    const iso = talkDay(t);
+    if (!iso || iso < TODAY_ISO) {
+      toast(iso ? 'That day has gone. Say a day ahead \u2014 "Thursday at 11:00".'
+        : 'Say the day and the time \u2014 "Thursday at 11:00", or "2 Oct at 3pm".');
+      fillBar('Meet ' + firstOf(REP[k.by]) + ' on ');
+      return true;
+    }
+    const said = readClock(t);
+    const at = said || slotOf(k.id + '|talk', 'meeting');
+    const was = k.talk || null;
+    campSet(k, { talk: { iso: iso, h: at.h, m: at.m } });
+    paint();
+    toast('Meeting set with ' + actor(k.by).name + ', ' + sayDay(iso) + ' at ' + clockOf(at) +
+      ' \u2014 in both diaries', () => {
+      campSet(k, { talk: was });
+      paint();
+    });
+    return true;
+  }
   function runInput(text) {
     const t = String(text || '').trim();
     if (!t) return;
+    if (talkBook(t)) return;
     if (ASK_RE.test(t) && ASKED.indexOf(t) < 0) ASKED.unshift(t);
 
     /* A call being logged owns the sentence. It is the one moment where what
@@ -31598,17 +31642,10 @@
     if (ctalk) {
       const k = DB.byCamp[ctalk.getAttribute('data-ctalk')];
       if (!k) return;
-      /* One press, no picker: the next morning slot, which the client's
-         diary and this one both show. The toast says when; Undo takes it
-         back out of both. */
-      const at = dayAdd(1);
-      const sl = slotOf(k.id + '|talk', 'meeting');
-      campSet(k, { talk: { iso: at, h: sl.h, m: sl.m } });
-      paint();
-      toast('Meeting set with ' + actor(k.by).name + ', ' + sayDay(at) + ' at ' + clockOf(sl), () => {
-        campSet(k, { talk: null });
-        paint();
-      });
+      /* The manager chooses the day and the hour, and says it the way every
+         booking here is said: in the bar, not in a picker. The sentence is
+         started for them; `talkBook` reads the rest. */
+      fillBar('Meet ' + firstOf(REP[k.by]) + ' on ');
       return;
     }
     const ctalked = t.closest('[data-ctalked]');
