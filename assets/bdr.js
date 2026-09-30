@@ -13377,7 +13377,10 @@
            list — the same words, with nothing saying whose reading they are.
            A claim about what most of the payroll is NOT doing is exactly the
            kind that has to be attributable. */
-        (un.pc == null ? '' : '<div class="s-insight">' +
+        /* Not when all of it does. Scoped to one line, the payroll IS the
+           hours logged on its campaigns, and the sentence read "Only 100% …
+           the rest is time nobody logged" about a rest that was nothing. */
+        (un.pc == null || Math.round(un.pc * 100) >= 100 ? '' : '<div class="s-insight">' +
           '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg>' +
           '<span class="s-insight-txt">Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what ' +
