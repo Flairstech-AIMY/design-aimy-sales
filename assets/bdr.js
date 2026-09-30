@@ -12848,7 +12848,9 @@
     const targetPc = pcOf(a.target);
     const pacePc = a.elapsed == null ? null : pcOf(a.target * a.elapsed);
     const ahead = a.pace != null && a.pace >= 0;
-    const done = a.elapsed != null && a.elapsed >= 1;
+    /* Today counts toward pace, so on a quarter's last day `elapsed` is
+       already 1 while the day is still being worked. Closed means over. */
+    const done = a.elapsed != null && a.elapsed >= 1 && p.whole !== false;
 
     /* ══ BOUNDED BY THE TAXONOMY, NOT BY THE POPULATION ═══════════════════
        This was one row per person, and it does not scale: six people produce
@@ -13142,7 +13144,8 @@
         (!a.target ? floorFigs(now, pipe) :
         attFig('Still needed', a.gap ? fmtMoney(a.gap) : 'Nothing',
           a.gap ? (done ? 'the window is closed'
-            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' left')
+            : Math.round((1 - a.elapsed) * (p.span || 92)) < 1 ? 'today is the last day'
+            : plural(Math.round((1 - a.elapsed) * (p.span || 92)), 'day') + ' left')
             : 'the target is already met',
           a.gap ? null : 'ok') +
         /* ══ A WEIGHTED FIGURE NEEDS ITS DENOMINATOR ═════════════════════
