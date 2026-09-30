@@ -5653,8 +5653,13 @@
       return {
         card: {
           state: isAsked(k) && !mineAsk ? 'staged' : 'drafted',
-          label: mineAsk ? 'Sent' : null,
-          text: mineAsk
+          label: mineAsk ? (isWhole() ? (k.givenBy ? 'Given' : 'Written') : 'Sent') : null,
+          text: mineAsk && isWhole()
+            ? (k.givenBy && REP[k.owner]
+              ? 'You gave it to <b>' + esc(REP[k.owner].name) + '</b>' +
+                (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. They set the region and the team and run it.'
+              : 'You wrote this' + when + '. Give it to a manager and they run it.')
+            : mineAsk
             ? 'You asked for this' + when + '. ' + (clientAsk(k) && REP[k.owner]
               ? (k.talk ? esc(REP[k.owner].name) + ' meets you ' + esc(talkSay(k)) + ' to talk it through.'
                 : esc(REP[k.owner].name) + ' sets a time to talk it through with you first.')
@@ -17078,9 +17083,13 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(campName(k)) + '</h1>' +
-          '<span class="s-meta-st tone-neutral">' + (sent ? 'Requested' : 'Draft') + '</span>' +
+          /* The CEO's own is not a request he is waiting on: he wrote it and
+             gives it, and the pill says which of the two it has had. */
+          '<span class="s-meta-st tone-neutral">' + (!sent ? 'Draft'
+            : isWhole() && k.by === me().id ? (k.givenBy ? 'Assigned' : 'Written') : 'Requested') + '</span>' +
           (sent && k.askedAt
-            ? '<span class="b-kind">sent ' + esc(sayWhen(k.askedAt)) + '</span>' : '') +
+            ? '<span class="b-kind">' + (isWhole() && k.by === me().id ? 'written ' : 'sent ') +
+              esc(sayWhen(k.askedAt)) + '</span>' : '') +
         '</div>' +
         '<p class="s-block-sub">' + (sent
           /* Nobody is named, for the reason the card's gov row gives: a
@@ -17099,7 +17108,8 @@
                 : esc(firstOf(REP[k.owner])) + ' sets a time to talk it through with you first, then sets ' +
                   'the region and the team and starts it.')
             : k.givenBy && REP[k.owner]
-            ? '<b>' + esc(actor(k.givenBy).name) + '</b> assigned it to <b>' + esc(REP[k.owner].name) +
+            ? (k.givenBy === me().id ? 'You' : '<b>' + esc(actor(k.givenBy).name) + '</b>') +
+              ' assigned it to <b>' + esc(REP[k.owner].name) +
               '</b>' + (k.givenAt ? ' ' + esc(sayWhen(k.givenAt)) : '') + '. ' +
               esc(firstOf(REP[k.owner])) + ' sets the region, puts a team and the lists on it and starts it, ' +
               'and then it turns into a campaign on this page.'
@@ -27323,7 +27333,8 @@
       const all = cand.reduce((n, x) => n + x.v, 0);
       const odds = Math.round(cand.reduce((n, x) => n + x.v * x.o, 0));
       return (gap ? '<b>' + esc(euro(gap)) + '</b> is still needed' +
-          (left != null ? ' with <b>' + plural(left, 'day') + '</b> left' : '') + '. '
+          (left == null ? '' : left === 0 ? ' on the last day of the quarter'
+            : ' with <b>' + plural(left, 'day') + '</b> left') + '. '
         : 'The target is met. ') +
         'The five most likely to sign: ' + cand.map((x) => '<b>' + esc(coOf(x.c)) + '</b> ' +
           esc(euro(x.v)) + ', ' + esc(directorOf(x.c).name)).join('; ') + '. ' +
@@ -29031,12 +29042,14 @@
        rather be asked, or you already know exactly what this campaign is
        and want the fields. Asking which is one turn and it is the same
        turn the lead builder opens with. */
-    cbuildPush((asksOnly() ? 'A campaign to ask for.' : 'A new campaign.') +
+    cbuildPush((isWhole() ? 'A campaign to give to a manager.'
+      : asksOnly() ? 'A campaign to ask for.' : 'A new campaign.') +
       ' Shall I ask you through it, or would you rather fill it in yourself?',
       [{ k: 'way-ask', label: 'Ask me through it' },
         { k: 'way-hand', label: 'I will fill it in' }],
       'Five questions and it is ' +
-      (asksOnly() ? 'in front of a sales manager' : 'running') +
+      (isWhole() ? 'written, for you to give to a manager'
+        : asksOnly() ? 'in front of a sales manager' : 'running') +
       ' \u2014 or an empty page with every field on it, saved as you type.');
   }
 
@@ -29250,9 +29263,11 @@
         ? (isBuyer()
           ? esc(acctMgr().name) + ' gets it and sets a time to talk it through with you, then sets ' +
             'the region and the team and runs it.'
+          : isWhole()
+          ? 'You give it to a manager next, and they set the region, put a team and the lists on it, and run it.'
           : 'A sales manager picks it up, sets the region, puts a team and the lists on it, and runs it.')
         : 'Nobody to call on it yet — a list goes on from its own page.'),
-      [{ k: 'make', label: ask ? 'Request it' : 'Make it' },
+      [{ k: 'make', label: isWhole() ? 'Write it' : ask ? 'Request it' : 'Make it' },
         { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
       'Or type a different name and I will use that.',
       cbuildCard());
