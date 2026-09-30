@@ -20266,6 +20266,14 @@
         ? actor(c.givenBy).name + ' passed them to you'
       : addedByHand(c) ? 'you added them yourself' : 'yours to close')
     : (called[c.checkpoint] || {}).say || 'they have left the ladder');
+  /* When they reached the step they are on. `checkpointAt` is rewritten by
+     every deal move, so on a handed-over lead it read "yours to close,
+     today" the moment a meeting was logged. The hand-over itself is a
+     touchpoint, and the story rail already dates the step off it. */
+  const stepAt = (c) => (c.checkpoint === 'handed-over'
+    && (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
+      .filter((t) => t && t.moved && t.moved[1] === 'handed-over')
+      .map((t) => t.at).sort().pop()) || c.checkpointAt;
 
   /* ══ WHAT AiMY MAKES OF THIS ONE, WITH SOMEWHERE TO GO ═════════════════
      The card's punchline was the last line of the record's header, under
@@ -21355,7 +21363,7 @@
       ? { what: c.next.what, when: (late ? 'was due ' : 'due ') + sayWhen(c.next.due), late: late }
       : null;
     const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(stepSay(c)) +
-      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.';
+      (stepAt(c) ? ', ' + esc(sayWhen(stepAt(c).slice(0, 10))) : '') + '.';
     const quiet = quietUnderFour(c);
     /* the caption says "Next", so the sentence does not have to */
     const plainNext = whatNext(c).replace(/^Next:\s*/, '').replace(/^./, (x) => x.toUpperCase());
@@ -27971,7 +27979,7 @@
       .replace(/\b(a|an|the|them|they|their|to|be|it|its|was|is|and|of|for|on|in)\b/g, '')
       .replace(/[^a-z]/g, '');
     const stepEcho = !!(c.next && bareWords(c.next.what) === bareWords(rg.label));
-    const since = c.checkpointAt ? 'since ' + sayWhen(c.checkpointAt) : '';
+    const since = stepAt(c) ? 'since ' + sayWhen(stepAt(c)) : '';
     /* "with the director" is the caller's news; read by the director it
        told her the lead was with somebody else. `stepSay` has her words. */
     const owed = rg.echo ? since : stepSay(c) + (since ? ', ' + since : '');
