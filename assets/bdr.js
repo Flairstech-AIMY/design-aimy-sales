@@ -5642,12 +5642,20 @@
        below: an unrun request read "Done. It closed 24 Nov" with its end
        date still weeks away. It has not started, so it says what it waits on. */
     if (k && mine(k) && isDraft(k)) {
+      const when = k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '';
+      /* Whose move it is decides the label. To a manager a request is
+         waiting on them; to whoever sent it, it is sent, and "Awaiting you"
+         over their own name read as if it were waiting on themselves. */
+      const mineAsk = isAsked(k) && k.by === me().id;
       return {
         card: {
-          state: 'staged',
-          text: isAsked(k)
-            ? '<b>' + esc(actor(k.by).name) + '</b> asked for this' +
-              (k.askedAt ? ' ' + esc(sayWhen(k.askedAt)) : '') + '. Nobody is called on it until it runs.'
+          state: isAsked(k) && !mineAsk ? 'staged' : 'drafted',
+          label: mineAsk ? 'Sent' : null,
+          text: mineAsk
+            ? 'You asked for this' + when + '. A sales manager picks it up and runs it.'
+            : isAsked(k)
+            ? '<b>' + esc(actor(k.by).name) + '</b> asked for this' + when +
+              '. Nobody is called on it until it runs.'
             : 'A draft. Nobody is called on it until it runs.',
           evidence: [], act: null, q: null,
         },
@@ -6795,7 +6803,7 @@
            in it already speaks about whatever the page is showing. */
         '<div class="bcard rail-card">' +
           '<div class="bcard-meta"><span class="type-label rail-state p2">' +
-            esc(WS_LABEL[c.state] || 'Reading') + '</span></div>' +
+            esc(c.label || WS_LABEL[c.state] || 'Reading') + '</span></div>' +
           '<p class="bcard-conclusion rail-conclusion">' + c.text + '</p>' +
           (c.evidence && c.evidence.length
             ? '<div class="bcard-evidence rail-evidence">' + c.evidence.map((e) =>
