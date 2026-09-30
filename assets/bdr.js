@@ -17780,7 +17780,7 @@
            that land where they were pressed. */
         (back && campOpen(k) && !isBuyer() && works()
           ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
-            'Work the ' + commas(back) + ' callbacks</button>' : '') +
+            'Work the ' + plural(back, 'callback') + '</button>' : '') +
         (fresh && campOpen(k) && !isBuyer()
           ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
             'Show the ' + commas(fresh) + ' never called</button>' : '') +
@@ -19978,7 +19978,7 @@
     if (!endable) return '';
     const word = mgr ? 'We lost it' : 'They said no';
     const say = mgr
-      ? 'The deal closes as lost and leaves the board. Undo on the toast is the way back.'
+      ? 'The deal closes as lost and leaves your deals. Undo on the toast is the way back.'
       : 'They leave your queue and nothing is owed. Undo on the toast is the way back.';
     const yes = mgr ? 'Yes, we lost it' : 'Yes, they said no';
     const doIt = mgr ? 'data-deal="' + esc(c.id + ':lost') + '"' : 'data-move="declined"';
@@ -23733,7 +23733,7 @@
       return;
     }
     const c = ringPick();
-    if (!c) { toast('Nobody on the board has a number on file to call in from.'); return; }
+    if (!c) { toast('Nobody in your contacts has a number on file to call in from.'); return; }
     ringIn(c.phone, false);
   }
 
@@ -23772,7 +23772,7 @@
        sounding on, and a note booked on a context that is about to close
        is a note that never sounds. */
     ringEndTone();
-    if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody on the board has that number.'); return; }
+    if (!c) { toast(verb + ' a call from ' + r.phone + '. Nobody in your contacts has that number.'); return; }
     const now = new Date().toISOString();
     const t = {
       id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
@@ -28461,7 +28461,7 @@
     const named = f && /(^|\s)[A-Z]/.test(f.name);
     if (!named) {
       say('aimy', 'That did not read as a name, so nothing was opened. ' +
-        'Write it the way it goes on the record and I will put them on the board.');
+        'Write it the way it goes on the record and I will put them in your contacts.');
       paintThread();
       return true;
     }
