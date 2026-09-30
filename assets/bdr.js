@@ -26710,12 +26710,19 @@
       const hit = SELLS.filter((s) => s.name.toLowerCase() === said)[0];
       if (hit) { sell = hit.k; t = want[1].trim().replace(/,\s*$/, ''); }
     }
+    /* Where you met them is not where they work. "Head of Quality at
+       Nilegate Telecom, we met at GITEX" filed GITEX as the company, because
+       the company match takes the last "at". The meeting place is read off
+       first and kept on the record as what it is. */
+    let met = null;
+    const where = t.match(/^(.*?)\s*,?\s+(?:we\s+|I\s+)?met(?:\s+them)?\s+(?:at|in|during)\s+([^,]+)$/i);
+    if (where) { met = where[2].trim(); t = where[1].trim().replace(/,\s*$/, ''); }
     let co = null;
     const at = t.match(/^(.*?)\s+(?:at|from|@)\s+([^,]+)$/i);
     if (at) { t = at[1].trim(); co = at[2].trim(); }
     const parts = t.split(',').map((x) => x.trim()).filter(Boolean);
     if (!parts.length || !/[a-z]/i.test(parts[0])) return null;
-    return { name: parts[0], title: parts[1] || null, co: co, sell: sell };
+    return { name: parts[0], title: parts[1] || null, co: co, sell: sell, met: met };
   }
 
   /* The company is looked up before it is minted, so naming one already in
@@ -26761,7 +26768,7 @@
     const t = {
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
       outcome: 'added', proposals: [], objections: [], openings: [],
-      note: f.note || ('Added by hand' + (f.co ? ', met at ' + f.co : '') + '.'),
+      note: f.note || ('Added by hand' + (f.met ? ', met at ' + f.met : '') + '.'),
       lines: [], next: null, moved: null, called: f.step || 'handed-over',
     };
     DB.acc = DB.acc.concat(madeAcc);
@@ -26986,7 +26993,7 @@
         const who = me().name + (isBuyer() && CLIENT[myClient()] ? ' at ' + CLIENT[myClient()].name : '');
         addLead(Object.assign({}, f, { manager: m.id, givenBy: me().id, camps: k ? [k.id] : [],
           sell: f.sell || (k ? lineOf(k) : null), stay: true,
-          note: who + ' met them and passed them to ' + m.name + '.',
+          note: who + ' met them' + (f.met ? ' at ' + f.met : '') + ' and passed them to ' + m.name + '.',
           toast: esc(f.name) + ' is with ' + esc(m.name) + ' now',
           sub: k ? 'On ' + campName(k) + '.' : null }));
         return;
