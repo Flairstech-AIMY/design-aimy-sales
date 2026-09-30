@@ -17740,7 +17740,9 @@
         '.</p>'
       : '';
 
-    const deck = fresh0
+    const deck = fresh0 && !all.length
+      ? 'Nobody to call on it yet. Put a list on it, or find more for it.'
+      : fresh0
       ? 'You have not called anyone on this campaign yet. Call the next one — what to say comes up with it.'
       : !st.target
       ? 'This one has no number in its goal, so there is nothing to measure it against.'
@@ -27576,7 +27578,7 @@
 
   /* Everything worth knowing before the call, in the order you would
      ask it. Nine lines at most, and every one of them off the record. */
-  /* ══ THE BRIEF IS DIFFERENT AT EVERY called ══════════════════════════════
+  /* ══ THE BRIEF IS DIFFERENT AT EVERY STEP ════════════════════════════════
      It said the same thing to a stranger and to somebody who booked a
      meeting last Tuesday: who they are, what we sell, open on the pitch.
      That is the wrong sentence for six of the eight steps. What you say
@@ -27617,13 +27619,34 @@
           'have to be true to go further.';
       case 'interested':
         return 'They want to go further. This call agrees who picks it up and when.';
-      case 'handed-over':
+      case 'handed-over': {
+        /* The warning is for the caller who handed it on. Read by the
+           person it was handed TO, it told Lina that Lina has it: for
+           her this is the warm call the hand-over was for. */
+        const holder = c.manager || (camp && camp.owner) || me().id;
+        if (holder === me().id) {
+          /* Once you have met them it is a deal, not a warm call: the
+             opener is the last meeting and what it left owed. */
+          const ph = phasesOf(c);
+          if (ph.length) {
+            return 'You have met them. Pick up from the last meeting' +
+              (owed ? ' — ' + owed : '') + ', and do not start again from the pitch.';
+          }
+          /* `owner` is the caller who got them warm; an inbound lead has none. */
+          const bdr = c.owner && c.owner !== me().id ? actor(c.owner).name : null;
+          return bdr
+            ? 'A warm call. ' + bdr + ' got them interested and handed them to you. ' +
+              'Say who you are and pick up where ' + bdr.split(' ')[0] + ' left off.'
+            : 'A warm call. They came in on their own and were handed to you. ' +
+              'Say who you are and ask what brought them to us.';
+        }
         return 'This one is not yours any more — ' +
-          esc(actor((camp && camp.owner) || me().id).name) +
+          esc(actor(holder).name) +
           ' has it. Check before you call.';
+      }
       case 'declined':
         return 'They said no' + (said ? ' — ' + said : '') +
-          '. call only if something has changed, and open on the thing that changed.';
+          '. Call only if something has changed, and open on the thing that changed.';
       case 'wrong-number':
         return 'The number on this record is not theirs. Find another before you dial.';
       case 'do-not-call':
@@ -27949,7 +27972,9 @@
       .replace(/[^a-z]/g, '');
     const stepEcho = !!(c.next && bareWords(c.next.what) === bareWords(rg.label));
     const since = c.checkpointAt ? 'since ' + sayWhen(c.checkpointAt) : '';
-    const owed = rg.echo ? since : rg.say + (since ? ', ' + since : '');
+    /* "with the director" is the caller's news; read by the director it
+       told her the lead was with somebody else. `stepSay` has her words. */
+    const owed = rg.echo ? since : stepSay(c) + (since ? ', ' + since : '');
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
         esc(rg.label) + '</span>' +
@@ -28948,7 +28973,7 @@
     cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
       (ask
         ? 'A sales manager picks it up, sets the region, puts a team and the lists on it, and runs it.'
-        : 'Nobody is on it yet — a list goes on from its own page.'),
+        : 'Nobody to call on it yet — a list goes on from its own page.'),
       [{ k: 'make', label: ask ? 'Request it' : 'Make it' },
         { k: 'pitch', label: 'Write the pitch myself', quiet: true }],
       'Or type a different name and I will use that.',
@@ -29298,7 +29323,7 @@
        manager who had just put four hundred people on it that nobody was. */
     const on = membersOf(k.id).length;
     toast(k.name + ' is running \u2014 ' +
-      (on ? plural(on, 'person') + ' on it' : 'nobody is on it yet'), () => {
+      (on ? plural(on, 'person') + ' on it' : 'nobody to call on it yet'), () => {
       campSet(k, { state: was.state, owner: was.owner });
       go(Object.assign(cleared(), { camp: k.id }));
     });
@@ -29416,7 +29441,7 @@
     hideCanvas();
     go(Object.assign(cleared(), { camp: id }));
     toast(ask ? (isWhole() ? 'Written \u2014 now assign it to a manager' : 'Requested \u2014 waiting for a sales manager')
-      : k.name + ' is running \u2014 nobody is on it yet', () => {
+      : k.name + ' is running \u2014 nobody to call on it yet', () => {
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
       reindex();
