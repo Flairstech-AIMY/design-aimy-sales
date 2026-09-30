@@ -27816,8 +27816,8 @@
     }
     if (c.owner) {
       const first = callsIn(hist).slice(-1)[0];
-      know.push(['How it started', esc(actor(c.owner).name) + ' called them cold' +
-        (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them warm.']);
+      know.push(['How it started', esc(actor(c.owner).name) + ' made the first call' +
+        (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them interested.']);
     }
     if (ph.length) {
       const l = ph[ph.length - 1];
