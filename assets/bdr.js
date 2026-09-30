@@ -8311,7 +8311,7 @@
        it sorts first. */
     const renewSay = due.length
       ? '<b>' + commas(due.length) + '</b> of them ' + (due.length === 1 ? 'renews' : 'renew') +
-        ' inside the quarter, worth <b>' +
+        ' in the next three months, worth <b>' +
         esc(euro(due.reduce((n, r) => n + r.sub.acv, 0))) + '</b> a year between them. '
       : '';
     const bits = [];
