@@ -28030,8 +28030,12 @@
     }
     /* ── worth asking ── */
     const qs = [];
-    ours.slice(0, 2).forEach((x) => qs.push('What happens to ' + (PROM_SAY[x.r.k] || x.r.say) +
-      (y.left != null ? ' in the ' + plural(y.left, 'day') + ' left' : '') + '?'));
+    /* On the year's last day there are no days left to ask about; what is
+       left to ask is what the next year does about it. */
+    ours.slice(0, 2).forEach((x) => qs.push(y.left === 0
+      ? 'What changes on ' + (PROM_SAY[x.r.k] || x.r.say) + ' in the new year?'
+      : 'What happens to ' + (PROM_SAY[x.r.k] || x.r.say) +
+        (y.left != null ? ' in the ' + plural(y.left, 'day') + ' left' : '') + '?'));
     if (year && theirs.length) {
       qs.push(mgrSide ? 'What would help them move ' + (PROM_SAY[theirs[0].r.k] || theirs[0].r.say) + '?'
         : 'What do you need from us to move ' + (PROM_SAY[theirs[0].r.k] || theirs[0].r.say) + '?');
