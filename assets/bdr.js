@@ -16708,6 +16708,45 @@
      A draft is started or kept or thrown away; a campaign that is already
      running is none of those, so it gets one verb, Done, and no Discard
      anywhere near it. */
+  /* What a draft still wants, named. Its own function because the page is
+     not the only reader: a field writes on every keystroke and redraws on
+     none, so the sentence under the fields said "It still wants a name"
+     under a name that had been typed. `draftMissSync` rereads it live. */
+  function draftMiss(k, editing) {
+    const asking = !editing && asksOnly();
+    const aimNow = k.aim || (editing ? goalSay(campGoal(k)) : '');
+    const miss = [];
+    if (!k.name) miss.push('a name');
+    if (!aimNow) miss.push('a goal');
+    if (!k.sells.length) miss.push('something to sell');
+    /* The region is the manager's, like the team and the lists: where we
+       call is decided by who calls. So a request is complete without one. */
+    if (!k.industry) miss.push('a market');
+    else if (!k.region && !asking) miss.push('a region');
+    /* Not asked for from a desk that cannot answer it. A greyed button over
+       a sentence naming a field the page does not draw is the worst
+       combination this build has: it says no and will not say where. */
+    if (!k.crew.length && !asking) miss.push('somebody to work it');
+    return miss;
+  }
+  function draftMissSay(miss, editing) {
+    return miss.length
+      ? '<span class="b-draft-miss">It still wants ' +
+        esc(miss.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.</span>'
+      : '<span class="b-draft-saved">' + (editing
+        ? 'Saved as you type. Nothing here waits for a press.'
+        : 'Everything it needs is in it. Saved as you type.') + '</span>';
+  }
+  function draftMissSync(k) {
+    const editing = !isDraft(k);
+    const miss = draftMiss(k, editing);
+    const line = document.querySelector('.s-rec-actions .b-draft-miss, .s-rec-actions .b-draft-saved');
+    if (line) line.outerHTML = draftMissSay(miss, editing);
+    document.querySelectorAll('[data-cask], [data-crun], [data-cdone]').forEach((b) => {
+      b.disabled = miss.length > 0;
+      if (miss.length) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+    });
+  }
   function campDraftPage(k, editing) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
@@ -16745,18 +16784,7 @@
        campaign is answering exactly the questions a manager answers; what
        he cannot do is answer the two about OUR floor. */
     const asking = !editing && asksOnly();
-    const miss = [];
-    if (!k.name) miss.push('a name');
-    if (!aimNow) miss.push('a goal');
-    if (!k.sells.length) miss.push('something to sell');
-    /* The region is the manager's, like the team and the lists: where we
-       call is decided by who calls. So a request is complete without one. */
-    if (!k.industry) miss.push('a market');
-    else if (!k.region && !asking) miss.push('a region');
-    /* Not asked for from a desk that cannot answer it. A greyed button over
-       a sentence naming a field the page does not draw is the worst
-       combination this build has: it says no and will not say where. */
-    if (!k.crew.length && !asking) miss.push('somebody to work it');
+    const miss = draftMiss(k, editing);
     return '<div class="s-home">' +
       /* Back to where you came from. Editing was entered from the record, so
          that is what is behind it; a draft has no record to go back to. */
@@ -16944,12 +16972,7 @@
            saying why — a control that appears only once you are allowed to
            press it never teaches you what it wanted. */
         '<div class="s-rec-actions">' +
-          (miss.length
-            ? '<span class="b-draft-miss">It still wants ' +
-              esc(miss.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.</span>'
-            : '<span class="b-draft-saved">' + (editing
-              ? 'Saved as you type. Nothing here waits for a press.'
-              : 'Everything it needs is in it. Saved as you type.') + '</span>') +
+          draftMissSay(miss, editing) +
           /* NOT WHILE IT IS RUNNING. Discard removes the campaign, its
              members and its lists' pointers at it, and a control that does
              that has no business sitting under a page somebody opened to
@@ -32234,6 +32257,7 @@
           p[f] = v;
           campSet(k, p);
         }
+        draftMissSync(k);
       }
       return;
     }
