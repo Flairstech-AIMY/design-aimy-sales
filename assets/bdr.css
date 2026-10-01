@@ -4209,11 +4209,14 @@ textarea::placeholder,
    on five dots was a legend nobody was given while they were a purple, a
    cyan and an amber at full strength; at a quarter of that they are what a
    dot is for — which of the five, without reading. Owed keeps the neutral
-   because it is the absence of a kind. */
+   because it is the absence of a kind. A callback takes cyan: the one hue in
+   the family none of the others wear, so a caller's day of promised calls
+   reads apart from a manager's meetings at a glance. */
 .k-meeting { background: var(--accent-label); }
 .k-demo { background: var(--info); }
 .k-dinner { background: var(--warn); }
 .k-held { background: var(--ok); }
+.k-callback { background: var(--cyan); }
 .k-owed { background: var(--d400); }
 
 .b-cal-cap {
@@ -4580,6 +4583,9 @@ textarea::placeholder,
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
 @media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }
+/* A caller's row is not itself a control: the two answers at its end are. */
+.b-loop-row.is-ask { cursor: default; }
+.b-loop-row.is-ask:hover { background: none; }
 
 /* ══ A ROW OF COLUMNS IS NOT A ROW ON A PHONE ═══════════════════
    Both of these are one line of facts with the verb at the far end, which is
@@ -4917,17 +4923,6 @@ textarea::placeholder,
   line-height: var(--lh-tight); letter-spacing: var(--ls-tight);
   font-variant-numeric: tabular-nums;
 }
-/* "Clear" is a good day, not a big number: it takes the size so the two cards
-   still line up, and the ink of something that is not a figure. */
-.b-door-fig.is-quiet { color: var(--ink-muted); }
-/* ── and a count of missed calls is not a good day ───────────────────
-   The one figure on any of these cards that is somebody waiting rather than a
-   fact about the day. Same token as `.b-door-miss` on the book desk's line,
-   for the same fact, so one red means missed calls across both desks — and
-   the same reasoning about ink: `--err-text`, never `--err`. The weight is
-   already extrabold from `.b-door-fig`, so the colour is the only thing this
-   rule adds and the figure is legible without it. */
-.b-door-fig.is-miss { color: var(--err-text); }
 /* ── WHAT THE FIGURE IS ──
    A number this size with no noun on it is a card asking a question. The
    report's own headline solves it the same way — `.s-att-of` after

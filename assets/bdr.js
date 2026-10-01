@@ -6641,12 +6641,10 @@
     /* ══ AND THE LOG GOES BACK WHERE ITS DOOR IS ════════════════════
        `data-back` clears to the briefing, which is where the log's door used
        to stand. It stands in two different places now, so the way back is
-       two different places: a book desk opens the log from the diary's own
+       two different places: every desk opens the log from the diary's own
        nav, and landing back on the briefing loses the day they were reading.
-       A caller opens it from a rail card that follows them everywhere, so
-       there is no one page to return to and the briefing is the honest
-       answer — the same call `notes` makes two lines down. */
-    if (S.on === 'missed' && onBook()) {
+       A caller included, now that a caller has a diary. */
+    if (S.on === 'missed') {
       return backBtn('data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '"', 'Back to the diary');
     }
@@ -6752,7 +6750,12 @@
            The URL key stays `calls`, and the manager's stays `deals`: they
            are in `cleared()`, in `switcher` and in every bookmark, and a key
            renamed to match a label is a migration for a word. */
-        : one('calls', 'Contacts', queue().length, cleared())) +
+        /* ══ AND A CALLER HAS A DIARY TOO ══════════════════════════════
+           The callbacks she promised and the meetings she set land on days,
+           and `meetings` already reads them off her queue. The tab is the
+           same one every other desk has, in the same place after Contacts. */
+        : one('calls', 'Contacts', queue().length, cleared()) +
+          one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       /* A list is what a supplier returned, and its rows carry which one
          and what it filled. `DB.list` is the whole build's, unscoped, and
@@ -6832,10 +6835,12 @@
       /* Only this desk has a day and a book to stand here. */
       /* Both doors open a pipeline surface — the diary and the report.
          A floor is already standing on the report and has no diary. */
-      /* And a caller, who has neither, gets the one card that is theirs.
-         `onBook` is false for exactly one job, so the two branches are the
-         two desks and there is no third case to fall through. */
-      (onBook() ? (onPipeline() ? railDoors() : yearDoor()) : railLog()) +
+      /* And a caller, who has a diary and no target, gets the diary's card
+         alone. Its last line is `logLine`, so the missed calls the Call log
+         card used to count are still standing here, and the diary page it
+         opens carries the door to the log itself. */
+      (onBook() ? (onPipeline() ? railDoors() : yearDoor())
+        : '<div class="rail-doors">' + diaryDoor() + '</div>') +
       /* ══ THE QUIETER OF THE TWO WAYS INTO THE CONSOLE ══════════════════
          Knowledge's own note on the same control: the corner button is the
          one that gets found, this is the one that gets used, because it sits
@@ -7380,7 +7385,7 @@
           goIco: chIcon('pen'),
           /* The words, not the answer — they are the only one who knows it.
              The same hand-off the loop on the diary makes. */
-          act: 'data-fill="' + esc('Had a ' + (m.kind === 'owed' ? 'call' : m.kind) +
+          act: 'data-fill="' + esc('Had a ' + (untimed(m.kind) ? 'call' : m.kind) +
             ' with ' + m.con.name + ', ') + '"',
         }, i);
       }) + '</div>';
@@ -8437,7 +8442,8 @@
   /* Written out rather than composed, so the audit can pair every one of
      these to the rule that colours it. */
   const DOT_CLASS = { meeting: 'b-cal-dot k-meeting', demo: 'b-cal-dot k-demo',
-    dinner: 'b-cal-dot k-dinner', held: 'b-cal-dot k-held', owed: 'b-cal-dot k-owed' };
+    dinner: 'b-cal-dot k-dinner', held: 'b-cal-dot k-held', callback: 'b-cal-dot k-callback',
+    owed: 'b-cal-dot k-owed' };
   /* The same day next month, or the last of it — 31 January plus a month is
      not 3 March. */
   function monthStep(iso, step) {
@@ -8782,9 +8788,8 @@
          hanging off the briefing's Start row as a badge on a control.
 
          So the log stands here, on the card that opens the surface the log
-         now lives on. `logLine` is the same sentence on both desks: a caller
-         gets it as a rail card of its own, because a caller has no diary
-         card to hang it off. */
+         now lives on. `logLine` is the same sentence on every desk, the
+         caller's included. */
       '<span class="b-door-say">' + logLine() + '</span>';
   }
 
@@ -8919,6 +8924,13 @@
      rail card it would open from the far left across the page, which is an
      overlay with another name and the one thing this build refuses. The
      diary is a page now, so the gate is a gate. */
+  function diaryDoor() {
+    return '<button class="b-door" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
+        '<span class="b-door-cap">Today</span>' + dayHead() +
+        doorGo('Open the diary') +
+      '</button>';
+  }
   function railDoors() {
     /* The door keeps the contract's figure on every page, the report
        included, which reads by quarter on this desk. */
@@ -8926,12 +8938,7 @@
       ? dealBook().filter((c) => { const w = wonAt(c); return w && inPeriod(w, periodOf('deal')); })
         .reduce((n, c) => n + acvOf(c).value, 0)
       : bookAttain().booked;
-    return '<div class="rail-doors">' +
-      '<button class="b-door" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
-        '<span class="b-door-cap">Today</span>' + dayHead() +
-        doorGo('Open the diary') +
-      '</button>' +
+    return '<div class="rail-doors">' + diaryDoor() +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         /* Financials is our word for it and the page it opens is titled
@@ -8948,24 +8955,6 @@
     '</div>';
   }
 
-  /* ══ AND A CALLER'S ONE STANDING FACT IS THE LOG ═════════════════════
-     The two cards above are a book desk's: a caller has no diary to open
-     and no target to stand against, so the rail carried a reading and
-     nothing else. What a caller DOES have that no other desk has as much
-     of is a phone that rang while they were on another call — fourteen of
-     them on this corpus — and that fact was a badge on a control in the
-     briefing's Start row, which is the row of ways to BEGIN something. What
-     already happened without you is not a way to begin anything.
-
-     So it stands where the other desks' standing facts stand, in the same
-     card, and it comes with you off the briefing the way they do. A book
-     desk gets the same fact on the line under its diary card, because it
-     has a card to put it on and a caller does not.
-
-     Drawn on a quiet day too, unlike the badge it replaces. A badge wearing
-     a nought teaches you to ignore it; a card that says the phone was
-     answered every time is the good news, and it is the same call the diary
-     card makes when the day is clear. */
   /* ══ AND A BOOK WITH NO TARGET STILL HAS A YEAR ══════════════════
      The two cards above are a pipeline's standing facts: what is in the
      diary, and what has been signed against target. A floor has neither —
@@ -8997,46 +8986,6 @@
             : 'Renews ' + sayDay(isoAdd(y.p.end, 1)) + ' unless you say otherwise by ' + sayDay(y.shut))
           : 'Ends ' + sayDay(y.p.end)) + '</span>' +
         doorGo('Open the report') +
-      '</button>' +
-    '</div>';
-  }
-
-  function railLog() {
-    const calls = missedCalls();
-    const t = calls[0];
-    const c = t ? DB.byCon[t.con] : null;
-    /* The hour where the hour still means something, the day where it does
-       not — `sayAgo` answers "today" for a call an hour ago, which is the
-       one thing a reader looking at today's log already knows. */
-    const when = t
-      ? (daysBetween(TODAY_ISO, t.at.slice(0, 10)) === 0 ? timeOf(t.at) : sayAgo(t.at))
-      : '';
-    /* ══ AND THERE IS NO THIRD LINE ═════════════════════════
-       Two lines stood here in turn and neither was this card's to say. The
-       first counted unwritten meetings, which is a book desk's fact; the
-       second named the tail of the list — "13 more behind them, the oldest
-       last week" — which is the page's own job the moment you open it, and
-       ran to two lines of prose under a figure that had already answered
-       the question the card is for. The count is the reading. */
-    return '<div class="rail-doors">' +
-      '<button class="b-door" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'missed' }))) + '">' +
-        '<span class="b-door-cap">Call log</span>' +
-        (calls.length
-          /* The figure takes the same red the book desk's line takes, for
-             the same fact, so one colour means missed calls on both desks.
-             The unit beside it stays quiet: "missed calls" is what the
-             number IS, and a red noun is a second alarm about nothing. */
-          ? '<span class="b-door-fig is-miss">' + esc(commas(calls.length)) +
-              '<span class="b-door-of">' +
-              (calls.length === 1 ? 'missed call' : 'missed calls') + '</span></span>' +
-            (c
-              ? '<span class="b-door-who">' + esc(c.name) +
-                '<span class="b-kind">' + esc(when) + '</span></span>'
-              : '')
-          : '<span class="b-door-fig is-quiet">Clear</span>' +
-            '<span class="b-door-who">Every call that came in got taken</span>') +
-        doorGo('Open the call log') +
       '</button>' +
     '</div>';
   }
@@ -9096,8 +9045,10 @@
         ? aimyBlock({ text: 'Every meeting that has been and gone has been written up.' }, true)
         : aimyBlock({ text: '<b>' + esc(plural(un.length, 'meeting')) + '</b>' +
           (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
-          'Say how it went in a sentence and AiMY moves the deal.' }, true) +
-      un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
+          (onBook() ? 'Say how it went in a sentence and AiMY moves the deal.'
+            : 'Say whether they turned up and the lead moves on.') }, true) +
+      un.slice(0, 5).map((m, i) => !onBook() ? loopAsk(m, i)
+        : '<button class="b-loop-row" type="button" ' +
         'data-fill="' + esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '" ' +
         'style="--i:' + Math.min(i, 8) + '">' +
         '<span class="b-loop-when">' + esc(sayWhen(m.iso)) + '</span>' +
@@ -9106,6 +9057,27 @@
         '</span>' +
         '<span class="b-loop-go">Say how it went</span>' +
       '</button>').join('')) +
+    '</div>';
+  }
+
+  /* ══ A CALLER'S MEETING ASKS ONE THING ═══════════════════════════════
+     On a book desk the row hands over a sentence, because what happened in
+     the room moves a deal in more ways than two. A caller's part of the
+     meeting is whether they came, and the queue's after-meeting cards
+     already ask exactly that with two buttons. Same two buttons here, so
+     the diary and the queue cannot disagree about what the question is. */
+  function loopAsk(m, i) {
+    return '<div class="b-loop-row is-ask" style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-loop-when">' + esc(sayWhen(m.iso)) + '</span>' +
+      '<span class="b-loop-who">' + esc(m.con.name) +
+        '<span class="b-loop-what">' + esc(m.title) + ' at ' + esc(clockOf(m)) + '</span>' +
+      '</span>' +
+      '<span class="b-loop-go b-qcard-decide">' +
+        '<button class="s-insight-lnk" type="button" data-decide="showed-up" data-for="' +
+          esc(m.con.id) + '">They showed up</button>' +
+        '<button class="s-inline-btn" type="button" data-decide="no-show" data-for="' +
+          esc(m.con.id) + '">Did not show</button>' +
+      '</span>' +
     '</div>';
   }
 
@@ -20818,7 +20790,7 @@
        up: logged at 12:40, an 11:30 meeting moved to 12:40 on the diary
        and the desk. Today's slot is used once it has passed. */
     let at = now;
-    if (c.next && c.next.due === TODAY_ISO && kindOfNext(c.next.what) !== 'owed') {
+    if (c.next && c.next.due === TODAY_ISO && !untimed(kindOfNext(c.next.what))) {
       const mt = meetTime(c.id, c.next.due, kindOfNext(c.next.what));
       const d = new Date();
       d.setHours(mt.h, mt.m, 0, 0);
@@ -20913,13 +20885,21 @@
     { k: 'demo',    label: 'Demo',    tone: 'info' },
     { k: 'dinner',  label: 'Dinner',  tone: 'warn' },
     { k: 'held',    label: 'Held',    tone: 'ok' },
+    /* A promised call, which a caller's diary is mostly made of. It is a
+       day and no hour like anything owed, but it is the one owed thing a
+       caller works first, so it is named and gets a hue of its own. */
+    { k: 'callback', label: 'Callback', tone: 'cyan' },
     { k: 'owed',    label: 'Owed',    tone: 'neutral' },
   ];
   const MEET_KIND = Object.create(null);
   MEET_KINDS.forEach((x) => (MEET_KIND[x.k] = x));
   const kindOfNext = (what) => (/dinner/i.test(what) ? 'dinner'
     : /demo/i.test(what) ? 'demo'
-    : /meeting/i.test(what) ? 'meeting' : 'owed');
+    : /meeting/i.test(what) ? 'meeting'
+    : /call them back/i.test(what) ? 'callback' : 'owed');
+  /* The kinds with a day and no hour: nothing to sit in, so nothing to be
+     late for, write up or prepare. */
+  const untimed = (k) => k === 'owed' || k === 'callback';
 
   /* Mornings and afternoons for a meeting; a dinner is at dinner time. */
   const MEET_SLOTS = [9, 10, 11, 14, 15, 16];
@@ -21112,7 +21092,9 @@
       out.push(Object.assign({}, m, { con: { id: '', name: x.who.name + ', ' + CLIENT[x.k].name },
         client: x.k }));
     }));
-    (reads() ? dealBook().filter(sitsOn) : queue(null, 'all')).forEach((c) => {
+    (reads() ? dealBook().filter(sitsOn)
+      : onBook() ? queue(null, 'all')
+      : queue(null, 'all').concat(meetsSet(), callsParked())).forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
         if (iso < from || iso > to) return;
@@ -21125,7 +21107,7 @@
         /* Something owed that is not a meeting has a day and no hour, and
            drawing it at an invented ten o'clock is the diary asserting what
            it was never told. */
-        const t = k === 'owed' ? { h: null, m: null, set: false } : meetTime(c.id, c.next.due, k);
+        const t = untimed(k) ? { h: null, m: null, set: false } : meetTime(c.id, c.next.due, k);
         out.push({ con: c, iso: c.next.due, h: t.h, m: t.m, set: t.set,
           kind: k, held: false, title: c.next.what });
       }
@@ -21135,12 +21117,42 @@
   }
   const meetingsOn = (iso) => meetings(iso, iso);
 
+  /* ══ AND THE MEETINGS A CALLER SET ═════════════════════════════════════
+     A caller's diary was read off her queue, and ONCE A MEETING IS BOOKED
+     THEY LEAVE THE QUEUE — so the one thing she put in a diary was the one
+     thing hers could not show. These are the people still standing on
+     Meeting set whose booking call was hers: `c.next` is the meeting, at
+     the day it was set for. Past the meeting they move up the ladder, the
+     next step stops being the meeting, and they leave this too. Rank 4 is
+     above everything `callable` admits, so nobody is drawn twice. */
+  function meetsSet() {
+    const meId = me().id;
+    return DB.con.filter((c) => c && c.checkpoint === 'meeting-set' && c.next &&
+      touchesOfCon(c).some((t) => t.by === meId && t.moved && t.moved[1] === 'meeting-set'));
+  }
+
+  /* ══ AND THE CALLBACKS SHE PROMISED FOR LATER ══════════════════════════
+     The same hole from the other side: `callable` parks a callback with a
+     date in the future until that date, so it was off the queue AND off the
+     diary — a promised call on Thursday was nowhere until Thursday. These
+     are exactly the people the queue would list but for that date, read
+     with the queue's own scoping, so the two cannot overlap or disagree. */
+  function callsParked() {
+    const meId = me().id;
+    const mine = Object.create(null);
+    myCampaigns().filter(campOpen).forEach((k) => (mine[k.id] = 1));
+    return DB.con.filter((c) => c && c.next && c.next.due > TODAY_ISO &&
+      kindOfNext(c.next.what) === 'callback' &&
+      !!c.phone && !c.dnc && !isExit(c.checkpoint) && rank(c.checkpoint) <= 3 &&
+      c.camps.some((k) => mine[k]) && !(c.owner && c.owner !== meId));
+  }
+
   /* A meeting whose day has passed with nothing recorded on or after it.
      This is the whole reason the loop needs closing: the manager walks out
      of the room and the record never hears about it. */
   function unrecorded() {
     /* A free entry moves no deal, so there is nothing for it to be late for. */
-    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.free && !m.held && m.kind !== 'owed' &&
+    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.free && !m.held && !untimed(m.kind) &&
       !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
   }
 
@@ -24227,7 +24239,7 @@
         ask: 'fill:Had a ' + m.kind + ' with ' + m.con.name + ', ',
       });
     });
-    const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed');
+    const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && !untimed(m.kind));
     if (soon.length) {
       /* ══ TWO COUNTS OF TODAY ON ONE SCREEN ═══════════════════════════
          This said "N things in the diary today" and so does the paragraph
