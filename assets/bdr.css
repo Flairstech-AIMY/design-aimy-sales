@@ -4583,9 +4583,6 @@ textarea::placeholder,
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
 @media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }
-/* A caller's row is not itself a control: the two answers at its end are. */
-.b-loop-row.is-ask { cursor: default; }
-.b-loop-row.is-ask:hover { background: none; }
 
 /* ══ A ROW OF COLUMNS IS NOT A ROW ON A PHONE ═══════════════════
    Both of these are one line of facts with the verb at the far end, which is

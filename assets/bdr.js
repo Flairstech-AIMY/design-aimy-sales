@@ -9045,10 +9045,8 @@
         ? aimyBlock({ text: 'Every meeting that has been and gone has been written up.' }, true)
         : aimyBlock({ text: '<b>' + esc(plural(un.length, 'meeting')) + '</b>' +
           (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
-          (onBook() ? 'Say how it went in a sentence and AiMY moves the deal.'
-            : 'Say whether they turned up and the lead moves on.') }, true) +
-      un.slice(0, 5).map((m, i) => !onBook() ? loopAsk(m, i)
-        : '<button class="b-loop-row" type="button" ' +
+          'Say how it went in a sentence and AiMY moves the deal.' }, true) +
+      un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
         'data-fill="' + esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '" ' +
         'style="--i:' + Math.min(i, 8) + '">' +
         '<span class="b-loop-when">' + esc(sayWhen(m.iso)) + '</span>' +
@@ -9057,27 +9055,6 @@
         '</span>' +
         '<span class="b-loop-go">Say how it went</span>' +
       '</button>').join('')) +
-    '</div>';
-  }
-
-  /* ══ A CALLER'S MEETING ASKS ONE THING ═══════════════════════════════
-     On a book desk the row hands over a sentence, because what happened in
-     the room moves a deal in more ways than two. A caller's part of the
-     meeting is whether they came, and the queue's after-meeting cards
-     already ask exactly that with two buttons. Same two buttons here, so
-     the diary and the queue cannot disagree about what the question is. */
-  function loopAsk(m, i) {
-    return '<div class="b-loop-row is-ask" style="--i:' + Math.min(i, 8) + '">' +
-      '<span class="b-loop-when">' + esc(sayWhen(m.iso)) + '</span>' +
-      '<span class="b-loop-who">' + esc(m.con.name) +
-        '<span class="b-loop-what">' + esc(m.title) + ' at ' + esc(clockOf(m)) + '</span>' +
-      '</span>' +
-      '<span class="b-loop-go b-qcard-decide">' +
-        '<button class="s-insight-lnk" type="button" data-decide="showed-up" data-for="' +
-          esc(m.con.id) + '">They showed up</button>' +
-        '<button class="s-inline-btn" type="button" data-decide="no-show" data-for="' +
-          esc(m.con.id) + '">Did not show</button>' +
-      '</span>' +
     '</div>';
   }
 
@@ -24046,7 +24023,7 @@
     return null;
   }
 
-  function setCheckpoint(id, mv) {
+  function setCheckpoint(id, mv, said) {
     const c = DB.byCon[id];
     if (!c) return;
     const to = mv === 'no-show' ? 'answered' : mv;
@@ -24059,7 +24036,8 @@
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint',
       proposals: [], objections: [], openings: [],
-      note: mv === 'no-show' ? 'They did not turn up. call to reschedule.'
+      note: said ? said
+        : mv === 'no-show' ? 'They did not turn up. call to reschedule.'
         : mv === 'handed-over' ? 'Handed to ' + directorOf(c).name + '.'
         : (MOVES.filter((m) => m.k === mv)[0] || {}).label + '.',
       lines: [], next: null, moved: [c.checkpoint, to], called: to,
@@ -26539,6 +26517,28 @@
     return { h: h, m: mi };
   }
 
+  /* Who, out of the caller's meetings that have been and gone, and what came
+     of it. The longest name wins, as `readMeet`'s does. Having had the
+     meeting is itself the answer that they turned up, so the sentence the
+     diary starts already says it; what follows can only take it further
+     or say otherwise. */
+  function readShowed(text) {
+    const lower = ' ' + text.toLowerCase().replace(/[\u2018\u2019]/g, "'") + ' ';
+    let con = null;
+    queue(null, 'after').forEach((c) => {
+      const n = c.name.toLowerCase();
+      if (lower.indexOf(n) >= 0 && (!con || n.length > con.name.length)) con = c;
+    });
+    if (!con && S.con && DB.byCon[S.con] && afterMeeting(DB.byCon[S.con])) con = DB.byCon[S.con];
+    if (!con) return null;
+    const k = /\b(did not show|didn't show|no[- ]show|never showed|did not turn up|didn't turn up|did not come|didn't come|stood (me|us) up|cancell?ed)\b/.test(lower) ? 'no-show'
+      : /\b(not interested|said no|declined|not for (them|us)|not a fit)\b/.test(lower) ? 'declined'
+      : /\b(interested|keen|want(s|ed)? (to go further|more|a proposal|pricing|a quote)|next step)\b/.test(lower) ? 'interested'
+      : /\b(showed up|turned up|came|attended|went well|had an? (meeting|demo|call))\b/.test(lower) ? 'showed-up'
+      : null;
+    return k ? { con: con, k: k } : null;
+  }
+
   function readMeet(text, fallback) {
     /* Only your own deals, and the longest name that appears — "Kate" must
        not beat "Kate Jones" when both are in the book. */
@@ -27232,6 +27232,16 @@
         if (bk) { if (bookPropose(t, bk)) return; }
         const mt = readMeet(t);
         if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
+      }
+      /* ══ AND AT A CALLER'S, A SENTENCE ABOUT A MEETING THAT HAS PASSED ══
+         The diary hands her the same "Had a demo with …, " a manager gets.
+         Read as a call it wrote a phone call nobody made and booked the
+         demo again a week out, because "demo" is what a call asks for. A
+         caller's part of a meeting is the step after it, so that is what
+         the sentence moves — the same move the queue's buttons make. */
+      if (!onBook() && works()) {
+        const mo = readShowed(t);
+        if (mo) { hideCanvas(); setCheckpoint(mo.con.id, mo.k, t); return; }
       }
       const read = works() ? readCall(t) : null;
       if (read && (read.disp || read.props.length || read.objs.length)) {
