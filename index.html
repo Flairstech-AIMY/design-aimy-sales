@@ -31,7 +31,7 @@
        four hundred pixels of lettering rendered into sixteen. The filenames
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
-  <link rel="stylesheet" href="assets/aimy-ds.css?v=1252" />
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=1259" />
   <!-- ══ THE TWO STAMPS MOVE TOGETHER, AND THE BUILD PANEL DEPENDS ON IT ══
 
        `?v=` is what stops a browser serving yesterday's file, and this
@@ -46,7 +46,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=1252" />
+  <link rel="stylesheet" href="assets/sales.css?v=1259" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -58,9 +58,9 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=1252" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=1252" />
-  <script src="assets/aimy-viewport.js?v=1252"></script>
+  <link rel="stylesheet" href="assets/bdr.css?v=1259" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=1259" />
+  <script src="assets/aimy-viewport.js?v=1259"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -127,9 +127,13 @@
 
      Identical to Knowledge v2's, with Sales active. V1 carried a dialer in
      this bar: a phone icon and a line picker, permanently on screen whatever
-     you were looking at. Calling changes one contact and the record of it
-     belongs on that contact, so the dialer moved onto the contact — which is
-     also the only place that knows which number to call.
+     you were looking at. V2 moved calling onto the contact, because the
+     record of a call belongs on the person it was to.
+
+     THE DIALER IS BACK, 2 Oct 2026, on the caller's desk. A number read off
+     an email signature is on no card, so the bar takes a typed number again,
+     and keeps V2's point by reading it: a number that is somebody's opens the
+     call on their record. See `paintDial` in bdr.js.
 ══════════════════════════════════════════════ -->
 <div class="app-topnav">
   <div class="topnav-logo">
@@ -224,6 +228,21 @@
         <path d="M15 3h6v6"/> <path d="M10 14 21 3"/> <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
       </svg>
     </a>
+
+    <!-- ══ THE PHONE, AN ICON AMONG THE ICONS ══════════════════════════════
+         The same 34px button as the theme control and the bell beside it, so
+         the cluster reads as one row of tools. The number you would call
+         from is in its name and is the first thing in the panel it opens.
+         Shown on the caller's desk only for now; bdr.js fills the panel and
+         decides who sees it. -->
+    <div class="ntf-anchor dial-anchor" id="dialAnchor" hidden>
+      <button class="topnav-bell" id="dialBtn" type="button"
+              aria-haspopup="dialog" aria-expanded="false" aria-controls="dialPanel"
+              aria-label="Call a number" title="Call a number">
+        <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <div class="ntf-panel dial-panel" id="dialPanel" hidden role="dialog" aria-label="Call a number"></div>
+    </div>
 
     <button class="ds-theme-toggle" id="ds-theme-toggle" type="button" aria-label="Toggle light / dark theme" title="Toggle theme">
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -633,6 +652,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/bdr.js?v=1252"></script>
+<script src="assets/bdr.js?v=1259"></script>
 </body>
 </html>

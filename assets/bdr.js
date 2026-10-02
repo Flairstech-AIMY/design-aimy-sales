@@ -4320,6 +4320,7 @@
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
+    paintDial();
     paintMicIcons();
     byId('wbStage').innerHTML = S.con ? contactPage()
       : S.acc ? accPage()
@@ -22652,6 +22653,88 @@
     document.body.classList.toggle('is-call-min', CALL_MIN);
   }
 
+  /* ══ THE LINE A CALL GOES OUT ON ════════════════════════════════════════
+     Nour, 2 Oct 2026: a caller holds two or three numbers and nothing routes
+     between them yet, so the caller says which one a call goes out on before
+     it goes. The person at the other end sees that number and calls back on
+     it, which is why it is chosen in the open and not defaulted out of sight.
+
+     THE CALLER'S DESK ONLY, FOR NOW. Nobody else has lines, so `telLines` is
+     empty on every other desk and each control below draws nothing there.
+
+     A MENU OF NUMBERS, NOT A STRIP OF COUNTRIES. The first cut was three
+     segments, one per country, and Nour corrected it: a caller holds several
+     numbers and more than one in a country, so the choice is the list of
+     numbers, each with its country, behind an opener that shows the one you
+     are on. No cities: the country is the whole of what the caller needs. */
+  /* US and UK, Nour, 2 Oct 2026. Every one is in a range set aside for
+     fiction (555-01xx in the US, Ofcom's drama numbers in the UK), so none
+     of them rings anybody real. */
+  const TEL_LINES = {
+    engy: [
+      { id: 'us1', cc: 'US', num: '+1 212 555 0147' },
+      { id: 'us2', cc: 'US', num: '+1 312 555 0139' },
+      { id: 'us3', cc: 'US', num: '+1 415 555 0182' },
+      { id: 'uk1', cc: 'UK', num: '+44 20 7946 0318' },
+      { id: 'uk2', cc: 'UK', num: '+44 161 496 0752' },
+    ],
+  };
+  /* "NL 4417": the country and the last four digits, which is how two
+     numbers in one country are told apart in the space of a button. */
+  const telTag = (l) => l.cc + ' ' + l.num.replace(/\D/g, '').slice(-4);
+  const telLines = () => (me().fn === 'bdr' && TEL_LINES[me().id]) || [];
+  const telLine = (id) => telLines().filter((l) => l.id === id)[0] || null;
+  /* The line you last called on, which is where the next call starts. */
+  const lastTel = () => telLine((UI.line || {})[me().id]) || telLines()[0] || null;
+  /* WHO HAS SEEN WHICH NUMBER. Somebody you called on the UK line knows you
+     by the UK line, so calling them again starts there. Anybody else starts
+     on the line you last used. */
+  function telFor(c) {
+    let had = null;
+    ((c && c.id && DB.touchesOf[c.id]) || []).forEach((tid) => {
+      const t = TOUCH[tid];
+      if (t && t.from && t.dir !== 'in' && telLine(t.from) && (!had || t.at > had.at)) had = t;
+    });
+    return had ? telLine(had.from) : lastTel();
+  }
+  function pickTel(id) {
+    if (!telLine(id)) return;
+    shutMenus(null);
+    UI.line = Object.assign({}, UI.line, { [me().id]: id });
+    saveUI();
+    if (DB.call && DB.call.state === 'ready') { DB.call.from = id; paintCall(); }
+    syncDial();
+  }
+  /* One opener and its menu, drawn the same in the dialer and on the call
+     panel. `.b-menu` is the build's own, so one open at a time, Escape, the
+     outside click and hanging the other way at an edge all come with it.
+     `where` keeps the two ids apart. */
+  function telPick(on, where) {
+    const ls = telLines();
+    if (!on || ls.length < 2) return '';
+    const id = 'telMenu' + where;
+    return '<span class="b-menu-wrap tel-pick" id="telWrap' + where + '">' +
+      '<button class="b-ghost b-menu-open tel-pick-btn" type="button" ' +
+        'data-pickopen="' + id + '" aria-haspopup="menu" ' +
+        'aria-label="' + esc('Call from ' + on.num + ', ' + on.cc) + '">' +
+        '<span class="tel-pick-num">' + esc(on.num) + '</span>' +
+        '<span class="tel-pick-cc">' + esc(on.cc) + '</span>' + chIcon('down') +
+      '</button>' +
+      '<div class="b-menu tel-menu" id="' + id + '" role="menu" hidden>' +
+        ls.map((l) => {
+          const is = l.id === on.id;
+          return '<button class="b-menu-item' + (is ? ' is-on' : '') + '" type="button" ' +
+            'role="menuitemradio" aria-checked="' + is + '" data-call-line="' + esc(l.id) + '">' +
+            /* One line, the way the opener reads: two letters under a
+               number spent a row on each and doubled the list. */
+            '<span class="b-menu-name">' + esc(l.num) + '</span>' +
+            '<span class="tel-menu-cc">' + esc(l.cc) + '</span>' +
+          '</button>';
+        }).join('') +
+      '</div>' +
+    '</span>';
+  }
+
   function startCall(id, sess) {
     const c = DB.byCon[id];
     if (!c) return;
@@ -22671,6 +22754,7 @@
     clearCallTimers();
     DB.call = {
       con: id, camp: campFor(c), state: 'ready', secs: 0,
+      from: (telFor(c) || {}).id || null,
       script: scriptFor(c), shown: 0, note: '', outcome: null, read: null,
       when: 1, recording: false, muted: false, held: false, asking: false, notice: false,
       auto: false, sess: sess || (DB.call && DB.call.sess) || null,
@@ -22800,6 +22884,7 @@
          object standing in for a person we do not hold. All three are
          null on an outbound call and nothing downstream reads them. */
       dir: c.dir || 'out', phone: c.phone || null, stranger: c.stranger || null,
+      from: c.from || null,
     };
     DB.call = null;
     document.body.classList.remove('is-calling');
@@ -22912,6 +22997,8 @@
          written was a call somebody here placed, so the direction was true
          by construction and never stored. It is not any more. */
       dir: call.dir || 'out',
+      /* Which of our numbers they saw, so the next call goes out on it. */
+      from: call.from || null,
       proposals: props, objections: objs, openings: opps,
       /* The fallback note said "No answer." on any call AiMY read nothing
          out of — which is a sentence about an outbound call nobody picked
@@ -23033,6 +23120,7 @@
     host.hidden = !DB.call;
     host.classList.toggle('is-opening', mounting);
     host.innerHTML = DB.call ? callPanel() : '';
+    paintDial();
   }
 
   /* ══ THE RAIL IS ONE CALL, AND NOTHING ELSE ═════════════════════════════
@@ -23116,6 +23204,10 @@
            own phone number has the same problem. */
         (c.phone && c.phone !== c.name
           ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
+        /* Once it has gone, which of your numbers they are looking at. */
+        (!ready && telLine(call.from)
+          ? '<p class="call-from-on">From ' + esc(telLine(call.from).num) + ', ' +
+            esc(telLine(call.from).cc) + '</p>' : '') +
       '</div>' +
 
       /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —
@@ -23137,6 +23229,15 @@
               '<button class="btn btn-brand btn-sm" type="button" data-call-consent="yes">' +
                 'I have told them</button>' +
             '</div>' +
+          '</div>'
+        : '') +
+
+      /* ══ WHICH NUMBER, BEFORE IT GOES ═════════════════════════════════
+         Only in `ready`: once the call is out the number is spent, and the
+         line under the name says which one it was. */
+      (ready && telLine(call.from) && telLines().length > 1
+        ? '<div class="call-from">' +
+            '<span class="call-from-cap">From</span>' + telPick(telLine(call.from), 'Call') +
           '</div>'
         : '') +
 
@@ -23174,8 +23275,11 @@
            thing on the ready panel to press. */
         (ready
           ? '<button class="call-end call-go" type="button" data-callgo ' +
-            'aria-label="Start the call to ' + esc(c.name) + '">' + chIcon('phone') +
-            'Start call</button>'
+            'aria-label="Start the call to ' + esc(c.name) +
+            (telLine(call.from) ? ' from ' + esc(telLine(call.from).num) : '') +
+            '">' + chIcon('phone') +
+            (telLine(call.from) ? 'Call from ' + esc(telTag(telLine(call.from))) : 'Start call') +
+            '</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
             (dialing ? 'Stop calling them' : 'End the call') + '" title="' +
             (dialing ? 'Stop calling them' : 'End the call') + '">' +
@@ -24832,6 +24936,200 @@
   window.aimyNtfRender = render;
   render();
 })();
+
+  /* ══ THE DIALER, BACK IN THE BAR ════════════════════════════════════════
+     V1 had one and V2 took it out, on the argument that a call belongs on a
+     contact. That is still true, and it was never an argument against typing
+     a number: one read off an email signature is on no card, and a card was
+     the only door to the phone.
+
+     So the bar has a phone again, hung off it the way the bell's panel is,
+     and it keeps V2's argument by reading what you type. A number that is
+     somebody's opens the call on their record. One that is nobody's goes out
+     to a stranger and comes back through the read-back an unknown inbound
+     caller gets, which offers to open a contact.
+
+     The button carries the line you are on, so which number the other end
+     will see can be read without opening anything. */
+  const DIALLED_SCRIPT = [
+    ['you', 'Hello, this is {me}. Who am I speaking to?'],
+    ['them', 'You are speaking to Marta Kowalczyk. I run operations at Brava Logistics.'],
+    ['you', 'Thanks, Marta. We take on support desks for teams your size. Is that yours to look after?'],
+    ['them', 'It is. Send me something in writing and call me back next week.'],
+  ];
+  let DIAL_NUM = '';
+
+  function paintDial() {
+    const anchor = byId('dialAnchor');
+    if (!anchor) return;
+    const on = me().fn === 'bdr';
+    anchor.hidden = !on;
+    if (!on) { closeDial(false); return; }
+    const l = lastTel();
+    const say = DB.call ? 'Back to the call'
+      : l ? 'Call a number from ' + l.num : 'You don\u2019t have a number';
+    const btn = byId('dialBtn');
+    btn.setAttribute('aria-label', say);
+    btn.title = say;
+  }
+
+  /* What the number you typed is, said under it while you type. It is
+     AiMY reading the number against the contacts, so it is said in AiMY's
+     voice and behind AiMY's mark, the way every other reading here is. */
+  const dialSay = (t) => aimyBlock({ text: t }, true);
+  function dialWho() {
+    if (DIAL_NUM.replace(/\D/g, '').length < 7) return '';
+    const id = conByPhone(DIAL_NUM);
+    const c = id && DB.byCon[id];
+    if (!c) return dialSay('That number is not in your contacts. When you hang up, ' +
+      'I will offer to open one.');
+    if (c.dnc) return dialSay(esc(c.name) + ' asked not to be called again.');
+    const a = accOf(c);
+    return dialSay('That is <b>' + esc(c.name) + '</b>' + (a ? ' at ' + esc(a.name) : '') +
+      '. The call goes on their record.');
+  }
+
+  function dialBody() {
+    const head = '<div class="ntf-head"><b>Call a number</b></div>';
+    const l = lastTel();
+    if (!l) {
+      return head + '<p class="dial-none">You don\u2019t have a number to call from yet. Ask ' +
+        esc(MANAGERS[0].name) + ' for one.</p>';
+    }
+    return head + '<div class="dial-body">' +
+      (telLines().length > 1
+        ? '<div class="dial-field"><span class="dial-cap">From</span>' + telPick(l, 'Dial') + '</div>'
+        : '<p class="dial-from-num">From ' + esc(l.num) + '</p>') +
+      '<div class="dial-field">' +
+        '<label class="dial-cap" for="dialNum">Number</label>' +
+        '<input class="dial-input" id="dialNum" type="tel" inputmode="tel" autocomplete="off" ' +
+          'spellcheck="false" placeholder="+31 6 1234 5678" value="' + esc(DIAL_NUM) + '">' +
+        '<div class="dial-who" id="dialWho" aria-live="polite">' + dialWho() + '</div>' +
+      '</div>' +
+      '<button class="btn btn-brand dial-go" type="button" data-dial-go>' + chIcon('phone') +
+        '<span id="dialGoLabel">Call from ' + esc(telTag(l)) + '</span></button>' +
+    '</div>';
+  }
+
+  /* A line picked here or on the call panel is the same choice, so both
+     follow it. Updated in place: redrawing the panel would take the number
+     out from under the cursor. */
+  function syncDial() {
+    paintDial();
+    const panel = byId('dialPanel');
+    const l = lastTel();
+    if (!panel || panel.hidden || !l) return;
+    /* The opener and its menu are redrawn whole: the menu has just closed,
+       and the number field is not inside them. Focus goes back to the
+       opener, where the hand was. */
+    const wrap = byId('telWrapDial');
+    if (wrap) {
+      const had = wrap.contains(document.activeElement);
+      wrap.outerHTML = telPick(l, 'Dial');
+      const open = had && document.querySelector('#telWrapDial .tel-pick-btn');
+      if (open) open.focus();
+    }
+    const go = byId('dialGoLabel');
+    if (go) go.textContent = 'Call from ' + telTag(l);
+  }
+
+  function dialOpen() {
+    const panel = byId('dialPanel');
+    panel.innerHTML = dialBody();
+    menuOpen(panel);
+    byId('dialBtn').setAttribute('aria-expanded', 'true');
+    const f = byId('dialNum');
+    if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  }
+  function closeDial(back) {
+    const panel = byId('dialPanel');
+    if (!panel || !menuIsOpen(panel)) return;
+    menuShut(panel);
+    byId('dialBtn').setAttribute('aria-expanded', 'false');
+    if (back) byId('dialBtn').focus();
+  }
+
+  /* ══ PRESSING CALL IS THE START ═══════════════════════════════════════
+     The line and the number were both chosen in the panel, so the call
+     goes straight to connecting. A ready panel asking to Start it again
+     would be the same question twice. */
+  function dialGo() {
+    const num = DIAL_NUM.trim();
+    const l = lastTel();
+    const who = byId('dialWho');
+    if (num.replace(/\D/g, '').length < 7) {
+      if (who) who.innerHTML = dialSay('That is too short to be a phone number.');
+      const f = byId('dialNum'); if (f) f.focus();
+      return;
+    }
+    if (!l) return;
+    if (DB.call) { toast('You are already on a call. One line at a time.'); return; }
+    if (RINGING) { toast('Your phone is ringing. Answer it or let it go first.'); return; }
+    const id = conByPhone(num);
+    closeDial(false);
+    if (id) {
+      startCall(id);
+      /* Refused by one of startCall's own guards, which has said why. */
+      if (!DB.call || DB.call.con !== id) return;
+      DB.call.from = l.id;
+      DIAL_NUM = '';
+      callGo();
+      return;
+    }
+    clearCallTimers();
+    const first = me().name.split(' ')[0];
+    DB.call = {
+      con: null, camp: null, state: 'ready', secs: 0,
+      dir: 'out', phone: num, from: l.id,
+      /* The shape `answerInbound` gives a stranger, so the rail and the
+         read-back draw unchanged. Never pushed into `DB`. */
+      stranger: {
+        id: null, acc: null, name: num, title: 'Not a contact',
+        phone: num, camps: [], checkpoint: 'not-called', attempts: 0,
+        next: null, remember: null, dnc: false, fate: null,
+      },
+      script: DIALLED_SCRIPT.map((x) => [x[0], x[1].split('{me}').join(first)]),
+      shown: 0, note: '', outcome: null, read: null,
+      when: 1, recording: false, muted: false, held: false,
+      asking: false, notice: false, auto: false, sess: null,
+    };
+    DIAL_NUM = '';
+    document.body.classList.add('is-calling');
+    callMin(false);
+    paintCall();
+    strangerPrep(num);
+    callGo();
+  }
+
+  (function () {
+    const btn = byId('dialBtn');
+    const panel = byId('dialPanel');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      /* On a call the bar's phone is the way back to it, not a second line. */
+      if (DB.call) { callMin(false); paintCall(); return; }
+      if (menuIsOpen(panel)) closeDial(false); else dialOpen();
+    });
+    panel.addEventListener('input', (e) => {
+      if (e.target.id !== 'dialNum') return;
+      DIAL_NUM = e.target.value;
+      const who = byId('dialWho');
+      if (who) who.innerHTML = dialWho();
+    });
+    panel.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.id === 'dialNum') { e.preventDefault(); dialGo(); }
+    });
+    document.addEventListener('click', (e) => {
+      if (menuIsOpen(panel) && !panel.contains(e.target) && !btn.contains(e.target)) closeDial(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !menuIsOpen(panel)) return;
+      if (panel.querySelector('.b-menu:not([hidden])')) return;
+      e.preventDefault();
+      closeDial(true);
+    });
+  })();
 
 
   /* ══ 7e. THE COMPOSER, AND THE CANVAS BEHIND IT ═════════════════════════
@@ -28815,7 +29113,8 @@
       /* They rang us and we spoke. Not 'handed-over': no manager has this,
          and the step a call earns is the one the call actually reached. */
       step: 'answered', manager: null,
-      note: 'Called in on ' + (call.phone || 'an unknown number') + '.',
+      note: (call.dir === 'in' ? 'Called in on ' : 'Called on ') +
+        (call.phone || 'an unknown number') + '.',
     });
     if (!c) return;
     /* Released here as well as in `whoisRead`, because agreeing with the
@@ -31852,6 +32151,9 @@
     }
 
     if (t.closest('[data-call-min]')) { callMin(!CALL_MIN); paintCall(); return; }
+    const lineBtn = t.closest('[data-call-line]');
+    if (lineBtn) { pickTel(lineBtn.getAttribute('data-call-line')); return; }
+    if (t.closest('[data-dial-go]')) { dialGo(); return; }
     if (t.closest('[data-callgo]')) { callGo(); return; }
     if (t.closest('[data-call-end]')) { endCall(); return; }
     /* The two presses on a ringing phone. Beside the controls that end a

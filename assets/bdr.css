@@ -6887,3 +6887,106 @@ textarea::placeholder,
 @media (prefers-reduced-motion: reduce) {
   .b-gate:active { transform: none; }
 }
+
+/* ══ 103. THE LINE A CALL GOES OUT ON, AND THE DIALER ══════════════════════
+   Nour, 2 Oct 2026: a caller holds several numbers, more than one in a
+   country, and chooses one before a call goes. The choice is the build's own
+   `.b-menu` behind an opener that shows the number you are on. The dialer is
+   the bell's button and the bell's panel, with a form in the panel.
+
+   NEW RATHER THAN REUSED: nothing in the build lays out a labelled field
+   inside a panel. */
+.dial-anchor[hidden] { display: none; }
+
+/* Visible overflow, because the number menu inside it is positioned and the
+   bell's scrolling box would cut it off; the panel is four rows and has
+   nothing to scroll. */
+.ntf-panel.dial-panel {
+  width: 320px; padding: 6px 6px 12px;
+  overflow: visible; max-height: none;
+}
+.dial-body { display: flex; flex-direction: column; gap: 16px; padding: 2px 10px 0; }
+/* 6 inside a field and 16 between them: the ratio rule, so a label and its
+   control read as one thing. */
+.dial-field { display: flex; flex-direction: column; gap: 6px; }
+.dial-cap, .call-from-cap {
+  font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--d200);
+}
+.dial-input {
+  width: 100%; height: 40px; padding: 0 12px;
+  border-radius: var(--r-md); border: 1px solid var(--card-border);
+  background: var(--card-bg-raised);
+  font-family: var(--font-sans); font-size: var(--t-ui); color: var(--d50);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+}
+.dial-input::placeholder { color: var(--d200); }
+.dial-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+/* AiMY's reading of the number, in the block every other reading uses. Its
+   own margins are a card's, and here it sits in a field. */
+.dial-who:empty { display: none; }
+.dial-who .b-aimy { margin: 0; }
+.dial-who .b-aimy-say { text-wrap: pretty; }
+.dial-who .b-aimy-say b { color: var(--d50); }
+.dial-go { width: 100%; justify-content: center; gap: 8px; min-height: 40px; }
+.dial-go svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; }
+.dial-none { padding: 2px 10px 2px; font-size: var(--t-ui); color: var(--d200); line-height: 1.45; }
+.dial-from-num {
+  font-size: var(--t-small); color: var(--d200); font-variant-numeric: tabular-nums;
+}
+
+/* The opener, in both places: the full width of its field, the number you
+   are on and its country, and the menu under it as wide as it is. */
+.tel-pick { display: flex; width: 100%; }
+.tel-pick-btn {
+  width: 100%; min-height: 40px; padding: 0 10px 0 12px; gap: 8px;
+  justify-content: flex-start; border-radius: var(--r-md);
+}
+.tel-pick-num {
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.tel-pick-cc {
+  margin-left: auto; font-size: var(--t-small); color: var(--d200);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.tel-menu { right: 0; min-width: 100%; }
+.tel-menu .b-menu-name { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tel-menu-cc { margin-left: auto; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--d200); }
+
+/* On the call panel: above Start, while nothing has gone. */
+.call-from { display: flex; flex-direction: column; gap: 6px; }
+/* And once it has, which number they saw, under theirs. */
+.call-from-on {
+  font-size: var(--fs-xs); color: var(--d200); font-variant-numeric: tabular-nums;
+  margin-top: 2px; line-height: var(--lh-tight);
+}
+
+/* Below 520 layout px the bell's panel becomes a sheet under the masthead;
+   the width above would undo that, so it is given back here. */
+@media (max-width: 519.98px) {
+  .ntf-panel.dial-panel { width: auto; }
+}
+
+/* ══ AND THE MASTHEAD MAKES ROOM FOR IT ════════════════════════════════════
+   sales.css measured the strip's 720 against a right-hand group of the theme
+   control, the bell and the pill. The phone adds a 34px button and a 12px gap
+   to that group, and measured with it the strip runs 34 short at 760: Sales,
+   the tab you are on, is the half that gets cut.
+
+   SO THE SAME MOVE, AT THE WIDTH IT IS NOW NEEDED. On the caller's desk the
+   strip becomes the chevron menu under 800 instead of 720, which is what
+   sales.css already turns it into, for the reason it gives there.
+
+   AND ON A PHONE THE GAPS CLOSE UP. The handset alone put the bar 17 over at
+   375; the right group's three gaps and the left group's two at 6 instead of
+   12 and 10 give back 26. Nothing in either group goes. */
+@media (max-width: 799.98px) {
+  .app-topnav:has(.dial-anchor:not([hidden])) .topnav-tabs { display: none; }
+  .app-topnav:has(.dial-anchor:not([hidden])) .prod-chev { display: inline-flex; }
+  .app-topnav:has(.dial-anchor:not([hidden])) .topnav-spacer + .topnav-spacer { display: none; }
+  .app-topnav:has(.dial-anchor:not([hidden])) .topnav-logo { padding-right: 0; margin-right: 0; }
+}
+@media (max-width: 519.98px) {
+  .app-topnav:has(.dial-anchor:not([hidden])) .topnav-right,
+  .app-topnav:has(.dial-anchor:not([hidden])) .topnav-logo { gap: 6px; }
+}
