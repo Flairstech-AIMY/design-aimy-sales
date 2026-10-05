@@ -4395,7 +4395,9 @@
        in order, 30ms apart, capped at the eighth so the last of fifteen is
        not made to wait a quarter of a second — and a repaint never runs the
        arrival, so the number is inert the rest of the time. */
-    return '<article class="type-card s-card b-qcard" data-card="' + esc(c.id) + '" ' +
+    const waits = fillWaits(c);
+    return '<article class="type-card s-card b-qcard' + (waits ? ' is-finding" aria-busy="true' : '') +
+      '" data-card="' + esc(c.id) + '" ' +
       'style="--i:' + Math.min(i || 0, 8) + '" ' +
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
@@ -4512,13 +4514,19 @@
 
            The caller's number stays: a phone number IS the next press. */
         (onBook() ? ''
+          /* Asked for and not back yet. The words shimmer where the number
+             will be, and the verb's place holds its shape (`fillStart`). */
+          : waits
+          ? '<span class="b-qcard-num b-fact b-finding">' + chIcon('phone') +
+            '<span>Finding a number</span></span>'
           : '<span class="b-qcard-num b-fact">' + chIcon('phone') + '<span>' +
             (c.phone ? esc(c.phone) : 'No number') + '</span></span>') +
         /* Only the first card is filled. Fifteen identical primaries is
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
            the only filled thing on the surface. */
-        (onBook()
+        (waits ? SKEL_BAR(30, 20, ';margin-left:auto;border-radius:999px')
+          : onBook()
           /* The verb that answers the reading above it, rather than Open on
              every card — which is what pressing the card already does. */
           ? (function () {
@@ -5429,7 +5437,8 @@
          off a campaign shows the campaign reading and the shortfall is
          still true underneath it. */
       aimyBlock(listSays(l, people, call, !!camp), false,
-        works() && people.some((c) => !c.phone)
+        fillOn(l) ? fillLive()
+        : works() && people.some((c) => !c.phone)
           ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
             'Fill in what is missing</button>'
           : '') +
@@ -15790,9 +15799,7 @@
     const camp = campsOn(l);
     /* NEVER-called FIRST. A list exists to bring new people in; the ones
        nobody has tried lead, the rest follow up the ladder, exits last. */
-    const order = (c) => (isExit(c.checkpoint) ? 99 : rank(c.checkpoint));
-    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean)
-      .sort((x, y) => (order(x) - order(y)) || qTie(x, y));
+    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean).sort(rosterOrder);
     const call = people.filter(callable);
     const hist = [];
     people.forEach((c) => (DB.touchesOf[c.id] || []).forEach((id) => { if (TOUCH[id]) hist.push(TOUCH[id]); }));
@@ -16019,30 +16026,148 @@
     return Math.max(0, matched - (l.found || l.has.length));
   }
 
+  /* NEVER-called FIRST. A list exists to bring new people in; the ones
+     nobody has tried lead, the rest follow up the ladder, exits last. */
+  function rosterOrder(x, y) {
+    const order = (c) => (isExit(c.checkpoint) ? 99 : rank(c.checkpoint));
+    return (order(x) - order(y)) || qTie(x, y);
+  }
+
   /* [3] FILL IN WHAT IS MISSING — V3's data-enrichlist, over the people on
      this list without a number. The supplier's own hit rate decides who
      gets one, deterministically off the record's id so a re-run says the
-     same thing. One write, one toast, one undo. */
+     same thing. One toast and one undo, at the end of the run. */
   function fillList(id) {
     if (isBuyer()) { toast('We fill the numbers in.'); return; }
-    if (!works()) return;
+    if (!works() || FILLING) return;
     const l = DB.byList[id];
     if (!l) return;
     const f = finderOf();
+    /* in the roster's order, and by the roster's page, so whichever page
+       is open fills across the whole run rather than in its first half */
+    const all = l.has.map((cid) => DB.byCon[cid]).filter(Boolean).sort(rosterOrder);
+    const pageOf = Object.create(null);
+    all.forEach((c, i) => (pageOf[c.id] = Math.floor(i / PAGE)));
+    const want = all.filter((c) => !c.phone).map((c) => c.id);
+    if (!want.length) return;
     const done = [];
-    l.has.map((cid) => DB.byCon[cid]).filter((c) => c && !c.phone).forEach((c) => {
-      const h = Math.abs(hash(c.id));
-      if ((h % 1000) / 1000 < f.phone) {
+    fillStart(want, {
+      list: id,
+      group: (cid) => pageOf[cid],
+      resolve: (c) => {
+        const h = Math.abs(hash(c.id));
+        if ((h % 1000) / 1000 >= f.phone) return false;
         patchCon(c, { phone: '+31 6 ' + String(1000000 + (h % 8999999)), enrichedAt: TODAY_ISO });
         done.push(c.id);
-      }
+        return true;
+      },
+      end: () => {
+        if (!done.length) { toast(f.name + ' had no number for anyone here.'); return; }
+        toast(f.name + ' found a number for ' + plural(done.length, 'person') + ' on ' + l.name, () => {
+          done.forEach((cid) => patchCon(DB.byCon[cid], { phone: null, enrichedAt: null }));
+          paint();
+        });
+      },
     });
+  }
+
+  /* ══ THE CARDS SAY THEY ARE BEING FILLED ═══════════════════════════════
+     "Fill in what is missing" used to answer in the same frame it was
+     pressed: the page repainted with some numbers in it and a toast said
+     how many. On a list of twenty-five with four numbers, that is twenty-one
+     cards changing at once with nothing to say that anything was asked for,
+     and the toast arriving before the eye has found a single card that
+     moved.
+
+     So it is a run, the way curating a list is. Every card waiting on a
+     number says so where the number goes — "Finding a number", carrying the
+     curation's light — and holds the place of its verb as the library's
+     shimmer. They come back one at a time in the roster's own order, so the
+     page fills top to bottom where the reader is looking, and each card is
+     re-drawn in place when its answer lands: the number and its verb rise
+     in, and the card itself does not move. AiMY's block on the list counts
+     them in. The whole run is six seconds whatever the size of the list,
+     the same as curating one; the toast and its undo come at the end, once, as they always did.
+
+     The write happens as each answer lands, through `patchCon`, so a page
+     reloaded halfway keeps what was found and simply stops asking. */
+  let FILLING = null;
+  const FILL_TICK = 100;
+  const fillWaits = (c) => !!(FILLING && FILLING.wait[c.id]);
+  const fillOn = (l) => !!(FILLING && FILLING.list === l.id);
+
+  function fillStart(ids, spec) {
+    /* The last answer lands at `total` whatever the list's size: six
+       seconds, the length of curating one, so the two runs read alike.
+       Each group — a page of the roster — is spread over the whole of it
+       on its own, so the cards in front of the reader take the full six. */
+    const total = spec.total || 6.0;
+    const lead = Math.min(0.9, total);
+    const group = spec.group || (() => 0);
+    const groups = Object.create(null);
+    ids.forEach((x) => (groups[group(x)] || (groups[group(x)] = [])).push(x));
+    const due = Object.create(null);
+    Object.keys(groups).forEach((k) => groups[k].forEach((x, j, g) =>
+      (due[x] = g.length > 1 ? lead + j * (total - lead) / (g.length - 1) : total)));
+    ids = ids.slice().sort((a, b) => due[a] - due[b]);
+    const wait = Object.create(null);
+    ids.forEach((x) => (wait[x] = true));
+    FILLING = { list: spec.list || null, ids: ids, at: 0, got: 0, wait: wait,
+      due: ids.map((x) => due[x]), t0: performance.now(),
+      resolve: spec.resolve, end: spec.end || (() => {}), timer: null };
+    FILLING.timer = setInterval(fillTick, FILL_TICK);
     paint();
-    if (!done.length) { toast(f.name + ' had no number for anyone here.'); return; }
-    toast(f.name + ' found a number for ' + plural(done.length, 'person') + ' on ' + l.name, () => {
-      done.forEach((cid) => patchCon(DB.byCon[cid], { phone: null, enrichedAt: null }));
+  }
+
+  function fillTick() {
+    const f = FILLING;
+    if (!f) return;
+    const el = (performance.now() - f.t0) / 1000;
+    let moved = false;
+    while (f.at < f.ids.length && el >= f.due[f.at]) {
+      const id = f.ids[f.at++];
+      delete f.wait[id];
+      const c = DB.byCon[id];
+      if (c && f.resolve(c)) f.got += 1;
+      fillCard(id);
+      moved = true;
+    }
+    if (moved) document.querySelectorAll('.b-fill-live > .b-fill-count')
+      .forEach((x) => (x.textContent = fillCount(f)));
+    /* the last card is given its rise before the page repaints over it */
+    if (f.at >= f.ids.length && el >= f.due[f.ids.length - 1] + 0.6) {
+      clearInterval(f.timer);
+      FILLING = null;
       paint();
-    });
+      f.end();
+    }
+  }
+
+  /* One card, re-drawn inside the element it already is, so the grid's
+     arrival does not run again and nothing around it moves. */
+  function fillCard(id) {
+    const c = DB.byCon[id];
+    const old = c && document.querySelector('#wbStage [data-card="' + CSS.escape(id) + '"]');
+    if (!old) return;
+    const slot = old.closest('.b-slot');
+    const i = slot && slot.parentNode ? Array.prototype.indexOf.call(slot.parentNode.children, slot) : 0;
+    const t = document.createElement('div');
+    t.innerHTML = qcard(c, i);
+    const nu = t.firstElementChild;
+    if (!nu) return;
+    old.innerHTML = nu.innerHTML;
+    old.classList.remove('is-finding');
+    old.removeAttribute('aria-busy');
+    old.classList.add('is-filled');
+  }
+
+  const fillCount = (f) => (f.at ? commas(f.got) + ' found so far' : '');
+  function fillLive() {
+    const f = FILLING;
+    return '<span class="b-fill-live" role="status">' +
+      '<span class="b-fill-say">Finding numbers for ' + esc(plural(f.ids.length, 'person')) + '</span>' +
+      '<span class="b-fill-count">' + fillCount(f) + '</span>' +
+    '</span>';
   }
 
   /* [3] What AiMY makes of the list, with a door. The card's two readings
@@ -16075,7 +16200,8 @@
        higher says it louder, and one control drawn twice on one screen is
        two controls to learn. This is not that. It is the only place the
        shortfall can be fixed from. */
-    const door = works() && people.some((c) => !c.phone)
+    const door = fillOn(l) ? fillLive()
+      : works() && people.some((c) => !c.phone)
       ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
         'Fill in what is missing</button>'
       : '';
@@ -24076,15 +24202,26 @@
      six times had nothing. The supplier's own hit rate decides, off the id,
      so the answer is the same every time it is asked. A new number starts
      its own count of attempts; the history keeps the old calls. */
-  function enrichCon(id) {
+  /* Pressed on a card, the card waits on it the way a list's cards do
+     (`fillStart`); pressed on a record or a reading, it answers at once,
+     because there is no card there to carry the wait. */
+  function enrichCon(id, onCard) {
     if (isBuyer()) { toast('We fill the numbers in.'); return; }
     if (!works()) return;
     const c = DB.byCon[id];
     if (!c) return;
+    if (onCard) {
+      if (FILLING) return;
+      fillStart([id], { total: 1.2, resolve: (x) => enrichNow(x) });
+      return;
+    }
+    enrichNow(c);
+  }
+  function enrichNow(c) {
     const f = finderOf();
     const first = c.name.split(' ')[0];
     const h = Math.abs(hash(c.id + ':again'));
-    if ((h % 1000) / 1000 >= f.phone) { toast(f.name + ' has no other number for ' + first + '.'); return; }
+    if ((h % 1000) / 1000 >= f.phone) { toast(f.name + ' has no other number for ' + first + '.'); return false; }
     const wrong = c.checkpoint === 'wrong-number';
     const before = { phone: c.phone, enrichedAt: c.enrichedAt, attempts: c.attempts,
       checkpoint: c.checkpoint, checkpointAt: c.checkpointAt };
@@ -24099,6 +24236,7 @@
       patchCon(c, before);
       paint();
     });
+    return true;
   }
 
   const MOVES = [
@@ -32247,7 +32385,7 @@
       return;
     }
     const en = t.closest('[data-enrichcon]');
-    if (en) { enrichCon(en.getAttribute('data-enrichcon')); return; }
+    if (en) { enrichCon(en.getAttribute('data-enrichcon'), !!en.closest('.b-qcard')); return; }
 
     /* ══ WHAT AiMY OFFERED, TAKEN UP ═══════════════════════════════════
        Two answers to one message. Open goes to the record, which is the
