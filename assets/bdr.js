@@ -3291,6 +3291,30 @@
     rows.map((r, i) => '<div class="b-slot" style="--i:' + Math.min(i, 8) + '">' +
       (SKEL_ON ? skelCard() : '') + fn(r, i) + '</div>').join('') +
     '</div>';
+  /* ══ A NUMBER FOUND HERE IS GONE ON A RELOAD ═══════════════════════════
+     Nour's call: what "Fill in what is missing" and "Find a number" bring
+     back lands on the cards and lives for the session, and a reload puts
+     the cards back the way they were — so the run can be shown again.
+
+     Not writing it through `patchCon` is not enough on its own. A list made
+     by a curation keeps its people in `DELTA.made` as the SAME objects the
+     page reads, so a number set on one in memory would be written by the
+     next save of anything at all. So the record of what each found contact
+     held before is kept here, and `saveNow` hands the stored copy of any
+     such contact back with those values (`unfound`). */
+  const FOUND = Object.create(null);
+  function foundSet(c, fields) {
+    const was = FOUND[c.id] || (FOUND[c.id] = {});
+    Object.keys(fields).forEach((k) => { if (!(k in was)) was[k] = c[k]; });
+    Object.assign(c, fields);
+  }
+  function foundUndo(c) {
+    if (!c || !FOUND[c.id]) return;
+    Object.assign(c, FOUND[c.id]);
+    delete FOUND[c.id];
+  }
+  const unfound = (k, v) => (v && typeof v === 'object' && typeof v.id === 'string' &&
+    FOUND[v.id] && DB.byCon[v.id] === v ? Object.assign({}, v, FOUND[v.id]) : v);
   function save() {
     FIG_TICK = true;
     if (saveTimer) clearTimeout(saveTimer);
@@ -3303,7 +3327,7 @@
        behind a saved demo has fallen — the dates inside it are absolute and
        say nothing about when they were absolute FROM. */
     DELTA.at = TODAY_ISO;
-    try { localStorage.setItem(KEY_DB, JSON.stringify(DELTA)); }
+    try { localStorage.setItem(KEY_DB, JSON.stringify(DELTA, unfound)); }
     catch (e) { /* quota or a private window: the session still works, it just
                    will not survive a reload. Never break the product for it. */ }
   }
@@ -16060,14 +16084,14 @@
       resolve: (c) => {
         const h = Math.abs(hash(c.id));
         if ((h % 1000) / 1000 >= f.phone) return false;
-        patchCon(c, { phone: '+31 6 ' + String(1000000 + (h % 8999999)), enrichedAt: TODAY_ISO });
+        foundSet(c, { phone: '+31 6 ' + String(1000000 + (h % 8999999)), enrichedAt: TODAY_ISO });
         done.push(c.id);
         return true;
       },
       end: () => {
         if (!done.length) { toast(f.name + ' had no number for anyone here.'); return; }
         toast(f.name + ' found a number for ' + plural(done.length, 'person') + ' on ' + l.name, () => {
-          done.forEach((cid) => patchCon(DB.byCon[cid], { phone: null, enrichedAt: null }));
+          done.forEach((cid) => foundUndo(DB.byCon[cid]));
           paint();
         });
       },
@@ -16092,8 +16116,9 @@
      them in. Every card waits six seconds whatever the size of the list,
      the same as curating one; the toast and its undo come at the end, once, as they always did.
 
-     The write happens as each answer lands, through `patchCon`, so a page
-     reloaded halfway keeps what was found and simply stops asking. */
+     Nothing is written until the card's wait is over: the number is set
+     on the contact the moment its card lands, never before, and only for
+     the session (`foundSet`) — a reload puts every card back without it. */
   let FILLING = null;
   const FILL_TICK = 100;
   const fillWaits = (c) => !!(FILLING && FILLING.wait[c.id]);
@@ -24249,17 +24274,16 @@
     const h = Math.abs(hash(c.id + ':again'));
     if ((h % 1000) / 1000 >= f.phone) { toast(f.name + ' has no other number for ' + first + '.'); return false; }
     const wrong = c.checkpoint === 'wrong-number';
-    const before = { phone: c.phone, enrichedAt: c.enrichedAt, attempts: c.attempts,
-      checkpoint: c.checkpoint, checkpointAt: c.checkpointAt };
+    const had = c.phone;
     const phone = '+31 6 ' + String(1000000 + (h % 8999999));
     const fields = { phone: phone, enrichedAt: TODAY_ISO, attempts: 0 };
     /* a wrong number with a right one found is a fresh start on the ladder */
     if (wrong) { fields.checkpoint = 'not-called'; fields.checkpointAt = new Date().toISOString(); }
-    patchCon(c, fields);
+    foundSet(c, fields);
     paint();
-    toast(f.name + (before.phone ? ' found another number for ' : ' found a number for ') + first + ' · ' + phone +
+    toast(f.name + (had ? ' found another number for ' : ' found a number for ') + first + ' · ' + phone +
       (wrong ? ' · back to Not called' : ''), () => {
-      patchCon(c, before);
+      foundUndo(c);
       paint();
     });
     return true;
