@@ -1,0 +1,380 @@
+/* ══ VOICE — the composer, spoken to ═══════════════════════════════════════
+   Painted by voice.js. Two surfaces:
+
+   THE COMPOSER — every one of them: `.overlay-input-bar` (the gate, the
+   Console's canvas, Sales' canvas) and `.aimy-float-bar` (the Console's and
+   Sales' command bars). One arrangement, the way ChatGPT's composer is:
+
+     at rest    [mark] [ field ............. ] [clip][mic] (◉ voice)
+     typing     [mark] [ field ............. ] [clip][mic] (➤ send)
+     dictating  [mark] [ ▁▂▅▇▅▂ waveform  0:07 ]  [✕] [✓]
+
+   One row, one height. The mark and the primary button are 2.25rem, every
+   secondary control is a 2rem ghost circle, so no state moves the bar or the
+   thread above it. Secondary controls sit in a tight pair (0.125rem) and the
+   bar's own 0.625rem gap separates the pair from the primary — the grouping
+   is the spacing, not a divider.
+
+   THE STAGE (`.vx-stage`), ChatGPT's mobile voice mode: the page goes away,
+   one orb stays, with a line under it and two round buttons below.
+
+     AiMY Voice                                   0:42
+                         ◯  (the orb)
+                       Listening
+                 which of those should support…
+                         (🎙)  (✕)
+
+   COLOUR CARRIES ONE MEANING EACH. Red is recording (Sales' recipe for the
+   mic and the call), so dictation and a muted mic are red. The orb is AiMY's
+   AI gradient. Text is never dimmed to say a state; the state is said. */
+
+/* ── The tool pair ─────────────────────────────────────────────────────── */
+.vx-tools {
+  display: inline-flex; align-items: center; gap: 0.125rem;
+  flex-shrink: 0;
+}
+.vx-tools .clip-btn,
+.vx-mic,
+.vx-ctl {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 2rem; height: 2rem; padding: 0;
+  border: 0; border-radius: 50%;
+  background: none; color: var(--ink-secondary);
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              transform var(--t-press) var(--ease-out);
+}
+.vx-tools .clip-btn svg,
+.vx-mic svg,
+.vx-ctl svg { width: 1rem; height: 1rem; }
+.vx-tools .clip-btn:hover,
+.vx-mic:hover,
+.vx-ctl:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.vx-tools .clip-btn:active,
+.vx-mic:active,
+.vx-ctl:active { transform: scale(0.94); }
+.vx-mic:focus-visible,
+.vx-ctl:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+
+/* ── An attached file ──────────────────────────────────────────────────
+   ChatGPT's way: the file is a row of its own INSIDE the composer, above
+   the controls, and the bar grows to hold it. The row wraps onto its own
+   line with `order: -1` + a full basis, so nothing in the controls row
+   moves; the pill relaxes to a rounded rectangle while it is two rows,
+   because a 40px radius on a 90px box is a lozenge. "not uploaded" is in
+   full ink, because it is the most important thing on the chip. */
+.overlay-input-bar.vx-has-file,
+.aimy-float-bar.vx-has-file { flex-wrap: wrap; row-gap: 0.375rem; border-radius: 1.5rem; }
+.vx-att {
+  order: -1; flex: 0 0 100%;
+  display: flex; min-width: 0;
+  padding: 0.125rem 0.125rem 0;
+}
+[data-vx] > .vx-att { display: none; }
+.vx-chip {
+  display: flex; align-items: center; gap: 0.5rem;
+  min-width: 0; max-width: 100%;
+  padding: 0.375rem 0.375rem 0.375rem 0.625rem;
+  border: 0.0625rem solid var(--card-border);
+  border-radius: 0.875rem;
+  background: var(--card-bg-raised);
+  font-size: var(--ty-micro, 0.75rem); line-height: 1.4;
+  color: var(--ink-secondary);
+}
+.vx-chip svg { flex: none; width: 0.875rem; height: 0.875rem; }
+.vx-chip-n {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: var(--fw-medium); color: var(--ink-primary);
+}
+.vx-chip-note { flex: none; }
+.vx-chip-x {
+  display: inline-flex; flex: none;
+  padding: 0.125rem; border: 0; border-radius: var(--r-xs);
+  background: none; color: var(--ink-secondary); cursor: pointer;
+}
+.vx-chip-x:hover { color: var(--ink-primary); }
+.vx-chip-x:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+
+/* ── Send has two faces ──────────────────────────────────────────────────
+   Stacked in one grid cell and crossfaded, so the swap is a change of glyph
+   inside a button that never moves. The stop square `.is-generating` draws
+   with ::after shares the cell. */
+.overlay-input-bar .overlay-send,
+.aimy-float-bar .aimy-float-send { display: grid; place-items: center; }
+.overlay-input-bar .overlay-send > *,
+.overlay-input-bar .overlay-send::after,
+.aimy-float-bar .aimy-float-send > *,
+.aimy-float-bar .aimy-float-send::after { grid-area: 1 / 1; }
+.overlay-send > svg.vx-i-voice,
+.aimy-float-send > svg.vx-i-voice { width: 1.125rem; height: 1.125rem; stroke: #fff; }
+.overlay-send > .vx-i-send,
+.overlay-send > .vx-i-voice,
+.aimy-float-send > .vx-i-send,
+.aimy-float-send > .vx-i-voice {
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.vx-empty > .overlay-send > .vx-i-send,
+.vx-empty > .aimy-float-send > .vx-i-send,
+:not(.vx-empty) > .overlay-send > .vx-i-voice,
+:not(.vx-empty) > .aimy-float-send > .vx-i-voice {
+  opacity: 0; transform: scale(0.5);
+}
+/* The stop square replaces both faces. aimy-ds.css hides `.send-icon` on
+   the command bar's send; the voice face is ours to hide. */
+.is-generating .aimy-float-send > .vx-i-voice,
+.aimy-float-send.thinking > .vx-i-voice { display: none; }
+
+/* ── The bar's own states replace the field, never add to the row ──────── */
+.overlay-input-bar[data-vx] .overlay-input,
+.aimy-float-bar[data-vx] .aimy-float-input,
+[data-vx] > .vx-tools,
+.overlay-input-bar[data-vx] .overlay-send,
+.aimy-float-bar[data-vx] .aimy-float-send { display: none; }
+.vx-read[hidden],
+.vx-note[hidden] { display: none; }
+
+/* ══ DICTATING ═════════════════════════════════════════════════════════════
+   The waveform is the last few seconds of your voice, newest at the right,
+   which is the edge the clock and the keep button sit against. Bars at rest
+   are a dotted baseline (ChatGPT's), so silence still reads as listening. */
+.vx-read {
+  display: flex; align-items: center; gap: 0.5rem;
+  flex: 1; min-width: 0;
+  padding-left: 0.25rem;
+}
+.vx-wave {
+  display: flex; align-items: center; justify-content: flex-end; gap: 0.125rem;
+  flex: 1; min-width: 0; height: 1.5rem;
+  overflow: hidden;
+}
+.vx-wave i {
+  flex: none; width: 0.125rem; height: 100%;
+  border-radius: 0.0625rem;
+  background: var(--err);
+  transform: scaleY(0.12);
+  transition: transform 70ms linear;
+}
+.vx-clock {
+  flex: none; min-width: 2.25em;   /* Poppins has no tabular figures */
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--err);
+  line-height: 1;
+}
+.vx-keep { color: var(--ink-primary); }
+
+/* Dictation that could not start: the reason, in the field's place. */
+.vx-note {
+  display: flex; align-items: center; gap: 0.5rem;
+  flex: 1; min-width: 0;
+  padding-left: 0.25rem;
+}
+.vx-note-t {
+  flex: 1; min-width: 0;
+  font-size: 0.84375rem; font-weight: var(--fw-medium); line-height: 1.5;
+  color: var(--err);
+}
+
+/* ══ THE STAGE ═════════════════════════════════════════════════════════════
+   Above every panel and drawer either product has (the highest are
+   Knowledge's prototype switch at 960 and Sales' ringing call at 970). The
+   page underneath is `inert` while it is open. Only toasts (9999) sit
+   higher, and they are inert too. */
+.vx-stage {
+  position: fixed; inset: 0; z-index: 980;
+  display: grid; grid-template-rows: auto 1fr auto;
+  background: var(--body-bg);
+  color: var(--ink-primary);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+.vx-stage[hidden] { display: none; }
+.vx-stage.is-open { opacity: 1; }
+/* On its way out it is already gone: clicks reach the page under it, and so
+   does voice.js's own check for which bar is on screen to hand focus to. */
+.vx-stage:not(.is-open) { pointer-events: none; }
+/* The orb lights the room it is in, faintly. */
+.vx-stage::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 44%, rgba(0, 102, 255, 0.14) 0%, transparent 46%);
+  pointer-events: none;
+}
+body.vx-staged { overflow: hidden; }
+
+/* The logo sits where the navbar draws it — 24px in, 13.6px down, 32px
+   tall, measured at 1536 — so opening the stage leaves it exactly in place
+   and only the page around it goes. */
+.vx-top {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(0.85rem + env(safe-area-inset-top)) 1.5rem 0.85rem;
+}
+.vx-logo { display: flex; align-items: center; }
+.vx-logo svg { display: block; width: auto; height: 2rem; }
+.vx-live-clock { color: var(--ink-secondary); font-size: var(--ty-meta); font-weight: var(--fw-medium); }
+.vx-live-clock[hidden] { display: none; }
+
+.vx-center {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2.25rem;
+  min-height: 0; padding: 0 1.5rem;
+  transform: scale(0.94);
+  transition: transform var(--t-emphasis) var(--ease-out);
+}
+.vx-stage.is-open .vx-center { transform: none; }
+
+/* The line under the orb. Two lines are always reserved, so the orb does not
+   jump when words start arriving under it. */
+.vx-state {
+  display: flex; flex-direction: column; align-items: center; gap: 0.375rem;
+  max-width: 32rem; min-height: 3.75rem; margin: 0;
+  text-align: center;
+}
+.vx-state-n { font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.vx-heard {
+  font-size: var(--ty-meta); line-height: 1.5; color: var(--ink-secondary);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.vx-stage[data-phase="muted"] .vx-state-n { color: var(--err); }
+.vx-stage[data-phase="error"] .vx-state-n {
+  max-width: 26rem; font-weight: var(--fw-medium); line-height: 1.5; color: var(--err);
+}
+
+/* ── The orb ─────────────────────────────────────────────────────────────
+   AiMY's AI gradient (`--ai`: #0066ff → #61adf1 → #45d3e6) as a sphere, the
+   way ChatGPT's voice is a sphere of its own blue: a sky-to-deep body, and
+   three soft lights inside it that turn on coprime cycles (17s, 23s, 29s) so
+   the surface never visibly repeats. Fixed values rather than the token:
+   it is the brand's object and reads the same on a light page and a dark one.
+
+   Two transforms, on two elements, so they never fight: your voice scales
+   `.vx-orb` (written at 70ms by voice.js as `--vx-lvl`), and the phase
+   animates `.vx-orb-body`.
+
+   EVERY LIGHT IS A ROUND-ISH ELLIPSE WITH AN EXPLICIT SIZE. `closest-side`
+   made the deep-blue light a 46% × 16% sliver whose whole falloff happened
+   in a few pixels, and once rotated that falloff read as a seam across the
+   sphere. Explicit radii, fading over their full length, cannot do that. */
+.vx-orb {
+  position: relative;
+  width: min(15rem, 60vw); aspect-ratio: 1;
+  padding: 0; border: 0; border-radius: 50%;
+  background: none; cursor: default;
+  transform: scale(calc(1 + var(--vx-lvl, 0) * 0.14));
+  transition: transform 120ms var(--ease-out);
+}
+.vx-orb:enabled { cursor: pointer; }
+.vx-orb:focus-visible { outline: 0.1875rem solid var(--brand); outline-offset: 0.5rem; }
+.vx-orb-body {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  clip-path: circle(50%);
+  background:
+    radial-gradient(circle at 50% 108%, #0058e0 0%, #0066ff 30%, transparent 64%),
+    linear-gradient(180deg, #eaf7ff 0%, #a9dcf8 38%, #61adf1 62%, #0066ff 100%);
+  box-shadow: 0 1.5rem 4.5rem rgba(0, 102, 255, 0.30);
+  transition: opacity var(--t-base) var(--ease-out), filter var(--t-base) var(--ease-out);
+}
+.vx-orb-a, .vx-orb-b, .vx-orb-c {
+  position: absolute; border-radius: 50%;
+  will-change: transform;
+}
+/* A white cloud, high and to the left. */
+.vx-orb-a {
+  inset: -20%;
+  background: radial-gradient(ellipse 34% 30% at 36% 32%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.4) 45%, rgba(255, 255, 255, 0) 100%);
+  animation: vx-turn 17s linear infinite;
+}
+/* Cyan, low and to the right. */
+.vx-orb-b {
+  inset: -28%;
+  background: radial-gradient(ellipse 30% 28% at 68% 66%, rgba(69, 211, 230, 0.8), rgba(69, 211, 230, 0.3) 45%, rgba(69, 211, 230, 0) 100%);
+  animation: vx-turn 23s linear infinite reverse;
+}
+/* Deep blue, pooling at the bottom. */
+.vx-orb-c {
+  inset: -16%;
+  background: radial-gradient(ellipse 40% 30% at 48% 80%, rgba(0, 71, 199, 0.85), rgba(0, 71, 199, 0.3) 45%, rgba(0, 71, 199, 0) 100%);
+  animation: vx-turn 29s linear infinite;
+}
+@keyframes vx-turn { to { transform: rotate(360deg); } }
+
+/* Phases. Thinking draws in and turns faster; answering breathes; muted and
+   failed drain the colour, which is decoration only — the words under the
+   orb are what say it. */
+.vx-stage[data-phase="connecting"] .vx-orb-body { opacity: 0.6; }
+.vx-stage[data-phase="thinking"] .vx-orb-body { animation: vx-think 1.6s var(--ease-out) infinite alternate; }
+.vx-stage[data-phase="thinking"] .vx-orb-a,
+.vx-stage[data-phase="thinking"] .vx-orb-b,
+.vx-stage[data-phase="thinking"] .vx-orb-c { animation-duration: 4s; }
+.vx-stage[data-phase="speaking"] .vx-orb-body { animation: vx-breathe 0.9s var(--ease-out) infinite alternate; }
+.vx-stage[data-phase="muted"] .vx-orb-body { filter: saturate(0.15); opacity: 0.7; }
+.vx-stage[data-phase="error"] .vx-orb-body { filter: saturate(0); opacity: 0.35; }
+.vx-stage[data-phase="muted"] .vx-orb-a,
+.vx-stage[data-phase="muted"] .vx-orb-b,
+.vx-stage[data-phase="muted"] .vx-orb-c,
+.vx-stage[data-phase="error"] .vx-orb-a,
+.vx-stage[data-phase="error"] .vx-orb-b,
+.vx-stage[data-phase="error"] .vx-orb-c { animation-play-state: paused; }
+@keyframes vx-think   { from { transform: scale(0.94); } to { transform: scale(0.88); } }
+@keyframes vx-breathe { from { transform: scale(1); }    to { transform: scale(1.07); } }
+
+/* ── The dock ────────────────────────────────────────────────────────────
+   Mute and end, as a centred pair. Spread to the corners they would be a
+   screen apart on a desktop. */
+.vx-dock {
+  position: relative;
+  display: flex; justify-content: center; gap: 1rem;
+  padding: 1.5rem 1.5rem calc(2.25rem + env(safe-area-inset-bottom));
+}
+.vx-round {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3.5rem; height: 3.5rem; padding: 0;
+  border: 0; border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              opacity var(--t-fast) var(--ease-out),
+              transform var(--t-press) var(--ease-out);
+}
+.vx-round[hidden] { display: none; }
+.vx-round svg { width: 1.375rem; height: 1.375rem; }
+.vx-round:active { transform: scale(0.95); }
+.vx-round:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.1875rem; }
+.vx-round:disabled { opacity: 0.5; cursor: default; }
+
+.vx-mute {
+  background: var(--card-bg-raised); color: var(--ink-primary);
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+}
+.vx-mute:hover:enabled { box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.vx-mute .vx-i-off { display: none; }
+.vx-mute[aria-pressed="true"] .vx-i-on { display: none; }
+.vx-mute[aria-pressed="true"] .vx-i-off { display: block; }
+.vx-mute[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--err) 16%, var(--body-bg));
+  color: var(--err);
+  box-shadow: inset 0 0 0 0.0625rem color-mix(in srgb, var(--err) 40%, transparent);
+}
+
+/* End is ChatGPT's: the ink itself, inverted. Not red, because ending a
+   conversation is not an alarm and red here already means recording. */
+.vx-end { background: var(--ink-primary); color: var(--body-bg); }
+.vx-end:hover { opacity: 0.88; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vx-wave i { transform: scaleY(0.35); transition: none; }
+  .overlay-send > .vx-i-send,
+  .overlay-send > .vx-i-voice { transition: none; }
+  .vx-stage, .vx-center { transition: none; }
+  .vx-center { transform: none; }
+  .vx-orb { transform: none; transition: none; }
+  .vx-orb-a, .vx-orb-b, .vx-orb-c,
+  .vx-stage[data-phase] .vx-orb-body { animation: none; }
+}

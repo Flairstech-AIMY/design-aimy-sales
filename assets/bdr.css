@@ -3854,18 +3854,18 @@ textarea::placeholder,
    `.rail-console` belongs to this set and is not in the rule below it. Its
    own rule sits further down the file, and a transition written here would
    be thrown away by the one there, so its press is declared at that rule. */
-.b-menu-item, .b-peek-x, .voice-btn,
+.b-menu-item, .b-peek-x,
 .rail-toggle, .ov-chats-toggle, .proto-toggle, .ver-link {
   transition: transform var(--t-press) var(--ease-out),
               background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
-.b-menu-item:active, .b-peek-x:active, .voice-btn:active,
+.b-menu-item:active, .b-peek-x:active,
 .rail-toggle:active, .ov-chats-toggle:active, .proto-toggle:active,
 .ver-link:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
-  .b-menu-item, .b-peek-x, .voice-btn,
+  .b-menu-item, .b-peek-x,
   .rail-toggle, .ov-chats-toggle, .proto-toggle, .ver-link { transition: none; }
-  .b-menu-item:active, .b-peek-x:active, .voice-btn:active,
+  .b-menu-item:active, .b-peek-x:active,
   .rail-toggle:active, .ov-chats-toggle:active, .proto-toggle:active,
   .ver-link:active { transform: none; }
 }
@@ -4618,17 +4618,9 @@ textarea::placeholder,
 }
 
 /* ══ 72. THE BAR TAKES DICTATION ═══════════════════════════════════════════
-   The control ships in the library and nothing had ever used it. What it
-   does not ship is where the wave and the clock sit once the input has got
-   out of the way, which is the bar's own business. */
-.voice-btn { flex: none; width: 30px; height: 30px; }
-.voice-btn svg { width: 15px; height: 15px; }
-/* `display` on a class beats the browser's own [hidden], so a wave that
-   says it is hidden would be drawn anyway. */
-.voice-wave[hidden], .voice-timer[hidden], .aimy-float-input[hidden] { display: none !important; }
-.voice-wave { flex: 1; justify-content: center; }
-.voice-timer { flex: none; }
-.overlay-input[hidden] { display: none !important; }
+   Moved out. Dictation and voice are one module shared with Knowledge —
+   assets/voice.js and assets/voice.css — mounted into both bars, so the
+   composer is the same control in every AiMY product. */
 
 /* ══ 73. THE PROOF GOES FIRST ══════════════════════════════════════════════
    Two sentences somebody is going to say out loud in a room, so they are set

@@ -60,6 +60,7 @@
        is at the top of the sheet. -->
   <link rel="stylesheet" href="assets/bdr.css?v=1273" />
   <link rel="stylesheet" href="assets/aimy-responsive.css?v=1273" />
+  <link rel="stylesheet" href="assets/voice.css?v=1273" />
   <script src="assets/aimy-viewport.js?v=1273"></script>
 
   <script>
@@ -480,19 +481,8 @@
         <input class="aimy-float-input" id="floatInput" type="text"
                placeholder="Ask, filter, name a lead, or log a touchpoint…"
                autocomplete="off" spellcheck="false" aria-label="Drive the surface" />
-        <span class="voice-wave" id="floatWave" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
-        <span class="voice-timer" id="floatTimer" hidden>0:00</span>
-        <!-- Dictation, at the sending end. The two ways to put a sentence in
-             — say it, or send it — are the same act by different means, so
-             they sit together rather than at opposite ends of the bar. The
-             words land where you would have typed them, and you can change
-             them before anything is written. -->
-        <button class="voice-btn" id="floatMic" type="button" data-mic
-                aria-label="Say it instead of typing"></button>
         <button class="aimy-float-send" id="floatSend" aria-label="Run">
-          <svg class="send-icon" viewBox="0 0 14 14" fill="none" width="14" height="14">
-            <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <svg class="send-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
           <div class="think-spinner"></div>
         </button>
       </div>
@@ -572,14 +562,8 @@
             </div>
             <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
                       spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
-            <span class="voice-wave" id="overlayWave" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
-            <span class="voice-timer" id="overlayTimer" hidden>0:00</span>
-            <button class="voice-btn" id="overlayMic" type="button" data-mic
-                    aria-label="Say it instead of typing"></button>
             <button class="overlay-send" id="overlaySend" aria-label="Send">
-              <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
-                <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
             </button>
           </div>
         </div>
@@ -653,5 +637,6 @@
 
 <script src="assets/aimy-ds.js"></script>
 <script src="assets/bdr.js?v=1273"></script>
+<script src="assets/voice.js?v=1273"></script>
 </body>
 </html>
