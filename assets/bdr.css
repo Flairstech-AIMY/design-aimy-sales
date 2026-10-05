@@ -6801,6 +6801,56 @@ textarea::placeholder,
    does too, and lines up with the words the finished card will have. */
 .b-cur-card > .s-skel-line { margin-inline: 14px; max-width: calc(100% - 28px); }
 
+/* ══ THE CARD IS WHAT IS WAITING ═══════════════════════════════════════════
+   A line of shimmering words in the foot was the whole of the wait at
+   first, and at a glance fifteen waiting cards looked like fifteen cards.
+   The card carries it now, on two layers over its content so the grid's
+   own arrival animation on the card is never replaced:
+
+   `::before` is a ring in AiMY's violet around the card's edge, breathing
+   while the number is looked for. `::after` is a light passing across the
+   whole card, each card a beat behind the one before (`--i`), so the grid
+   reads as one wave moving through it. When the answer lands the sweep
+   stops and the ring flashes once and fades — green with a number, violet
+   without one — so the eye is pulled to the card that just changed.
+   Motion off: the ring stands still and nothing sweeps. */
+.b-qcard.is-finding, .b-qcard.is-filled { position: relative; }
+.b-qcard.is-finding::before, .b-qcard.is-finding::after,
+.b-qcard.is-filled::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit; pointer-events: none;
+}
+.b-qcard.is-finding::before {
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.55),
+              inset 0 0 32px rgba(var(--accent-rgb), 0.14);
+}
+.b-qcard.is-finding::after {
+  background: linear-gradient(105deg, transparent 32%, rgba(var(--accent-rgb), 0.10) 44%,
+    rgba(var(--accent-rgb), 0.18) 50%, rgba(var(--accent-rgb), 0.10) 56%, transparent 68%);
+  background-size: 300% 100%; background-position: 100% 0; opacity: 0;
+}
+.b-qcard.is-filled::before {
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.55),
+              inset 0 0 32px rgba(var(--accent-rgb), 0.14);
+  opacity: 0;
+}
+.b-qcard.is-filled.is-got::before {
+  box-shadow: inset 0 0 0 1.5px var(--ok-text),
+              inset 0 0 32px color-mix(in srgb, var(--ok-text) 18%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .b-qcard.is-finding::before { animation: b-fill-breathe 1.6s ease-in-out infinite alternate; }
+  .b-qcard.is-finding::after {
+    opacity: 1;
+    animation: b-fill-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation-delay: calc(var(--i, 0) * 110ms);
+  }
+  .b-qcard.is-filled::before { animation: b-fill-land 1.1s var(--ease-out); }
+}
+@keyframes b-fill-breathe { from { opacity: 0.45; } to { opacity: 1; } }
+@keyframes b-fill-sweep { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes b-fill-land { from { opacity: 1; } to { opacity: 0; } }
+
 /* ══ A CARD WAITING ON ITS NUMBER ══════════════════════════════════════════
    `fillStart` in bdr.js. While a number is being looked for, the card's
    phone line reads "Finding a number" in the curation's light (above) and

@@ -16128,8 +16128,9 @@
       const id = f.ids[f.at++];
       delete f.wait[id];
       const c = DB.byCon[id];
-      if (c && f.resolve(c)) f.got += 1;
-      fillCard(id);
+      const got = !!(c && f.resolve(c));
+      if (got) f.got += 1;
+      fillCard(id, got);
       moved = true;
     }
     if (moved) document.querySelectorAll('.b-fill-live > .b-fill-count')
@@ -16145,7 +16146,7 @@
 
   /* One card, re-drawn inside the element it already is, so the grid's
      arrival does not run again and nothing around it moves. */
-  function fillCard(id) {
+  function fillCard(id, got) {
     const c = DB.byCon[id];
     const old = c && document.querySelector('#wbStage [data-card="' + CSS.escape(id) + '"]');
     if (!old) return;
@@ -16159,6 +16160,7 @@
     old.classList.remove('is-finding');
     old.removeAttribute('aria-busy');
     old.classList.add('is-filled');
+    if (got) old.classList.add('is-got');
   }
 
   const fillCount = (f) => (f.at ? commas(f.got) + ' found so far' : '');
