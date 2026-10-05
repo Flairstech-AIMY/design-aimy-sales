@@ -54,7 +54,7 @@
 .vx-ctl:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .vx-tools .clip-btn:active,
 .vx-mic:active,
-.vx-ctl:active { transform: scale(0.94); }
+.vx-ctl:active { transform: scale(0.97); }
 .vx-mic:focus-visible,
 .vx-ctl:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 
@@ -64,24 +64,59 @@
    line with `order: -1` + a full basis, so nothing in the controls row
    moves; the pill relaxes to a rounded rectangle while it is two rows,
    because a 40px radius on a 90px box is a lozenge. "not uploaded" is in
-   full ink, because it is the most important thing on the chip. */
-.overlay-input-bar.vx-has-file,
-.aimy-float-bar.vx-has-file { flex-wrap: wrap; row-gap: 0.375rem; border-radius: 1.5rem; }
-.vx-att {
-  order: -1; flex: 0 0 100%;
-  display: flex; min-width: 0;
-  padding: 0.125rem 0.125rem 0;
+   full ink, because it is the most important thing on the chip.
+
+   IT OPENS, IT DOES NOT APPEAR. The row is a one-track grid whose track
+   eases 0fr → 1fr (250ms) — the bar grows instead of jumping 40px — while
+   the chip fades up 4px out of a 2px blur. Removing it collapses the track
+   in 150ms on opacity alone: a close is quicker and drops the distance and
+   the blur. The space around the chip is the CHIP'S OWN MARGIN, inside the
+   clipped box, and the bar's row-gap is zeroed while it holds a file: the
+   bar's 10px `gap` applies between wrapped rows too, and padding on the
+   clipping box counts even at 0fr — together they made the row 18px tall
+   while collapsed, so the bar jumped at the start of the open and the end
+   of the close (measured in Edge, frame by frame).
+   Entry is `@starting-style`; voice.js only times the exit.
+
+   The bars' own transition list (aimy-ds.css: border-color, box-shadow) is
+   restated here with the radius added, so the corners ease between pill and
+   rectangle rather than snapping. */
+.overlay-input-bar,
+.aimy-float-bar {
+  transition: border-color var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              border-radius var(--t-base) var(--ease-out);
 }
+.overlay-input-bar.vx-has-file,
+.aimy-float-bar.vx-has-file { flex-wrap: wrap; row-gap: 0; border-radius: 1.5rem; }
+.vx-att {
+  order: -1; flex: 0 0 100%; min-width: 0;
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows var(--t-base) var(--ease-out);
+}
+.vx-att-in {
+  display: flex; min-width: 0; min-height: 0;
+  overflow: hidden;
+}
+.vx-att.is-leaving { grid-template-rows: 0fr; transition-duration: var(--t-fast); }
 [data-vx] > .vx-att { display: none; }
 .vx-chip {
   display: flex; align-items: center; gap: 0.5rem;
-  min-width: 0; max-width: 100%;
+  min-width: 0; max-width: calc(100% - 0.25rem);
+  margin: 0.125rem 0.125rem 0.375rem;
   padding: 0.375rem 0.375rem 0.375rem 0.625rem;
   border: 0.0625rem solid var(--card-border);
   border-radius: 0.875rem;
   background: var(--card-bg-raised);
   font-size: var(--ty-micro, 0.75rem); line-height: 1.4;
   color: var(--ink-secondary);
+  transition: opacity var(--t-base) var(--ease-out), transform var(--t-base) var(--ease-out),
+              filter var(--t-base) var(--ease-out);
+}
+.vx-att.is-leaving .vx-chip { opacity: 0; transition-duration: var(--t-fast); }
+@starting-style {
+  .vx-att { grid-template-rows: 0fr; }
+  .vx-chip { opacity: 0; transform: translateY(0.25rem); filter: blur(2px); }
 }
 .vx-chip svg { flex: none; width: 0.875rem; height: 0.875rem; }
 .vx-chip-n {
@@ -113,13 +148,14 @@
 .overlay-send > .vx-i-voice,
 .aimy-float-send > .vx-i-send,
 .aimy-float-send > .vx-i-voice {
-  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+  transition: opacity var(--t-base) ease-in-out, transform var(--t-base) ease-in-out,
+              filter var(--t-base) ease-in-out;
 }
 .vx-empty > .overlay-send > .vx-i-send,
 .vx-empty > .aimy-float-send > .vx-i-send,
 :not(.vx-empty) > .overlay-send > .vx-i-voice,
 :not(.vx-empty) > .aimy-float-send > .vx-i-voice {
-  opacity: 0; transform: scale(0.5);
+  opacity: 0; transform: scale(0.5); filter: blur(2px);
 }
 /* The stop square replaces both faces. aimy-ds.css hides `.send-icon` on
    the command bar's send; the voice face is ours to hide. */
@@ -188,10 +224,11 @@
   background: var(--body-bg);
   color: var(--ink-primary);
   opacity: 0;
-  transition: opacity var(--t-base) var(--ease-out);
+  /* Closing gets out of the way: 150ms out, 250ms in. */
+  transition: opacity var(--t-fast) var(--ease-out);
 }
 .vx-stage[hidden] { display: none; }
-.vx-stage.is-open { opacity: 1; }
+.vx-stage.is-open { opacity: 1; transition-duration: var(--t-base); }
 /* On its way out it is already gone: clicks reach the page under it, and so
    does voice.js's own check for which bar is on screen to hand focus to. */
 .vx-stage:not(.is-open) { pointer-events: none; }
@@ -222,10 +259,12 @@ body.vx-staged { overflow: hidden; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2.25rem;
   min-height: 0; padding: 0 1.5rem;
-  transform: scale(0.94);
-  transition: transform var(--t-emphasis) var(--ease-out);
+  transform: scale(0.96);
+  transition: transform var(--t-fast) var(--ease-out);
 }
-.vx-stage.is-open .vx-center { transform: none; }
+/* In with the fade, not 250ms after it: a scale still settling once the
+   page has gone reads as the stage arriving late. */
+.vx-stage.is-open .vx-center { transform: none; transition-duration: var(--t-base); }
 
 /* The line under the orb. Two lines are always reserved, so the orb does not
    jump when words start arriving under it. */
@@ -305,15 +344,20 @@ body.vx-staged { overflow: hidden; }
 }
 @keyframes vx-turn { to { transform: rotate(360deg); } }
 
-/* Phases. Thinking draws in and turns faster; answering breathes; muted and
-   failed drain the colour, which is decoration only — the words under the
-   orb are what say it. */
+/* Phases. Thinking draws in; answering breathes; muted and failed drain the
+   colour, which is decoration only — the words under the orb are what say it.
+
+   BOTH LOOPS START AT REST (scale 1), so a phase change never snaps the orb:
+   listening ends at 1, thinking starts at 1 and draws in, answering starts
+   at 1 and swells. They yo-yo on ease-in-out, because `alternate` runs the
+   curve backwards on every other leg and an ease-out limps doing that.
+
+   THE LIGHTS KEEP THEIR OWN CLOCK. Thinking used to drop their cycles to 4s,
+   and changing a running animation's duration re-derives its progress — the
+   lights jumped to a new angle when thinking began and again when it ended. */
 .vx-stage[data-phase="connecting"] .vx-orb-body { opacity: 0.6; }
-.vx-stage[data-phase="thinking"] .vx-orb-body { animation: vx-think 1.6s var(--ease-out) infinite alternate; }
-.vx-stage[data-phase="thinking"] .vx-orb-a,
-.vx-stage[data-phase="thinking"] .vx-orb-b,
-.vx-stage[data-phase="thinking"] .vx-orb-c { animation-duration: 4s; }
-.vx-stage[data-phase="speaking"] .vx-orb-body { animation: vx-breathe 0.9s var(--ease-out) infinite alternate; }
+.vx-stage[data-phase="thinking"] .vx-orb-body { animation: vx-think 1.6s ease-in-out infinite alternate; }
+.vx-stage[data-phase="speaking"] .vx-orb-body { animation: vx-breathe 0.9s ease-in-out infinite alternate; }
 .vx-stage[data-phase="muted"] .vx-orb-body { filter: saturate(0.15); opacity: 0.7; }
 .vx-stage[data-phase="error"] .vx-orb-body { filter: saturate(0); opacity: 0.35; }
 .vx-stage[data-phase="muted"] .vx-orb-a,
@@ -322,7 +366,7 @@ body.vx-staged { overflow: hidden; }
 .vx-stage[data-phase="error"] .vx-orb-a,
 .vx-stage[data-phase="error"] .vx-orb-b,
 .vx-stage[data-phase="error"] .vx-orb-c { animation-play-state: paused; }
-@keyframes vx-think   { from { transform: scale(0.94); } to { transform: scale(0.88); } }
+@keyframes vx-think   { from { transform: scale(1); } to { transform: scale(0.9); } }
 @keyframes vx-breathe { from { transform: scale(1); }    to { transform: scale(1.07); } }
 
 /* ── The dock ────────────────────────────────────────────────────────────
@@ -345,7 +389,7 @@ body.vx-staged { overflow: hidden; }
 }
 .vx-round[hidden] { display: none; }
 .vx-round svg { width: 1.375rem; height: 1.375rem; }
-.vx-round:active { transform: scale(0.95); }
+.vx-round:active { transform: scale(0.97); }
 .vx-round:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.1875rem; }
 .vx-round:disabled { opacity: 0.5; cursor: default; }
 
@@ -371,7 +415,10 @@ body.vx-staged { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .vx-wave i { transform: scaleY(0.35); transition: none; }
   .overlay-send > .vx-i-send,
-  .overlay-send > .vx-i-voice { transition: none; }
+  .overlay-send > .vx-i-voice,
+  .aimy-float-send > .vx-i-send,
+  .aimy-float-send > .vx-i-voice,
+  .vx-att, .vx-chip { transition: none; }
   .vx-stage, .vx-center { transition: none; }
   .vx-center { transform: none; }
   .vx-orb { transform: none; transition: none; }

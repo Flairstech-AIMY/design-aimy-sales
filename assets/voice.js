@@ -111,8 +111,10 @@
   /* How long a pause has to be before a spoken turn is sent. Shorter cuts
      people off mid-thought; longer feels like the call dropped. */
   const SETTLE_MS = 900;
-  /* The stage's own exit, matched to --t-base in voice.css. */
-  const LEAVE_MS = 220;
+  /* The stage's own exit, matched to --t-fast in voice.css. */
+  const LEAVE_MS = 150;
+  /* The attachment row's collapse, matched to --t-fast in voice.css. */
+  const CHIP_OUT_MS = 150;
   /* How long to wait for a spoken question to raise the beam before deciding
      it was answered without one (or not answered at all). */
   const BEAM_MS = 400;
@@ -236,28 +238,36 @@
       if (!f) return;
       const kb = Math.max(1, Math.round(f.size / 1024));
       b.el.insertAdjacentHTML('beforeend',
-        '<div class="vx-att">' +
+        '<div class="vx-att"><div class="vx-att-in">' +
           `<span class="vx-chip">${svg(I.file, 14)}` +
             `<span class="vx-chip-n">${esc(f.name)}</span>` +
             `<span class="vx-chip-note">${kb} KB · not uploaded</span>` +
             `<button class="vx-chip-x" type="button" aria-label="Remove ${esc(f.name)}" title="Remove">${svg(I.x, 12)}</button>` +
           '</span>' +
-        '</div>');
+        '</div></div>');
       b.chip = b.el.lastElementChild;
       b.el.classList.add('vx-has-file');
       $('.vx-chip-x', b.chip).addEventListener('click', () => {
-        dropChip(b);
+        dropChip(b, true);
         file.value = '';
         b.input.focus();
       });
     });
   }
 
-  function dropChip(b) {
+  /* `animate` when a person takes the file off: the row collapses before it
+     goes. A file replaced by another is swapped at once — the new row is
+     already opening. A timer rather than `transitionend`, because a
+     transition that never runs (reduced motion, a tab in the background)
+     never ends either. */
+  function dropChip(b, animate) {
     if (!b.chip) return;
-    b.chip.remove();
+    const row = b.chip;
     b.chip = null;
-    b.el.classList.remove('vx-has-file');
+    const done = () => { row.remove(); if (!b.chip) b.el.classList.remove('vx-has-file'); };
+    if (!animate || reduced()) { done(); return; }
+    row.classList.add('is-leaving');
+    setTimeout(done, CHIP_OUT_MS);
   }
 
   /* The stage is the page's last child, so it covers everything the page
