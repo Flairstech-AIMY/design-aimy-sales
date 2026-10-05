@@ -15183,8 +15183,10 @@
      building companies or people. Pressing "Ask ZoomInfo" wrote bk=zoom, and
      the kind survived only because a draft happened to be in memory — reload
      that URL and the builder was collecting neither companies nor people.
-     A supplier preference for one run is not where a page is. */
-  let FINDER = 'linkedin';
+     A supplier preference for one run is not where a page is.
+     Apollo by default: it is the tool the team finds people with (Nour,
+     5 Oct 2026), and numbers are asked of it too (`numFinder`). */
+  let FINDER = 'apollo';
 
   const BUILD_AXES = [
     { k: 'industry', label: 'Industry', of: (n) => n.industry,
@@ -15272,8 +15274,8 @@
   };
   /* ══ A NUMBER IS ASKED OF APOLLO ═══════════════════════════════════════
      Nour: Apollo is the tool the team uses for numbers. Finding PEOPLE
-     still goes through `finderOf` and whichever supplier the run picked;
-     filling in a number for somebody already on a list — the list's "Fill
+     goes through `finderOf`, which is Apollo too unless a run was pointed
+     at another supplier; filling in a number for somebody already on a list — the list's "Fill
      in what is missing", a card's or a record's "Find a number" — asks
      Apollo, and says so. The best answering supplier stands in only while
      Apollo is down. */
@@ -30697,7 +30699,6 @@
   /* The steps, with the run's own numbers in what each one says it found. */
   function curateSteps(c) {
     const f = finderOf();
-    const other = finderUp().filter((x) => x.k !== f.k)[0];
     const rows = c.rows;
     const floor = fillRate(rows);
     const withNum = rows.filter((x) => x.seedPhone < floor).length;
@@ -30707,8 +30708,8 @@
     return [
       { label: 'Reading what you asked for', dur: 0.9,
         said: describeSentence(c.t, c.kind) },
-      { label: 'Asking ' + f.name + (other ? ' and ' + other.name : ''), dur: 1.6,
-        said: curNoun(c, rows.length) + ' came back once the duplicates were out' },
+      { label: 'Asking ' + f.name, dur: 1.6,
+        said: curNoun(c, rows.length) + ' came back' },
       { label: 'Finding their numbers and emails', dur: 1.4,
         said: commas(withNum) + ' with a number, ' + commas(withMail) + ' with an email' },
       { label: 'Checking them against your contacts', dur: 1.1,
