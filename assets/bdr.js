@@ -4488,6 +4488,9 @@
          board made and for the same reason: a ranked sentence with its own
          verb underneath does not also need to name the table it read. */
       (function () {
+        /* while a number is being found, AiMY's line says what she is doing */
+        if (waits) return aimyBlock({ text: '<span class="b-fill-op"><span class="pipe-say">' +
+          esc(fillOpSay(c)) + '</span></span>' }, true);
         if (onBook()) return aimyBlock(dealSays(c), true);
         const said = aimySays(c);
         const why = whyLine(c);
@@ -16082,11 +16085,11 @@
      So it is a run, the way curating a list is. Every card waiting on a
      number says so where the number goes — "Finding a number", carrying the
      curation's light — and holds the place of its verb as the library's
-     shimmer. They come back one at a time in the roster's own order, so the
-     page fills top to bottom where the reader is looking, and each card is
+     shimmer. They all wait six seconds, then come back in the roster's own
+     order, so the page fills top to bottom where the reader is looking, and each card is
      re-drawn in place when its answer lands: the number and its verb rise
      in, and the card itself does not move. AiMY's block on the list counts
-     them in. The whole run is six seconds whatever the size of the list,
+     them in. Every card waits six seconds whatever the size of the list,
      the same as curating one; the toast and its undo come at the end, once, as they always did.
 
      The write happens as each answer lands, through `patchCon`, so a page
@@ -16097,22 +16100,32 @@
   const fillOn = (l) => !!(FILLING && FILLING.list === l.id);
 
   function fillStart(ids, spec) {
-    /* The last answer lands at `total` whatever the list's size: six
-       seconds, the length of curating one, so the two runs read alike.
-       Each group — a page of the roster — is spread over the whole of it
-       on its own, so the cards in front of the reader take the full six. */
-    const total = spec.total || 6.0;
-    const lead = Math.min(0.9, total);
+    /* EVERY CARD WAITS THE WHOLE SIX SECONDS — the length of curating a
+       list, so the two runs read alike. Spreading the answers across the
+       six had the first card back in under one, and most of a page was
+       done waiting long before the run was. So all of them wait, and then
+       land top to bottom in a quick cascade, each group (a page of the
+       roster) counting its own cascade from the top. */
+    const hold = spec.hold || 6.0;
+    const step = 0.07;
     const group = spec.group || (() => 0);
     const groups = Object.create(null);
     ids.forEach((x) => (groups[group(x)] || (groups[group(x)] = [])).push(x));
     const due = Object.create(null);
-    Object.keys(groups).forEach((k) => groups[k].forEach((x, j, g) =>
-      (due[x] = g.length > 1 ? lead + j * (total - lead) / (g.length - 1) : total)));
+    Object.keys(groups).forEach((k) => groups[k].forEach((x, j) => (due[x] = hold + j * step)));
     ids = ids.slice().sort((a, b) => due[a] - due[b]);
+    /* What every waiting card says, in turn: who is being asked, the
+       second supplier if one is answering, then the check on the number.
+       The steps cross over in place on the card (`swapText`), the way the
+       curation's step crosses in the card above the bar. */
+    const fd = finderOf();
+    const other = finderUp().filter((x) => x.k !== fd.k)[0];
+    const ops = [{ at: 0, say: (n) => 'Asking ' + fd.name + ' for ' + n + '’s number' }];
+    if (other) ops.push({ at: hold * 0.37, say: () => 'Asking ' + other.name + ' as well' });
+    ops.push({ at: hold * 0.7, say: (n) => 'Checking the number reaches ' + n });
     const wait = Object.create(null);
     ids.forEach((x) => (wait[x] = true));
-    FILLING = { list: spec.list || null, ids: ids, at: 0, got: 0, wait: wait,
+    FILLING = { list: spec.list || null, ids: ids, at: 0, got: 0, wait: wait, ops: ops, op: 0,
       due: ids.map((x) => due[x]), t0: performance.now(),
       resolve: spec.resolve, end: spec.end || (() => {}), timer: null };
     FILLING.timer = setInterval(fillTick, FILL_TICK);
@@ -16123,6 +16136,15 @@
     const f = FILLING;
     if (!f) return;
     const el = (performance.now() - f.t0) / 1000;
+    let op = 0;
+    f.ops.forEach((x, k) => { if (el >= x.at) op = k; });
+    if (op !== f.op) {
+      f.op = op;
+      document.querySelectorAll('#wbStage .b-qcard.is-finding .b-fill-op').forEach((x) => {
+        const c = DB.byCon[x.closest('[data-card]').getAttribute('data-card')];
+        if (c) swapText(x, fillOpSay(c));
+      });
+    }
     let moved = false;
     while (f.at < f.ids.length && el >= f.due[f.at]) {
       const id = f.ids[f.at++];
@@ -16163,11 +16185,13 @@
     if (got) old.classList.add('is-got');
   }
 
+  const fillOpSay = (c) => FILLING.ops[FILLING.op].say(c.name.split(' ')[0]);
   const fillCount = (f) => (f.at ? commas(f.got) + ' found so far' : '');
   function fillLive() {
     const f = FILLING;
     return '<span class="b-fill-live" role="status">' +
-      '<span class="b-fill-say">Finding numbers for ' + esc(plural(f.ids.length, 'person')) + '</span>' +
+      '<span class="b-fill-say">Finding numbers for ' + esc(plural(f.ids.length, 'person')) +
+        ' with ' + esc(finderOf().name) + '</span>' +
       '<span class="b-fill-count">' + fillCount(f) + '</span>' +
     '</span>';
   }
@@ -24214,7 +24238,7 @@
     if (!c) return;
     if (onCard) {
       if (FILLING) return;
-      fillStart([id], { total: 1.2, resolve: (x) => enrichNow(x) });
+      fillStart([id], { resolve: (x) => enrichNow(x) });
       return;
     }
     enrichNow(c);

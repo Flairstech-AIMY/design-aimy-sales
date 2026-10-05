@@ -6651,7 +6651,8 @@ textarea::placeholder,
 .b-cur-peek-say .pipe-say,
 .b-cur-card-say .pipe-say,
 .b-qcard-num.b-finding > span,
-.b-fill-say {
+.b-fill-say,
+.b-fill-op .pipe-say {
   background: linear-gradient(90deg, var(--d100) 0%, var(--d100) 38%, var(--d50) 50%,
     var(--d100) 62%, var(--d100) 100%);
   background-size: 250% 100%;
@@ -6664,14 +6665,17 @@ textarea::placeholder,
   .b-cur-peek-say .pipe-say,
   .b-cur-card-say .pipe-say,
   .b-qcard-num.b-finding > span,
-  .b-fill-say { animation: b-cur-shine 1.8s linear infinite; }
+  .b-fill-say,
+  .b-fill-op .pipe-say { animation: b-cur-shine 1.8s linear infinite; }
   /* The crossing keeps its own entrance and exit; the light rides on top. */
   .b-cur-peek-say .pipe-say.is-in,
-  .b-cur-card-say .pipe-say.is-in {
+  .b-cur-card-say .pipe-say.is-in,
+  .b-fill-op .pipe-say.is-in {
     animation: pipe-say-in 300ms var(--ease-out) 90ms both, b-cur-shine 1.8s linear infinite;
   }
   .b-cur-peek-say .pipe-say.is-out,
-  .b-cur-card-say .pipe-say.is-out { animation: pipe-say-out 260ms var(--ease-out) forwards; }
+  .b-cur-card-say .pipe-say.is-out,
+  .b-fill-op .pipe-say.is-out { animation: pipe-say-out 260ms var(--ease-out) forwards; }
 }
 @keyframes b-cur-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
@@ -6867,6 +6871,13 @@ textarea::placeholder,
                b-tick-blur var(--t-settle) var(--ease-out);
   }
 }
+/* The operation, in AiMY's line on the card. It wraps, where the
+   pipeline's crossing words do not, so the outgoing step is pinned to
+   both edges of the line instead of to its right. */
+.b-fill-op { position: relative; display: block; }
+.b-fill-op .pipe-say { white-space: normal; }
+.b-fill-op .pipe-say.is-out { left: 0; right: 0; }
+
 /* And AiMY's block on the list, counting them in where its verb was. */
 .b-fill-live {
   display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
