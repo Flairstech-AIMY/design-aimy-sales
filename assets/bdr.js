@@ -15270,6 +15270,14 @@
     const pick = up.filter((f) => f.k === FINDER)[0];
     return pick || up.sort((a, b) => b.phone - a.phone)[0] || FINDERS[0];
   };
+  /* ══ A NUMBER IS ASKED OF APOLLO ═══════════════════════════════════════
+     Nour: Apollo is the tool the team uses for numbers. Finding PEOPLE
+     still goes through `finderOf` and whichever supplier the run picked;
+     filling in a number for somebody already on a list — the list's "Fill
+     in what is missing", a card's or a record's "Find a number" — asks
+     Apollo, and says so. The best answering supplier stands in only while
+     Apollo is down. */
+  const numFinder = () => FINDERS.filter((x) => x.k === 'apollo' && !x.down)[0] || finderOf();
 
   function listsPage() {
     if (S.build === 'done' && DRAFT) return draftPage();
@@ -16069,7 +16077,7 @@
     if (!works() || FILLING) return;
     const l = DB.byList[id];
     if (!l) return;
-    const f = finderOf();
+    const f = numFinder();
     /* in the roster's order, and by the roster's page, so whichever page
        is open fills across the whole run rather than in its first half */
     const all = l.has.map((cid) => DB.byCon[cid]).filter(Boolean).sort(rosterOrder);
@@ -16139,15 +16147,19 @@
     const due = Object.create(null);
     Object.keys(groups).forEach((k) => groups[k].forEach((x, j) => (due[x] = hold + j * step)));
     ids = ids.slice().sort((a, b) => due[a] - due[b]);
-    /* What every waiting card says, in turn: who is being asked, the
-       second supplier if one is answering, then the check on the number.
+    /* What every waiting card says, in turn: Apollo being asked, Apollo
+       making sure it has the right person, then the check on the number.
        The steps cross over in place on the card (`swapText`), the way the
        curation's step crosses in the card above the bar. */
-    const fd = finderOf();
-    const other = finderUp().filter((x) => x.k !== fd.k)[0];
-    const ops = [{ at: 0, say: (n) => 'Asking ' + fd.name + ' for ' + n + '’s number' }];
-    if (other) ops.push({ at: hold * 0.37, say: () => 'Asking ' + other.name + ' as well' });
-    ops.push({ at: hold * 0.7, say: (n) => 'Checking the number reaches ' + n });
+    const fd = numFinder();
+    const first = (c) => c.name.split(' ')[0];
+    const ops = [
+      { at: 0, say: (c) => 'Asking ' + fd.name + ' for ' + first(c) + '’s number' },
+      { at: hold * 0.37, say: (c) => accOf(c)
+        ? 'Making sure it is ' + first(c) + ' at ' + accOf(c).name
+        : 'Making sure it is the right ' + first(c) },
+      { at: hold * 0.7, say: (c) => 'Checking the number reaches ' + first(c) },
+    ];
     const wait = Object.create(null);
     ids.forEach((x) => (wait[x] = true));
     FILLING = { list: spec.list || null, ids: ids, at: 0, got: 0, wait: wait, ops: ops, op: 0,
@@ -16210,13 +16222,13 @@
     if (got) old.classList.add('is-got');
   }
 
-  const fillOpSay = (c) => FILLING.ops[FILLING.op].say(c.name.split(' ')[0]);
+  const fillOpSay = (c) => FILLING.ops[FILLING.op].say(c);
   const fillCount = (f) => (f.at ? commas(f.got) + ' found so far' : '');
   function fillLive() {
     const f = FILLING;
     return '<span class="b-fill-live" role="status">' +
       '<span class="b-fill-say">Finding numbers for ' + esc(plural(f.ids.length, 'person')) +
-        ' with ' + esc(finderOf().name) + '</span>' +
+        ' with ' + esc(numFinder().name) + '</span>' +
       '<span class="b-fill-count">' + fillCount(f) + '</span>' +
     '</span>';
   }
@@ -20566,7 +20578,7 @@
     if (seesCost() && !c.dnc &&
         (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
-        'Ask ' + esc(finderOf().name) + ' for a number</button>';
+        'Ask ' + esc(numFinder().name) + ' for a number</button>';
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
       door = coMenu(a, others, 'Try one of the ' + others.length + ' others at ' + a.name);
     } else if (seesCost() && c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
@@ -20574,7 +20586,7 @@
          this number may not be theirs, and "Call Ava" under it called it
          again. */
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
-        'Ask ' + esc(finderOf().name) + ' for a better number</button>';
+        'Ask ' + esc(numFinder().name) + ' for a better number</button>';
     } else if (last && last.outcome === 'gatekeeper' && c.phone && callable(c)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'call the mobile now</button>';
@@ -24269,7 +24281,7 @@
     enrichNow(c);
   }
   function enrichNow(c) {
-    const f = finderOf();
+    const f = numFinder();
     const first = c.name.split(' ')[0];
     const h = Math.abs(hash(c.id + ':again'));
     if ((h % 1000) / 1000 >= f.phone) { toast(f.name + ' has no other number for ' + first + '.'); return false; }
