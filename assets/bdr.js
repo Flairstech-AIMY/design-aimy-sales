@@ -15857,27 +15857,17 @@
        `camp` is a set, and an empty array is truthy — which is why this
        asks `camp.length` and not `camp`. Getting that wrong once drew
        "Open undefined" where the way onto a campaign should have been. */
-    /* ══ TWO BULK VERBS, AND THEY CALL DIFFERENT SETS ═══════════════════
-       This one is the LIST's: every person on it you can call, in the
-       order the roster puts them, which is the run you start when you have
-       decided to work the whole thing. The roster's own head carries the
-       other, and that one is the PAGE's — the eleven under it, following
-       the pager.
-
-       They were the same control for a while and the masthead's was worse
-       at being it: `call.slice(0, PAGE)` is the first fifteen callable
-       whichever page you are looking at, which is the page's job done from
-       the wrong place. Split by what they call, the pair reads: work the
-       list, or work what is in front of you. */
+    /* ══ ONE BULK VERB, AND IT IS THE ROSTER'S ═════════════════════════
+       The masthead carried a list-wide "Call all" beside "Call the next
+       one", and the roster's head a page-wide one two hundred pixels
+       below — two pills with one label. Nour, 5 Oct 2026: it is down
+       there already, so it goes from here. The masthead keeps the one
+       person, "Call the next one on this list"; calling a whole set is
+       done from the roster, over the people in front of you. */
     const phone = !works() ? ''
       : first
       ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
-          '">Call the next one on this list</button>' +
-        (call.length > 1
-          ? '<button class="b-ghost" type="button" data-callall="' +
-            esc(call.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
-            'Call all ' + commas(call.length) + '</button>'
-          : '')
+          '">Call the next one on this list</button>'
       : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>';
     /* THE PRIMARY IS WHATEVER THE ROW IS FOR. With somebody to call, the
        phone leads and the campaign is the quiet chip beside it, in the
