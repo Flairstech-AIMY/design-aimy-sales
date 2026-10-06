@@ -31,7 +31,7 @@
        four hundred pixels of lettering rendered into sixteen. The filenames
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
-  <link rel="stylesheet" href="assets/aimy-ds.css?v=1276" />
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=1277" />
   <!-- ══ THE TWO STAMPS MOVE TOGETHER, AND THE BUILD PANEL DEPENDS ON IT ══
 
        `?v=` is what stops a browser serving yesterday's file, and this
@@ -46,7 +46,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=1276" />
+  <link rel="stylesheet" href="assets/sales.css?v=1277" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -58,10 +58,10 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=1276" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=1276" />
-  <link rel="stylesheet" href="assets/voice.css?v=1276" />
-  <script src="assets/aimy-viewport.js?v=1276"></script>
+  <link rel="stylesheet" href="assets/bdr.css?v=1277" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=1277" />
+  <link rel="stylesheet" href="assets/voice.css?v=1277" />
+  <script src="assets/aimy-viewport.js?v=1277"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -557,9 +557,12 @@
 
         <div class="overlay-input-wrap">
           <div class="overlay-input-bar">
-            <div class="aimy-float-icon">
-              <svg width="16" height="18" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
-            </div>
+            <!-- The mark is the way to your usage: its rim fills with the
+                 month's plan used, and it opens Plan / Session. A button so
+                 it can be pressed; it looks exactly as it did. -->
+            <button class="aimy-float-icon" type="button" aria-label="Your usage">
+              <svg width="16" height="18" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+            </button>
             <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
                       spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
             <button class="overlay-send" id="overlaySend" aria-label="Send">
@@ -636,7 +639,7 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/bdr.js?v=1276"></script>
-<script src="assets/voice.js?v=1276"></script>
+<script src="assets/bdr.js?v=1277"></script>
+<script src="assets/voice.js?v=1277"></script>
 </body>
 </html>

@@ -6924,6 +6924,8 @@
     byId('userAvatar').innerHTML = faceOf(p.id, 28);
     byId('userName').textContent = p.name;
     byId('userRole').textContent = jobSay(p);
+    /* The composer's usage ring is this person's, so it follows the desk. */
+    paintUseMark();
     byId('asPanel').innerHTML = '<span class="b-menu-cap">Looking as</span>' +
       /* A TICK IS FOR THINGS YOU CHOOSE SEVERAL OF. This is one desk at a
          time — you are either at it or you are not — so the row you are on
@@ -26579,6 +26581,8 @@
   let GEN_ON = false;
 
   function generating(on) {
+    /* A run starting is a question being answered, so it is what costs. */
+    if (on && !GEN_ON) useSpend();
     GEN_ON = !!on;
     /* ══ EVERY COMPOSER, NOT THE ONE I HAPPENED TO BE LOOKING AT ═══════
        This lit `#aimyFloatBar` by id, so asking from the canvas lit the bar
@@ -26625,6 +26629,187 @@
       el.placeholder = GEN_ON ? 'Generating…' : el.dataset.ph;
     }
   }
+
+  /* ══ YOUR USAGE, ON THE MARK ═══════════════════════════════════════════
+     Ported from AiMY Knowledge (knowledge.js, "YOUR USAGE, ON THE MARK"),
+     so the two products show a person's allowance the same way. Nothing is
+     added to the composer: the AiMY mark's own rim fills with the share of
+     this month's plan used (amber from 85%, red when the plan or the session
+     is spent), and the mark opens the three facts behind it.
+
+     Every mark has it. HOVER or keyboard FOCUS opens the popover on all of
+     them. Clicks keep the meaning they had: the float bar's mark
+     (`#canvasOpen`) still reopens the canvas, and the canvas composer's
+     mark, which did nothing before, pins the popover open, which is also
+     the touch path.
+
+     The figures are a FIXTURE per desk person, because Sales has no usage
+     model of its own: the plan and its split live on Knowledge's console
+     (Agents > Usage), which is where "View usage and plan" goes, the way
+     the AiMY tab in the masthead does. The ring is painted from paintWho,
+     so switching who you are looking as repaints it, and nothing here reads
+     `me()` before the desk has booted. */
+  const USE_LINK = 'https://aimy-knowledge.nour-ali.workers.dev/console.html?m=agents&sec=usage';
+  const USE_MARK = '.overlay-input-bar > .aimy-float-icon, .aimy-float-bar > .aimy-float-icon';
+  const USE_SPENT = {};      /* person id -> { plan, sess } spent since load */
+  function useNow() {
+    const p = me();
+    const h = Math.abs(hash(String(p.id) + ':use'));
+    const s = USE_SPENT[p.id] || { plan: 0, sess: 0 };
+    return { limit: 6000, used: 600 + (h % 3400) + s.plan, unit: 'tokens',
+             sess: 300 + ((h >> 4) % 1400) + s.sess, sessLimit: 5000,
+             sessPer: 'per session', resets: '1 Nov' };
+  }
+  const useFmt = (n) => Math.round(n).toLocaleString('en-US');
+  const useLevel = (used, lim) => lim == null ? ''
+    : (lim <= 0 || used >= lim) ? 'is-err' : used / lim >= 0.85 ? 'is-warn' : '';
+
+  /* An estimate, and named as one: a question in and an answer out. */
+  function useSpend() {
+    const id = me().id;
+    const s = USE_SPENT[id] || (USE_SPENT[id] = { plan: 0, sess: 0 });
+    s.plan += 260; s.sess += 260;
+    paintUseMark();
+  }
+
+  function usePopBody(u) {
+    const pct = Math.min(100, Math.round(u.used / u.limit * 100));
+    const plan = useLevel(u.used, u.limit);
+    const sess = useLevel(u.sess, u.sessLimit);
+    return '' +
+      '<div class="use-pop-g">' +
+        '<div class="use-pop-r"><span>Plan</span><b class="' + plan + '">' +
+          (plan === 'is-err' ? 'Limit reached' : pct + '% used') + '</b></div>' +
+        '<p class="use-pop-s">' + useFmt(u.used) + ' of ' + useFmt(u.limit) + ' ' + esc(u.unit) +
+          ', resets ' + esc(u.resets) + '</p>' +
+      '</div>' +
+      '<div class="use-pop-g">' +
+        '<div class="use-pop-r"><span>Session</span><b class="' + sess + '">' +
+          useFmt(u.sess) + ' ' + esc(u.unit) + '</b></div>' +
+        '<p class="use-pop-s">' + (sess === 'is-err' ? 'Session limit reached. Start a new conversation.'
+          : 'Up to ' + useFmt(u.sessLimit) + ' ' + esc(u.sessPer)) + '</p>' +
+      '</div>' +
+      '<a class="use-pop-a" href="' + esc(USE_LINK) + '">View usage and plan…</a>';
+  }
+
+  function paintUseMark() {
+    const u = useNow();
+    const p = Math.min(1, u.used / u.limit);
+    const lv = [useLevel(u.used, u.limit), useLevel(u.sess, u.sessLimit)];
+    const worst = lv.indexOf('is-err') > -1 ? 'is-err' : lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
+    const say = Math.round(p * 100) + '% of your plan used'
+      + (worst === 'is-err' ? ', limit reached' : worst === 'is-warn' ? ', near the limit' : '');
+    document.querySelectorAll(USE_MARK).forEach((el) => {
+      el.classList.add('has-use');
+      el.classList.toggle('is-warn', worst === 'is-warn');
+      el.classList.toggle('is-err', worst === 'is-err');
+      el.style.setProperty('--use', p.toFixed(4));
+      if (el.dataset.useLabel === undefined) el.dataset.useLabel = el.getAttribute('aria-label') || '';
+      el.setAttribute('aria-label', el.id === 'canvasOpen' ? el.dataset.useLabel + '. ' + say : 'Your usage: ' + say);
+    });
+    const pop = byId('usePop');
+    if (pop) pop.innerHTML = usePopBody(u);
+  }
+
+  let USE_OPENER = null;
+  let USE_PINNED = false;
+  let USE_T = 0;
+  function closeUsePop(refocus) {
+    clearTimeout(USE_T);
+    const pop = byId('usePop');
+    if (pop) pop.remove();
+    if (USE_OPENER) {
+      USE_OPENER.setAttribute('aria-expanded', 'false');
+      if (refocus) USE_OPENER.focus();
+    }
+    USE_OPENER = null;
+    USE_PINNED = false;
+  }
+  /* On the body, because the bar clips (it carries the beam); fixed, and
+     placed from the mark so it opens upward from what you pressed. */
+  function openUsePop(btn, byKey) {
+    clearTimeout(USE_T);
+    if (USE_OPENER === btn && byId('usePop')) return;
+    closeUsePop();
+    const pop = document.createElement('div');
+    pop.id = 'usePop';
+    pop.className = 'use-pop';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Your usage');
+    pop.innerHTML = usePopBody(useNow());
+    document.body.appendChild(pop);
+    const r = btn.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    pop.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    btn.setAttribute('aria-expanded', 'true');
+    USE_OPENER = btn;
+    if (byKey) { const a = pop.querySelector('.use-pop-a'); if (a) a.focus(); }
+  }
+  const canHover = () => window.matchMedia && window.matchMedia('(hover: hover)').matches;
+
+  (function seatUseMark() {
+    document.querySelectorAll(USE_MARK).forEach((el) => {
+      el.setAttribute('aria-haspopup', 'dialog');
+      el.setAttribute('aria-expanded', 'false');
+    });
+    /* After a click on a mark, hover stays quiet until the pointer has been
+       somewhere else: opening the canvas slides its own mark in under a
+       pointer that has not moved, and that arrives as a hover. */
+    let quiet = false;
+    document.addEventListener('mouseover', (e) => {
+      if (!canHover() || !e.target.closest) return;
+      const mark = e.target.closest(USE_MARK);
+      if (mark) {
+        if (quiet) return;
+        clearTimeout(USE_T);
+        if (!USE_PINNED) USE_T = setTimeout(() => openUsePop(mark, false), 220);
+        return;
+      }
+      quiet = false;
+      if (e.target.closest('#usePop')) { clearTimeout(USE_T); return; }
+      if (USE_OPENER && !USE_PINNED) {
+        clearTimeout(USE_T);
+        USE_T = setTimeout(() => { if (!USE_PINNED) closeUsePop(); }, 240);
+      }
+    });
+    document.addEventListener('focusin', (e) => {
+      const mark = e.target.closest && e.target.closest(USE_MARK);
+      if (mark && mark.matches(':focus-visible')) openUsePop(mark, false);
+      else if (USE_OPENER && !USE_PINNED && !(e.target.closest && e.target.closest('#usePop'))) closeUsePop();
+    });
+    document.addEventListener('click', (e) => {
+      const mark = e.target.closest && e.target.closest(USE_MARK);
+      if (mark) {
+        quiet = true;
+        if (mark.id === 'canvasOpen') { closeUsePop(); return; }   /* it opens the canvas */
+        if (USE_OPENER === mark && USE_PINNED) { closeUsePop(); return; }
+        openUsePop(mark, e.detail === 0);
+        USE_PINNED = true;
+        return;
+      }
+      if (USE_OPENER && !(e.target.closest && e.target.closest('#usePop'))) closeUsePop();
+    });
+    /* Escape closes it first. Tab from the mark walks into it (it sits at
+       the end of the body), and Tab out of it carries on to the field. */
+    document.addEventListener('keydown', (e) => {
+      if (!USE_OPENER) return;
+      if (e.key === 'Escape') { e.stopPropagation(); closeUsePop(true); return; }
+      if (e.key !== 'Tab') return;
+      const link = document.querySelector('#usePop .use-pop-a');
+      if (e.target === USE_OPENER && !e.shiftKey && link) {
+        e.preventDefault(); USE_PINNED = true; link.focus(); return;
+      }
+      if (e.target === link) {
+        e.preventDefault();
+        const bar = USE_OPENER.parentElement;
+        const opener = USE_OPENER;
+        closeUsePop();
+        if (e.shiftKey) opener.focus();
+        else { const f = bar && bar.querySelector('textarea, input'); if (f) f.focus(); }
+      }
+    }, true);
+    window.addEventListener('resize', () => closeUsePop());
+  })();
 
   /* \u2550\u2550 AND SHE SAYS HELLO BEFORE SHE IS ASKED ANYTHING \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
      Every other thing this card has ever held was an answer: you asked, it

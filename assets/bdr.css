@@ -7075,3 +7075,67 @@ textarea::placeholder,
   .app-topnav:has(.dial-anchor:not([hidden])) .topnav-right,
   .app-topnav:has(.dial-anchor:not([hidden])) .topnav-logo { gap: 6px; }
 }
+
+/* ══ YOUR USAGE, ON THE COMPOSER'S MARK ═══════════════════════════════════
+   Ported from AiMY Knowledge (knowledge.css). The mark became a <button>
+   in the canvas composer and must look exactly as it did, so this only takes
+   away what a button adds. Sales has no --ink-warn / --ink-err, so the
+   status inks fall back to --warn / --err. */
+button.aimy-float-icon {
+  padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+/* The ring is the mark's own rim, filled clockwise from the top to the share
+   of the month's plan used. It sits over the 1px border and one pixel inside
+   it, so the unfilled part is the border that was always there. */
+.aimy-float-icon.has-use::before {
+  content: ""; position: absolute; inset: -1px; border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(var(--brand) calc(var(--use, 0) * 1turn), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+}
+.aimy-float-icon.has-use.is-warn::before {
+  background: conic-gradient(var(--warn) calc(var(--use, 0) * 1turn), transparent 0);
+}
+.aimy-float-icon.has-use.is-err::before {
+  background: conic-gradient(var(--err) calc(var(--use, 0) * 1turn), transparent 0);
+}
+
+.use-pop {
+  position: fixed; z-index: 700; width: 16.5rem;
+  border: 1px solid var(--card-border-hover);
+  border-radius: var(--r-lg);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  overflow: hidden;
+  animation: use-pop-in var(--t-base) var(--ease-out) both;
+}
+.use-pop-g { padding: 11px 14px; }
+.use-pop-g + .use-pop-g { border-top: 1px solid var(--hairline); }
+.use-pop-r {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-size: var(--ty-meta); color: var(--ink-secondary);
+}
+.use-pop-r b {
+  color: var(--ink-primary); font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.use-pop-r b.is-warn { color: var(--ink-warn, var(--warn)); }
+.use-pop-r b.is-err  { color: var(--ink-err, var(--err)); }
+.use-pop-s {
+  margin: 3px 0 0; font-size: var(--ty-micro); color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.use-pop-a {
+  display: block; padding: 11px 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--ty-meta); color: var(--ink-primary); text-decoration: none;
+}
+.use-pop-a:hover { background: var(--card-bg-raised); }
+.use-pop-a:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@keyframes use-pop-in { from { opacity: 0; transform: translate3d(0, 4px, 0); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .use-pop { animation: none; } }
