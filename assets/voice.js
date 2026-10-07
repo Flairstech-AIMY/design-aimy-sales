@@ -128,7 +128,7 @@
   const BARS = [];
   let ASK = null;
 
-  let stage, orb, state, heard, liveClock, mute, end;
+  let stage, orb, silk, state, heard, liveClock, mute, end;
 
   /* One thing at a time, page-wide. `mode` is '' | 'rec' | 'note' | 'live' |
      'error'; `bar` is the composer dictating or showing a note. */
@@ -270,6 +270,212 @@
     setTimeout(done, CHIP_OUT_MS);
   }
 
+  /* ══ SILK — the orb ══════════════════════════════════════════════════════
+     Hair-fine strands of light wound round an invisible drum that turns.
+     Each strand is a ring on that drum seen side-on, so as it turns the
+     strands slide over and under one another: the ones facing you are
+     brighter and thicker, the ones behind are finer and dim.
+
+     A BALL, NOT A LENS. Each strand spans the width of a sphere at its own
+     height — a line of latitude — so the strands end at different points
+     round a soft circular edge, each fading out on its own. The first cut
+     pinched every strand to the same two points, and forty strands meeting
+     at one pixel under additive light made a hard white dot at each end.
+     Nothing converges now: the waves ride each strand between its ends and
+     taper to rest at them, but the ends themselves stay on the sphere.
+
+     WHAT MAKES IT SILK RATHER THAN LINES:
+       · Light ADDS where strands cross (`lighter` compositing on the dark
+         stage), the way woven silk catches light at its overlaps.
+       · A BLOOM PASS: the strands are drawn once to an offscreen canvas,
+         laid down blurred, then laid down sharp over their own glow.
+       · The strands that face you full-on carry a white sheen, faded at
+         both ends like the strand under it.
+       · Each strand runs cyan → blue → violet along its length, rising out
+         of nothing over its first quarter and dissolving over its last.
+       · Two waves of different frequency ride every strand, offset per
+         strand, so the surface never shows a repeating pattern.
+
+     MOTION IS EASED, NEVER SET. Every quantity the phase controls — spin,
+     height, amplitude, colour, brightness, breath — chases its goal with a
+     time constant (TAU_PHASE), so a phase change blends instead of cutting.
+     Your voice rises and falls on time constants too (TAU_UP / TAU_DOWN),
+     slow enough that a sentence reads as one swell, not a pulse per
+     syllable: the first cut rose in 50ms and the silk twitched on every
+     word. The breath while answering is a slow 2.4s cycle for the same
+     reason — at under a second it read as a throb, not a breath.
+
+       listening   turns slowly; your voice swells the waves and the height
+       thinking    draws in tighter, turns faster
+       speaking    breathes — a wave travels out from the centre
+       muted       slows almost to a stop and drains to grey
+       error       greyer and dimmer still
+       connecting  half-lit, waiting
+
+     On a light page the same strands are drawn in deeper blues with normal
+     compositing: added light on near-white is white. Under reduced motion
+     it draws one still frame per phase and never runs a loop. */
+  const SILK_N = 40;            /* strands */
+  const SILK_PTS = 64;          /* points per strand */
+  const SILK_BLOOM = 7;         /* px (CSS) — the glow under the strands */
+  const TAU_PHASE = 0.6;        /* s — phase blends */
+  const TAU_UP = 0.2;           /* s — voice rising */
+  const TAU_DOWN = 0.7;         /* s — voice falling */
+  const BREATH_W = Math.PI * 2 / 2.4;   /* rad/s — one breath per 2.4s */
+  const SILK_DARK = [[69, 211, 230], [64, 140, 255], [140, 110, 255]];
+  const SILK_LIGHT = [[0, 120, 214], [0, 86, 230], [86, 58, 214]];
+  const SILK_GREY = [[150, 162, 178], [126, 138, 156], [150, 150, 170]];
+
+  function makeSilk(canvas) {
+    const ctx = canvas.getContext('2d');
+    /* The strands go here first, so the bloom can blur them as one image. */
+    const off = document.createElement('canvas');
+    const octx = off.getContext('2d');
+    /* Canvas filters arrived late in Safari; without one the "bloom" would
+       just be a second sharp copy, so it is skipped rather than faked. */
+    const canBloom = typeof ctx.filter === 'string';
+    const TAU = Math.PI * 2;
+    let w = 0, h = 0, dpr = 1, raf = 0, last = 0, t = 0, rot = 0, ph = 0;
+    let phase = 'connecting', want = 0, lvl = 0, light = false;
+    const E = { spin: 0.2, height: 0.78, amp: 0.045, colour: 1, alpha: 0.45, breath: 0 };
+
+    const goals = () => {
+      const quiet = phase === 'muted' || phase === 'error';
+      return {
+        spin:   phase === 'thinking' ? 1.15 : phase === 'speaking' ? 0.42 : quiet ? 0.05 : 0.2,
+        height: phase === 'thinking' ? 0.58 : 0.86,
+        amp:    quiet ? 0.02 : phase === 'thinking' ? 0.07 : 0.045,
+        colour: quiet ? 0 : 1,
+        alpha:  phase === 'error' ? 0.35 : phase === 'connecting' ? 0.45 : phase === 'muted' ? 0.6 : 1,
+        breath: phase === 'speaking' ? 1 : 0
+      };
+    };
+    const mix = (a, b, f) => a.map((v, i) => Math.round(v + (b[i] - v) * f));
+    const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + Math.max(0, a).toFixed(3) + ')';
+
+    function fit() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      const cw = Math.round(canvas.clientWidth * dpr), ch = Math.round(canvas.clientHeight * dpr);
+      if (cw && (cw !== w || ch !== h)) { w = canvas.width = off.width = cw; h = canvas.height = off.height = ch; }
+    }
+
+    function draw(dt) {
+      const G = goals();
+      const kp = dt ? 1 - Math.exp(-dt / TAU_PHASE) : 1;
+      for (const key in G) E[key] += (G[key] - E[key]) * kp;
+      const target = phase === 'listening' ? want : 0;
+      lvl += (target - lvl) * (dt ? 1 - Math.exp(-dt / (target > lvl ? TAU_UP : TAU_DOWN)) : 1);
+
+      t += dt;
+      rot += dt * E.spin;
+      ph += dt * (0.9 + E.spin * 1.4 + lvl * 0.9);
+      if (!w) return;
+
+      const cx = w / 2, cy = h / 2, S = Math.min(w, h) * 0.44;
+      const swell = E.breath * (0.5 - 0.5 * Math.cos(t * BREATH_W));
+      const pinch = phase === 'thinking' ? 1 + 0.03 * Math.sin(t * 1.6) : 1;
+      const H = S * E.height * (1 + swell * 0.04 + lvl * 0.06) * pinch;
+      const A = S * (E.amp + lvl * 0.22 + swell * 0.065);
+      const pal = (light ? SILK_LIGHT : SILK_DARK).map((c, i) => mix(SILK_GREY[i], c, E.colour));
+
+      octx.clearRect(0, 0, w, h);
+      octx.globalCompositeOperation = light ? 'source-over' : 'lighter';
+      octx.lineCap = 'butt';
+      for (let k = 0; k < SILK_N; k++) {
+        const th = k / SILK_N * TAU + rot;
+        const depth = (Math.cos(th) + 1) / 2;
+        const base = Math.sin(th) * H;
+        /* Its own latitude: half-width of the sphere at this height. */
+        const L = Math.sqrt(Math.max(S * S * 0.03, S * S - base * base));
+        const a = E.alpha * (0.06 + 0.72 * depth * depth) * (light ? 1.15 : 1);
+        const grad = octx.createLinearGradient(cx - L, 0, cx + L, 0);
+        grad.addColorStop(0, rgba(pal[0], 0));
+        grad.addColorStop(0.26, rgba(pal[0], a * 0.8));
+        grad.addColorStop(0.5, rgba(pal[1], a));
+        grad.addColorStop(0.74, rgba(pal[2], a * 0.8));
+        grad.addColorStop(1, rgba(pal[2], 0));
+
+        octx.beginPath();
+        for (let i = 0; i <= SILK_PTS; i++) {
+          const u = i / SILK_PTS * 2 - 1;
+          const env = Math.pow(Math.max(0, 1 - u * u), 0.8);
+          const wave = Math.sin(u * 3.1 + ph + k * 0.43)
+                     + 0.5 * Math.sin(u * 5.9 - ph * 1.27 + k * 0.91)
+                     + E.breath * 0.55 * Math.sin(Math.abs(u) * 5 - t * 2.6);
+          const x = cx + u * L;
+          const y = cy + base + env * wave * A * (0.55 + 0.45 * depth);
+          if (i) octx.lineTo(x, y); else octx.moveTo(x, y);
+        }
+        octx.strokeStyle = grad;
+        octx.lineWidth = (0.4 + 1.1 * depth) * dpr;
+        octx.stroke();
+
+        /* The sheen, on the strands that face you full-on — faded at its
+           ends exactly as the strand is, so it can never show a tip. */
+        if (!light && depth > 0.88) {
+          const sa = 0.45 * (depth - 0.88) / 0.12 * E.colour * E.alpha;
+          const sheen = octx.createLinearGradient(cx - L, 0, cx + L, 0);
+          sheen.addColorStop(0.2, 'rgba(255,255,255,0)');
+          sheen.addColorStop(0.5, 'rgba(255,255,255,' + sa.toFixed(3) + ')');
+          sheen.addColorStop(0.8, 'rgba(255,255,255,0)');
+          octx.strokeStyle = sheen;
+          octx.lineWidth = 0.6 * dpr;
+          octx.stroke();
+        }
+      }
+      octx.globalCompositeOperation = 'source-over';
+
+      ctx.clearRect(0, 0, w, h);
+
+      /* The light the silk throws on the room behind it. */
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, S * 1.15);
+      glow.addColorStop(0, rgba(mix(SILK_GREY[1], [0, 102, 255], E.colour),
+        (light ? 0.08 : 0.2) * E.alpha * (0.7 + lvl * 0.8 + swell * 0.4)));
+      glow.addColorStop(1, rgba([0, 102, 255], 0));
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, w, h);
+
+      /* Bloom, then the strands sharp over their own glow. */
+      if (canBloom) {
+        ctx.globalCompositeOperation = light ? 'source-over' : 'lighter';
+        ctx.globalAlpha = light ? 0.35 : 0.85;
+        ctx.filter = 'blur(' + (SILK_BLOOM * dpr) + 'px)';
+        ctx.drawImage(off, 0, 0);
+        ctx.filter = 'none';
+        ctx.globalAlpha = 1;
+      }
+      ctx.globalCompositeOperation = light ? 'source-over' : 'lighter';
+      ctx.drawImage(off, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function loop(now) {
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      fit();
+      draw(dt);
+      raf = requestAnimationFrame(loop);
+    }
+
+    /* One still frame, every eased value at its goal. */
+    function still() {
+      fit();
+      lvl = 0;
+      draw(0);
+    }
+
+    return {
+      start() {
+        light = document.documentElement.getAttribute('data-theme') === 'light';
+        if (reduced()) { still(); return; }
+        if (!raf) { last = 0; raf = requestAnimationFrame(loop); }
+      },
+      stop() { cancelAnimationFrame(raf); raf = 0; },
+      phase(p) { phase = p; if (reduced()) still(); },
+      level(v) { want = v; }
+    };
+  }
+
   /* The stage is the page's last child, so it covers everything the page
      has — rail, masthead, canvas, call panel — and `inert` takes the rest out
      of reach while it is open. */
@@ -284,9 +490,7 @@
         '</div>' +
         '<div class="vx-center">' +
           '<button class="vx-orb" type="button" aria-label="Interrupt AiMY" disabled>' +
-            '<span class="vx-orb-body" aria-hidden="true">' +
-              '<span class="vx-orb-a"></span><span class="vx-orb-b"></span><span class="vx-orb-c"></span>' +
-            '</span>' +
+            '<canvas class="vx-silk" aria-hidden="true"></canvas>' +
           '</button>' +
           '<p class="vx-state" role="status" aria-live="polite">' +
             '<b class="vx-state-n"></b><span class="vx-heard"></span>' +
@@ -299,6 +503,7 @@
       '</div>');
     stage = $('#vxStage');
     orb = $('.vx-orb', stage);
+    silk = makeSilk($('.vx-silk', stage));
     state = $('.vx-state-n', stage);
     heard = $('.vx-heard', stage);
     liveClock = $('.vx-live-clock', stage);
@@ -391,8 +596,7 @@
     if (S.stream) S.stream.getTracks().forEach((t) => t.stop());
     if (S.ctx) S.ctx.close().catch(() => {});
     S.stream = S.ctx = S.analyser = S.buf = null;
-    BARS.forEach((b) => b.el.style.removeProperty('--vx-lvl'));
-    stage.style.removeProperty('--vx-lvl');
+    if (silk) silk.level(0);
   }
 
   /* RMS of the last window, lifted so ordinary speech reaches the top third
@@ -407,7 +611,7 @@
       for (let i = 0; i < S.buf.length; i++) { const v = (S.buf[i] - 128) / 128; sum += v * v; }
       lvl = Math.min(1, Math.sqrt(sum / S.buf.length) * 5.5);
     }
-    if (S.mode === 'live') { stage.style.setProperty('--vx-lvl', lvl.toFixed(3)); return; }
+    if (S.mode === 'live') { silk.level(lvl); return; }
     if (S.mode !== 'rec' || !S.bar || reduced()) return;
     const w = S.bar.wave;
     S.levels.push(lvl); S.levels.shift();
@@ -563,6 +767,8 @@
     stage.hidden = false;
     void stage.offsetWidth;          /* the entry transition needs a start */
     stage.classList.add('is-open');
+    silk.phase('connecting');
+    silk.start();
   }
   function closeStage() {
     stage.classList.remove('is-open');
@@ -570,7 +776,7 @@
     S.inerted = [];
     document.body.classList.remove('vx-staged');
     delete stage.dataset.phase;
-    S.leaveT = setTimeout(() => { stage.hidden = true; }, reduced() ? 0 : LEAVE_MS);
+    S.leaveT = setTimeout(() => { stage.hidden = true; silk.stop(); }, reduced() ? 0 : LEAVE_MS);
     /* Back to the conversation if anything was said — it now holds what
        was — and otherwise back to the bar the session was started from.
        Only a bar that is actually on screen: Sales answers into the peek
@@ -620,6 +826,7 @@
   function setPhase(p) {
     S.phase = p;
     stage.dataset.phase = p;
+    silk.phase(p);
     state.textContent = SAY[p] || '';
     heard.textContent = p === 'speaking' ? SAY.hintSpeak : p === 'muted' ? SAY.hintMuted : '';
     /* The orb is a button only while there is something to interrupt. */
@@ -764,6 +971,7 @@
     S.mode = 'error';
     S.phase = '';
     stage.dataset.phase = 'error';
+    silk.phase('error');
     state.textContent = msg;
     heard.textContent = '';
     orb.disabled = true;

@@ -18,15 +18,15 @@
    THE STAGE (`.vx-stage`), ChatGPT's mobile voice mode: the page goes away,
    one orb stays, with a line under it and two round buttons below.
 
-     AiMY Voice                                   0:42
-                         ◯  (the orb)
+     [AiMY logo]                                  0:42
+                      ≋≋≋  (the silk)
                        Listening
                  which of those should support…
                          (🎙)  (✕)
 
    COLOUR CARRIES ONE MEANING EACH. Red is recording (Sales' recipe for the
-   mic and the call), so dictation and a muted mic are red. The orb is AiMY's
-   AI gradient. Text is never dimmed to say a state; the state is said. */
+   mic and the call), so dictation and a muted mic are red. The silk is AiMY's
+   AI blues. Text is never dimmed to say a state; the state is said. */
 
 /* ── The tool pair ─────────────────────────────────────────────────────── */
 .vx-tools {
@@ -284,90 +284,26 @@ body.vx-staged { overflow: hidden; }
   max-width: 26rem; font-weight: var(--fw-medium); line-height: 1.5; color: var(--err);
 }
 
-/* ── The orb ─────────────────────────────────────────────────────────────
-   AiMY's AI gradient (`--ai`: #0066ff → #61adf1 → #45d3e6) as a sphere, the
-   way ChatGPT's voice is a sphere of its own blue: a sky-to-deep body, and
-   three soft lights inside it that turn on coprime cycles (17s, 23s, 29s) so
-   the surface never visibly repeats. Fixed values rather than the token:
-   it is the brand's object and reads the same on a light page and a dark one.
+/* ── The orb: Silk ───────────────────────────────────────────────────────
+   Hair-fine strands of light wound round an invisible cylinder that turns,
+   pinched to a lens at both ends. Drawn by voice.js on a canvas — the strands
+   slide over and under one another as the cylinder turns, and where they
+   cross the light adds up, which is what makes it read as silk rather than
+   as lines. The stage passes it a phase and your voice; nothing about it is
+   a CSS animation, so none of the orb's states can drift out of step with
+   each other.
 
-   Two transforms, on two elements, so they never fight: your voice scales
-   `.vx-orb` (written at 70ms by voice.js as `--vx-lvl`), and the phase
-   animates `.vx-orb-body`.
-
-   EVERY LIGHT IS A ROUND-ISH ELLIPSE WITH AN EXPLICIT SIZE. `closest-side`
-   made the deep-blue light a 46% × 16% sliver whose whole falloff happened
-   in a few pixels, and once rotated that falloff read as a seam across the
-   sphere. Explicit radii, fading over their full length, cannot do that. */
+   The canvas is square and fills the button; the silk itself is wider than
+   it is tall, which is why the box is larger than the old sphere's. */
 .vx-orb {
   position: relative;
-  width: min(15rem, 60vw); aspect-ratio: 1;
+  width: min(18rem, 72vw); aspect-ratio: 1;
   padding: 0; border: 0; border-radius: 50%;
   background: none; cursor: default;
-  transform: scale(calc(1 + var(--vx-lvl, 0) * 0.14));
-  transition: transform 120ms var(--ease-out);
 }
 .vx-orb:enabled { cursor: pointer; }
-.vx-orb:focus-visible { outline: 0.1875rem solid var(--brand); outline-offset: 0.5rem; }
-.vx-orb-body {
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  clip-path: circle(50%);
-  background:
-    radial-gradient(circle at 50% 108%, #0058e0 0%, #0066ff 30%, transparent 64%),
-    linear-gradient(180deg, #eaf7ff 0%, #a9dcf8 38%, #61adf1 62%, #0066ff 100%);
-  box-shadow: 0 1.5rem 4.5rem rgba(0, 102, 255, 0.30);
-  transition: opacity var(--t-base) var(--ease-out), filter var(--t-base) var(--ease-out);
-}
-.vx-orb-a, .vx-orb-b, .vx-orb-c {
-  position: absolute; border-radius: 50%;
-  will-change: transform;
-}
-/* A white cloud, high and to the left. */
-.vx-orb-a {
-  inset: -20%;
-  background: radial-gradient(ellipse 34% 30% at 36% 32%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.4) 45%, rgba(255, 255, 255, 0) 100%);
-  animation: vx-turn 17s linear infinite;
-}
-/* Cyan, low and to the right. */
-.vx-orb-b {
-  inset: -28%;
-  background: radial-gradient(ellipse 30% 28% at 68% 66%, rgba(69, 211, 230, 0.8), rgba(69, 211, 230, 0.3) 45%, rgba(69, 211, 230, 0) 100%);
-  animation: vx-turn 23s linear infinite reverse;
-}
-/* Deep blue, pooling at the bottom. */
-.vx-orb-c {
-  inset: -16%;
-  background: radial-gradient(ellipse 40% 30% at 48% 80%, rgba(0, 71, 199, 0.85), rgba(0, 71, 199, 0.3) 45%, rgba(0, 71, 199, 0) 100%);
-  animation: vx-turn 29s linear infinite;
-}
-@keyframes vx-turn { to { transform: rotate(360deg); } }
-
-/* Phases. Thinking draws in; answering breathes; muted and failed drain the
-   colour, which is decoration only — the words under the orb are what say it.
-
-   BOTH LOOPS START AT REST (scale 1), so a phase change never snaps the orb:
-   listening ends at 1, thinking starts at 1 and draws in, answering starts
-   at 1 and swells. They yo-yo on ease-in-out, because `alternate` runs the
-   curve backwards on every other leg and an ease-out limps doing that.
-
-   THE LIGHTS KEEP THEIR OWN CLOCK. Thinking used to drop their cycles to 4s,
-   and changing a running animation's duration re-derives its progress — the
-   lights jumped to a new angle when thinking began and again when it ended. */
-.vx-stage[data-phase="connecting"] .vx-orb-body { opacity: 0.6; }
-.vx-stage[data-phase="thinking"] .vx-orb-body { animation: vx-think 1.6s ease-in-out infinite alternate; }
-.vx-stage[data-phase="speaking"] .vx-orb-body { animation: vx-breathe 0.9s ease-in-out infinite alternate; }
-.vx-stage[data-phase="muted"] .vx-orb-body { filter: saturate(0.15); opacity: 0.7; }
-.vx-stage[data-phase="error"] .vx-orb-body { filter: saturate(0); opacity: 0.35; }
-.vx-stage[data-phase="muted"] .vx-orb-a,
-.vx-stage[data-phase="muted"] .vx-orb-b,
-.vx-stage[data-phase="muted"] .vx-orb-c,
-.vx-stage[data-phase="error"] .vx-orb-a,
-.vx-stage[data-phase="error"] .vx-orb-b,
-.vx-stage[data-phase="error"] .vx-orb-c { animation-play-state: paused; }
-@keyframes vx-think   { from { transform: scale(1); } to { transform: scale(0.9); } }
-@keyframes vx-breathe { from { transform: scale(1); }    to { transform: scale(1.07); } }
+.vx-orb:focus-visible { outline: 0.1875rem solid var(--brand); outline-offset: 0.25rem; }
+.vx-silk { display: block; width: 100%; height: 100%; }
 
 /* ── The dock ────────────────────────────────────────────────────────────
    Mute and end, as a centred pair. Spread to the corners they would be a
@@ -421,7 +357,4 @@ body.vx-staged { overflow: hidden; }
   .vx-att, .vx-chip { transition: none; }
   .vx-stage, .vx-center { transition: none; }
   .vx-center { transform: none; }
-  .vx-orb { transform: none; transition: none; }
-  .vx-orb-a, .vx-orb-b, .vx-orb-c,
-  .vx-stage[data-phase] .vx-orb-body { animation: none; }
 }
