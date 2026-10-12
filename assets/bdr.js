@@ -3183,6 +3183,47 @@
       });
     });
 
+    /* ══ EVERY CAMPAIGN CAME FROM A LIST ═══════════════════════════════
+       The four lists above cover two campaigns, so seven of nine had people
+       on them and no list saying how they got there, and "View campaign's
+       lists" opened onto nothing. Nour: every campaign has at least one.
+
+       Each one without a list gets the list its people came from: the
+       people already on it, the persona and market off its own record,
+       built a few days before it opened. Nobody is added to anything and
+       `r()` is not called, so every queue, count and draw above is what it
+       was. The two lists on no campaign stay on none, because that card
+       state still has to be reachable. Runs after the QA home campaign and
+       its deals, so that one is covered too.
+
+       `book: true` because these are selections from people already in the
+       book, which is our own crawl, not a supplier's rows. Every reading of
+       where a person CAME FROM skips them (`arrivedOn`): the sourcing cost
+       and its date in Financials, "Found on a list" on a story, "A contact
+       since" on a card. Those stay exactly what they were. */
+    {
+      const covered = Object.create(null);
+      list.forEach((l) => { if (l.for) covered[l.for] = true; });
+      camp.forEach((k) => {
+        if (covered[k.id] || k.state === 'draft' || k.state === 'asked') return;
+        const has = con.filter((c) => c.camps.indexOf(k.id) >= 0).map((c) => c.id);
+        if (!has.length) return;
+        const h = Math.abs(hash(k.id + ':list'));
+        const ind = INDUSTRY[k.industry];
+        const reg = REGION[k.region];
+        list.push({
+          id: 'ls-' + k.id,
+          name: (ind ? ind.label : k.industry) + (reg ? ' · ' + reg.label : ''),
+          kind: 'con', terms: '',
+          crit: (k.persona && k.persona.who ? k.persona.who + ' at ' + k.persona.at
+            : (ind ? ind.label.toLowerCase() : k.industry) + ' companies'),
+          has: has, by: k.crew[0] || k.owner || DEFAULT_ME,
+          at: dayAdd(-(daysBetween(k.from, TODAY_ISO) + 2 + (h % 5))),
+          for: k.id, via: 'crawl', found: has.length, book: true,
+        });
+      });
+    }
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
@@ -3620,6 +3661,18 @@
   const campName = (k) => (k && k.name) || 'Unnamed campaign';
   const listIsOn = (l, cid) => (DB.listOn[l.id] || []).indexOf(cid) >= 0;
   const listLoose = (l) => !(DB.listOn[l.id] || []).length;
+  /* Whether a list is how its people ARRIVED. A campaign's seeded list is a
+     selection from the book (`book: true`), so it says where they are
+     working, never where they came from. */
+  const arrivedOn = (l) => !l.book;
+  /* ══ WHOSE LISTS A DESK SEES ═══════════════════════════════════════════
+     Every seeded list used to be the caller's own, so the page never had to
+     ask. Now each campaign has one, and a caller was shown the lists of
+     campaigns they are not on. A desk sees what it built, what is on no
+     campaign yet (somebody has to put it to work), and what is on a
+     campaign it can see, by the same `mine` the Campaigns tab counts. */
+  const listSeen = (l) => listLoose(l) || l.by === me().id || campsOn(l).some(mine);
+  const myLists = () => DB.list.filter(listSeen);
   /* What a tag or a chip says about where a list is working. Named once,
      because it is drawn on the card, in the rail and on the page itself and
      three spellings of it would drift. */
@@ -6797,7 +6850,7 @@
          the find box matches lists on `via` — the supplier's name. Nothing
          survives rewording it, so the tab is not drawn. */
       (seesCost()
-        ? one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' }))
+        ? one('lists', 'Lists', myLists().length, Object.assign(cleared(), { on: 'lists' }))
         : '');
   }
 
@@ -9374,7 +9427,7 @@
   function srcIndex() {
     if (SRC_INDEX) return SRC_INDEX;
     const by = Object.create(null);
-    DB.list.forEach((l) => (l.has || []).forEach((id) => { if (!by[id]) by[id] = l; }));
+    DB.list.filter(arrivedOn).forEach((l) => (l.has || []).forEach((id) => { if (!by[id]) by[id] = l; }));
     SRC_INDEX = by;
     return by;
   }
@@ -14276,18 +14329,23 @@
         esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
     }
     if (here === 'lists') {
-      if (!DB.list.length) {
+      const seen = myLists();
+      if (!seen.length) {
         return 'You have built no lists. A list is how anybody new reaches your queue — ' +
           'describe who to look for and what comes back is the list.';
       }
-      const people = DB.list.reduce((n, l) => n + l.has.length, 0);
-      const loose = DB.list.filter((l) => listLoose(l));
+      /* Distinct people: a campaign's own list shares people with the
+         lists they were found on, and a sum would count them twice. */
+      const held = Object.create(null);
+      seen.forEach((l) => l.has.forEach((id) => (held[id] = true)));
+      const people = Object.keys(held).length;
+      const loose = seen.filter((l) => listLoose(l));
       const parked = loose.length;
       /* the people on a loose list who are on none of your campaigns — some
          of them are in your queue through another campaign, and the list's
          own page says so */
       const off = looseOff(loose);
-      return plural(DB.list.length, 'list') + ' holding <b>' + commas(people) + '</b> people' +
+      return plural(seen.length, 'list') + ' holding <b>' + commas(people) + '</b> people' +
         (parked ? ', and <b>' + plural(parked, 'of them is', 'of them are') +
           '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is ' + inQueue()
             : '<b>' + commas(off.n) + '</b> of their people are not ' + inQueue()) : ', all of them on a campaign') + '.';
@@ -15284,9 +15342,13 @@
        the cards and the pager all stay as they are, and one press puts
        every list back. A campaign that no longer exists narrows nothing. */
     const lk = S.lk && DB.byCamp[S.lk] ? DB.byCamp[S.lk] : null;
-    const found = DB.list.slice().reverse()
+    /* Newest first by when it was built. Insertion order used to be the
+       same thing; the campaigns' own lists are seeded after the rest and
+       built before most of them. Reversed first so a tie keeps the newer. */
+    const found = myLists().reverse()
+      .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
       .filter((l) => (!lk || listIsOn(l, lk.id)) && matches(listHay(l)));
-    const onLk = lk ? DB.list.filter((l) => listIsOn(l, lk.id)).length : 0;
+    const onLk = lk ? myLists().filter((l) => listIsOn(l, lk.id)).length : 0;
     return '<div class="s-home">' +
       (lk ? '<div class="b-topbar s-block-wide">' +
         backBtn('data-camp="' + esc(lk.id) + '"', 'Back to ' + campName(lk)) + '</div>' : '') +
@@ -21684,7 +21746,7 @@
     const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)
       .sort((x, y) => (x.at < y.at ? -1 : 1));
     const calls = callsIn(all);
-    const list = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
+    const list = DB.list.filter((l) => arrivedOn(l) && l.has.indexOf(c.id) >= 0)[0];
     const camps = campsOf(c).filter(mine);
     const d = directorOf(c);
     const rg = called[c.checkpoint] || called['not-called'];
@@ -22023,7 +22085,7 @@
            another. A lead nobody put on a list has no such date, and then
            there is genuinely nothing to add: the line goes rather than
            reaching for something to fill it. */
-        const from = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
+        const from = DB.list.filter((l) => arrivedOn(l) && l.has.indexOf(c.id) >= 0)[0];
         return from ? 'A contact since <b>' + esc(sayDay(from.at)) + '</b>' : '';
       }
       case 'no-answer':
