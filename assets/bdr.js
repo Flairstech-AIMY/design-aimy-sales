@@ -17398,11 +17398,13 @@
               : '')
             : '<span class="s-block-sub">It closed ' + esc(sayWhen(k.to)) + '. Nothing on it is dialled now.</span>') +
           /* Where its people came from. The lists page narrowed to this
-             campaign, open or closed, for every desk that has a lists page. */
-          (!isBuyer() && DB.list.some((l) => listIsOn(l, k.id))
+             campaign, open or closed, for every desk that has a lists page.
+             Drawn on every campaign, Nour's call: one with no list yet
+             lands on the chip and the line that says so. */
+          (!isBuyer()
             ? '<button class="b-ghost" type="button" data-go="' +
               esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', lk: k.id }))) +
-              '">Lists on this campaign</button>'
+              '">View campaign’s lists</button>'
             : '') +
         '</div>' +
       '</section>' +
