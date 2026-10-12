@@ -2458,7 +2458,14 @@
         const take = pool.slice(at, at + want);
         cursor[x.ind] = at + want;
         if (take.length < 5) return;
-        const k = x.on >= 0 ? mineCamps[x.on % mineCamps.length] : null;
+        /* ON A CAMPAIGN IN ITS OWN SECTOR. This took the campaign by
+           position, which put QA managers at software companies on an
+           energy campaign and heads of support in manufacturing on Nordics
+           software. The first of the caller's campaigns in the list's
+           industry; position only if there is none. No draw either way. */
+        const k = x.on >= 0
+          ? (mineCamps.filter((m) => m.industry === x.ind)[0] || mineCamps[x.on % mineCamps.length])
+          : null;
         if (k) take.forEach((c) => { if (c.camps.indexOf(k.id) < 0) c.camps.push(k.id); });
         list.push({
           id: 'ls' + i,
