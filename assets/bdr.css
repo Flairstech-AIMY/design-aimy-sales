@@ -731,6 +731,13 @@
   transition: color var(--t-fast);
 }
 .b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+/* The lists page narrowed to one campaign shows it as a chip between the
+   head and the cards. The head already leaves its 12px above; this is the
+   gap below, so the chip reads as about the cards rather than the first. */
+.b-lk-line { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.b-lk-line .b-vfoot { padding: 0; }
+.b-lk-chip { gap: 6px; }
+.b-lk-chip svg { flex-shrink: 0; }
 
 
 /* ══ 18. THE ACTIONS BELOW THE TITLE ROW ═══════════════════════════════════

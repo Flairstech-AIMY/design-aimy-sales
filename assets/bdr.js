@@ -3883,7 +3883,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -15278,12 +15278,34 @@
     if (S.build === 'done' && DRAFT) return draftPage();
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
-    const found = DB.list.slice().reverse().filter((l) => matches(listHay(l)));
+    /* ══ ONE CAMPAIGN'S LISTS ═════════════════════════════════════════════
+       The campaign page sends `lk` to ask which lists feed it. It narrows
+       this page rather than opening a page of its own, so the find box,
+       the cards and the pager all stay as they are, and one press puts
+       every list back. A campaign that no longer exists narrows nothing. */
+    const lk = S.lk && DB.byCamp[S.lk] ? DB.byCamp[S.lk] : null;
+    const found = DB.list.slice().reverse()
+      .filter((l) => (!lk || listIsOn(l, lk.id)) && matches(listHay(l)));
+    const onLk = lk ? DB.list.filter((l) => listIsOn(l, lk.id)).length : 0;
     return '<div class="s-home">' +
+      (lk ? '<div class="b-topbar s-block-wide">' +
+        backBtn('data-camp="' + esc(lk.id) + '"', 'Back to ' + campName(lk)) + '</div>' : '') +
       topBrief('lists') +
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
           findBox('Find a list, a criterion, a source') + '</div>' +
+        /* The narrowing is a chip with the campaign's name on it, and the
+           chip is the way out: one press puts every list back. */
+        (lk ? '<div class="b-lk-line">' +
+          '<button class="filter-chip active b-lk-chip" type="button" data-go="' +
+            esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '" ' +
+            'aria-label="' + esc('Show every list, not only the ones on ' + campName(lk)) + '">' +
+            esc(campName(lk)) +
+            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+              'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+              '<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>' +
+          (onLk ? '' : '<span class="b-vfoot">No list is on it yet.</span>') +
+        '</div>' : '') +
         /* ══ THE ONE ACTION WAS ALREADY ON THE PAGE ════════════════════════
            A "Find leads" stood here, on the argument that a surface should
            carry its own verb at the end of its own row. The briefing above it
@@ -15297,6 +15319,7 @@
            be pressable rather than a control put at the end of a row. */
         ((found.length || curSlot())
           ? lgrid(paged(found).rows) + pager(paged(found), 'list')
+          : lk && !S.find ? ''
           : '<p class="b-vfoot">' + (S.find
             ? 'No list matches “' + esc(S.find) + '”.'
             : 'You have not built one yet. A list is how new people reach your queue: ' +
@@ -17374,6 +17397,13 @@
                 '">Find more for this campaign</button>'
               : '')
             : '<span class="s-block-sub">It closed ' + esc(sayWhen(k.to)) + '. Nothing on it is dialled now.</span>') +
+          /* Where its people came from. The lists page narrowed to this
+             campaign, open or closed, for every desk that has a lists page. */
+          (!isBuyer() && DB.list.some((l) => listIsOn(l, k.id))
+            ? '<button class="b-ghost" type="button" data-go="' +
+              esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', lk: k.id }))) +
+              '">Lists on this campaign</button>'
+            : '') +
         '</div>' +
       '</section>' +
 
