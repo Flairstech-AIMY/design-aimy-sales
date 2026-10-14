@@ -26773,24 +26773,37 @@
     paintUseMark();
   }
 
+  /* ── Polish (14 Oct, the same pass as Knowledge's popover) ──
+     Plan and Session read the same way: the name, the share used, a meter
+     drawn like the ring on the mark, and the numbers under it in readable
+     ink. The way out leaves the page, so it ends in an arrow, not an
+     ellipsis (an ellipsis promises a dialog). */
+  const useMeter = (p, lv) => '<span class="use-pop-m ' + lv + '" aria-hidden="true"><i style="--p:' +
+    Math.min(1, Math.max(0, p)).toFixed(4) + '"></i></span>';
   function usePopBody(u) {
     const pct = Math.min(100, Math.round(u.used / u.limit * 100));
+    const sPct = Math.min(100, Math.round(u.sess / u.sessLimit * 100));
     const plan = useLevel(u.used, u.limit);
     const sess = useLevel(u.sess, u.sessLimit);
     return '' +
       '<div class="use-pop-g">' +
         '<div class="use-pop-r"><span>Plan</span><b class="' + plan + '">' +
           (plan === 'is-err' ? 'Limit reached' : pct + '% used') + '</b></div>' +
-        '<p class="use-pop-s">' + useFmt(u.used) + ' of ' + useFmt(u.limit) + ' ' + esc(u.unit) +
+        useMeter(u.used / u.limit, plan) +
+        '<p class="use-pop-s"><b>' + useFmt(u.used) + '</b> of ' + useFmt(u.limit) + ' ' + esc(u.unit) +
           ', resets ' + esc(u.resets) + '</p>' +
       '</div>' +
       '<div class="use-pop-g">' +
         '<div class="use-pop-r"><span>Session</span><b class="' + sess + '">' +
-          useFmt(u.sess) + ' ' + esc(u.unit) + '</b></div>' +
-        '<p class="use-pop-s">' + (sess === 'is-err' ? 'Session limit reached. Start a new conversation.'
-          : 'Up to ' + useFmt(u.sessLimit) + ' ' + esc(u.sessPer)) + '</p>' +
+          (sess === 'is-err' ? 'Limit reached' : sPct + '% used') + '</b></div>' +
+        useMeter(u.sess / u.sessLimit, sess) +
+        '<p class="use-pop-s">' + (sess === 'is-err' ? 'Start a new conversation to keep going.'
+          : '<b>' + useFmt(u.sess) + '</b> of ' + useFmt(u.sessLimit) + ' ' + esc(u.unit) + ' this ' +
+            esc(String(u.sessPer || 'per session').replace(/^per /, ''))) + '</p>' +
       '</div>' +
-      '<a class="use-pop-a" href="' + esc(USE_LINK) + '">View usage and plan…</a>';
+      '<a class="use-pop-a" href="' + esc(USE_LINK) + '"><span>Usage and plan</span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+        'stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>';
   }
 
   function paintUseMark() {
@@ -26838,6 +26851,8 @@
     pop.setAttribute('role', 'dialog');
     pop.setAttribute('aria-label', 'Your usage');
     pop.innerHTML = usePopBody(useNow());
+    pop.classList.add('is-fresh');
+    setTimeout(() => pop.classList.remove('is-fresh'), 600);
     document.body.appendChild(pop);
     const r = btn.getBoundingClientRect();
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
