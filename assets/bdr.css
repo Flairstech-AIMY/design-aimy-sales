@@ -7180,3 +7180,84 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .use-pop-a:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 @keyframes use-pop-in { from { opacity: 0; transform: translate3d(0, 4px, 0); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .use-pop { animation: none; } }
+
+/* ══ 104. THE WAIT BETWEEN CALLS ═════════════════════════════════════════════
+   AIMY-2667. The setting lives on the campaign page in create and edit (the
+   campaign's row, then one per list on it). The rail, during a run, only
+   counts down to the next call.
+
+   The stepper is one pill: minus, the figure, plus. It is on the campaign
+   page only; the rail shows the count and nothing to change it with. 32px tall like a ghost
+   button, so it sits in a row of them without a seam. A figure at a bound
+   keeps its ink and gains a tag saying which bound; nothing goes grey. */
+.b-wait-part { grid-column: 1 / -1; }
+/* On the chat's summary card, the stepper and its tag share one line. */
+.b-cb-wait .b-cmeta-say { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.b-wait-note {
+  margin: 0 0 8px; max-width: 64ch;
+  font-size: var(--t-ui); color: var(--d200); line-height: var(--lh-base);
+}
+.b-wait-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  padding: 8px 0; border-top: 1px solid var(--hairline);
+}
+.b-wait-row:first-of-type { border-top: 0; }
+.b-wait-who {
+  flex: 0 1 240px; min-width: 0;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d100);
+  overflow-wrap: anywhere;
+}
+.b-wait {
+  display: inline-flex; align-items: center; flex: none;
+  height: 32px; border: 1px solid var(--card-border); border-radius: var(--r-pill);
+}
+.b-wait-b {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 30px; padding: 0; border: 0; border-radius: var(--r-pill);
+  background: none; color: var(--d200); cursor: pointer;
+  transition: color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-wait-b svg { width: 14px; height: 14px; }
+.b-wait-b:hover { color: var(--d50); background: var(--brand-dim); }
+.b-wait-b:active { transform: scale(0.94); }
+.b-wait-b:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* At a bound the press still answers, with a toast saying why, so the
+   button keeps its ink; only the hover stops promising a change. */
+.b-wait-b[aria-disabled="true"] { cursor: default; }
+.b-wait-b[aria-disabled="true"]:hover { background: none; color: var(--d200); }
+.b-wait-v {
+  min-width: 92px; padding: 0 4px; text-align: center; white-space: nowrap;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── On the rail ──
+   Raised off the column like the recording notice, because it is the one
+   thing on the rail that is about to act by itself. The figure takes the
+   call clock's place in rank: bold, tabular, the largest thing in the box. */
+.call-wait {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px; border-radius: var(--r-lg);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+}
+.call-wait-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.call-wait-say { font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-tight); }
+.call-wait-left {
+  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.call-wait-bar {
+  height: 4px; overflow: hidden; border-radius: var(--r-pill); background: var(--brand-dim);
+}
+.call-wait-bar > span {
+  display: block; height: 100%; border-radius: inherit; background: var(--brand);
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Each second the bar drains to the next figure over that second, so it
+     reads as one continuous fall rather than thirty steps. */
+  .call-wait-bar > span { transition: transform 1s linear; }
+  .call-wait.is-new { animation: b-arrive var(--t-settle) var(--ease-out) both,
+                                 b-arrive-blur var(--t-settle) var(--ease-out); }
+}

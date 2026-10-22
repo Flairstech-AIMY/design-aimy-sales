@@ -3288,6 +3288,9 @@
   let DELTA = { v: 1, con: Object.create(null), acc: Object.create(null),
     touch: [], list: [], session: [],
     dismissed: [], read: [], made: [], meet: Object.create(null), camp: [], cal: [],
+    /* The wait between calls in a run, set on a campaign or a list. Only
+       what somebody set is here; everything else is the default. */
+    wait: { camp: {}, list: {} },
     /* What was said in the canvas. `session` above is a run of calls and
        has been since before there was a canvas; the two are unrelated and
        the names are close enough that it is worth saying so here. */
@@ -3510,7 +3513,8 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [], chat: [] }, d);
+            dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [], chat: [],
+            wait: { camp: {}, list: {} } }, d);
           /* The conversations come back whole. They reference nothing in the
              corpus — a turn is the words that were on screen — so unlike a
              contact patch or a saved list they need nothing to exist first,
@@ -17243,6 +17247,9 @@
              for a fact nobody in the room has. */
           draftField('Time frame', draftText('weeks', String(weeks), '6') +
             '<span class="b-draft-unit">weeks · closes ' + esc(sayDay(k.to)) + '</span>') +
+          /* How the floor paces a run through it: ours to set, like the team
+             and the lists, so a request does not ask it. */
+          (asking ? '' : waitField(k)) +
         '</div>' +
         /* Under the facts, not among them. The eight above are a word or a
            name each and sit three to a row; these three are sentences, and a
@@ -22552,7 +22559,7 @@
 
   const DIAL_MS = 1600;
   const LINE_MS = 4000;
-  let CALL_DIAL = null, CALL_TICK = null, CALL_LINE = null;
+  let CALL_DIAL = null, CALL_TICK = null, CALL_LINE = null, CALL_WAIT = null;
 
   /* One script per fate, written so the reader reads each back to the fate it
      came from. `assets/audit.js` asserts exactly that — a fixture that drifts
@@ -22810,6 +22817,7 @@
     'chev-down': '<path d="m6 9 6 6 6-6"/>',
     'chev-up': '<path d="m18 15-6-6-6 6"/>',
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
+    minus: '<path d="M5 12h14"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     /* The circle and the stroke through it. Drawn once here and read by both
        the control that ends a deal and the statement that says one ended,
@@ -22871,6 +22879,7 @@
     if (CALL_DIAL) { clearTimeout(CALL_DIAL); CALL_DIAL = null; }
     if (CALL_TICK) { clearInterval(CALL_TICK); CALL_TICK = null; }
     if (CALL_LINE) { clearInterval(CALL_LINE); CALL_LINE = null; }
+    if (CALL_WAIT) { clearInterval(CALL_WAIT); CALL_WAIT = null; }
   }
 
   /* Which campaign this call belongs to. A person can be on two; the one that
@@ -23046,6 +23055,10 @@
   function callGo() {
     const c = DB.call;
     if (!c || c.state !== 'ready') return;
+    /* Pressed before the count ran out, or the count running out: either
+       way the wait is over. */
+    if (CALL_WAIT) { clearInterval(CALL_WAIT); CALL_WAIT = null; }
+    c.wait = null;
     c.state = 'connecting';
     paintCall();
     CALL_DIAL = setTimeout(() => {
@@ -23346,6 +23359,7 @@
       return;
     }
     startCall(nextId, sess);
+    waitStart(sess, nextId);
     paint();
   }
 
@@ -23377,9 +23391,250 @@
     const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc &&
       (onBook() || DB.byCon[id].checkpoint !== 'handed-over'));
     if (!live.length) { toast('Nobody in this set has a number to call.'); return; }
-    const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
+    const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString(),
+      /* Where the run was started, which is whose wait it keeps. */
+      list: (S.list && DB.byList[S.list]) ? S.list : null,
+      camp: (!S.list && S.camp && DB.byCamp[S.camp]) ? S.camp : null };
     startCall(live[0], sess);
     paint();
+  }
+
+  /* ══ THE WAIT BETWEEN CALLS ═════════════════════════════════════════════
+     AIMY-2667. In a run the next call places itself once a count runs out,
+     and how long that count is belongs to the work: a list of switchboards
+     wants ten seconds, a list of directors wants time to read the brief.
+
+     Three places it can come from, nearest first: the list the person is on,
+     the campaign, then the default. Only a value somebody set is stored, so
+     "the default" and "the campaign's" are facts the page can say rather than
+     numbers that happen to match.
+
+     ONE PRESS A STEP, WITH UNDO. Five seconds a press between the bounds; a
+     press past a bound changes nothing and says why. */
+  const WAIT_DEF = 30, WAIT_MIN = 5, WAIT_MAX = 120, WAIT_STEP = 5;
+  const waitOwn = (kind, id) => {
+    const v = ((DELTA.wait || {})[kind] || {})[id];
+    return typeof v === 'number' ? v : null;
+  };
+  const secsSay = (n) => n >= 60 && n % 60 === 0 ? plural(n / 60, 'minute')
+    : n > 60 ? Math.floor(n / 60) + ' min ' + (n % 60) + ' s' : plural(n, 'second');
+  /* What a campaign waits, and whether anybody set it. */
+  function campWait(k) {
+    const own = k ? waitOwn('camp', k.id) : null;
+    return own != null ? { secs: own, from: 'set' } : { secs: WAIT_DEF, from: 'default' };
+  }
+  /* What a list waits inside a campaign: its own, else the campaign's. */
+  function listWait(l, k) {
+    const own = waitOwn('list', l.id);
+    if (own != null) return { secs: own, from: 'set' };
+    const cw = campWait(k || campsOn(l)[0] || null);
+    return { secs: cw.secs, from: cw.from === 'set' ? 'camp' : 'default' };
+  }
+  /* The wait before this person in this run, and which setting it is — the
+     rail's stepper changes that one. A campaign run asks the person's lists
+     on the campaign first, because a list's value overrides its campaign's. */
+  function waitFor(sess, conId) {
+    if (sess && sess.list && DB.byList[sess.list]) {
+      const l = DB.byList[sess.list];
+      const w = listWait(l);
+      return { secs: w.secs, kind: 'list', id: l.id, name: l.name };
+    }
+    const k = sess && sess.camp ? DB.byCamp[sess.camp]
+      : DB.byCamp[(DB.call && DB.call.camp) || ''] || null;
+    if (k) {
+      const l = DB.list.filter((x) => listIsOn(x, k.id) && waitOwn('list', x.id) != null &&
+        x.has.indexOf(conId) >= 0)[0];
+      if (l) return { secs: waitOwn('list', l.id), kind: 'list', id: l.id, name: l.name };
+      return { secs: campWait(k).secs, kind: 'camp', id: k.id, name: campName(k) };
+    }
+    return { secs: WAIT_DEF, kind: null, id: null, name: '' };
+  }
+
+  /* The count before the next call in a run. It runs on the rail and only
+     there, and only in a run: a single call is placed by a press. */
+  function waitStart(sess, conId) {
+    const call = DB.call;
+    if (!call || call.con !== conId || call.state !== 'ready' || !call.sess) return;
+    const w = waitFor(sess, conId);
+    call.wait = { left: w.secs, total: w.secs, fresh: true };
+    paintCall();
+    CALL_WAIT = setInterval(waitTick, 1000);
+  }
+  function waitTick() {
+    const w = DB.call && DB.call.wait;
+    if (!w) { clearInterval(CALL_WAIT); CALL_WAIT = null; return; }
+    w.left = Math.max(0, w.left - 1);
+    if (!w.left) { callGo(); return; }
+    waitDraw();
+  }
+  /* Each second moves two things, the figure and the bar, and nothing else
+     is repainted: a rail rebuilt once a second would drop focus and the
+     menu someone has open on it. */
+  function waitDraw() {
+    const w = DB.call && DB.call.wait;
+    if (!w) return;
+    const left = byId('callWaitLeft');
+    if (left) left.textContent = fmtClock(w.left);
+    const bar = byId('callWaitBar');
+    if (bar) bar.style.transform = 'scaleX(' + (w.total ? w.left / w.total : 0).toFixed(4) + ')';
+  }
+
+  /* One press, one step, and the toast carries the way back. `dir` is +1 or
+     -1; the value it steps from is whatever applies now, so the first press
+     on a list that follows its campaign starts from the campaign's figure. */
+  let WAIT_TICKED = '';
+  /* Past a bound nothing changes, and the toast says why. */
+  function waitOut(to) {
+    if (to >= WAIT_MIN && to <= WAIT_MAX) return false;
+    toast(to < WAIT_MIN
+      ? secsSay(WAIT_MIN) + ' is the shortest wait. Any less and there is no time to read who is next.'
+      : secsSay(WAIT_MAX) + ' is the longest wait. Past that, stop the run instead.');
+    return true;
+  }
+  function waitStep(kind, id, dir, ctx) {
+    if (kind === 'cb') { waitCb(dir); return; }
+    const name = waitName(kind, id);
+    if (!name) return;
+    const now = kind === 'camp' ? campWait(DB.byCamp[id]).secs
+      : listWait(DB.byList[id], DB.byCamp[ctx || ''] || null).secs;
+    const to = now + dir * WAIT_STEP;
+    if (waitOut(to)) return;
+    waitPut(kind, id, to, 'The wait between calls on ' + name + ' is now ' + secsSay(to) + '.');
+  }
+  /* The campaign the chat is still writing has no record yet, so its wait
+     rides on the conversation and goes onto the record at Make it. The card
+     is redrawn in place so the figure it shows is the one that will land. */
+  function waitCb(dir) {
+    if (typeof CBUILD === 'undefined' || !CBUILD) return;
+    const was = CBUILD.wait == null ? null : CBUILD.wait;
+    const to = (was == null ? WAIT_DEF : was) + dir * WAIT_STEP;
+    if (waitOut(to)) return;
+    const apply = (v) => {
+      if (!CBUILD) return;
+      CBUILD.wait = v;
+      const t = TURNS.filter((x) => x.step === 'cbuild' && x.card).pop();
+      if (t) t.card = cbuildCard();
+      WAIT_TICKED = 'cb|new';
+      paintThread();
+      WAIT_TICKED = '';
+    };
+    apply(to);
+    toast('This campaign will wait ' + secsSay(to) + ' between calls.', () => apply(was));
+  }
+  /* A draft with no name yet is "this campaign", not "Unnamed campaign". */
+  function waitName(kind, id) {
+    if (kind === 'camp') {
+      const k = DB.byCamp[id];
+      return !k ? '' : k.name ? campName(k) : 'this campaign';
+    }
+    return DB.byList[id] ? DB.byList[id].name : '';
+  }
+  /* Back to what it follows: the default for a campaign, the campaign for a list. */
+  function waitClear(kind, id) {
+    const name = waitName(kind, id);
+    if (!name) return;
+    waitPut(kind, id, null, kind === 'camp'
+      ? name.charAt(0).toUpperCase() + name.slice(1) + ' waits the default ' + secsSay(WAIT_DEF) + ' between calls again.'
+      : name + ' follows its campaign’s wait again.');
+  }
+  /* Writes the value, moves a count that is running on it, and offers undo.
+     The count moves by the change rather than restarting, so a change made
+     on the campaign page during a run reaches the wait already counting. */
+  function waitPut(kind, id, val, said) {
+    if (!DELTA.wait) DELTA.wait = { camp: {}, list: {} };
+    const box = DELTA.wait[kind] || (DELTA.wait[kind] = {});
+    const was = waitOwn(kind, id);
+    const apply = (v) => {
+      const call = DB.call;
+      const before = call && call.wait ? waitFor(call.sess, call.con) : null;
+      if (v == null) delete box[id]; else box[id] = v;
+      saveNow();
+      if (before && call.wait) {
+        const after = waitFor(call.sess, call.con);
+        const d = after.secs - before.secs;
+        call.wait.total = Math.max(1, call.wait.total + d);
+        call.wait.left = Math.max(1, call.wait.left + d);
+      }
+      WAIT_TICKED = kind + '|' + id;
+      paint();
+      paintCall();
+      WAIT_TICKED = '';
+    };
+    apply(val);
+    toast(said, () => apply(was));
+  }
+
+  /* The stepper: minus, the figure, plus. A figure at a bound says so in
+     words and colour; its button stays pressable, and the press says why it
+     will not go further. */
+  function waitStepper(kind, id, secs, ctx) {
+    const k = kind + '|' + id;
+    const tail = ctx ? '|' + ctx : '';
+    const edge = secs <= WAIT_MIN ? 'shortest' : secs >= WAIT_MAX ? 'longest' : '';
+    return '<span class="b-wait">' +
+      '<button class="b-wait-b" type="button" data-wait="' + esc(k + '|-1' + tail) + '" ' +
+        'aria-label="Wait ' + WAIT_STEP + ' seconds less"' +
+        (secs <= WAIT_MIN ? ' aria-disabled="true"' : '') + '>' + chIcon('minus') + '</button>' +
+      '<span class="b-wait-v" aria-live="polite">' +
+        '<span' + (WAIT_TICKED === k ? ' class="b-tick"' : '') + '>' + esc(secsSay(secs)) + '</span>' +
+      '</span>' +
+      '<button class="b-wait-b" type="button" data-wait="' + esc(k + '|1' + tail) + '" ' +
+        'aria-label="Wait ' + WAIT_STEP + ' seconds more"' +
+        (secs >= WAIT_MAX ? ' aria-disabled="true"' : '') + '>' + chIcon('plus') + '</button>' +
+    '</span>' +
+    (edge ? '<span class="tag tag-warn">The ' + edge + '</span>' : '');
+  }
+
+  /* The block on the campaign page in create and in edit: the campaign's own
+     row, then one per list on it. Each row says where its figure comes from. */
+  function waitField(k) {
+    const cw = campWait(k);
+    const row = (who, kind, id, w, state, reset) =>
+      '<div class="b-wait-row">' +
+        '<span class="b-wait-who">' + who + '</span>' +
+        waitStepper(kind, id, w.secs, k.id) +
+        '<span class="tag ' + (w.from === 'set' ? 'tag-info' : 'tag-neutral') + '">' + state + '</span>' +
+        (reset ? '<button class="s-inline-btn" type="button" data-wait-reset="' + esc(kind + '|' + id) +
+          '">' + reset + '</button>' : '') +
+      '</div>';
+    const lists = DB.list.filter((l) => listIsOn(l, k.id));
+    return '<div class="b-cmeta-part b-wait-part">' +
+      '<span class="b-cmeta-cap">Wait between calls</span>' +
+      '<div class="b-cmeta-say">' +
+        '<p class="b-wait-note">In a run, the next call starts by itself after this wait. ' +
+          'A list’s own wait comes before the campaign’s.</p>' +
+        row('This campaign', 'camp', k.id, cw,
+          cw.from === 'set' ? 'Set for this campaign' : 'Default',
+          cw.from === 'set' ? 'Use the default' : '') +
+        lists.map((l) => {
+          const w = listWait(l, k);
+          return row(esc(l.name), 'list', l.id, w,
+            w.from === 'set' ? 'Set for this list' : 'Same as the campaign',
+            w.from === 'set' ? 'Use the campaign’s' : '');
+        }).join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  /* The count on the rail, and only the count: who is next, how long until
+     the call places itself, and a bar draining to it. The wait is set on the
+     campaign page in create and edit, never here; Nour, 22 Oct 2026. */
+  function waitBlock(call) {
+    const w = call.wait;
+    const first = (callOn() || {}).name ? callOn().name.split(' ')[0] : 'them';
+    /* It arrives once, when the wait starts; a later repaint of the rail
+       must not replay the arrival. */
+    const fresh = w.fresh;
+    w.fresh = false;
+    return '<div class="call-wait' + (fresh ? ' is-new' : '') +
+      '" role="group" aria-label="Wait before the next call">' +
+      '<div class="call-wait-top">' +
+        '<span class="call-wait-say">Calling ' + esc(first) + ' in</span>' +
+        '<span class="call-wait-left" id="callWaitLeft" role="timer">' + fmtClock(w.left) + '</span>' +
+      '</div>' +
+      '<div class="call-wait-bar" aria-hidden="true"><span id="callWaitBar" style="transform:scaleX(' +
+        (w.total ? w.left / w.total : 0).toFixed(4) + ')"></span></div>' +
+    '</div>';
   }
 
   function paintCall() {
@@ -23485,6 +23740,13 @@
             esc(telLine(call.from).cc) + '</p>' : '') +
       '</div>' +
 
+      /* ══ THE WAIT, IN A RUN ONLY ══════════════════════════════════════
+         Between one call and the next the rail counts down to the next one,
+         and the call places itself at zero. Call now is the button below.
+         The length is the campaign's or the list's, set on the campaign
+         page; the rail only counts it. */
+      (ready && call.wait ? waitBlock(call) : '') +
+
       /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —
          it is what pushes Notes and the handset to the foot of the column —
          so leaving it out in `ready` collapsed the whole rail upward and the
@@ -23553,7 +23815,8 @@
             'aria-label="Start the call to ' + esc(c.name) +
             (telLine(call.from) ? ' from ' + esc(telLine(call.from).num) : '') +
             '">' + chIcon('phone') +
-            (telLine(call.from) ? 'Call from ' + esc(telTag(telLine(call.from))) : 'Start call') +
+            (call.wait ? 'Call now'
+              : telLine(call.from) ? 'Call from ' + esc(telTag(telLine(call.from))) : 'Start call') +
             '</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
             (dialing ? 'Stop calling them' : 'End the call') + '" title="' +
@@ -30071,6 +30334,13 @@
       draftField('Time frame', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
         sayDay(dayAdd(CBUILD.weeks * 7)))) +
       draftField('Sales pitch', esc(cbuildPitch()), 'b-cb-wide') +
+      /* The same stepper the campaign page has, so the chat is not the one
+         way to make a campaign that skips it. Not on a request: how the
+         floor paces a run is the floor's to set. */
+      (asksOnly() ? '' : draftField('Wait between calls',
+        waitStepper('cb', 'new', CBUILD.wait == null ? WAIT_DEF : CBUILD.wait) +
+        '<span class="tag ' + (CBUILD.wait == null ? 'tag-neutral">Default' : 'tag-info">Set for this campaign') +
+        '</span>', 'b-cb-wide b-cb-wait')) +
     '</div>';
   }
 
@@ -30566,6 +30836,7 @@
       size: cbuildSize(),
     };
     CBUILD = null;
+    if (!ask && b.wait != null) DELTA.wait.camp[id] = b.wait;
     DB.camp.push(k);
     DELTA.camp.push(k);
     reindex();
@@ -32736,6 +33007,18 @@
       return;
     }
     if (t.closest('[data-callskip]')) { skipCall(); return; }
+    const waitB = t.closest('[data-wait]');
+    if (waitB) {
+      const p = waitB.getAttribute('data-wait').split('|');
+      waitStep(p[0], p[1], Number(p[2]), p[3] || '');
+      return;
+    }
+    const waitR = t.closest('[data-wait-reset]');
+    if (waitR) {
+      const p = waitR.getAttribute('data-wait-reset').split('|');
+      waitClear(p[0], p[1]);
+      return;
+    }
     if (t.closest('[data-sessstop]')) {
       const sess = DB.call && DB.call.sess;
       closeCall();
