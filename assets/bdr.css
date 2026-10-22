@@ -7311,3 +7311,38 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .call-wait.is-new { animation: b-arrive var(--t-settle) var(--ease-out) both,
                                  b-arrive-blur var(--t-settle) var(--ease-out); }
 }
+
+/* ══ 105. ON VIDEO, HOW YOU COME ACROSS ═════════════════════════════════════
+   AIMY-2665. A folded line at the top of the brief when the booked call is on
+   video: one line tall until it is opened, so nothing under it moves. Opened,
+   five tips, each a bold word and one plain sentence. */
+.b-video {
+  margin: 0 0 16px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--d200) 30%, transparent);
+}
+.b-video-sum {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer; list-style: none;
+  font-size: var(--t-ui); color: var(--d100); line-height: var(--lh-base);
+  border-radius: inherit;
+  transition: background-color var(--t-fast);
+}
+.b-video-sum::-webkit-details-marker { display: none; }
+.b-video-sum:hover { background: var(--wash-3); }
+.b-video-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-video-sum b { color: var(--d50); font-weight: var(--fw-semibold); }
+.b-video-sum > svg { width: 16px; height: 16px; flex: none; color: var(--accent-text); }
+.b-video-sum > svg:last-child { margin-left: auto; color: var(--d200); transition: transform 200ms var(--ease-out); }
+.b-video[open] > .b-video-sum > svg:last-child { transform: rotate(180deg); }
+.b-video-list {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 0; padding: 2px 16px 14px 40px; max-width: 64ch;
+  font-size: var(--t-body); color: var(--d100); line-height: var(--lh-base);
+}
+.b-video-list b { color: var(--d50); font-weight: var(--fw-semibold); }
+@media (prefers-reduced-motion: no-preference) {
+  .b-video[open] > .b-video-list { animation: b-arrive var(--t-settle) var(--ease-out) both; }
+}
+/* On the rail, where the number would be. */
+.call-vid { display: inline-flex; align-items: center; gap: 6px; }
+.call-vid svg { width: 14px; height: 14px; flex: none; }

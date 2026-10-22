@@ -22820,6 +22820,7 @@
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     minus: '<path d="M5 12h14"/>',
     lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/> <path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    video: '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/> <rect x="2" y="6" width="14" height="12" rx="2"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     /* The circle and the stroke through it. Drawn once here and read by both
        the control that ends a deal and the statement that says one ended,
@@ -23718,6 +23719,9 @@
     const dialing = call.state === 'connecting';
     const sess = call.sess;
     const at = sess ? sess.done.length + sess.skipped.length + 1 : 0;
+    /* Booked on video: no number to show or choose, and the button says
+       what it starts. */
+    const vid = call.dir !== 'in' && onVideo(c);
 
     /* ══ THE CLOCK BELONGS TO THE PERSON, SO IT SITS ON THEIR LINE ═════
        The head was a row of its own above the name: a dot and a number on
@@ -23764,10 +23768,11 @@
            number and this printed it again two rows down. Guarded on the
            values rather than on the direction: any record whose name is its
            own phone number has the same problem. */
-        (c.phone && c.phone !== c.name
+        (vid ? '<p class="call-num call-vid">' + chIcon('video') + 'Video call</p>'
+          : c.phone && c.phone !== c.name
           ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
         /* Once it has gone, which of your numbers they are looking at. */
-        (!ready && telLine(call.from)
+        (!ready && !vid && telLine(call.from)
           ? '<p class="call-from-on">From ' + esc(telLine(call.from).num) + ', ' +
             esc(telLine(call.from).cc) + '</p>' : '') +
       '</div>' +
@@ -23804,7 +23809,7 @@
       /* ══ WHICH NUMBER, BEFORE IT GOES ═════════════════════════════════
          Only in `ready`: once the call is out the number is spent, and the
          line under the name says which one it was. */
-      (ready && telLine(call.from) && telLines().length > 1
+      (ready && !vid && telLine(call.from) && telLines().length > 1
         ? '<div class="call-from">' +
             '<span class="call-from-cap">From</span>' + telPick(telLine(call.from), 'Call') +
           '</div>'
@@ -23846,8 +23851,8 @@
           ? '<button class="call-end call-go" type="button" data-callgo ' +
             'aria-label="Start the call to ' + esc(c.name) +
             (telLine(call.from) ? ' from ' + esc(telLine(call.from).num) : '') +
-            '">' + chIcon('phone') +
-            (call.wait ? 'Call now'
+            '">' + chIcon(vid ? 'video' : 'phone') +
+            (call.wait ? 'Call now' : vid ? 'Start the video call'
               : telLine(call.from) ? 'Call from ' + esc(telTag(telLine(call.from))) : 'Start call') +
             '</button>'
           : '<button class="call-end" type="button" data-call-end aria-label="' +
@@ -29074,6 +29079,68 @@
 
      What they push back on sits between the second and the third, because
      it is the only part of the campaign's material that arrives mid-call. */
+  /* ══ ON VIDEO, HOW YOU COME ACROSS ════════════════════════════════════
+     AIMY-2665. A booked call back, meeting or demo can be on video, and on
+     video how somebody looks and moves is read as closely as what they say.
+
+     WHERE "VIDEO" COMES FROM. The booking carries it (Nour, 22 Oct 2026):
+     `next.on` is 'video' or 'phone' when somebody set it. The seed never
+     wrote one, so for seeded bookings it is read off a hash of the person,
+     not the seed's random stream, which stays untouched. A demo is always
+     on video, because you show your screen; a dinner never is.
+
+     `ahead` is the meeting brief, read days before; the call brief only
+     counts a booking that is due, because that is the call being placed. */
+  function onVideo(c, ahead) {
+    const n = c && c.next;
+    if (!n || !/\b(call them back|meeting|demo)\b/i.test(n.what)) return false;
+    if (!ahead && n.due > TODAY_ISO) return false;
+    if (n.on) return n.on === 'video';
+    if (/\bdemo\b/i.test(n.what)) return true;
+    return Math.abs(hash(c.id + ':video')) % (/\bmeeting\b/i.test(n.what) ? 2 : 4) === 0;
+  }
+  /* Five tips, fitted to the person: the first is about whether they have
+     seen or heard you before, the third about how senior they are, the last
+     about whether you will share a screen. Plain words and one action each,
+     because they are read in the minute before the camera opens. */
+  function videoTips(c, meet) {
+    const first = c.name.split(' ')[0];
+    const spoken = meet ? phasesOf(c).length > 0
+      : ['callback', 'answered', 'meeting-set', 'showed-up', 'interested', 'handed-over'].indexOf(c.checkpoint) >= 0;
+    const senior = /\b(chief|ceo|cto|coo|cfo|cio|vp|vice president|director|head)\b/i.test(c.title || '');
+    const demo = !!(c.next && /\bdemo\b/i.test(c.next.what));
+    return [
+      spoken
+        ? ['Open', first + ' has spoken to you before. Say the one thing they told you last time in your ' +
+          'first sentence, so they see you remember.']
+        : ['Open', 'This is the first time ' + first + ' sees you. Smile as the video connects, then give ' +
+          'your name and why you called in one sentence.'],
+      ['Eye line', 'Put the camera at eye level. Look at the lens, not at their face, when you make your main point.'],
+      senior
+        ? ['Posture and hands', 'Sit up and keep still. ' + first + ' is senior, so use fewer gestures, ' +
+          'a slower pace, and stop talking sooner than feels natural.']
+        : ['Posture and hands', 'Sit up and lean in a little. Keep your hands in the frame, use them when ' +
+          'you explain, then rest them.'],
+      ['Listening', 'When they talk, nod and keep your eyes on the screen. Do not read notes or look at another window.'],
+      demo
+        ? ['Sharing', 'Close everything you are not showing before you share, and keep your face on screen ' +
+          'in a corner while you do.']
+        : ['Camera and room', 'Light in front of you, a plain wall behind, and your phone face down out of shot.'],
+    ];
+  }
+  /* Folded, at the top of the brief: seen before the call starts, and one
+     line tall until it is opened, so the brief under it does not move. */
+  function videoBlock(c, meet) {
+    const tips = videoTips(c, meet);
+    return '<details class="b-video">' +
+      '<summary class="b-video-sum">' + chIcon('video') +
+        '<span><b>On video.</b> ' + tips.length + ' tips for how you come across</span>' +
+        chIcon('down') + '</summary>' +
+      '<ol class="b-video-list">' + tips.map((t) =>
+        '<li><b>' + esc(t[0]) + '</b> ' + esc(t[1]) + '</li>').join('') + '</ol>' +
+    '</details>';
+  }
+
   /* ══ BEFORE A ROOM, NOT BEFORE A DIAL ══════════════════════════════════
      The caller's brief opens with the step and the phone, because that is
      what the next sixty seconds are. A manager's opens with proof: they
@@ -29099,6 +29166,7 @@
     body += '<p class="b-prep-id">' + esc(c.title) +
       (a ? ' · ' + esc(a.name) + (accKnown(a)
         ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
+    if (onVideo(c, true)) body += videoBlock(c, true);
 
     /* ── 1. the proof, first ── */
     if (stories.length) {
@@ -29340,6 +29408,10 @@
     body += '<p class="b-prep-id">' + esc(c.title) +
       (a ? ' · ' + esc(a.name) + (!inbound && accKnown(a)
         ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
+    /* An inbound call is on the phone by definition; the tips are for a
+       call you are about to open. */
+    const vid = !inbound && onVideo(c);
+    if (vid) body += videoBlock(c, false);
 
     /* ── 1. where they stand, and what is owed ── */
     /* `rg.say` is a gloss on the rung — "you got them on the phone" — and
@@ -29387,7 +29459,7 @@
       (inbound || !owed ? '' : '<span class="b-prep-owed">' + esc(owed) + '</span>') +
       (c.next && !owedNamed
         ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' +
-          (stepEcho ? '' : esc(c.next.what) + ' · ') +
+          (stepEcho ? '' : esc(c.next.what) + ' · ') + (vid ? 'on video · ' : '') +
           esc((late ? 'was due ' : 'due ') + sayWhen(c.next.due)) + '</span>'
         : '') +
     '</div>';
