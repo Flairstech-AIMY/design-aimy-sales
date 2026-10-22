@@ -7233,21 +7233,52 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
   font-variant-numeric: tabular-nums;
 }
-/* A list on a campaign: the figure is the campaign's and the list cannot
-   change it. The buttons are disabled and the pill's border goes dashed;
-   the figure keeps its full ink, and the tag and the sentence beside it say
-   whose wait it is. */
-.b-wait.is-locked { border-style: dashed; }
-.b-wait-b:disabled { cursor: not-allowed; }
-.b-wait-b:disabled:hover { background: none; color: var(--d200); }
-.b-wait-b:disabled:active { transform: none; }
-
 /* On the list page it sits under the masthead's actions, as one row. */
 .b-wait-row.b-wait-list { border-top: 0; padding: 0; margin-top: 16px; }
 .b-wait-list .b-wait-who { flex: 0 0 auto; }
-.b-wait-lock {
-  flex: 1 0 100%; margin: 0; max-width: 64ch;
-  font-size: var(--t-ui); color: var(--d200); line-height: var(--lh-base);
+
+/* A list on a campaign: the figure is the campaign's and there is nothing
+   to step, so the pill is the figure behind a lock. Why, and where to change
+   it, is one hover or focus away in a popover under it (Nour, 22 Oct 2026:
+   the sentence and tag beside it were too much for one row). */
+.b-wait-info { position: relative; display: inline-flex; }
+.b-wait-held {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 14px 0 12px; border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, var(--d200) 35%, transparent);
+  background: none; cursor: default;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
+  color: var(--d50); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.b-wait-held svg { width: 14px; height: 14px; flex: none; color: var(--d200); }
+.b-wait-held:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-wait-pop {
+  position: absolute; z-index: 60; top: calc(100% + 8px); left: 0;
+  width: max-content; max-width: 20rem; padding: 12px 14px;
+  border-radius: var(--r-lg); border: 1px solid var(--card-border-hover);
+  background: var(--panel-bg); box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  font-size: var(--t-ui); font-weight: var(--fw-regular, 400); color: var(--d100);
+  line-height: var(--lh-base); white-space: normal; text-align: left;
+  opacity: 0; visibility: hidden;
+  transform: translateY(-4px) scale(0.98); transform-origin: top left;
+  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 0s linear 150ms;
+}
+/* The 8px between the pill and the popover is bridged, so the pointer can
+   cross to the link without the popover closing under it. */
+.b-wait-pop::before { content: ''; position: absolute; left: 0; right: 0; top: -9px; height: 9px; }
+.b-wait-pop b { color: var(--d50); font-weight: var(--fw-semibold); }
+.b-wait-pop .s-inline-btn { display: inline-flex; margin-top: 8px; }
+/* In after a short intent delay, out at once: the tooltip timing. */
+.b-wait-info:hover .b-wait-pop,
+.b-wait-info:focus-within .b-wait-pop {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity 150ms ease-out 120ms, transform 150ms ease-out 120ms, visibility 0s linear 120ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-wait-pop, .b-wait-info:hover .b-wait-pop, .b-wait-info:focus-within .b-wait-pop {
+    transform: none; transition: none;
+  }
 }
 
 /* ── On the rail ──

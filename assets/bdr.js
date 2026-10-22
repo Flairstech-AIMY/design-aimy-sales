@@ -22819,6 +22819,7 @@
     'chev-up': '<path d="m18 15-6-6-6 6"/>',
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     minus: '<path d="M5 12h14"/>',
+    lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/> <path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     /* The circle and the stroke through it. Drawn once here and read by both
        the control that ends a deal and the statement that says one ended,
@@ -23570,16 +23571,15 @@
 
   /* The stepper: minus, the figure, plus. A figure at a bound says so in
      words and colour; its button stays pressable, and the press says why it
-     will not go further. `locked` is a list on a campaign: both buttons are
-     disabled and the figure shown is the campaign's. */
-  function waitStepper(kind, id, secs, locked) {
+     will not go further. */
+  function waitStepper(kind, id, secs) {
     const k = kind + '|' + id;
-    const edge = locked ? '' : secs <= WAIT_MIN ? 'shortest' : secs >= WAIT_MAX ? 'longest' : '';
+    const edge = secs <= WAIT_MIN ? 'shortest' : secs >= WAIT_MAX ? 'longest' : '';
     const btn = (dir, say, icon, atEdge) =>
       '<button class="b-wait-b" type="button" data-wait="' + esc(k + '|' + dir) + '" ' +
         'aria-label="Wait ' + WAIT_STEP + ' seconds ' + say + '"' +
-        (locked ? ' disabled' : atEdge ? ' aria-disabled="true"' : '') + '>' + chIcon(icon) + '</button>';
-    return '<span class="b-wait' + (locked ? ' is-locked' : '') + '">' +
+        (atEdge ? ' aria-disabled="true"' : '') + '>' + chIcon(icon) + '</button>';
+    return '<span class="b-wait">' +
       btn(-1, 'less', 'minus', secs <= WAIT_MIN) +
       '<span class="b-wait-v" aria-live="polite">' +
         '<span' + (WAIT_TICKED === k ? ' class="b-tick"' : '') + '>' + esc(secsSay(secs)) + '</span>' +
@@ -23616,26 +23616,35 @@
   function listWaitRow(l) {
     if (!works()) return '';
     const on = campsOn(l);
-    const w = listWait(l);
-    const locked = on.length > 0;
-    let say = '';
-    if (on.length === 1) {
-      say = 'While it is on ' + esc(campName(on[0])) + ', the campaign’s wait runs, not the list’s.' +
-        (campMine(on[0]) ? ' <button class="s-inline-btn" type="button" data-cedit="' + esc(on[0].id) +
-          '">Change it on the campaign</button>' : '');
-    } else if (on.length > 1) {
-      say = 'While it is on a campaign, that campaign’s wait runs, not the list’s: ' +
-        esc(listSay(on.map((x) => campName(x) + ' ' + secsSay(campWait(x).secs)))) + '.';
+    const head = '<div class="b-wait-row b-wait-list">' +
+      '<span class="b-wait-who">Wait between calls</span>';
+    if (!on.length) {
+      const w = listWait(l);
+      return head + waitStepper('list', l.id, w.secs) +
+        '<span class="tag ' + (w.from === 'set' ? 'tag-info">Set for this list' : 'tag-neutral">Default') + '</span>' +
+        (w.from === 'set' ? '<button class="s-inline-btn" type="button" data-wait-reset="list|' +
+          esc(l.id) + '">Use the default</button>' : '') +
+      '</div>';
     }
-    return '<div class="b-wait-row b-wait-list">' +
-      '<span class="b-wait-who">Wait between calls</span>' +
-      waitStepper('list', l.id, w.secs, locked) +
-      (locked
-        ? '<span class="tag tag-neutral">Set by ' + (on.length === 1 ? 'the campaign' : 'its campaigns') + '</span>'
-        : '<span class="tag ' + (w.from === 'set' ? 'tag-info">Set for this list' : 'tag-neutral">Default') + '</span>' +
-          (w.from === 'set' ? '<button class="s-inline-btn" type="button" data-wait-reset="list|' +
-            esc(l.id) + '">Use the default</button>' : '')) +
-      (say ? '<p class="b-wait-lock">' + say + '</p>' : '') +
+    /* On a campaign: the figure behind a lock, and the why in a popover.
+       Two campaigns with different waits show the range. */
+    const secs = on.map((x) => campWait(x).secs).sort((a, b) => a - b);
+    const fig = secs[0] === secs[secs.length - 1] ? secsSay(secs[0])
+      : secs[0] + ' to ' + secsSay(secs[secs.length - 1]);
+    const tip = 'waitTip-' + l.id;
+    const why = on.length === 1
+      ? '<b>Set by ' + esc(campName(on[0])) + '.</b> While this list is on a campaign, ' +
+        'the campaign’s wait runs, not the list’s.' +
+        (campMine(on[0]) ? '<br><button class="s-inline-btn" type="button" data-cedit="' + esc(on[0].id) +
+          '">Change it on the campaign</button>' : '')
+      : '<b>Set by its campaigns.</b> While this list is on a campaign, that campaign’s wait runs: ' +
+        esc(listSay(on.map((x) => campName(x) + ' ' + secsSay(campWait(x).secs)))) + '.';
+    return head +
+      '<span class="b-wait-info">' +
+        '<button class="b-wait-held" type="button" aria-describedby="' + esc(tip) + '">' +
+          chIcon('lock') + esc(fig) + '</button>' +
+        '<span class="b-wait-pop" role="tooltip" id="' + esc(tip) + '">' + why + '</span>' +
+      '</span>' +
     '</div>';
   }
 
