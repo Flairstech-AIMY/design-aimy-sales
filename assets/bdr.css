@@ -7209,7 +7209,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 .b-wait {
   display: inline-flex; align-items: center; flex: none;
-  height: 32px; border: 1px solid var(--card-border); border-radius: var(--r-pill);
+  height: 32px; border-radius: var(--r-pill);
+  /* `--card-border` is 7% ink here and the pill vanished on the list page;
+     this is the line a ghost button's edge reads at. */
+  border: 1px solid color-mix(in srgb, var(--d200) 35%, transparent);
 }
 .b-wait-b {
   display: inline-flex; align-items: center; justify-content: center;
@@ -7229,6 +7232,22 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   min-width: 92px; padding: 0 4px; text-align: center; white-space: nowrap;
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
   font-variant-numeric: tabular-nums;
+}
+/* A list on a campaign: the figure is the campaign's and the list cannot
+   change it. The buttons are disabled and the pill's border goes dashed;
+   the figure keeps its full ink, and the tag and the sentence beside it say
+   whose wait it is. */
+.b-wait.is-locked { border-style: dashed; }
+.b-wait-b:disabled { cursor: not-allowed; }
+.b-wait-b:disabled:hover { background: none; color: var(--d200); }
+.b-wait-b:disabled:active { transform: none; }
+
+/* On the list page it sits under the masthead's actions, as one row. */
+.b-wait-row.b-wait-list { border-top: 0; padding: 0; margin-top: 16px; }
+.b-wait-list .b-wait-who { flex: 0 0 auto; }
+.b-wait-lock {
+  flex: 1 0 100%; margin: 0; max-width: 64ch;
+  font-size: var(--t-ui); color: var(--d200); line-height: var(--lh-base);
 }
 
 /* ── On the rail ──

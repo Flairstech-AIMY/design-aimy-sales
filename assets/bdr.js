@@ -16034,6 +16034,7 @@
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' + actions + '</div>' +
+        listWaitRow(l) +
         listTeam(l, people) +
       '</section>' +
 
@@ -23404,10 +23405,12 @@
      and how long that count is belongs to the work: a list of switchboards
      wants ten seconds, a list of directors wants time to read the brief.
 
-     Three places it can come from, nearest first: the list the person is on,
-     the campaign, then the default. Only a value somebody set is stored, so
-     "the default" and "the campaign's" are facts the page can say rather than
-     numbers that happen to match.
+     Where it comes from: a run on a campaign, or on a list that is on one,
+     waits the campaign's. The campaign overrides the list (Nour, 22 Oct
+     2026), so a list's own wait, set on the list page, runs only while the
+     list is on no campaign. Otherwise it is the default. Only a value
+     somebody set is stored, so "the default" is a fact the page can say
+     rather than a number that happens to match.
 
      ONE PRESS A STEP, WITH UNDO. Five seconds a press between the bounds; a
      press past a bound changes nothing and says why. */
@@ -23423,30 +23426,28 @@
     const own = k ? waitOwn('camp', k.id) : null;
     return own != null ? { secs: own, from: 'set' } : { secs: WAIT_DEF, from: 'default' };
   }
-  /* What a list waits inside a campaign: its own, else the campaign's. */
+  /* What a list waits. While it is on a campaign that campaign's wait is
+     the one that runs, whatever the list holds of its own. `k` says which
+     campaign when the list is on more than one. */
   function listWait(l, k) {
+    const on = k && listIsOn(l, k.id) ? k : campsOn(l)[0] || null;
+    if (on) return { secs: campWait(on).secs, from: 'camp', camp: on };
     const own = waitOwn('list', l.id);
-    if (own != null) return { secs: own, from: 'set' };
-    const cw = campWait(k || campsOn(l)[0] || null);
-    return { secs: cw.secs, from: cw.from === 'set' ? 'camp' : 'default' };
+    return own != null ? { secs: own, from: 'set' } : { secs: WAIT_DEF, from: 'default' };
   }
-  /* The wait before this person in this run, and which setting it is — the
-     rail's stepper changes that one. A campaign run asks the person's lists
-     on the campaign first, because a list's value overrides its campaign's. */
-  function waitFor(sess, conId) {
-    if (sess && sess.list && DB.byList[sess.list]) {
+  /* The wait before the next call in this run, and the setting it comes
+     from, so a change to that setting can move a count already running. */
+  function waitFor(sess) {
+    const callK = DB.byCamp[(DB.call && DB.call.camp) || ''] || null;
+    let k = sess && sess.camp ? DB.byCamp[sess.camp] || null : null;
+    if (!k && sess && sess.list && DB.byList[sess.list]) {
       const l = DB.byList[sess.list];
-      const w = listWait(l);
-      return { secs: w.secs, kind: 'list', id: l.id, name: l.name };
+      const w = listWait(l, callK);
+      if (!w.camp) return { secs: w.secs, kind: 'list', id: l.id, name: l.name };
+      k = w.camp;
     }
-    const k = sess && sess.camp ? DB.byCamp[sess.camp]
-      : DB.byCamp[(DB.call && DB.call.camp) || ''] || null;
-    if (k) {
-      const l = DB.list.filter((x) => listIsOn(x, k.id) && waitOwn('list', x.id) != null &&
-        x.has.indexOf(conId) >= 0)[0];
-      if (l) return { secs: waitOwn('list', l.id), kind: 'list', id: l.id, name: l.name };
-      return { secs: campWait(k).secs, kind: 'camp', id: k.id, name: campName(k) };
-    }
+    if (!k) k = callK;
+    if (k) return { secs: campWait(k).secs, kind: 'camp', id: k.id, name: campName(k) };
     return { secs: WAIT_DEF, kind: null, id: null, name: '' };
   }
 
@@ -23455,7 +23456,7 @@
   function waitStart(sess, conId) {
     const call = DB.call;
     if (!call || call.con !== conId || call.state !== 'ready' || !call.sess) return;
-    const w = waitFor(sess, conId);
+    const w = waitFor(sess);
     call.wait = { left: w.secs, total: w.secs, fresh: true };
     paintCall();
     CALL_WAIT = setInterval(waitTick, 1000);
@@ -23491,12 +23492,16 @@
       : secsSay(WAIT_MAX) + ' is the longest wait. Past that, stop the run instead.');
     return true;
   }
-  function waitStep(kind, id, dir, ctx) {
+  function waitStep(kind, id, dir) {
     if (kind === 'cb') { waitCb(dir); return; }
     const name = waitName(kind, id);
     if (!name) return;
-    const now = kind === 'camp' ? campWait(DB.byCamp[id]).secs
-      : listWait(DB.byList[id], DB.byCamp[ctx || ''] || null).secs;
+    /* The buttons are disabled in this state; this covers any other way in. */
+    if (kind === 'list' && campsOn(DB.byList[id]).length) {
+      toast(name + ' is on a campaign, and the campaign’s wait is the one that runs.');
+      return;
+    }
+    const now = kind === 'camp' ? campWait(DB.byCamp[id]).secs : listWait(DB.byList[id]).secs;
     const to = now + dir * WAIT_STEP;
     if (waitOut(to)) return;
     waitPut(kind, id, to, 'The wait between calls on ' + name + ' is now ' + secsSay(to) + '.');
@@ -23529,13 +23534,12 @@
     }
     return DB.byList[id] ? DB.byList[id].name : '';
   }
-  /* Back to what it follows: the default for a campaign, the campaign for a list. */
+  /* Back to the default. */
   function waitClear(kind, id) {
     const name = waitName(kind, id);
     if (!name) return;
-    waitPut(kind, id, null, kind === 'camp'
-      ? name.charAt(0).toUpperCase() + name.slice(1) + ' waits the default ' + secsSay(WAIT_DEF) + ' between calls again.'
-      : name + ' follows its campaign’s wait again.');
+    waitPut(kind, id, null, name.charAt(0).toUpperCase() + name.slice(1) +
+      ' waits the default ' + secsSay(WAIT_DEF) + ' between calls again.');
   }
   /* Writes the value, moves a count that is running on it, and offers undo.
      The count moves by the change rather than restarting, so a change made
@@ -23546,11 +23550,11 @@
     const was = waitOwn(kind, id);
     const apply = (v) => {
       const call = DB.call;
-      const before = call && call.wait ? waitFor(call.sess, call.con) : null;
+      const before = call && call.wait ? waitFor(call.sess) : null;
       if (v == null) delete box[id]; else box[id] = v;
       saveNow();
       if (before && call.wait) {
-        const after = waitFor(call.sess, call.con);
+        const after = waitFor(call.sess);
         const d = after.secs - before.secs;
         call.wait.total = Math.max(1, call.wait.total + d);
         call.wait.left = Math.max(1, call.wait.left + d);
@@ -23566,57 +23570,72 @@
 
   /* The stepper: minus, the figure, plus. A figure at a bound says so in
      words and colour; its button stays pressable, and the press says why it
-     will not go further. */
-  function waitStepper(kind, id, secs, ctx) {
+     will not go further. `locked` is a list on a campaign: both buttons are
+     disabled and the figure shown is the campaign's. */
+  function waitStepper(kind, id, secs, locked) {
     const k = kind + '|' + id;
-    const tail = ctx ? '|' + ctx : '';
-    const edge = secs <= WAIT_MIN ? 'shortest' : secs >= WAIT_MAX ? 'longest' : '';
-    return '<span class="b-wait">' +
-      '<button class="b-wait-b" type="button" data-wait="' + esc(k + '|-1' + tail) + '" ' +
-        'aria-label="Wait ' + WAIT_STEP + ' seconds less"' +
-        (secs <= WAIT_MIN ? ' aria-disabled="true"' : '') + '>' + chIcon('minus') + '</button>' +
+    const edge = locked ? '' : secs <= WAIT_MIN ? 'shortest' : secs >= WAIT_MAX ? 'longest' : '';
+    const btn = (dir, say, icon, atEdge) =>
+      '<button class="b-wait-b" type="button" data-wait="' + esc(k + '|' + dir) + '" ' +
+        'aria-label="Wait ' + WAIT_STEP + ' seconds ' + say + '"' +
+        (locked ? ' disabled' : atEdge ? ' aria-disabled="true"' : '') + '>' + chIcon(icon) + '</button>';
+    return '<span class="b-wait' + (locked ? ' is-locked' : '') + '">' +
+      btn(-1, 'less', 'minus', secs <= WAIT_MIN) +
       '<span class="b-wait-v" aria-live="polite">' +
         '<span' + (WAIT_TICKED === k ? ' class="b-tick"' : '') + '>' + esc(secsSay(secs)) + '</span>' +
       '</span>' +
-      '<button class="b-wait-b" type="button" data-wait="' + esc(k + '|1' + tail) + '" ' +
-        'aria-label="Wait ' + WAIT_STEP + ' seconds more"' +
-        (secs >= WAIT_MAX ? ' aria-disabled="true"' : '') + '>' + chIcon('plus') + '</button>' +
+      btn(1, 'more', 'plus', secs >= WAIT_MAX) +
     '</span>' +
     (edge ? '<span class="tag tag-warn">The ' + edge + '</span>' : '');
   }
 
-  /* The block on the campaign page in create and in edit: the campaign's own
-     row, then one per list on it. Each row says where its figure comes from. */
+  /* The campaign page, in create and in edit: the campaign's wait, and the
+     sentence saying it runs over any wait its lists hold. A list's own wait
+     is set on the list page, not here. */
   function waitField(k) {
     const cw = campWait(k);
-    const row = (who, kind, id, w, state, reset) =>
-      '<div class="b-wait-row">' +
-        '<span class="b-wait-who">' + who + '</span>' +
-        waitStepper(kind, id, w.secs, k.id) +
-        '<span class="tag ' + (w.from === 'set' ? 'tag-info' : 'tag-neutral') + '">' + state + '</span>' +
-        (reset ? '<button class="s-inline-btn" type="button" data-wait-reset="' + esc(kind + '|' + id) +
-          '">' + reset + '</button>' : '') +
-      '</div>';
-    /* A list gets a row of its own only where it can say something the
-       campaign's row does not: beside another list, or once it has its own
-       wait. One list on its own was a second row repeating the first. */
-    const on = DB.list.filter((l) => listIsOn(l, k.id));
-    const lists = on.length > 1 ? on : on.filter((l) => waitOwn('list', l.id) != null);
     return '<div class="b-cmeta-part b-wait-part">' +
       '<span class="b-cmeta-cap">Wait between calls</span>' +
       '<div class="b-cmeta-say">' +
-        '<p class="b-wait-note">In a run, the next call starts by itself after this wait.' +
-          (lists.length ? ' A list’s own wait comes before the campaign’s.' : '') + '</p>' +
-        row('This campaign', 'camp', k.id, cw,
-          cw.from === 'set' ? 'Set for this campaign' : 'Default',
-          cw.from === 'set' ? 'Use the default' : '') +
-        lists.map((l) => {
-          const w = listWait(l, k);
-          return row(esc(l.name), 'list', l.id, w,
-            w.from === 'set' ? 'Set for this list' : 'Same as the campaign',
-            w.from === 'set' ? 'Use the campaign’s' : '');
-        }).join('') +
+        '<p class="b-wait-note">In a run, the next call starts by itself after this wait. ' +
+          'It applies to every list on this campaign, over any wait a list has of its own.</p>' +
+        '<div class="b-wait-row">' +
+          waitStepper('camp', k.id, cw.secs) +
+          '<span class="tag ' + (cw.from === 'set' ? 'tag-info">Set for this campaign' : 'tag-neutral">Default') +
+            '</span>' +
+          (cw.from === 'set' ? '<button class="s-inline-btn" type="button" data-wait-reset="camp|' +
+            esc(k.id) + '">Use the default</button>' : '') +
+        '</div>' +
       '</div>' +
+    '</div>';
+  }
+
+  /* The list page's own control. On no campaign it sets the list's wait.
+     On a campaign it is disabled, shows the campaign's figure, and says
+     whose wait runs and where to change it. */
+  function listWaitRow(l) {
+    if (!works()) return '';
+    const on = campsOn(l);
+    const w = listWait(l);
+    const locked = on.length > 0;
+    let say = '';
+    if (on.length === 1) {
+      say = 'While it is on ' + esc(campName(on[0])) + ', the campaign’s wait runs, not the list’s.' +
+        (campMine(on[0]) ? ' <button class="s-inline-btn" type="button" data-cedit="' + esc(on[0].id) +
+          '">Change it on the campaign</button>' : '');
+    } else if (on.length > 1) {
+      say = 'While it is on a campaign, that campaign’s wait runs, not the list’s: ' +
+        esc(listSay(on.map((x) => campName(x) + ' ' + secsSay(campWait(x).secs)))) + '.';
+    }
+    return '<div class="b-wait-row b-wait-list">' +
+      '<span class="b-wait-who">Wait between calls</span>' +
+      waitStepper('list', l.id, w.secs, locked) +
+      (locked
+        ? '<span class="tag tag-neutral">Set by ' + (on.length === 1 ? 'the campaign' : 'its campaigns') + '</span>'
+        : '<span class="tag ' + (w.from === 'set' ? 'tag-info">Set for this list' : 'tag-neutral">Default') + '</span>' +
+          (w.from === 'set' ? '<button class="s-inline-btn" type="button" data-wait-reset="list|' +
+            esc(l.id) + '">Use the default</button>' : '')) +
+      (say ? '<p class="b-wait-lock">' + say + '</p>' : '') +
     '</div>';
   }
 
@@ -33014,7 +33033,7 @@
     const waitB = t.closest('[data-wait]');
     if (waitB) {
       const p = waitB.getAttribute('data-wait').split('|');
-      waitStep(p[0], p[1], Number(p[2]), p[3] || '');
+      waitStep(p[0], p[1], Number(p[2]));
       return;
     }
     const waitR = t.closest('[data-wait-reset]');
