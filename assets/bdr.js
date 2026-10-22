@@ -23597,12 +23597,16 @@
         (reset ? '<button class="s-inline-btn" type="button" data-wait-reset="' + esc(kind + '|' + id) +
           '">' + reset + '</button>' : '') +
       '</div>';
-    const lists = DB.list.filter((l) => listIsOn(l, k.id));
+    /* A list gets a row of its own only where it can say something the
+       campaign's row does not: beside another list, or once it has its own
+       wait. One list on its own was a second row repeating the first. */
+    const on = DB.list.filter((l) => listIsOn(l, k.id));
+    const lists = on.length > 1 ? on : on.filter((l) => waitOwn('list', l.id) != null);
     return '<div class="b-cmeta-part b-wait-part">' +
       '<span class="b-cmeta-cap">Wait between calls</span>' +
       '<div class="b-cmeta-say">' +
-        '<p class="b-wait-note">In a run, the next call starts by itself after this wait. ' +
-          'A list’s own wait comes before the campaign’s.</p>' +
+        '<p class="b-wait-note">In a run, the next call starts by itself after this wait.' +
+          (lists.length ? ' A list’s own wait comes before the campaign’s.' : '') + '</p>' +
         row('This campaign', 'camp', k.id, cw,
           cw.from === 'set' ? 'Set for this campaign' : 'Default',
           cw.from === 'set' ? 'Use the default' : '') +
