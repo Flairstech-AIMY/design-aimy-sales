@@ -7133,6 +7133,17 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 .use-pop-r b.is-warn { color: var(--ink-warn, var(--warn)); }
 .use-pop-r b.is-err  { color: var(--ink-err, var(--err)); }
+/* a cost or a past-share note inside a line: amber, at the line's weight plus one */
+.use-pop-s .is-warn { color: var(--ink-warn, var(--warn)); font-weight: var(--fw-semibold); }
+/* one line per unit: its name, then used of your share (from Knowledge, 22 Oct) */
+.use-pop-u {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-top: 12px; font-size: var(--ty-meta); color: var(--ink-primary);
+}
+.use-pop-u b { font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.use-pop-u b small { font-size: inherit; font-weight: var(--fw-medium); color: var(--ink-secondary); }
+.use-pop-u b.is-warn { color: var(--ink-warn, var(--warn)); }
+.use-pop-u + .use-pop-m { margin-top: 6px; }
 .use-pop-s {
   margin: 7px 0 0; font-size: var(--ty-micro); color: var(--ink-secondary);
   font-variant-numeric: tabular-nums;

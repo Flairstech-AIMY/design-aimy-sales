@@ -26752,71 +26752,96 @@
      `me()` before the desk has booted. */
   const USE_LINK = 'https://aimy-knowledge.nour-ali.workers.dev/console.html?m=agents&sec=usage';
   const USE_MARK = '.overlay-input-bar > .aimy-float-icon, .aimy-float-bar > .aimy-float-icon';
-  const USE_SPENT = {};      /* person id -> { plan, sess } spent since load */
+  /* ── Nothing runs out (22 Oct, the same model as Knowledge's popover) ──
+     What was a limit is a share: past it, nothing stops, the number and the
+     bar turn amber, and the widget says what your use past your share
+     costs. The widget is personal (the Usage page is the organization's).
+     Sales counts chats, one per question asked, at Copilot's chat price:
+     $150 a slice of 500, so 30 cents a chat. Each desk person lands in a
+     different place (USE_AT, a share of the month's 300); the default desk
+     is past it, so the cost shows on first open. */
+  const USE_SPENT = {};      /* person id -> chats asked since load */
+  const USE_AT = [1.12, 0.62, 0.9, 1.2, 0.75];
   function useNow() {
     const p = me();
     const h = Math.abs(hash(String(p.id) + ':use'));
-    const s = USE_SPENT[p.id] || { plan: 0, sess: 0 };
-    return { limit: 6000, used: 600 + (h % 3400) + s.plan, unit: 'tokens',
-             sess: 300 + ((h >> 4) % 1400) + s.sess, sessLimit: 5000,
-             sessPer: 'per session', resets: '1 Nov' };
+    const s = USE_SPENT[p.id] || 0;
+    const at = p.id === DEFAULT_ME ? USE_AT[0] : USE_AT[h % USE_AT.length];
+    const today = 4 + ((h >> 4) % 6) + s;
+    return { month: 'October', link: USE_LINK, today,
+             units: [{ id: 'chats', name: 'Chats', unit: 'chats', used: Math.round(at * 300) + s,
+                       limit: 300, slice: 500, price: 150, sessLimit: 50 }] };
   }
   const useFmt = (n) => Math.round(n).toLocaleString('en-US');
-  const useLevel = (used, lim) => lim == null ? ''
-    : (lim <= 0 || used >= lim) ? 'is-err' : used / lim >= 0.85 ? 'is-warn' : '';
+  const useLevel = (used, share) => share == null || share <= 0 ? '' : used > share ? 'is-warn' : '';
 
-  /* An estimate, and named as one: a question in and an answer out. */
+  /* One question asked is one chat. */
   function useSpend() {
     const id = me().id;
-    const s = USE_SPENT[id] || (USE_SPENT[id] = { plan: 0, sess: 0 });
-    s.plan += 260; s.sess += 260;
+    USE_SPENT[id] = (USE_SPENT[id] || 0) + 1;
     paintUseMark();
   }
 
-  /* ── Polish (14 Oct, the same pass as Knowledge's popover) ──
-     Plan and Session read the same way: the name, the share used, a meter
-     drawn like the ring on the mark, and the numbers under it in readable
-     ink. The way out leaves the page, so it ends in an arrow, not an
-     ellipsis (an ellipsis promises a dialog). */
+  /* ── Distilled (22 Oct, ported from Knowledge's /impeccable distill) ──
+     How am I doing against my share, and what is it costing: the month
+     once, a line per unit ("336 of 300", a bar of your share, and past it
+     what the month's extra comes to), then today with today's cost broken
+     down by unit. The way out leaves the page, so it ends in an arrow. */
+  const useUnitPrice = (x) => x.price && x.slice ? x.price / x.slice : 0;
+  const usePast = (x) => x.limit > 0 && x.used > x.limit;
+  const useMoney = (n) => '$' + n.toFixed(2);
+  const useCostToday = (units, today) => {
+    const past = units.filter((x) => usePast(x) && useUnitPrice(x));
+    if (!past.length) return 'Within your share. ';
+    const within = units.filter((x) => !usePast(x)).map((x) => x.unit);
+    const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+    return past.map((x, i) => '<span class="is-warn">' + useMoney(today * useUnitPrice(x)) + '</span>' +
+        (i ? '' : ' extra') + ' on ' + esc(x.unit)).join(', ') + '. ' +
+      (within.length ? esc(cap(within.join(' and '))) + ' are within your share. ' : '');
+  };
   const useMeter = (p, lv) => '<span class="use-pop-m ' + lv + '" aria-hidden="true"><i style="--p:' +
     Math.min(1, Math.max(0, p)).toFixed(4) + '"></i></span>';
   function usePopBody(u) {
-    const pct = Math.min(100, Math.round(u.used / u.limit * 100));
-    const sPct = Math.min(100, Math.round(u.sess / u.sessLimit * 100));
-    const plan = useLevel(u.used, u.limit);
-    const sess = useLevel(u.sess, u.sessLimit);
+    const units = u.units;
+    const line = (x) => {
+      const past = useLevel(x.used, x.limit);
+      return '<div class="use-pop-u"><span>' + esc(x.name) + '</span>' +
+          '<b class="' + past + '">' + useFmt(x.used) + ' <small>of ' + useFmt(x.limit) + '</small></b></div>' +
+        useMeter(x.limit ? x.used / x.limit : 0, past) +
+        (past ? '<p class="use-pop-s"><span class="is-warn">' + useFmt(x.used - x.limit) + ' ' + esc(x.unit) +
+          ' past your share, ' + useMoney((x.used - x.limit) * useUnitPrice(x)) +
+          ' extra this month.</span> You can keep going.</p>' : '');
+    };
+    const overDay = units.filter((x) => x.sessLimit != null && u.today > x.sessLimit);
     return '' +
       '<div class="use-pop-g">' +
-        '<div class="use-pop-r"><span>Plan</span><b class="' + plan + '">' +
-          (plan === 'is-err' ? 'Limit reached' : pct + '% used') + '</b></div>' +
-        useMeter(u.used / u.limit, plan) +
-        '<p class="use-pop-s"><b>' + useFmt(u.used) + '</b> of ' + useFmt(u.limit) + ' ' + esc(u.unit) +
-          ', resets ' + esc(u.resets) + '</p>' +
+        '<div class="use-pop-r"><span>' + esc(u.month) + '</span></div>' +
+        units.map(line).join('') +
       '</div>' +
       '<div class="use-pop-g">' +
-        '<div class="use-pop-r"><span>Session</span><b class="' + sess + '">' +
-          (sess === 'is-err' ? 'Limit reached' : sPct + '% used') + '</b></div>' +
-        useMeter(u.sess / u.sessLimit, sess) +
-        '<p class="use-pop-s">' + (sess === 'is-err' ? 'Start a new conversation to keep going.'
-          : '<b>' + useFmt(u.sess) + '</b> of ' + useFmt(u.sessLimit) + ' ' + esc(u.unit) + ' this ' +
-            esc(String(u.sessPer || 'per session').replace(/^per /, ''))) + '</p>' +
+        '<div class="use-pop-r"><span>Today</span><b class="' + (overDay.length ? 'is-warn' : '') + '">' +
+          units.map((x) => useFmt(u.today) + ' ' + esc(x.unit)).join(', ') + '</b></div>' +
+        '<p class="use-pop-s">' + useCostToday(units, u.today) + (overDay.length
+          ? '<span class="is-warn">Past today’s ' + esc(overDay.map((x) => x.unit).join(' and ')) +
+            ' share</span>; you can keep going.' : '') + '</p>' +
       '</div>' +
-      '<a class="use-pop-a" href="' + esc(USE_LINK) + '"><span>Usage and plan</span>' +
+      '<a class="use-pop-a" href="' + esc(u.link) + '"><span>Usage</span>' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
         'stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>';
   }
 
+  /* The ring is the slice you are in, filling; amber past your share. */
   function paintUseMark() {
     const u = useNow();
-    const p = Math.min(1, u.used / u.limit);
-    const lv = [useLevel(u.used, u.limit), useLevel(u.sess, u.sessLimit)];
-    const worst = lv.indexOf('is-err') > -1 ? 'is-err' : lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
-    const say = Math.round(p * 100) + '% of your plan used'
-      + (worst === 'is-err' ? ', limit reached' : worst === 'is-warn' ? ', near the limit' : '');
+    const x = u.units[0];
+    const p = (x.used % x.slice) / x.slice;
+    const past = u.units.some(usePast) || u.units.some((y) => u.today > y.sessLimit);
+    const say = 'slice ' + (Math.floor(x.used / x.slice) + 1) + ', ' + Math.round(p * 100) + '% full'
+      + (past ? ', past your share' : '');
     document.querySelectorAll(USE_MARK).forEach((el) => {
       el.classList.add('has-use');
-      el.classList.toggle('is-warn', worst === 'is-warn');
-      el.classList.toggle('is-err', worst === 'is-err');
+      el.classList.toggle('is-warn', past);
+      el.classList.remove('is-err');
       el.style.setProperty('--use', p.toFixed(4));
       if (el.dataset.useLabel === undefined) el.dataset.useLabel = el.getAttribute('aria-label') || '';
       el.setAttribute('aria-label', el.id === 'canvasOpen' ? el.dataset.useLabel + '. ' + say : 'Your usage: ' + say);
