@@ -7445,14 +7445,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   --news-lift: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 :root[data-theme="light"] .b-news { --news-lift: inset 0 1px 0 rgba(255, 255, 255, 0.9); }
-.b-news .b-aimy { margin: 0 0 16px; padding: 14px 16px; }
-.b-news .b-aimy-say { font-size: var(--t-body); line-height: var(--lh-base); color: var(--d100); max-width: 78ch; }
-.b-news .b-aimy-mark { margin-top: 3px; }
-
-/* ── Feed and market ── */
-.b-news-grid { display: grid; gap: 24px; align-items: start; grid-template-columns: minmax(0, 1fr); }
-.b-news-grid.is-side { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); }
-.b-news-grid.is-side .b-news-mkt { position: sticky; top: 88px; }
 
 /* The feed is one raised panel. */
 .b-news-list {
@@ -7566,15 +7558,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* ── Their market: cards, kept apart from their own news ── */
 .b-news-mkt { min-width: 0; }
 .b-news-mkt-top { margin: 0 0 12px; }
-.b-news-grid.is-stacked .b-news-mkt-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .b-news-mkt-h { margin: 0; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); }
 .b-news-mkt-p { margin: 2px 0 0; font-size: var(--t-small); color: var(--d200); }
-.b-news-mcards { display: flex; flex-direction: column; gap: 10px; }
-/* As many columns as cards, so two to four always fill one row and none is
-   left alone on a second. */
-.b-news-grid.is-stacked .b-news-mcards {
-  display: grid; gap: 12px; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
-}
 .b-news-mrow {
   display: flex; flex-direction: column; min-width: 0;
   padding: 14px 16px 10px; border-radius: var(--r-lg);
@@ -7643,15 +7628,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-news-act, .b-news-mrow { transition: none !important; }
 }
 
-/* Narrow: the market goes under the feed. */
-@media (max-width: 1100px) {
-  .b-news-grid.is-side { grid-template-columns: minmax(0, 1fr); }
-  .b-news-grid.is-side .b-news-mkt { position: static; }
-  .b-news-grid.is-side .b-news-mcards,
-  .b-news-grid.is-stacked .b-news-mcards {
-    display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 @media (max-width: 600px) {
   .b-news-list { padding: 2px 14px 8px; }
   .b-news-item { grid-template-columns: 32px minmax(0, 1fr); gap: 12px; }
@@ -7661,47 +7637,103 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-news-item.is-lead { margin: 8px -8px 4px; padding: 16px 8px 14px; }
   .b-news-item.is-lead:has(+ .b-news-item)::before { left: 23.5px; top: 56px; }
   .b-news-empty { grid-template-columns: minmax(0, 1fr); padding: 20px; gap: 14px; }
-  .b-news-grid.is-side .b-news-mcards,
-  .b-news-grid.is-stacked .b-news-mcards { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ══ 107b. FOLDING THE SECTION ══════════════════════════════════════════════
-   transitions.dev's accordion at its tokens: rows 0fr to 1fr over 250ms
-   smooth-out, the inner fading and un-blurring with it, and the chevron
-   flipped with scaleY so it animates in every browser. The head and AiMY's
-   line stay outside the fold. */
+/* ══ 107b. THE SUMMARY ON THE PAGE, AND THE NEWS PANEL ═══════════════════════
+   `newsBlock` / `newsBody` in bdr.js. On the page: the top opening drawn as
+   the lead story, AiMY's line on the rest, and the door with a number tag
+   for what is new. The door opens the full news in a panel from the right,
+   over a scrim (transitions.dev panel reveal: 400ms in, 350ms out,
+   smooth-out). The tag pops in with the notification-badge bounce, and only
+   when its number changes. */
 .b-news .s-camp-list-head { align-items: center; }
-.b-news-fold {
-  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 12px;
-  margin-left: 4px; border-radius: var(--r-pill); border: 1px solid var(--card-border);
-  background: var(--card-bg-raised); cursor: pointer;
-  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--d100);
-  transition: border-color 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
+.b-news-sumpanel { padding: 10px 22px 18px; }
+.b-news-sumpanel .b-news-item.is-lead { margin: 8px -14px 0; }
+.b-news-rest {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);
 }
-.b-news-fold:hover { border-color: var(--card-border-hover); color: var(--d50); }
-/* Wide enough for either word, so the button keeps its width when it flips. */
-.b-news-fold-w { min-width: 4.6em; text-align: left; }
-.b-news-fold:active { transform: scale(0.97); }
-.b-news-fold:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-news-chev { display: inline-flex; transform: scaleY(1); transform-origin: center; transition: transform 250ms var(--news-ease); }
-.b-news-chev svg { width: 14px; height: 14px; }
-.b-news-chev path { vector-effect: non-scaling-stroke; }
-.b-news[data-open="true"] .b-news-fold .b-news-chev { transform: scaleY(-1); }
+.b-news-rest.is-alone { margin-top: 6px; padding-top: 8px; border-top: 0; }
+.b-news-rest .b-aimy-mark { flex: none; align-self: flex-start; margin-top: 3px; }
+.b-news-rest-say {
+  flex: 1; min-width: 0; margin: 0; max-width: 78ch;
+  font-size: var(--t-ui); line-height: var(--lh-base); color: var(--d100);
+}
+.b-news-rest-say b { color: var(--d50); font-weight: var(--fw-semibold); }
+.b-news-open {
+  flex: none; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 14px;
+  border-radius: var(--r-pill); border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: var(--accent-dim); color: var(--accent); cursor: pointer; white-space: nowrap;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
+  transition: background-color 150ms ease-out, transform 150ms ease-out;
+}
+.b-news-open svg { width: 16px; height: 16px; flex: none; }
+.b-news-open:hover { background: rgba(var(--accent-rgb), 0.22); }
+.b-news-open:active { transform: scale(0.97); }
+.b-news-open:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-news-badge {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px;
+  border-radius: var(--r-pill); background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: var(--fw-bold, 700); font-variant-numeric: tabular-nums;
+}
 
-.b-news-panel {
-  display: grid; grid-template-rows: 0fr;
-  transition: grid-template-rows 250ms var(--news-ease);
+/* The panel. */
+.b-news-dw {
+  --dw-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed; inset: 0; z-index: 600; pointer-events: none; visibility: hidden;
 }
-.b-news[data-open="true"] .b-news-panel { grid-template-rows: 1fr; }
-.b-news-panel-in {
-  min-height: 0; overflow: hidden; opacity: 0; filter: blur(2px);
-  transition: opacity 250ms var(--news-ease), filter 250ms var(--news-ease);
+.b-news-dw.is-open, .b-news-dw.is-closing { visibility: visible; }
+.b-news-dw.is-open { pointer-events: auto; }
+.b-news-dw-scrim {
+  position: absolute; inset: 0; background: rgba(5, 8, 13, 0.5); opacity: 0;
+  transition: opacity 350ms var(--dw-ease);
 }
-.b-news[data-open="true"] .b-news-panel-in { opacity: 1; filter: none; overflow: visible; }
-/* Folded, AiMY's line is the last thing in the section, so it loses the
-   gap it kept above the feed. */
-.b-news[data-open="false"] .b-aimy { margin-bottom: 0; }
+:root[data-theme="light"] .b-news-dw-scrim { background: rgba(16, 24, 40, 0.28); }
+.b-news-dw-panel {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(640px, 100vw);
+  display: flex; flex-direction: column;
+  background: var(--card-bg); border-left: 1px solid var(--card-border);
+  box-shadow: -24px 0 48px rgba(0, 0, 0, 0.35);
+  transform: translateX(100%);
+  transition: transform 350ms var(--dw-ease);
+}
+:root[data-theme="light"] .b-news-dw-panel { box-shadow: -24px 0 48px rgba(16, 24, 40, 0.14); }
+.b-news-dw.is-open .b-news-dw-scrim { opacity: 1; transition-duration: 400ms; }
+.b-news-dw.is-open .b-news-dw-panel { transform: none; transition-duration: 400ms; }
+html.news-dw-open { overflow: hidden; }
+.b-news-drawer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.b-news-dw-head {
+  display: flex; align-items: flex-start; gap: 12px; padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--card-border);
+  background: linear-gradient(180deg, var(--card-bg-raised), var(--card-bg));
+}
+.b-news-dw-titles { flex: 1; min-width: 0; }
+.b-news-dw-title {
+  margin: 0; font-size: calc(var(--t-body) * 1.25); font-weight: var(--fw-semibold);
+  line-height: 1.3; color: var(--d50);
+}
+.b-news-dw-sub { margin: 4px 0 0; font-size: var(--t-small); color: var(--d200); }
+.b-news-dw-head .modal-close { color: var(--d100); }
+.b-news-dw-head .modal-close svg { width: 16px; height: 16px; }
+.b-news-dw-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 24px; padding: 20px 24px 32px;
+}
+.b-news-drawer .b-news-mcards { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
+@media (prefers-reduced-motion: no-preference) {
+  .b-news-badge.is-pop { animation: b-news-badge 500ms cubic-bezier(0.34, 1.36, 0.64, 1) both; }
+}
+@keyframes b-news-badge { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .b-news-panel, .b-news-panel-in, .b-news-chev, .b-news-fold { transition: none !important; }
+  .b-news-dw-scrim, .b-news-dw-panel, .b-news-open { transition: none !important; }
+}
+@media (max-width: 600px) {
+  .b-news-sumpanel { padding: 6px 14px 14px; }
+  .b-news-sumpanel .b-news-item.is-lead { margin: 6px -8px 0; }
+  .b-news-rest { flex-wrap: wrap; }
+  .b-news-open { width: 100%; justify-content: center; }
+  .b-news-dw-head { padding: 18px 16px 14px; }
+  .b-news-dw-body { padding: 16px 16px 28px; }
+  .b-news-drawer .b-news-mcards { grid-template-columns: minmax(0, 1fr); }
 }
