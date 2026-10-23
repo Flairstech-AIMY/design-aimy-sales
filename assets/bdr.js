@@ -19362,7 +19362,8 @@
   /* Where a group's facts came from, said the way a sentence needs it. */
   const PROF_SRC = {
     apollo: 'on Apollo', site: 'on their website', li: 'on LinkedIn',
-    reg: 'in the company register', calls: 'from your calls',
+    reg: 'in the company register', web: 'on LinkedIn and in the press',
+    liweb: 'on LinkedIn and their company’s website',
   };
   /* Past a year a fact is flagged rather than trusted. */
   const PROF_OLD_DAYS = 365;
@@ -19561,7 +19562,7 @@
       ] },
       { k: 'size', h: 'Size and money', src: 'apollo', rows: [
         ['Staff', staff ? (few ? esc(commas(a.size)) : esc(staff)) : null],
-        [pub ? 'Budget' : 'Revenue', k(rev ? esc(rev) : null)],
+        [pub ? 'Budget' : 'Revenue', k(rev ? esc(rev) + (pub || ownK === 'listed' ? ', published' : ', estimated') : null)],
         ['Hiring', k(hires ? esc(plural(hires, 'open role')) + ' in ' + hireIn : 'No open roles')],
       ] },
       { k: 'links', h: 'Tools and links', src: 'apollo', rows: [
@@ -19594,20 +19595,64 @@
     return out;
   }
 
-  /* ── A person's facts, grouped ── */
-  const SENIORITY = (t) => (/chief|^vp /i.test(t) ? ['Executive', 3, [80, 400]]
-    : /head of|director/i.test(t) ? ['Director', 2, [20, 120]]
-    : /manager/i.test(t) ? ['Manager', 1, [6, 40]] : ['Team lead', 0, [4, 12]]);
-  const DEPT = { support: 'Support and service', quality: 'Quality', tech: 'Technology', ops: 'Operations', other: 'Customer experience' };
-  const OWNS = {
-    support: 'the support centre, its people and its suppliers',
-    quality: 'testing and the quality of every release',
-    tech: 'the systems and the budget that pays for them',
-    ops: 'day-to-day operations and shared services',
-    other: 'how customers are looked after across every channel',
+  /* ── A person's facts, grouped ──
+     ONLY WHAT SOMEBODY PUBLISHED. The first cut had a team size, a reporting
+     line, a preferred channel and a seniority, and Nour pointed out that
+     nobody can know most of that (23 Oct 2026): a team size and a reporting
+     line are not on any profile, a preference is a guess, and a seniority
+     only restates the title. What is left is what a person puts out
+     themselves or the press puts out about them: their profile (job, dates,
+     career, schooling, certificates, languages), what they post and where
+     they speak, the company's switchboard, and who on our team they are
+     already connected to. Our own calls stay in the summary, where they
+     have always been ours rather than public. */
+  /* Rank from the title, only to keep an earlier job at or below this one. */
+  const SENIORITY = (t) => (/chief|^vp /i.test(t) ? 3 : /head of|director/i.test(t) ? 2 : /manager/i.test(t) ? 1 : 0);
+  /* What people in each line post about and where they speak. */
+  const POSTS = {
+    support: ['cutting wait times on their phone line', 'moving their help centre to a new platform',
+      'hiring team leads for the support floor', 'what their customer surveys keep saying'],
+    quality: ['shipping releases without a full regression run', 'test automation in a regulated team',
+      'how they count escaped defects'],
+    tech: ['replacing a system that is twenty years old', 'what they want from suppliers this year',
+      'moving their data centre to the cloud'],
+    ops: ['bringing back-office work in-house', 'running shared services across four countries',
+      'what automation did to their month-end close'],
+    other: ['what their customer surveys keep saying', 'one inbox for every channel',
+      'the cost of a customer who leaves'],
   };
-  const DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  /* What the calls themselves say about reaching them. */
+  const EVENTS = {
+    support: ['Customer Contact Expo, London', 'CCW Europe, Berlin', 'Nordic Customer Service Summit, Copenhagen'],
+    quality: ['TestCon Europe, Vilnius', 'EuroSTAR, Amsterdam'],
+    tech: ['Gartner IT Symposium, Barcelona', 'Web Summit, Lisbon'],
+    ops: ['Shared Services and Outsourcing Week, Lisbon', 'SSON Nordics, Stockholm'],
+    other: ['Customer Contact Expo, London', 'CX Summit, Amsterdam'],
+  };
+  const CERTS = {
+    support: ['COPC Certified Professional', 'ITIL 4 Foundation'],
+    quality: ['ISTQB Advanced Test Manager', 'ISTQB Foundation'],
+    tech: ['TOGAF 9', 'AWS Solutions Architect'],
+    ops: ['Lean Six Sigma Green Belt', 'PRINCE2 Practitioner'],
+    other: ['Certified Customer Experience Professional'],
+  };
+  const DEGREES = ['BSc Business Administration', 'MSc Information Systems', 'BA Economics',
+    'MSc Industrial Engineering', 'BA Communication', 'MSc Operations Management'];
+  const UNIS = {
+    NL: ['Erasmus University Rotterdam', 'University of Amsterdam'], BE: ['KU Leuven', 'Ghent University'],
+    LU: ['University of Luxembourg'], DE: ['LMU Munich', 'University of Mannheim'], AT: ['WU Vienna'],
+    CH: ['University of St. Gallen', 'ETH Zurich'], DK: ['Copenhagen Business School', 'Aarhus University'],
+    SE: ['Stockholm School of Economics', 'Lund University'], NO: ['BI Norwegian Business School'],
+    FI: ['Aalto University'], GB: ['University of Manchester', 'University of Leeds'],
+    IE: ['Trinity College Dublin', 'University College Cork'], FR: ['ESSEC', 'Sciences Po'],
+    IT: ['Bocconi University', 'Politecnico di Milano'], ES: ['IE University', 'ESADE'],
+    PT: ['Nova School of Business and Economics'], GR: ['Athens University of Economics and Business'],
+    PL: ['Warsaw School of Economics'], CZ: ['Charles University'], HU: ['Corvinus University of Budapest'],
+    RO: ['Bucharest University of Economic Studies'], EG: ['Cairo University', 'The American University in Cairo'],
+    AE: ['American University of Sharjah'], SA: ['King Saud University'], MA: ['Al Akhawayn University'],
+    JO: ['University of Jordan'],
+  };
+  /* What the calls themselves say. Ours, not public, so it goes in the
+     summary and not in the groups. */
   function conCalls(c) {
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const calls = callsIn(hist);
@@ -19615,17 +19660,7 @@
        or a no is as much as a conversation is. A gatekeeper is somebody else. */
     const got = calls.filter((t) => ['reached', 'callback', 'not-interested', 'do-not-call'].indexOf(t.outcome) >= 0);
     const last = calls.map((t) => t.at).sort().pop() || null;
-    let best = null;
-    if (got.length) {
-      const tally = Object.create(null);
-      got.forEach((t) => {
-        const d = new Date(t.at);
-        const key = DAY_NAME[d.getDay()] + (d.getHours() < 12 ? ' mornings' : ' afternoons');
-        tally[key] = (tally[key] || 0) + 1;
-      });
-      best = Object.keys(tally).sort((x, y) => tally[y] - tally[x])[0];
-    }
-    return { calls, got, last, best };
+    return { calls, got, last };
   }
 
   function conFacts(c, st) {
@@ -19633,52 +19668,93 @@
     const a = accOf(c);
     const cc = a && a.country;
     const few = st === 'few' || st === 'prep';
-    const sen = SENIORITY(c.title);
+    const k = (v) => (few ? null : v);
     const band = titleBand(c.title);
+    const rank = SENIORITY(c.title);
+    const ind = (a && INDUSTRY[a.industry]) ? a.industry : 'software';
     const roleDays = 120 + hx(id, 'role', 8 * 365);
-    const coDays = roleDays + (hx(id, 'co2', 3) ? hx(id, 'co', 6 * 365) : 0);
-    const team = sen[2][0] + hx(id, 'team', sen[2][1] - sen[2][0]);
-    const teamSay = team >= 20 ? 'About ' + Math.round(team / 10) * 10 + ' people' : 'About ' + team + ' people';
-    /* Who they report to: somebody senior in the same line at this company
-       when we have them, so the answer is a door; otherwise the role. */
-    const up = a ? consAt(a.id).filter((x) => x.id !== c.id && titleBand(x.title) === band &&
-      SENIORITY(x.title)[1] > sen[1]).sort((x, y) => SENIORITY(y.title)[1] - SENIORITY(x.title)[1])[0] : null;
-    const boss = up
-      ? '<button class="s-inline-btn" type="button" data-con="' + esc(up.id) + '">' + esc(up.name) + '</button>, ' + esc(up.title)
-      : esc(sen[1] >= 3 ? 'The chief executive' : sen[1] === 2 ? 'The chief operating officer' : 'The head of ' + (DEPT[band] || 'operations').toLowerCase());
-    const before = TITLES.filter((t) => titleBand(t) === band && SENIORITY(t)[1] <= sen[1]);
-    const prev = (before.length ? hpick(id, 'prevt', before) : c.title) + ' at ' +
-      hpick(id, 'pa', STEM_A) + hpick(id, 'pb', STEM_B) + ' ' + hpick(id, 'ps', SUFFIX[(a && INDUSTRY[a.industry]) ? a.industry : 'software']);
+    const coDays = roleDays + (hx(id, 'co2', 3) ? 200 + hx(id, 'co', 5 * 365) : 0);
+    const startYear = (days) => Number(isoAdd(TODAY_ISO, -days).slice(0, 4));
+    /* Two jobs before this one, each at or below it, each a few years long. */
+    /* The roster's titles are all people we would call, so the first rung
+       of a career is added per line, or a manager's career is three of the
+       same job at three companies. */
+    const EARLY = { support: 'Support Team Lead', quality: 'Senior Test Engineer',
+      tech: 'Senior Software Engineer', ops: 'Operations Analyst', other: 'Customer Experience Lead' };
+    const FIRST_JOB = { support: 'Support Agent', quality: 'Test Engineer',
+      tech: 'Software Engineer', ops: 'Operations Coordinator', other: 'Customer Experience Analyst' };
+    /* Each earlier job a rung below the one after it, so a career climbs. */
+    const below = (t) => {
+      const r = SENIORITY(t);
+      if (t === EARLY[band] || t === FIRST_JOB[band] || r === 0) return [FIRST_JOB[band]];
+      const xs = TITLES.filter((x) => titleBand(x) === band && SENIORITY(x) < r);
+      return xs.length ? xs.concat([EARLY[band]]) : [EARLY[band]];
+    };
+    const title1 = hpick(id, 'prev1', below(c.title));
+    /* Somebody whose job before this was their first has no job before that. */
+    const title2 = title1 === FIRST_JOB[band] ? null : hpick(id, 'prev2', below(title1));
+    const firm = (salt) => hpick(id, salt + 'a', STEM_A) + hpick(id, salt + 'b', STEM_B) + ' ' +
+      hpick(id, salt + 's', SUFFIX[ind]);
+    const end1 = startYear(coDays);
+    const len1 = 2 + hx(id, 'len1', 5);
+    const len2 = 2 + hx(id, 'len2', 4);
+    const job1 = title1 + ' at ' + firm('f1') + ', ' + (end1 - len1) + ' to ' + end1;
+    const job2 = title2 ? title2 + ' at ' + firm('f2') + ', ' + (end1 - len1 - len2) + ' to ' + (end1 - len1)
+      : 'Nothing earlier listed';
+    const uni = hpick(id, 'uni', UNIS[cc] || ['University of Amsterdam']);
+    const school = hpick(id, 'deg', DEGREES) + ', ' + uni;
+    const cert = hx(id, 'cert', 2) ? hpick(id, 'certk', CERTS[band] || CERTS.other) : null;
+    /* Their own words in public: two in three post, one in three speaks,
+       one in four has been quoted. Searched and found nothing is a finding,
+       said as one, and is not the same as not looked. */
+    const postOn = isoAdd(TODAY_ISO, -(2 + hx(id, 'postd', 40)));
+    const postAbout = hx(id, 'post', 3) ? hpick(id, 'postk', POSTS[band] || POSTS.other) : null;
+    const post = postAbout
+      ? 'About ' + postAbout + ', ' + sayWhen(postOn)
+      : 'Nothing in the last three months';
+    const talk = hx(id, 'talk', 3) === 0
+      ? hpick(id, 'talkk', EVENTS[band] || EVENTS.other) + ', ' + monthYear(isoAdd(TODAY_ISO, -(30 + hx(id, 'talkd', 300))))
+      : 'None found';
+    const press = hx(id, 'press', 4) === 0
+      ? 'Quoted in the ' + INDUSTRY[ind].label.toLowerCase().replace(' & ', ' and ') + ' press, ' +
+        monthYear(isoAdd(TODAY_ISO, -(20 + hx(id, 'pressd', 200))))
+      : 'None found';
     const where = a && a.city ? a.city + ', ' + (COUNTRY_NAME[cc] || cc) : null;
     const langs = cc ? (LANGS[cc] || []).concat(['English']) : null;
-    const k = (v) => (few ? null : v);
-    const r = conCalls(c);
-    const sw = cc && DIAL[cc] ? '+' + DIAL[cc] + ' ' + (10 + hx(a.id, 'sw1', 89)) + ' ' + (100 + hx(a.id, 'sw2', 899)) + ' ' + (1000 + hx(a.id, 'sw3', 8999)) : null;
-    const prefers = r.got.length ? hpick(id, 'pref', ['A call', 'A call', 'Email first, then a call', 'A message on LinkedIn first']) : null;
+    const sw = cc && DIAL[cc] ? '+' + DIAL[cc] + ' ' + (10 + hx(a.id, 'sw1', 89)) + ' ' +
+      (100 + hx(a.id, 'sw2', 899)) + ' ' + (1000 + hx(a.id, 'sw3', 8999)) : null;
+    /* Who on our team they are connected to on LinkedIn, which LinkedIn shows
+       to anybody looking. Our people, so not on a client's desk. */
+    const ours = REPS.filter((p) => (p.fn === 'bdr' || p.fn === 'sales-manager') && p.id !== me().id);
+    const nMut = hx(id, 'mut', 4);
+    const mutual = nMut ? hsome(id, 'mutk', ours, nMut, nMut).map((p) => p.name) : [];
+    const rows = [
+      ['Based in', where ? esc(where) : null],
+      ['Time zone', cc && tzSay(cc) ? esc(tzSay(cc)) : null],
+      ['Languages', k(langs ? esc(joinAnd(langs)) : null)],
+      ['Office line', k(sw ? '<a class="s-inline-btn" href="tel:' + esc(sw.replace(/\s/g, '')) + '">' + esc(sw) + '</a>' : null)],
+    ];
+    if (!isBuyer()) rows.push(['Connected to', k(mutual.length ? esc(joinAnd(mutual)) + ' on our team' : 'Nobody on our team')]);
     return [
       { k: 'job', h: 'Their job', src: 'li', rows: [
         ['Job title', esc(c.title)],
-        ['Seniority', esc(sen[0])],
-        ['Department', esc(DEPT[band] || 'Operations')],
         ['In the role', k('Since ' + esc(monthYear(isoAdd(TODAY_ISO, -roleDays))) + ', ' + esc(yearsSay(roleDays)))],
-        ['Runs', k(esc(teamSay))],
+        ['At the company', k(coDays === roleDays ? 'The same, in this job from the start'
+          : 'Since ' + startYear(coDays) + ', ' + esc(yearsSay(coDays)))],
       ] },
-      { k: 'line', h: 'Who they work with', src: 'li', rows: [
-        ['Reports to', k(boss)],
-        ['At the company', k('Since ' + esc(String(Number(isoAdd(TODAY_ISO, -coDays).slice(0, 4)))) + ', ' + esc(yearsSay(coDays)))],
-        ['Before this', k(esc(prev))],
+      { k: 'career', h: 'Their career', src: 'li', rows: [
+        ['Before this', k(esc(job1))],
+        ['Before that', k(esc(job2))],
+        ['Studied', k(esc(school))],
+        ['Certificates', k(cert ? esc(cert) : 'None listed')],
       ] },
-      { k: 'place', h: 'Where and when', src: 'apollo', rows: [
-        ['Based in', where ? esc(where) : null],
-        ['Time zone', cc && tzSay(cc) ? esc(tzSay(cc)) : null],
-        ['Languages', k(langs ? esc(joinAnd(langs)) : null)],
+      { k: 'public', h: 'In public', src: 'web', rows: [
+        ['Latest post', k(esc(post))],
+        ['Spoke at', k(esc(talk))],
+        ['In the news', k(esc(press))],
       ] },
-      { k: 'reach', h: 'Reaching them', src: 'calls', rows: [
-        ['Best time to call', r.best ? esc(r.best) + ', when they have picked up before' : null],
-        ['Prefers', prefers ? esc(prefers) : null],
-        ['Office line', k(sw ? '<a class="s-inline-btn" href="tel:' + esc(sw.replace(/\s/g, '')) + '">' + esc(sw) + '</a>' : null)],
-      ] },
-    ].map((g) => Object.assign(g, { sen, band, roleDays, calls: r }));
+      { k: 'reach', h: 'Where and how to reach', src: 'liweb', rows: rows },
+    ].map((g) => Object.assign(g, { roleDays, title1, firm1: firm('f1'), postAbout, postOn, calls: conCalls(c) }));
   }
 
   function conSummary(c, st, gs) {
@@ -19695,9 +19771,14 @@
       return 'AiMY knows only the basics so far: ' + esc(first) + ' is ' + esc(c.title) +
         (a ? ' at ' + esc(a.name) : '') + '. ' + esc(calls);
     }
-    return esc(first) + ' is ' + esc(c.title) + (a ? ' at ' + esc(a.name) : '') + ', a ' +
-      esc(g.sen[0].toLowerCase()) + ' role they have held for ' + esc(yearsSay(g.roleDays)) +
-      ', responsible for ' + esc(OWNS[g.band] || OWNS.other) + '. ' + esc(calls);
+    /* Their job and how long, where they were before, what they last said
+       in public, then our calls. The post is the opener a caller can use. */
+    return esc(first) + ' has been ' + esc(c.title) + (a ? ' at ' + esc(a.name) : '') + ' for ' +
+      esc(yearsSay(g.roleDays)) + ', and before that was ' + esc(g.title1) + ' at ' + esc(g.firm1) + '. ' +
+      (g.postAbout ? esc(/^\d+ [A-Z]/.test(sayWhen(g.postOn)) ? 'On ' + sayWhen(g.postOn)
+        : sayWhen(g.postOn).replace(/^./, (x) => x.toUpperCase())) + ' they posted on LinkedIn about ' +
+        esc(g.postAbout) + '. ' : '') +
+      esc(calls);
   }
 
   /* ── When each group was checked, and how sure the group is ── */
@@ -19708,11 +19789,9 @@
       ? [hx(rec.id, 'old1', gs.length), (hx(rec.id, 'old1', gs.length) + 1 + hx(rec.id, 'old2', gs.length - 1)) % gs.length]
       : [];
     const o = PROF_OVR[rec.id] || {};
-    const r = kind === 'con' ? gs[0].calls : null;
     gs.forEach((g, i) => {
       g.at = (o.at && o.at[g.k]) ||
-        (g.src === 'calls' ? (r.last ? r.last.slice(0, 10) : null)
-          : stale.indexOf(i) >= 0 ? isoAdd(TODAY_ISO, -(400 + hx(rec.id, 'at' + g.k, 220)))
+        (stale.indexOf(i) >= 0 ? isoAdd(TODAY_ISO, -(400 + hx(rec.id, 'at' + g.k, 220)))
           : isoAdd(TODAY_ISO, -(st === 'few' ? 1 + hx(rec.id, 'at' + g.k, 20) : 4 + hx(rec.id, 'at' + g.k, 70))));
       const gaps = g.rows.filter((x) => x[1] == null).length;
       g.gaps = gaps;
@@ -19752,13 +19831,10 @@
       icon = 'circle-help';
       word = g.conf === 'none' ? 'Not known yet' : 'Partly known';
       say = '<b>' + (g.conf === 'none' ? 'Not known yet.' : 'Partly known.') + '</b> ' +
-        (g.src === 'calls'
-          ? 'This comes from your calls, and nobody has got through to them yet.'
-          : 'AiMY has not found ' + esc(joinAnd(unknown)) + ' yet.' +
-            (works() ? '<br><button class="s-inline-btn" type="button" data-profmore="' + esc(rec.id) + '">Find out more</button>' : ''));
+        'AiMY has not found ' + esc(joinAnd(unknown)) + ' yet.' +
+        (works() ? '<br><button class="s-inline-btn" type="button" data-profmore="' + esc(rec.id) + '">Find out more</button>' : '');
     } else {
-      say = '<b>Checked ' + esc(when) + '</b> ' + esc(src) + '.' +
-        (g.src === 'calls' ? '' : ' Nothing here is over a year old.');
+      say = '<b>Checked ' + esc(when) + '</b> ' + esc(src) + '. Nothing here is over a year old.';
     }
     const label = word || ('Checked ' + when);
     return '<span class="b-wait-info b-conf-wrap">' +
@@ -19799,7 +19875,7 @@
         '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
         '<span class="b-aimy-say"><span class="b-fill-say">AiMY is reading ' +
-          (kind === 'acc' ? 'their website, Apollo and LinkedIn' : 'LinkedIn, Apollo and your calls') +
+          (kind === 'acc' ? 'their website, Apollo and LinkedIn' : 'LinkedIn, the press and your calls') +
           ' to write a summary of ' + esc(name) + '.</span></span>' +
       '</div>';
     } else {
@@ -19807,7 +19883,7 @@
       const more = st === 'few' && works()
         ? '<button class="s-insight-lnk" type="button" data-profmore="' + esc(rec.id) + '">Find out more</button>' : '';
       summary = aimyBlock({ text: text, from: st === 'few' ? 'what we hold'
-        : kind === 'acc' ? 'from their website, Apollo and LinkedIn' : 'from LinkedIn, Apollo and your calls' }, false, more);
+        : kind === 'acc' ? 'from their website, Apollo and LinkedIn' : 'from LinkedIn, the press and your calls' }, false, more);
     }
     const unk = st === 'prep' ? '<span class="b-fill-say">Looking</span>' : '<span class="b-about-none">Not known yet</span>';
     return '<section class="s-block s-block-wide b-about" id="about-' + esc(rec.id) + '" aria-label="About ' + esc(rec.name) + '">' +
@@ -19842,7 +19918,7 @@
       delete PROF_RUN[id];
       const before = PROF_OVR[id];
       const at = {};
-      ['co', 'does', 'where', 'size', 'links', 'job', 'line', 'place'].forEach((k) => (at[k] = TODAY_ISO));
+      ['co', 'does', 'where', 'size', 'links', 'job', 'career', 'public', 'reach'].forEach((k) => (at[k] = TODAY_ISO));
       PROF_OVR[id] = { st: 'full', at: at };
       if (byId('about-' + id)) paint();
       toast('AiMY found more about ' + rec.name, () => {
