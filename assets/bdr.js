@@ -4166,6 +4166,9 @@
     }
     const wasOn = recordKey();
     const wasSurface = surfaceKey();
+    const wasAs = S.as;
+    const from = location.search || '';
+    const fromY = byId('pageScroll') ? byId('pageScroll').scrollTop : 0;
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
@@ -4174,6 +4177,11 @@
        to see what you asked for. */
     railOpen(false);
     parse();
+    /* The view just left goes on the trail the back links follow; a change
+       of desk starts the trail again, because another desk's views are not
+       a way back from this one. */
+    if (S.as !== wasAs) trailReset();
+    else if (!replace && wasSurface !== surfaceKey()) trailPush(from, fromY);
     /* Decided before the paint rather than after it, because the grids read
        it while they are being built: a surface that is changing draws its
        cards over a skeleton, and a write or a page turn draws them plain. */
@@ -6719,6 +6727,76 @@
       '</div>', 'in the shared corpus'));
   }
 
+  /* ══ BACK GOES WHERE YOU WERE ══════════════════════════════════════════
+     Nour, 23 Oct 2026, a global edit: the back links went to a fixed place
+     (the record above, else the briefing's first tab), so a company opened
+     from the Accounts cut of Contacts came back to Today and the cut, the
+     page and the place on it were gone. Now every back link that only
+     navigates follows a trail of the views you left: it goes to the last
+     one, with its tab, filter, page and scroll, and is named for it.
+
+     The trail is the views `go` left, not the browser history: a page of
+     a list turning or a filter changing is the same surface and is not a
+     step back. It lives in sessionStorage, so a reload keeps it and a new
+     tab starts clean. With nothing on it (a record opened from a link) the
+     links fall back to the fixed places they always had. Links that do more
+     than navigate (closing a campaign's Edit, leaving a builder) keep their
+     own verbs. */
+  const KEY_TRAIL = 'aimy-sales-bdr:trail';
+  let TRAIL = [];
+  try { TRAIL = JSON.parse(sessionStorage.getItem(KEY_TRAIL) || '[]') || []; } catch (e) { TRAIL = []; }
+  let TRAIL_HOLD = false;
+  function trailSave() {
+    try { sessionStorage.setItem(KEY_TRAIL, JSON.stringify(TRAIL)); } catch (e) {}
+  }
+  function trailReset() { TRAIL = []; trailSave(); }
+  function trailPush(u, y) {
+    if (TRAIL_HOLD) return;
+    const top = TRAIL[TRAIL.length - 1];
+    if (top && top.u === u) top.y = y;
+    else TRAIL.push({ u: u, y: y });
+    if (TRAIL.length > 30) TRAIL.shift();
+    trailSave();
+  }
+  /* The last view that is not this one. */
+  function trailTop() {
+    const here = location.search || '';
+    let cut = false;
+    while (TRAIL.length && TRAIL[TRAIL.length - 1].u === here) { TRAIL.pop(); cut = true; }
+    if (cut) trailSave();
+    return TRAIL[TRAIL.length - 1] || null;
+  }
+  function trailState(u) {
+    const p = new URLSearchParams(u);
+    const over = Object.create(null);
+    SCALAR.forEach((k) => (over[k] = p.get(k) || ''));
+    return over;
+  }
+  /* What a view is called, in the words its own tab or masthead uses. */
+  function trailLabel(u) {
+    const st = trailState(u);
+    const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
+    if (st.con && DB.byCon[st.con]) return cap(DB.byCon[st.con].name);
+    if (st.acc && DB.byAcc[st.acc]) return cap(DB.byAcc[st.acc].name);
+    if (st.camp && DB.byCamp[st.camp]) return cap(DB.byCamp[st.camp].name);
+    if (st.list && DB.byList[st.list]) return cap(DB.byList[st.list].name);
+    if (st.on === 'deals') return st.q === 'won' ? 'Accounts' : 'Contacts';
+    return ({ cal: 'the diary', camps: 'Campaigns', lists: 'Lists', money: 'Financials',
+      notes: 'the notes', missed: 'the call log', floor: 'the floor' })[st.on] ||
+      (onBook() ? 'Today' : 'Contacts');
+  }
+  function trailBack() {
+    const t = trailTop();
+    if (!t) return false;
+    TRAIL.pop();
+    trailSave();
+    TRAIL_HOLD = true;
+    try { go(trailState(t.u)); } finally { TRAIL_HOLD = false; }
+    const sc = byId('pageScroll');
+    if (sc && t.y) sc.scrollTop = t.y;
+    return true;
+  }
+
   function backHere() {
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
     const a = S.con && S.acc && DB.byAcc[S.acc];
@@ -6757,11 +6835,14 @@
     return backBtn('data-back', 'Back to the briefing');
   }
 
-  const backBtn = (attr, label) =>
-    '<button class="s-back" type="button" ' + attr + '>' +
+  const backBtn = (attr, label) => {
+    const t = /^data-(back|home|go|camp)\b/.test(attr) ? trailTop() : null;
+    if (t) { attr = 'data-trail'; label = 'Back to ' + trailLabel(t.u); }
+    return '<button class="s-back" type="button" ' + attr + '>' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<path d="M15 18l-6-6 6-6"/></svg>' + esc(label) + '</button>';
+  };
 
   function switcher(here) {
     /* Every tab but one counts a set. Today is not a set — it is a moment —
@@ -33670,6 +33751,8 @@
        because ninety branches sit above those and any of them would
        otherwise carry you away with the menu still open behind you. */
     if (CHAT_MENU && !t.closest('.ov-chat-row')) { CHAT_MENU = ''; paintChats(); }
+
+    if (t.closest('[data-trail]')) { hideCanvas(); if (!trailBack()) go(cleared()); return; }
 
     const home = t.closest('[data-home]');
     if (home) { go(cleared()); return; }
