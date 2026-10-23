@@ -7540,7 +7540,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
   border: 1px solid transparent; border-radius: var(--r-pill); background: none; cursor: pointer;
   font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--d100);
-  white-space: nowrap;
+  white-space: nowrap; text-decoration: none;
   transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out;
 }
 .b-news-act svg { width: 14px; height: 14px; flex: none; }

@@ -20202,6 +20202,17 @@
     return n <= 7 ? 'This week' : n <= 31 ? 'This month' : n <= 92 ? 'The last three months' : 'Earlier this year';
   };
 
+  /* Where an item lives: their LinkedIn posts, their own news page, a
+     company-register search, or the outlet's address for the story. */
+  function newsUrl(a, x) {
+    const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (x.src === 'LinkedIn') return 'https://www.linkedin.com/company/' + slug(a.name) + '/posts';
+    if (x.src === 'Company register') return 'https://opencorporates.com/companies?q=' + encodeURIComponent(a.name);
+    if (a.domain && x.src === a.domain) return 'https://' + a.domain + '/news';
+    if (x.src === 'Our website') return 'https://' + (a.domain || slug(a.name) + '.com');
+    return 'https://www.' + slug(x.src).replace(/-/g, '') + '.com/' + slug(x.head);
+  }
+
   function newsRow(a, x, i, who, lead) {
     const T = NEWS_TYPE[x.type];
     const S = STRENGTH[x.strength];
@@ -20222,8 +20233,11 @@
         ? '<span class="b-news-act is-busy"><span class="b-fill-say">Looking for another source</span></span>'
         : '<button class="b-news-act" type="button" data-newsfind="' + esc(x.id) + '">Find another source</button>');
     } else {
-      acts.push('<button class="b-news-act" type="button" data-newsread="' + esc(x.id) + '">' +
-        chIcon('external') + '<span>Read it</span></button>');
+      /* A real link, opening the source in a new tab (Nour, 23 Oct 2026),
+         even though in the prototype the companies and outlets are invented
+         and most of these pages will not exist. */
+      acts.push('<a class="b-news-act" href="' + esc(newsUrl(a, x)) + '" target="_blank" rel="noopener" data-newsread="' + esc(x.id) + '">' +
+        chIcon('external') + '<span>Read it</span></a>');
     }
     /* Two verbs: read it, or call about it. Add to the brief and Mark seen
        went (Nour, 23 Oct 2026: "we don't need those"); reading or calling
@@ -34206,12 +34220,14 @@
     const nsec = t.closest('[data-newsacc]');
     const nacc = nsec ? DB.byAcc[nsec.getAttribute('data-newsacc')] : null;
     if (nacc) {
+      /* The link opens the source itself; this only marks the item seen,
+         after the browser has taken the click, so the redraw cannot pull
+         the link out from under it. */
       const nread = t.closest('[data-newsread]');
       if (nread) {
         const id = nread.getAttribute('data-newsread');
-        const x = newsFeed(nacc).filter((y) => y.id === id)[0];
-        newsD().seen[id] = 1; save(); newsRepaint(nacc.id);
-        toast('Opening it on ' + (x ? x.src : 'the source'), null, 'The prototype has no real articles behind its news.');
+        newsD().seen[id] = 1; save();
+        setTimeout(() => newsRepaint(nacc.id), 0);
         return;
       }
       const ncall = t.closest('[data-newscall]');
