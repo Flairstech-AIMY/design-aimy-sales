@@ -7346,3 +7346,78 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* On the rail, where the number would be. */
 .call-vid { display: inline-flex; align-items: center; gap: 6px; }
 .call-vid svg { width: 14px; height: 14px; flex: none; }
+
+/* ══ 106. ABOUT THEM: THE SUMMARY AND THE DETAILS ═════════════════════════════
+   `aboutBlock` in bdr.js (AIMY-2738). Under the masthead on the company and
+   contact pages: AiMY's summary on the accent ground, then the details in
+   groups that wrap to as many columns as fit. Each group has one confidence
+   mark; its popover is the wait pill's (§104), anchored right because the
+   mark sits at the right of the group's head. */
+.b-about .b-aimy { margin: 0 0 20px; padding: 14px 16px; }
+.b-about .b-aimy-say { font-size: var(--t-body); line-height: var(--lh-base); color: var(--d100); max-width: 78ch; }
+.b-about .b-aimy-mark { margin-top: 3px; }
+.b-about-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+/* A person has four groups: two by two, not three and a stray. */
+.b-about-grid.is-four { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.b-about-g {
+  position: relative; min-width: 0;
+  padding: 14px 16px 16px; border-radius: var(--r-lg);
+  border: 1px solid var(--card-border);
+}
+.b-about-gh {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 28px; margin-bottom: 10px;
+}
+.b-about-h {
+  margin: 0; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+}
+.b-about-dl { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.b-about-row {
+  display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 12px; align-items: baseline;
+}
+.b-about-row dt { font-size: var(--t-ui); color: var(--d200); }
+.b-about-row dd {
+  margin: 0; min-width: 0; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d50); line-height: var(--lh-snug); overflow-wrap: anywhere;
+}
+.b-about-row dd .s-inline-btn { font-weight: var(--fw-medium); }
+/* Not known is a state, said in words in the reading ink, not a faded value. */
+.b-about-none { font-weight: var(--fw-regular, 400); font-style: italic; color: var(--d100); }
+
+/* The mark. Checked: the icon alone, green. Out of date and partly known
+   carry their word beside the icon, amber and blue, because those two are
+   the ones a caller has to notice. */
+.b-conf-wrap .b-wait-pop { left: auto; right: 0; transform-origin: top right; }
+.b-conf {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  height: 28px; padding: 0 8px; border-radius: var(--r-pill);
+  border: 1px solid transparent; background: none; cursor: default;
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); white-space: nowrap;
+}
+.b-conf svg { width: 16px; height: 16px; flex: none; }
+.b-conf:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-conf.is-ok { color: var(--ok-text); padding: 0 6px; }
+.b-conf.is-old { color: var(--warn-text); border-color: color-mix(in srgb, var(--warn-text) 40%, transparent); }
+.b-conf.is-gap, .b-conf.is-none { color: var(--info); border-color: color-mix(in srgb, currentColor 35%, transparent); }
+.b-conf.is-busy { cursor: default; padding: 0; }
+
+/* A group being checked again breathes the way a card finding a number
+   does (`.b-qcard.is-finding`), on the same keyframes. */
+.b-about-g.is-checking::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.55), inset 0 0 32px rgba(var(--accent-rgb), 0.14);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .b-about-g.is-checking::before { animation: b-fill-breathe 1.6s ease-in-out infinite alternate; }
+  .b-about-prep { animation: b-fill-breathe 1.6s ease-in-out infinite alternate; }
+}
+.b-about-prep { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.45); }
+
+/* Narrow: the label goes over its value rather than squeezing it. */
+@media (max-width: 520px) {
+  .b-about-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .b-about-g { padding: 12px 14px 14px; }
+}

@@ -19329,6 +19329,557 @@
         : '');
   }
 
+  /* ══ ABOUT THEM: A SUMMARY AND THE DETAILS (AIMY-2738) ══════════════════
+     A company carried industry, city and headcount, and a person a name, a
+     title and their calls, so a caller opening either learned little about
+     who they were about to call. Both pages now carry an About block under
+     the masthead: AiMY's summary first, then the details in groups. Each
+     group has one confidence mark, and its popover says where the group's
+     facts came from and when (Nour, 23 Oct 2026: per group, not per fact).
+     Only the two dedicated pages get it. The cards elsewhere stay as they are.
+
+     NOTHING HERE DRAWS FROM THE SEED'S CURSOR. Every fact is read off a hash
+     of the record's id with its own salt, the way `onVideo` and the lost
+     reasons are, so the corpus behind it does not move by one row and a
+     record reads the same on every load.
+
+     Four states, spread across the seed and forced from the prototype panel:
+     everything known, only the basics known, the summary still being
+     written, and some of it out of date. What the two verbs here do (Find
+     out more, Check again) lasts for the session, like the numbers "Fill in
+     what is missing" finds. */
+  const hx = (id, salt, n) => Math.abs(hash(id + ':' + salt)) % n;
+  const hpick = (id, salt, xs) => xs[hx(id, salt, xs.length)];
+  /* `lo` to `hi` of a pool, distinct, starting somewhere the hash picks. */
+  const hsome = (id, salt, xs, lo, hi) => {
+    const n = Math.min(xs.length, lo + hx(id, salt + '#n', hi - lo + 1));
+    const at = hx(id, salt, xs.length);
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(xs[(at + i) % xs.length]);
+    return out;
+  };
+
+  /* Where a group's facts came from, said the way a sentence needs it. */
+  const PROF_SRC = {
+    apollo: 'on Apollo', site: 'on their website', li: 'on LinkedIn',
+    reg: 'in the company register', calls: 'from your calls',
+  };
+  /* Past a year a fact is flagged rather than trusted. */
+  const PROF_OLD_DAYS = 365;
+
+  /* The private form and the listed form, per country. */
+  const LEGAL = {
+    NL: ['B.V.', 'N.V.'], BE: ['BV', 'NV'], LU: ['S.à r.l.', 'S.A.'],
+    DE: ['GmbH', 'AG'], AT: ['GmbH', 'AG'], CH: ['GmbH', 'AG'],
+    DK: ['ApS', 'A/S'], SE: ['AB', 'AB (publ)'], NO: ['AS', 'ASA'], FI: ['Oy', 'Oyj'],
+    GB: ['Ltd', 'PLC'], IE: ['Ltd', 'PLC'],
+    FR: ['SAS', 'SA'], IT: ['S.r.l.', 'S.p.A.'], ES: ['S.L.', 'S.A.'], PT: ['Lda.', 'S.A.'], GR: ['IKE', 'S.A.'],
+    PL: ['sp. z o.o.', 'S.A.'], CZ: ['s.r.o.', 'a.s.'], HU: ['Kft.', 'Nyrt.'], RO: ['S.R.L.', 'S.A.'],
+    EG: ['LLC', 'S.A.E.'], AE: ['LLC', 'PJSC'], SA: ['LLC', 'JSC'], MA: ['SARL', 'S.A.'], JO: ['LLC', 'PSC'],
+  };
+  const EXCHANGE = {
+    NL: 'Euronext Amsterdam', BE: 'Euronext Brussels', LU: 'the Luxembourg Stock Exchange',
+    DE: 'the Frankfurt Stock Exchange', AT: 'the Vienna Stock Exchange', CH: 'SIX Swiss Exchange',
+    DK: 'Nasdaq Copenhagen', SE: 'Nasdaq Stockholm', NO: 'Euronext Oslo', FI: 'Nasdaq Helsinki',
+    GB: 'the London Stock Exchange', IE: 'Euronext Dublin', FR: 'Euronext Paris',
+    IT: 'Borsa Italiana', ES: 'the Madrid Stock Exchange', PT: 'Euronext Lisbon',
+    GR: 'the Athens Stock Exchange', PL: 'the Warsaw Stock Exchange', CZ: 'the Prague Stock Exchange',
+    HU: 'the Budapest Stock Exchange', RO: 'the Bucharest Stock Exchange', EG: 'the Egyptian Exchange',
+    AE: 'the Dubai Financial Market', SA: 'Tadawul', MA: 'the Casablanca Stock Exchange',
+    JO: 'the Amman Stock Exchange',
+  };
+  /* Standard offsets from UTC. The desk sells out of Cairo, so a caller is
+     told the gap from there, which is the arithmetic they would do anyway. */
+  const TZONE = {
+    GB: ['UK time', 0], IE: ['Irish time', 0], PT: ['Western European Time', 0],
+    FI: ['Eastern European Time', 2], GR: ['Eastern European Time', 2], RO: ['Eastern European Time', 2],
+    EG: ['Egypt time', 2], JO: ['Jordan time', 3], SA: ['Arabia time', 3], AE: ['Gulf time', 4],
+    MA: ['Morocco time', 1],
+  };
+  const tzOf = (cc) => TZONE[cc] || (COUNTRY_NAME[cc] ? ['Central European Time', 1] : null);
+  const tzSay = (cc) => {
+    const z = tzOf(cc);
+    if (!z) return null;
+    if (isBuyer()) return z[0];
+    const d = z[1] - 2;
+    const hrs = Math.abs(d) === 1 ? 'an hour' : Math.abs(d) + ' hours';
+    return z[0] + ', ' + (d === 0 ? 'the same as Cairo' : hrs + (d < 0 ? ' behind' : ' ahead of') + ' Cairo');
+  };
+  const DIAL = {
+    NL: '31', BE: '32', LU: '352', DE: '49', AT: '43', CH: '41', DK: '45', SE: '46', NO: '47',
+    FI: '358', GB: '44', IE: '353', FR: '33', IT: '39', ES: '34', PT: '351', GR: '30', PL: '48',
+    CZ: '420', HU: '36', RO: '40', EG: '20', AE: '971', SA: '966', MA: '212', JO: '962',
+  };
+  const LANGS = {
+    NL: ['Dutch'], BE: ['Dutch', 'French'], LU: ['French', 'German'], DE: ['German'], AT: ['German'],
+    CH: ['German', 'French'], DK: ['Danish'], SE: ['Swedish'], NO: ['Norwegian'], FI: ['Finnish'],
+    GB: [], IE: [], FR: ['French'], IT: ['Italian'], ES: ['Spanish'], PT: ['Portuguese'],
+    GR: ['Greek'], PL: ['Polish'], CZ: ['Czech'], HU: ['Hungarian'], RO: ['Romanian'],
+    EG: ['Arabic'], AE: ['Arabic'], SA: ['Arabic'], MA: ['Arabic', 'French'], JO: ['Arabic'],
+  };
+  /* What they sell and who to, per sector. No item has an "and" inside it,
+     so `joinAnd` over two of them still reads as two things. */
+  const OFFERS = {
+    software: ['field scheduling software', 'a billing platform', 'apps for their customers', 'implementation services'],
+    banking: ['mortgages', 'business loans', 'payment accounts', 'wealth management'],
+    logistics: ['road freight', 'warehousing', 'last-mile delivery', 'customs clearance'],
+    health: ['outpatient clinics', 'diagnostic testing', 'home care', 'video appointments'],
+    retail: ['homeware stores', 'an online shop', 'click-and-collect', 'a loyalty scheme'],
+    energy: ['electricity for homes', 'gas supply', 'solar installation', 'grid maintenance'],
+    public: ['degree courses', 'research', 'services for residents', 'adult education'],
+    telecom: ['fibre broadband', 'mobile plans', 'business connectivity', 'wholesale capacity'],
+    industry: ['precision components', 'contract manufacturing', 'product engineering', 'spare parts'],
+    hospitality: ['hotels', 'restaurants', 'conference venues', 'event catering'],
+  };
+  const BUYERS = {
+    software: ['utility companies', 'mid-market lenders', 'retail chains', 'public agencies'],
+    banking: ['households', 'small businesses', 'property investors', 'online merchants'],
+    logistics: ['grocery chains', 'online retailers', 'manufacturers', 'drug makers'],
+    health: ['patients sent by their doctor', 'hospital groups', 'insurers', 'care homes'],
+    retail: ['households', 'young families', 'trade customers', 'online shoppers'],
+    energy: ['households', 'small businesses', 'local councils', 'factories'],
+    public: ['students', 'residents', 'local businesses', 'researchers'],
+    telecom: ['households', 'small businesses', 'large companies', 'other carriers'],
+    industry: ['carmakers', 'medical device makers', 'aerospace suppliers', 'machine builders'],
+    hospitality: ['business travellers', 'tourists', 'event organisers', 'local diners'],
+  };
+  const TOOLS = ['Zendesk', 'Salesforce Service Cloud', 'Freshdesk', 'ServiceNow', 'Genesys Cloud',
+    'Five9', 'Jira', 'Intercom', 'HubSpot', 'Microsoft Dynamics 365', 'Talkdesk', 'SAP'];
+  /* Revenue a head, in thousands of euros, so a size makes a believable band. */
+  const PER_HEAD = { software: 160, banking: 300, logistics: 140, health: 90, retail: 180,
+    energy: 400, public: 70, telecom: 350, industry: 200, hospitality: 60 };
+  const HIRE_IN = ['support', 'quality', 'operations', 'engineering'];
+
+  /* "€9m to €14m", rounded the way a band is said out loud. */
+  const bandSay = (k) => {
+    const nice = (x) => (x < 10 ? Math.max(1, Math.round(x)) : x < 100 ? Math.round(x / 5) * 5 : Math.round(x / 50) * 50);
+    const m = k / 1000;
+    if (m < 1) return 'under €1m';
+    const lo = nice(m * 0.8);
+    const hi = Math.max(nice(m * 1.25), lo + 1);
+    return '€' + lo + 'm to €' + hi + 'm';
+  };
+  const yearsSay = (days) => {
+    const y = Math.floor(days / 365);
+    return y < 1 ? 'under a year' : y === 1 ? 'about a year' : 'about ' + y + ' years';
+  };
+  const timesSay = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : n + ' times');
+
+  /* ── The state of a record's profile ──
+     `PROF_FORCE` is the prototype panel's switch and wins outright. The
+     verbs write `PROF_OVR`, which a switch clears, so a forced state always
+     shows itself first and the verbs can be walked from it. */
+  let PROF_FORCE = '';
+  let PROF_OVR = Object.create(null);
+  const PROF_RUN = Object.create(null);     // id -> Find out more under way
+  const PROF_CHECK = Object.create(null);   // id|group -> Check again under way
+  const PROF_READY = Object.create(null);   // id -> a seeded summary finished writing
+  const PROF_TIMER = Object.create(null);
+  /* Typed in by hand, minted by the finder or added by a client: the
+     basics only, whatever the hash says. */
+  const profThin = (kind, rec) => (kind === 'acc'
+    ? (!/^a\d+$/.test(rec.id) || !accKnown(rec))
+    : (!/^p\d+$/.test(rec.id) || !!addedByClient(rec) || profThin('acc', accOf(rec) || { id: '' })));
+  function profState(kind, rec) {
+    if (PROF_RUN[rec.id]) return 'prep';
+    if (PROF_FORCE === 'prep') return 'prep';
+    const o = PROF_OVR[rec.id];
+    if (o && o.st) return o.st;
+    if (PROF_FORCE) return PROF_FORCE;
+    if (profThin(kind, rec)) return 'few';
+    const n = hx(rec.id, 'prof', 20);
+    const st = n < 13 ? 'full' : n < 15 ? 'few' : n < 18 ? 'old' : 'prep';
+    return st === 'prep' && PROF_READY[rec.id] ? 'full' : st;
+  }
+
+  /* ── A company's facts, grouped ──
+     Each group: a key, a heading, where it came from, when it was checked,
+     and its rows as [label, html or null]. Null is "not known yet". */
+  function accFacts(a, st) {
+    const id = a.id;
+    const ind = INDUSTRY[a.industry] ? a.industry : null;
+    const cc = a.country;
+    const pub = ind === 'public';
+    const few = st === 'few' || st === 'prep';
+    const big = (a.size || 0) >= 1600;
+    const ownK = pub ? 'pub' : hpick(id, 'own', big
+      ? ['listed', 'listed', 'private', 'group', 'pe', 'family']
+      : ['private', 'private', 'private', 'family', 'family', 'group', 'pe', 'listed']);
+    const legal = pub ? null : (LEGAL[cc] || ['Ltd', 'PLC'])[ownK === 'listed' ? 1 : 0];
+    const parent = hpick(id, 'par1', STEM_A) + hpick(id, 'par2', STEM_B) + ' Group';
+    const owner = {
+      pub: 'Publicly funded',
+      listed: 'Listed on ' + (EXCHANGE[cc] || 'the stock exchange'),
+      private: 'Privately owned',
+      family: 'Owned by the founding family',
+      group: 'Part of ' + parent,
+      pe: 'Owned by a private equity fund',
+    }[ownK];
+    const founded = 1952 + hx(id, 'founded', 68);
+    const offers = ind ? hsome(id, 'offer', OFFERS[ind], 2, 3) : [];
+    const buyers = ind ? hsome(id, 'buyer', BUYERS[ind], 1, 2) : [];
+    const reg = REGION[a.region];
+    const markets = cc
+      ? (hx(id, 'mkt', 3) === 0 ? [COUNTRY_NAME[cc] || cc]
+        : [COUNTRY_NAME[cc] || cc].concat(reg ? reg.cc.filter((x) => x !== cc).slice(0, 2).map((x) => COUNTRY_NAME[x]) : []))
+      : [];
+    /* Other offices: none for the small, up to three for the large, near
+       home first. */
+    const nOff = !a.size ? 0 : a.size < 140 ? hx(id, 'offn', 2) : a.size < 900 ? 1 + hx(id, 'offn', 2) : 2 + hx(id, 'offn', 2);
+    const near = CITIES.filter((x) => x[0] !== a.city && CC_REGION[x[1]] === a.region);
+    const far = CITIES.filter((x) => x[0] !== a.city && CC_REGION[x[1]] !== a.region);
+    const offices = hsome(id, 'off', near.length ? near : far, nOff, nOff)
+      .concat(nOff > 2 ? hsome(id, 'offfar', far, 1, 1) : []).slice(0, nOff)
+      .map((x) => x[0] + ', ' + (COUNTRY_NAME[x[1]] || x[1]));
+    const was = a.size ? Math.round(a.size * (0.84 + hx(id, 'grow', 27) / 100)) : 0;
+    const staff = a.size ? commas(a.size) + (was === a.size || Math.abs(was - a.size) / a.size < 0.03
+      ? ', about the same as a year ago'
+      : ', ' + (was < a.size ? 'up' : 'down') + ' from ' + commas(was) + ' a year ago') : null;
+    const rev = a.size && ind ? bandSay(a.size * PER_HEAD[ind] * (0.8 + hx(id, 'rev', 40) / 100)) + ' a year' : null;
+    const hires = hx(id, 'hire', 7);
+    const hireIn = hpick(id, 'hirein', HIRE_IN);
+    const tools = hsome(id, 'tools', TOOLS, 2, 3);
+    const liCo = String(a.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const link = (href, txt) => '<a class="s-inline-btn" href="' + esc(href) +
+      '" target="_blank" rel="noopener">' + esc(txt) + '</a>';
+    const k = (v) => (few ? null : v);
+    return [
+      { k: 'co', h: 'The company', src: 'reg', rows: [
+        ['Type', k(pub ? 'A public body' : esc(legal) + ', ' + (ownK === 'listed' ? 'a public' : 'a private') + ' limited company')],
+        ['Founded', k(String(founded))],
+        ['Ownership', k(esc(owner))],
+      ] },
+      { k: 'does', h: 'What they do', src: 'site', rows: [
+        ['Sells', k(esc(joinAnd(offers).replace(/^./, (x) => x.toUpperCase())))],
+        ['Customers', k(esc(joinAnd(buyers).replace(/^./, (x) => x.toUpperCase())))],
+        ['Markets', k(esc(joinAnd(markets)))],
+      ] },
+      { k: 'where', h: 'Where they are', src: 'li', rows: [
+        ['Head office', a.city ? esc(a.city + ', ' + (COUNTRY_NAME[cc] || cc)) : null],
+        ['Other offices', k(offices.length ? esc(joinAnd(offices)) : 'None')],
+        ['Time zone', cc && tzSay(cc) ? esc(tzSay(cc)) : null],
+      ] },
+      { k: 'size', h: 'Size and money', src: 'apollo', rows: [
+        ['Staff', staff ? (few ? esc(commas(a.size)) : esc(staff)) : null],
+        [pub ? 'Budget' : 'Revenue', k(rev ? esc(rev) : null)],
+        ['Hiring', k(hires ? esc(plural(hires, 'open role')) + ' in ' + hireIn : 'No open roles')],
+      ] },
+      { k: 'links', h: 'Tools and links', src: 'apollo', rows: [
+        ['Tools they use', k(esc(joinAnd(tools)))],
+        ['Website', a.domain ? link('https://' + a.domain, a.domain) : null],
+        ['LinkedIn', k(link('https://www.linkedin.com/company/' + liCo, 'linkedin.com/company/' + liCo))],
+      ] },
+    ].map((g) => Object.assign(g, { offers, buyers, offices, tools, hires, hireIn, founded, owner, ownK }));
+  }
+
+  function accSummary(a, st, gs) {
+    const g = gs[0];
+    if (st === 'few' || st === 'prep') {
+      const what = INDUSTRY[a.industry] ? 'a ' + INDUSTRY[a.industry].label.toLowerCase() + ' company' : 'a company';
+      return 'AiMY knows only the basics so far: ' + esc(a.name) + ' is ' + esc(what) +
+        (a.city ? ' in ' + esc(a.city) : '') + (a.size ? ' with ' + esc(commas(a.size)) + ' staff' : '') + '.';
+    }
+    const ownSay = {
+      pub: 'publicly funded', listed: 'listed', private: 'privately owned',
+      family: 'family-owned', group: 'part of a group', pe: 'owned by a private equity fund',
+    }[g.ownK];
+    let out = esc(a.name) + ' sells ' + esc(joinAnd(g.offers)) + ' to ' + esc(joinAnd(g.buyers)) + '. ' +
+      'Founded in ' + g.founded + ' and ' + esc(ownSay) + ', it has about ' + esc(commas(a.size)) +
+      ' people, with its head office in ' + esc(a.city) +
+      (g.offices.length ? ' and ' + plural(g.offices.length, 'other office') : '') + '. ';
+    const hire = g.hires ? ' and ' + (g.hires === 1 ? 'is' : 'are') + ' hiring ' + plural(g.hires, 'person', 'people') + ' in ' + g.hireIn : '';
+    const fit = IND_FIT[a.industry] && SELL[hpick(a.id, 'fit', IND_FIT[a.industry].fits)];
+    out += 'They run ' + esc(joinAnd(g.tools.slice(0, 2))) + esc(hire) +
+      (fit && seesGrade() ? ', which is where ' + esc(fit.name) + ' fits.' : '.');
+    return out;
+  }
+
+  /* ── A person's facts, grouped ── */
+  const SENIORITY = (t) => (/chief|^vp /i.test(t) ? ['Executive', 3, [80, 400]]
+    : /head of|director/i.test(t) ? ['Director', 2, [20, 120]]
+    : /manager/i.test(t) ? ['Manager', 1, [6, 40]] : ['Team lead', 0, [4, 12]]);
+  const DEPT = { support: 'Support and service', quality: 'Quality', tech: 'Technology', ops: 'Operations', other: 'Customer experience' };
+  const OWNS = {
+    support: 'the support centre, its people and its suppliers',
+    quality: 'testing and the quality of every release',
+    tech: 'the systems and the budget that pays for them',
+    ops: 'day-to-day operations and shared services',
+    other: 'how customers are looked after across every channel',
+  };
+  const DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  /* What the calls themselves say about reaching them. */
+  function conCalls(c) {
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const calls = callsIn(hist);
+    /* Picked up is any call where they themselves spoke, which a callback
+       or a no is as much as a conversation is. A gatekeeper is somebody else. */
+    const got = calls.filter((t) => ['reached', 'callback', 'not-interested', 'do-not-call'].indexOf(t.outcome) >= 0);
+    const last = calls.map((t) => t.at).sort().pop() || null;
+    let best = null;
+    if (got.length) {
+      const tally = Object.create(null);
+      got.forEach((t) => {
+        const d = new Date(t.at);
+        const key = DAY_NAME[d.getDay()] + (d.getHours() < 12 ? ' mornings' : ' afternoons');
+        tally[key] = (tally[key] || 0) + 1;
+      });
+      best = Object.keys(tally).sort((x, y) => tally[y] - tally[x])[0];
+    }
+    return { calls, got, last, best };
+  }
+
+  function conFacts(c, st) {
+    const id = c.id;
+    const a = accOf(c);
+    const cc = a && a.country;
+    const few = st === 'few' || st === 'prep';
+    const sen = SENIORITY(c.title);
+    const band = titleBand(c.title);
+    const roleDays = 120 + hx(id, 'role', 8 * 365);
+    const coDays = roleDays + (hx(id, 'co2', 3) ? hx(id, 'co', 6 * 365) : 0);
+    const team = sen[2][0] + hx(id, 'team', sen[2][1] - sen[2][0]);
+    const teamSay = team >= 20 ? 'About ' + Math.round(team / 10) * 10 + ' people' : 'About ' + team + ' people';
+    /* Who they report to: somebody senior in the same line at this company
+       when we have them, so the answer is a door; otherwise the role. */
+    const up = a ? consAt(a.id).filter((x) => x.id !== c.id && titleBand(x.title) === band &&
+      SENIORITY(x.title)[1] > sen[1]).sort((x, y) => SENIORITY(y.title)[1] - SENIORITY(x.title)[1])[0] : null;
+    const boss = up
+      ? '<button class="s-inline-btn" type="button" data-con="' + esc(up.id) + '">' + esc(up.name) + '</button>, ' + esc(up.title)
+      : esc(sen[1] >= 3 ? 'The chief executive' : sen[1] === 2 ? 'The chief operating officer' : 'The head of ' + (DEPT[band] || 'operations').toLowerCase());
+    const before = TITLES.filter((t) => titleBand(t) === band && SENIORITY(t)[1] <= sen[1]);
+    const prev = (before.length ? hpick(id, 'prevt', before) : c.title) + ' at ' +
+      hpick(id, 'pa', STEM_A) + hpick(id, 'pb', STEM_B) + ' ' + hpick(id, 'ps', SUFFIX[(a && INDUSTRY[a.industry]) ? a.industry : 'software']);
+    const where = a && a.city ? a.city + ', ' + (COUNTRY_NAME[cc] || cc) : null;
+    const langs = cc ? (LANGS[cc] || []).concat(['English']) : null;
+    const k = (v) => (few ? null : v);
+    const r = conCalls(c);
+    const sw = cc && DIAL[cc] ? '+' + DIAL[cc] + ' ' + (10 + hx(a.id, 'sw1', 89)) + ' ' + (100 + hx(a.id, 'sw2', 899)) + ' ' + (1000 + hx(a.id, 'sw3', 8999)) : null;
+    const prefers = r.got.length ? hpick(id, 'pref', ['A call', 'A call', 'Email first, then a call', 'A message on LinkedIn first']) : null;
+    return [
+      { k: 'job', h: 'Their job', src: 'li', rows: [
+        ['Job title', esc(c.title)],
+        ['Seniority', esc(sen[0])],
+        ['Department', esc(DEPT[band] || 'Operations')],
+        ['In the role', k('Since ' + esc(monthYear(isoAdd(TODAY_ISO, -roleDays))) + ', ' + esc(yearsSay(roleDays)))],
+        ['Runs', k(esc(teamSay))],
+      ] },
+      { k: 'line', h: 'Who they work with', src: 'li', rows: [
+        ['Reports to', k(boss)],
+        ['At the company', k('Since ' + esc(String(Number(isoAdd(TODAY_ISO, -coDays).slice(0, 4)))) + ', ' + esc(yearsSay(coDays)))],
+        ['Before this', k(esc(prev))],
+      ] },
+      { k: 'place', h: 'Where and when', src: 'apollo', rows: [
+        ['Based in', where ? esc(where) : null],
+        ['Time zone', cc && tzSay(cc) ? esc(tzSay(cc)) : null],
+        ['Languages', k(langs ? esc(joinAnd(langs)) : null)],
+      ] },
+      { k: 'reach', h: 'Reaching them', src: 'calls', rows: [
+        ['Best time to call', r.best ? esc(r.best) + ', when they have picked up before' : null],
+        ['Prefers', prefers ? esc(prefers) : null],
+        ['Office line', k(sw ? '<a class="s-inline-btn" href="tel:' + esc(sw.replace(/\s/g, '')) + '">' + esc(sw) + '</a>' : null)],
+      ] },
+    ].map((g) => Object.assign(g, { sen, band, roleDays, calls: r }));
+  }
+
+  function conSummary(c, st, gs) {
+    const a = accOf(c);
+    const first = c.name.split(' ')[0];
+    const g = gs[0];
+    const r = g.calls;
+    const n = r.calls.length;
+    const calls = !n ? 'Nobody has called them yet.'
+      : !r.got.length ? 'Called ' + timesSay(n) + ' and nobody has picked up yet.'
+      : 'Called ' + timesSay(n) + ' and they picked up ' + timesSay(r.got.length) +
+        ', last on ' + sayDay(r.last) + '; ' + rg2(c) + '.';
+    if (st === 'few' || st === 'prep') {
+      return 'AiMY knows only the basics so far: ' + esc(first) + ' is ' + esc(c.title) +
+        (a ? ' at ' + esc(a.name) : '') + '. ' + esc(calls);
+    }
+    return esc(first) + ' is ' + esc(c.title) + (a ? ' at ' + esc(a.name) : '') + ', a ' +
+      esc(g.sen[0].toLowerCase()) + ' role they have held for ' + esc(yearsSay(g.roleDays)) +
+      ', responsible for ' + esc(OWNS[g.band] || OWNS.other) + '. ' + esc(calls);
+  }
+
+  /* ── When each group was checked, and how sure the group is ── */
+  function profGroups(kind, rec, st) {
+    const gs = kind === 'acc' ? accFacts(rec, st) : conFacts(rec, st);
+    /* Out of date: two groups, picked by the hash, checked over a year ago. */
+    const stale = st === 'old'
+      ? [hx(rec.id, 'old1', gs.length), (hx(rec.id, 'old1', gs.length) + 1 + hx(rec.id, 'old2', gs.length - 1)) % gs.length]
+      : [];
+    const o = PROF_OVR[rec.id] || {};
+    const r = kind === 'con' ? gs[0].calls : null;
+    gs.forEach((g, i) => {
+      g.at = (o.at && o.at[g.k]) ||
+        (g.src === 'calls' ? (r.last ? r.last.slice(0, 10) : null)
+          : stale.indexOf(i) >= 0 ? isoAdd(TODAY_ISO, -(400 + hx(rec.id, 'at' + g.k, 220)))
+          : isoAdd(TODAY_ISO, -(st === 'few' ? 1 + hx(rec.id, 'at' + g.k, 20) : 4 + hx(rec.id, 'at' + g.k, 70))));
+      const gaps = g.rows.filter((x) => x[1] == null).length;
+      g.gaps = gaps;
+      g.conf = PROF_CHECK[rec.id + '|' + g.k] ? 'busy'
+        : st === 'prep' ? 'busy'
+        : gaps === g.rows.length ? 'none'
+        : g.at && daysBetween(g.at, TODAY_ISO) > PROF_OLD_DAYS ? 'old'
+        : gaps ? 'gap' : 'ok';
+    });
+    return gs;
+  }
+
+  /* The mark and its popover: where this group came from, when, and the one
+     verb that would make it surer. */
+  function confMark(rec, g, st) {
+    /* While the whole summary is being written the rows say Looking, and
+       the head saying it again over each of them is five more of one word. */
+    if (g.conf === 'busy') {
+      return st === 'prep' ? ''
+        : '<span class="b-conf is-busy"><span class="b-fill-say">Checking again</span></span>';
+    }
+    const tip = 'conf-' + rec.id + '-' + g.k;
+    const src = PROF_SRC[g.src];
+    const when = g.at ? sayWhen(g.at) : null;
+    const name = g.h.toLowerCase();
+    const unknown = g.rows.filter((x) => x[1] == null).map((x) => x[0].toLowerCase());
+    let icon = 'badge-check';
+    let word = '';
+    let say;
+    if (g.conf === 'old') {
+      icon = 'clock-alert';
+      word = 'May be out of date';
+      say = '<b>May be out of date.</b> Last checked ' + esc(src) + ' in ' + esc(monthYear(g.at)) +
+        ', over a year ago.' +
+        '<br><button class="s-inline-btn" type="button" data-profcheck="' + esc(rec.id + '|' + g.k) + '">Check again</button>';
+    } else if (g.conf === 'none' || g.conf === 'gap') {
+      icon = 'circle-help';
+      word = g.conf === 'none' ? 'Not known yet' : 'Partly known';
+      say = '<b>' + (g.conf === 'none' ? 'Not known yet.' : 'Partly known.') + '</b> ' +
+        (g.src === 'calls'
+          ? 'This comes from your calls, and nobody has got through to them yet.'
+          : 'AiMY has not found ' + esc(joinAnd(unknown)) + ' yet.' +
+            (works() ? '<br><button class="s-inline-btn" type="button" data-profmore="' + esc(rec.id) + '">Find out more</button>' : ''));
+    } else {
+      say = '<b>Checked ' + esc(when) + '</b> ' + esc(src) + '.' +
+        (g.src === 'calls' ? '' : ' Nothing here is over a year old.');
+    }
+    const label = word || ('Checked ' + when);
+    return '<span class="b-wait-info b-conf-wrap">' +
+      '<button class="b-conf ' + ({ ok: 'is-ok', old: 'is-old', gap: 'is-gap', none: 'is-none' })[g.conf] +
+        '" type="button" aria-describedby="' + esc(tip) + '"' +
+        (word ? '' : ' aria-label="' + esc(label + ', ' + name) + '"') + '>' +
+        chIcon(icon) + (word ? '<span>' + esc(word) + '</span>' : '') + '</button>' +
+      '<span class="b-wait-pop" role="tooltip" id="' + esc(tip) + '">' + say + '</span>' +
+    '</span>';
+  }
+
+  /* A seeded summary still being written finishes on its own a few seconds
+     after the page first shows it, unless the panel is holding it there. */
+  function profFinishLater(id) {
+    if (PROF_FORCE === 'prep' || PROF_RUN[id] || PROF_TIMER[id]) return;
+    PROF_TIMER[id] = setTimeout(() => {
+      delete PROF_TIMER[id];
+      if (PROF_FORCE === 'prep') return;
+      PROF_READY[id] = 1;
+      if (byId('about-' + id)) paint();
+    }, 6000);
+  }
+
+  function aboutBlock(kind, rec) {
+    const st = profState(kind, rec);
+    const gs = profGroups(kind, rec, st);
+    const name = kind === 'acc' ? rec.name : rec.name.split(' ')[0];
+    if (st === 'prep' && !PROF_RUN[rec.id]) profFinishLater(rec.id);
+    const olds = gs.filter((g) => g.conf === 'old').length;
+    const newest = gs.map((g) => g.at).filter(Boolean).sort().pop();
+    const head = st === 'prep' ? 'AiMY is writing this now'
+      : olds ? 'Some of this may be out of date'
+      : st === 'few' ? 'Only the basics so far'
+      : newest ? 'Checked ' + sayWhen(newest) : '';
+    let summary;
+    if (st === 'prep') {
+      summary = '<div class="b-aimy b-about-prep" aria-busy="true">' +
+        '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="b-aimy-say"><span class="b-fill-say">AiMY is reading ' +
+          (kind === 'acc' ? 'their website, Apollo and LinkedIn' : 'LinkedIn, Apollo and your calls') +
+          ' to write a summary of ' + esc(name) + '.</span></span>' +
+      '</div>';
+    } else {
+      const text = kind === 'acc' ? accSummary(rec, st, gs) : conSummary(rec, st, gs);
+      const more = st === 'few' && works()
+        ? '<button class="s-insight-lnk" type="button" data-profmore="' + esc(rec.id) + '">Find out more</button>' : '';
+      summary = aimyBlock({ text: text, from: st === 'few' ? 'what we hold'
+        : kind === 'acc' ? 'from their website, Apollo and LinkedIn' : 'from LinkedIn, Apollo and your calls' }, false, more);
+    }
+    const unk = st === 'prep' ? '<span class="b-fill-say">Looking</span>' : '<span class="b-about-none">Not known yet</span>';
+    return '<section class="s-block s-block-wide b-about" id="about-' + esc(rec.id) + '" aria-label="About ' + esc(rec.name) + '">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">About ' + esc(kind === 'acc' ? rec.name : name) + '</h2>' +
+        (head ? '<span class="s-block-say">' + esc(head) + '</span>' : '') +
+      '</div>' +
+      summary +
+      '<div class="b-about-grid' + (gs.length === 4 ? ' is-four' : '') + '">' +
+        gs.map((g) =>
+          '<div class="b-about-g' + (PROF_CHECK[rec.id + '|' + g.k] ? ' is-checking' : '') + '">' +
+            '<div class="b-about-gh">' +
+              '<h3 class="b-about-h">' + esc(g.h) + '</h3>' +
+              confMark(rec, g, st) +
+            '</div>' +
+            '<dl class="b-about-dl">' +
+              g.rows.map((x) => '<div class="b-about-row"><dt>' + esc(x[0]) + '</dt><dd>' +
+                (x[1] == null ? unk : x[1]) + '</dd></div>').join('') +
+            '</dl>' +
+          '</div>').join('') +
+      '</div>' +
+    '</section>';
+  }
+
+  /* Find out more: the whole profile, the same six seconds a number takes. */
+  function profMore(id) {
+    const rec = DB.byAcc[id] || DB.byCon[id];
+    if (!rec || PROF_RUN[id]) return;
+    PROF_RUN[id] = 1;
+    paint();
+    setTimeout(() => {
+      delete PROF_RUN[id];
+      const before = PROF_OVR[id];
+      const at = {};
+      ['co', 'does', 'where', 'size', 'links', 'job', 'line', 'place'].forEach((k) => (at[k] = TODAY_ISO));
+      PROF_OVR[id] = { st: 'full', at: at };
+      if (byId('about-' + id)) paint();
+      toast('AiMY found more about ' + rec.name, () => {
+        if (before) PROF_OVR[id] = before; else delete PROF_OVR[id];
+        paint();
+      }, 'The summary and the details are filled in.');
+    }, 6000);
+  }
+
+  /* Check again: one group, against the source it came from. */
+  function profCheck(key) {
+    const bits = key.split('|');
+    const id = bits[0];
+    const g = bits[1];
+    const rec = DB.byAcc[id] || DB.byCon[id];
+    if (!rec || PROF_CHECK[key]) return;
+    const kind = DB.byAcc[id] ? 'acc' : 'con';
+    const st = profState(kind, rec);
+    const grp = profGroups(kind, rec, st).filter((x) => x.k === g)[0];
+    if (!grp) return;
+    PROF_CHECK[key] = 1;
+    paint();
+    setTimeout(() => {
+      delete PROF_CHECK[key];
+      const before = PROF_OVR[id];
+      const next = Object.assign({}, before || {});
+      next.at = Object.assign({}, next.at || {});
+      next.at[g] = TODAY_ISO;
+      PROF_OVR[id] = next;
+      if (byId('about-' + id)) paint();
+      toast(grp.h + ': checked again ' + PROF_SRC[grp.src], () => {
+        if (before) PROF_OVR[id] = before; else delete PROF_OVR[id];
+        paint();
+      }, 'Nothing had changed.');
+    }, 2400);
+  }
+
   function accPage() {
     const a = DB.byAcc[S.acc];
     if (!a) {
@@ -19547,6 +20098,8 @@
           accHandBtn(people) +
         '</div>' +
       '</section>' +
+
+      aboutBlock('acc', a) +
 
       /* `custStory` is the story of OUR relationship with this company —
          what they pay, what we have billed, their tier, when we are next
@@ -20295,6 +20848,8 @@
          hold — the first thing after who this is, because it is the only
          thing on the page that is owed. */
       stateBlock(c) +
+
+      aboutBlock('con', c) +
 
       storyBlock(storyOf(c)) +
 
@@ -22531,6 +23086,13 @@
           (UI.quiet ? 'Sound on' : 'Sound off') + '</button>' +
       '</div>' +
       '<div class="proto-sec">' +
+        '<div class="proto-h">About, on company and contact pages</div>' +
+        [['', 'As the seed has it'], ['full', 'Everything known'], ['few', 'Only the basics known'],
+          ['prep', 'Summary being written'], ['old', 'Some of it out of date']].map((x) =>
+          '<button class="proto-link" type="button" data-profset="' + x[0] + '" aria-pressed="' +
+            (PROF_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
+      '</div>' +
+      '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
         /* The gap is in the label because it is the whole reason to press
            it, and on a demo opened the same day there is no gap to state. */
@@ -22786,6 +23348,9 @@
      every surface. Nothing that already has a word gets one. */
   const ICONS = {
     dot: '<circle cx="12" cy="12" r="10"/>',
+    'badge-check': '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/> <path d="m9 12 2 2 4-4"/>',
+    'clock-alert': '<path d="M12 6v6l4 2"/> <path d="M16 21.16a10 10 0 1 1 5-13.516"/> <path d="M20 11.5v6"/> <path d="M20 21.5h.01"/>',
+    'circle-help': '<circle cx="12" cy="12" r="10"/> <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/> <path d="M12 17h.01"/>',
     mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/> <path d="M19 10v2a7 7 0 0 1-14 0v-2"/> <line x1="12" x2="12" y1="19" y2="22"/>',
     'mic-off': '<line x1="2" x2="22" y1="2" y2="22"/> <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/> <path d="M5 10v2a7 7 0 0 0 12 5"/> <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/> <path d="M9 9v3a3 3 0 0 0 5.12 2.12"/> <line x1="12" x2="12" y1="19" y2="22"/>',
     play: '<polygon points="6 3 20 12 6 21 6 3"/>',
@@ -32945,6 +33510,12 @@
       return;
     }
 
+    /* The About block's two verbs (AIMY-2738). */
+    const pmore = t.closest('[data-profmore]');
+    if (pmore) { profMore(pmore.getAttribute('data-profmore')); return; }
+    const pcheck = t.closest('[data-profcheck]');
+    if (pcheck) { profCheck(pcheck.getAttribute('data-profcheck')); return; }
+
     const cedit = t.closest('[data-cedit]');
     if (cedit) {
       const id = cedit.getAttribute('data-cedit');
@@ -33538,6 +34109,17 @@
     if (as) {
       shutMenus(null);
       go({ as: as.getAttribute('data-as') === DEFAULT_ME ? '' : as.getAttribute('data-as') });
+      return;
+    }
+
+    /* Force one About state on every company and contact page, for the
+       session. It clears what the verbs did, so the state shows itself. */
+    const pset = t.closest('[data-profset]');
+    if (pset) {
+      PROF_FORCE = pset.getAttribute('data-profset');
+      PROF_OVR = Object.create(null);
+      paintProto();
+      paint();
       return;
     }
 
