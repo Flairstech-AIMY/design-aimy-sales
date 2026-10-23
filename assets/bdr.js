@@ -20065,7 +20065,9 @@
 
   /* Session state: the prototype switch, filters, items still loading. */
   let NEWS_FORCE = '';
-  let NEWS_F = { acc: '', type: 'all', days: NEWS_YEAR, strong: false };
+  let NEWS_F = { acc: '', type: 'all', days: NEWS_YEAR, strong: false, more: false };
+  /* Five items, then "Show N more": a long year stays a short read. */
+  const NEWS_CAP = 5;
   const NEWS_READY = Object.create(null);
   const NEWS_TIMER = Object.create(null);
   const NEWS_FINDING = Object.create(null);
@@ -20192,7 +20194,7 @@
   };
 
   function newsFilter(a) {
-    if (NEWS_F.acc !== a.id) NEWS_F = { acc: a.id, type: 'all', days: NEWS_YEAR, strong: false };
+    if (NEWS_F.acc !== a.id) NEWS_F = { acc: a.id, type: 'all', days: NEWS_YEAR, strong: false, more: false };
     return NEWS_F;
   }
 
@@ -20332,12 +20334,18 @@
       const leadId = (shown.filter((x) => !x.pending && x.strength === 3 &&
         daysBetween(x.at, TODAY_ISO) <= 31)[0] || {}).id;
       let last = '';
-      list = shown.map((x, i) => {
+      const cut = F.more ? shown : shown.slice(0, NEWS_CAP);
+      list = cut.map((x, i) => {
         const g = newsWhen(x.at);
         const head = g !== last ? '<h3 class="b-news-when"><span>' + esc(g) + '</span></h3>' : '';
         last = g;
         return head + newsRow(a, x, i, who, x.id === leadId);
-      }).join('');
+      }).join('') +
+      (shown.length > NEWS_CAP
+        ? '<button class="b-news-more" type="button" data-newsmore aria-expanded="' + F.more + '">' +
+            '<span>' + (F.more ? 'Show fewer' : 'Show ' + (shown.length - NEWS_CAP) + ' more') + '</span>' +
+            '<span class="b-news-chev" aria-hidden="true">' + chIcon('chev-down') + '</span></button>'
+        : '');
     }
 
     /* ══ THEIR MARKET, AS CARDS THAT GO WHERE THERE IS ROOM ═════════════
@@ -20373,18 +20381,33 @@
           from: 'the strongest signal in the last three months' }, false)
       : '';
 
-    return '<section class="s-block s-block-wide b-news" id="news-' + esc(a.id) + '" aria-label="News and signals">' +
+    /* ══ FOLDED, THE SECTION IS ITS HEAD AND AiMY'S LINE ═══════════════
+       Nour, 23 Oct 2026: it might get too long. One press folds the filters,
+       the feed and the market away; the count and the strongest signal stay,
+       so folding it never hides the one thing worth raising. The choice is
+       remembered (`UI.newsShut`) because it is about how this reader likes
+       the page, not about one company. */
+    const open = !UI.newsShut;
+    return '<section class="s-block s-block-wide b-news" id="news-' + esc(a.id) + '" data-open="' + open + '" aria-label="News and signals">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">News and signals</h2>' +
         '<span class="s-block-say">' + (ready.length
           ? esc(plural(ready.length, 'item')) + ' in the last year' + (fresh ? ', ' + fresh + ' new' : '')
           : all.length ? 'Reading a new item now' : 'Nothing yet') + '</span>' +
+        '<button class="b-news-fold" type="button" data-newsfold aria-expanded="' + open +
+          '" aria-controls="newsBody-' + esc(a.id) + '">' +
+          '<span class="b-news-fold-w">' + (open ? 'Collapse' : 'Expand') + '</span>' +
+          '<span class="b-news-chev" aria-hidden="true">' + chIcon('chev-down') + '</span></button>' +
       '</div>' +
       recap +
-      controls +
-      '<div class="b-news-grid ' + (!market ? 'is-solo' : side ? 'is-side' : 'is-stacked') + '">' +
-        '<div class="b-news-list" id="newsList">' + list + '</div>' +
-        market +
+      '<div class="b-news-panel" id="newsBody-' + esc(a.id) + '"' + (open ? '' : ' inert') + '>' +
+        '<div class="b-news-panel-in">' +
+          controls +
+          '<div class="b-news-grid ' + (!market ? 'is-solo' : side ? 'is-side' : 'is-stacked') + '">' +
+            '<div class="b-news-list" id="newsList">' + list + '</div>' +
+            market +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</section>';
   }
@@ -34128,13 +34151,27 @@
     const nsec = t.closest('.b-news');
     const nacc = nsec ? DB.byAcc[nsec.id.replace(/^news-/, '')] : null;
     if (nacc) {
+      if (t.closest('[data-newsfold]')) {
+        /* In place, so the panel's rows tween rather than the page redrawing. */
+        UI.newsShut = !UI.newsShut;
+        saveUI();
+        const open = !UI.newsShut;
+        nsec.setAttribute('data-open', String(open));
+        const fb = nsec.querySelector('.b-news-fold');
+        fb.setAttribute('aria-expanded', String(open));
+        fb.querySelector('.b-news-fold-w').textContent = open ? 'Collapse' : 'Expand';
+        const body = nsec.querySelector('.b-news-panel');
+        if (open) { body.removeAttribute('inert'); newsPill(nsec, null); } else body.setAttribute('inert', '');
+        return;
+      }
+      if (t.closest('[data-newsmore]')) { NEWS_F.more = !NEWS_F.more; newsRepaint(nacc.id, 'filter'); return; }
       const ntype = t.closest('[data-newstype]');
       if (ntype) { NEWS_F.type = ntype.getAttribute('data-newstype'); newsRepaint(nacc.id, 'filter'); return; }
       const ndays = t.closest('[data-newsdays]');
       if (ndays) { NEWS_F.days = Number(ndays.getAttribute('data-newsdays')); newsRepaint(nacc.id, 'filter'); return; }
       if (t.closest('[data-newsstrong]')) { NEWS_F.strong = !NEWS_F.strong; newsRepaint(nacc.id, 'filter'); return; }
       if (t.closest('[data-newsreset]')) {
-        NEWS_F = { acc: nacc.id, type: 'all', days: NEWS_YEAR, strong: false };
+        NEWS_F = { acc: nacc.id, type: 'all', days: NEWS_YEAR, strong: false, more: false };
         newsRepaint(nacc.id, 'filter');
         return;
       }

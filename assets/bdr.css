@@ -7703,3 +7703,56 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-news-grid.is-side .b-news-mcards,
   .b-news-grid.is-stacked .b-news-mcards { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ══ 107b. FOLDING THE SECTION, AND THE FEED'S CAP ════════════════════════════
+   transitions.dev's accordion at its tokens: rows 0fr to 1fr over 250ms
+   smooth-out, the inner fading and un-blurring with it, and the chevron
+   flipped with scaleY so it animates in every browser. The head and AiMY's
+   line stay outside the fold. */
+.b-news .s-camp-list-head { align-items: center; }
+.b-news-fold {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 12px;
+  margin-left: 4px; border-radius: var(--r-pill); border: 1px solid var(--card-border);
+  background: var(--card-bg-raised); cursor: pointer;
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: border-color 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
+}
+.b-news-fold:hover { border-color: var(--card-border-hover); color: var(--d50); }
+/* Wide enough for either word, so the button keeps its width when it flips. */
+.b-news-fold-w { min-width: 4.6em; text-align: left; }
+.b-news-fold:active { transform: scale(0.97); }
+.b-news-fold:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-news-chev { display: inline-flex; transform: scaleY(1); transform-origin: center; transition: transform 250ms var(--news-ease); }
+.b-news-chev svg { width: 14px; height: 14px; }
+.b-news-chev path { vector-effect: non-scaling-stroke; }
+.b-news[data-open="true"] .b-news-fold .b-news-chev,
+.b-news-more[aria-expanded="true"] .b-news-chev { transform: scaleY(-1); }
+
+.b-news-panel {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 250ms var(--news-ease);
+}
+.b-news[data-open="true"] .b-news-panel { grid-template-rows: 1fr; }
+.b-news-panel-in {
+  min-height: 0; overflow: hidden; opacity: 0; filter: blur(2px);
+  transition: opacity 250ms var(--news-ease), filter 250ms var(--news-ease);
+}
+.b-news[data-open="true"] .b-news-panel-in { opacity: 1; filter: none; overflow: visible; }
+/* Folded, AiMY's line is the last thing in the section, so it loses the
+   gap it kept above the filters. */
+.b-news[data-open="false"] .b-aimy { margin-bottom: 0; }
+
+/* The cap: one quiet full-width press at the foot of the feed. */
+.b-news-more {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+  margin: 4px 0 6px; height: 38px; border-radius: var(--r-md);
+  border: 1px solid var(--card-border); background: var(--card-bg-raised); cursor: pointer;
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: border-color 150ms ease-out, color 150ms ease-out;
+}
+.b-news-more:hover { border-color: var(--card-border-hover); color: var(--d50); }
+.b-news-more:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .b-news-panel, .b-news-panel-in, .b-news-chev, .b-news-fold, .b-news-more { transition: none !important; }
+}
