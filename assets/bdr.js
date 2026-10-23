@@ -20225,17 +20225,12 @@
       acts.push('<button class="b-news-act" type="button" data-newsread="' + esc(x.id) + '">' +
         chIcon('external') + '<span>Read it</span></button>');
     }
-    if (works()) {
-      acts.push('<button class="b-news-act' + (x.brief ? ' is-on' : '') + '" type="button" data-newsbrief="' + esc(x.id) + '" aria-pressed="' + x.brief + '">' +
-        chIcon(x.brief ? 'check' : 'clipboard-plus') + '<span>' + (x.brief ? 'In the brief' : 'Add to the brief') + '</span></button>');
-      if (who) {
-        acts.push('<button class="b-news-act" type="button" data-newscall="' + esc(x.id + '|' + who.id) + '">' +
-          chIcon('phone') + '<span>Call ' + esc(first) + ' about it</span></button>');
-      }
-    }
-    if (x.isNew) {
-      acts.push('<button class="b-news-act" type="button" data-newsseen="' + esc(x.id) + '">' +
-        chIcon('eye') + '<span>Mark seen</span></button>');
+    /* Two verbs: read it, or call about it. Add to the brief and Mark seen
+       went (Nour, 23 Oct 2026: "we don't need those"); reading or calling
+       marks the item seen, and calling puts it in the brief. */
+    if (works() && who) {
+      acts.push('<button class="b-news-act" type="button" data-newscall="' + esc(x.id + '|' + who.id) + '">' +
+        chIcon('phone') + '<span>Call ' + esc(first) + ' about it</span></button>');
     }
     return '<article class="b-news-item ' + S.cls + (x.isNew ? ' is-new' : '') + (lead ? ' is-lead' : '') +
         '" style="--i:' + Math.min(i, 8) + '">' +
@@ -24030,8 +24025,6 @@
     'signal-high': '<path d="M2 20h.01"/> <path d="M7 20v-4"/> <path d="M12 20v-8"/> <path d="M17 20V8"/>',
     'signal-medium': '<path d="M2 20h.01"/> <path d="M7 20v-4"/> <path d="M12 20v-8"/>',
     'signal-low': '<path d="M2 20h.01"/> <path d="M7 20v-4"/>',
-    'eye': '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/> <circle cx="12" cy="12" r="3"/>',
-    'clipboard-plus': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/> <path d="M9 14h6"/> <path d="M12 17v-6"/>',
     'link-2-off': '<path d="M9 17H7A5 5 0 0 1 7 7"/> <path d="M15 7h2a5 5 0 0 1 4 8"/> <line x1="8" x2="12" y1="12" y2="12"/> <line x1="2" x2="22" y1="2" y2="22"/>',
     'newspaper': '<path d="M15 18h-5"/> <path d="M18 14h-8"/> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/> <rect width="8" height="4" x="10" y="6" rx="1"/>',
     'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/> <path d="M21 3v5h-5"/> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/> <path d="M8 16H3v5"/>',
@@ -34213,31 +34206,12 @@
     const nsec = t.closest('[data-newsacc]');
     const nacc = nsec ? DB.byAcc[nsec.getAttribute('data-newsacc')] : null;
     if (nacc) {
-      const nseen = t.closest('[data-newsseen]');
-      if (nseen) {
-        const id = nseen.getAttribute('data-newsseen');
-        newsD().seen[id] = 1; save(); newsRepaint(nacc.id);
-        toast('Marked as seen', () => { delete newsD().seen[id]; save(); newsRepaint(nacc.id); });
-        return;
-      }
       const nread = t.closest('[data-newsread]');
       if (nread) {
         const id = nread.getAttribute('data-newsread');
         const x = newsFeed(nacc).filter((y) => y.id === id)[0];
         newsD().seen[id] = 1; save(); newsRepaint(nacc.id);
         toast('Opening it on ' + (x ? x.src : 'the source'), null, 'The prototype has no real articles behind its news.');
-        return;
-      }
-      const nbrief = t.closest('[data-newsbrief]');
-      if (nbrief) {
-        const id = nbrief.getAttribute('data-newsbrief');
-        const was = !!newsD().brief[id];
-        if (was) delete newsD().brief[id]; else newsD().brief[id] = 1;
-        save(); newsRepaint(nacc.id);
-        toast(was ? 'Taken out of the brief' : 'Added to the brief for the next call', () => {
-          if (was) newsD().brief[id] = 1; else delete newsD().brief[id];
-          save(); newsRepaint(nacc.id);
-        });
         return;
       }
       const ncall = t.closest('[data-newscall]');

@@ -7547,7 +7547,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-news-act:hover { background: var(--card-bg-raised); color: var(--d50); }
 .b-news-act:active { transform: scale(0.97); }
 .b-news-act:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-.b-news-act.is-on { color: var(--ok-text); }
 .b-news-act.is-busy { cursor: default; }
 .b-news-act.is-solid {
   height: 34px; padding: 0 14px; color: var(--accent);
@@ -7649,19 +7648,18 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-news .s-camp-list-head { align-items: center; }
 .b-news-sumpanel { padding: 10px 22px 18px; }
 .b-news-sumpanel .b-news-item.is-lead { margin: 8px -14px 0; }
-.b-news-rest {
-  display: flex; align-items: center; gap: 12px;
-  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);
-}
-.b-news-rest.is-alone { margin-top: 6px; padding-top: 8px; border-top: 0; }
-.b-news-rest .b-aimy-mark { flex: none; align-self: flex-start; margin-top: 3px; }
+/* No rule above it, the mark on the text's own line, and the door at the
+   far right edge (Nour, 23 Oct 2026). */
+.b-news-rest { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.b-news-rest.is-alone { margin-top: 6px; }
+.b-news-rest .b-aimy-mark { flex: none; }
 .b-news-rest-say {
-  flex: 1; min-width: 0; margin: 0; max-width: 78ch;
+  flex: 1; min-width: 0; margin: 0;
   font-size: var(--t-ui); line-height: var(--lh-base); color: var(--d100);
 }
 .b-news-rest-say b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-news-open {
-  flex: none; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 14px;
+  flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 14px;
   border-radius: var(--r-pill); border: 1px solid rgba(var(--accent-rgb), 0.35);
   background: var(--accent-dim); color: var(--accent); cursor: pointer; white-space: nowrap;
   font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
