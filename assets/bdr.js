@@ -4428,7 +4428,6 @@
     paintProto();
     guardBack();
     postPaint(pre);
-    newsPill(byId('wbStage'));
     /* Put down by the paint that used it, so the next one — a write, a page
        of the queue — draws its cards plain unless go() says otherwise. */
     SKEL_ON = false;
@@ -19994,7 +19993,6 @@
     industry: { label: 'Their industry', icon: 'globe' },
     rival:    { label: 'Competitors', icon: 'swords' },
   };
-  const NEWS_ORDER = ['funding', 'people', 'contract', 'launch', 'partner', 'deal', 'results', 'legal', 'trouble', 'visit'];
   const NEWS_K_TYPE = { funded: 'funding', grew: 'launch', bought: 'deal', hiring: 'people', exec: 'people',
     shipped: 'launch', ruled: 'legal', broke: 'trouble', tender: 'contract', partner: 'partner', results: 'results' };
   const NEWS_BASE = { funded: 3, exec: 3, tender: 3, ruled: 3, bought: 3, hiring: 2, grew: 2, shipped: 2,
@@ -20063,11 +20061,20 @@
     : src === 'trade' ? (TRADE[a.industry] || 'Trade press')
     : (PRESS[a.region] || 'Business press'));
 
-  /* Session state: the prototype switch, filters, items still loading. */
+  /* Session state: the prototype switch, items still loading. */
   let NEWS_FORCE = '';
-  let NEWS_F = { acc: '', type: 'all', days: NEWS_YEAR, strong: false, more: false };
-  /* Five items, then "Show N more": a long year stays a short read. */
+  /* ══ NO FILTERS: ONLY WHAT OPENS WORK FOR US, FIVE AT MOST ═════════════
+     The first cut had kind chips, Strong only and a period control. Nour
+     took them out (23 Oct 2026): "just cap the news to the most recent
+     important ones", then "the ones that will actually help us as a
+     business and give us business opportunities". So an item is shown only
+     when it is an opening: a signal (a round, a hire, a renewal, a visit to
+     our site) or an event that argues for something we sell into their
+     sector (`IND_FIT`). Newest first, five at most; the rest is left out,
+     not filtered out. A client's desk reads its prospects, not our book, so
+     there the bar is the grade instead. */
   const NEWS_CAP = 5;
+  const newsMatters = (x) => x.pending || (seesGrade() ? !!x.opp : x.strength >= 2);
   const NEWS_READY = Object.create(null);
   const NEWS_TIMER = Object.create(null);
   const NEWS_FINDING = Object.create(null);
@@ -20092,12 +20099,13 @@
     const found = isoAdd(at, Math.min(daysAgo, hx(id, 'fd', 3)));
     const base = NEWS_BASE[ev.k] || 2;
     const strength = Math.max(1, base - (daysAgo > 180 ? 1 : 0));
-    const fit = seesGrade() && IND_FIT[a.industry]
+    /* What of ours this event argues for, in their sector: the opening. */
+    const fit = IND_FIT[a.industry]
       ? (ev.points || []).filter((k) => IND_FIT[a.industry].fits.indexOf(k) >= 0)[0] : null;
     return {
-      id: id, type: type, at: at, found: found, strength: strength, base: base,
+      id: id, type: type, at: at, found: found, strength: strength, base: base, opp: fit || null,
       head: a.name + ' ' + ev.say,
-      why: 'That means ' + esc(ev.means) + '.' + (fit && strength === 3 && SELL[fit]
+      why: 'That means ' + esc(ev.means) + '.' + (fit && seesGrade() && SELL[fit]
         ? ' It is the case for ' + esc(SELL[fit].name) + '.' : ''),
       src: outletOf(a, ev.src), alt: outletOf(a, 'trade'),
       /* One in six rests on a single source so far; one in nine older than
@@ -20116,7 +20124,7 @@
       const t = { funded: 'funding', hiring: 'people', 'new-hire': 'people', 'renewal-near': 'contract', 'visited-site': 'visit' }[sig.k];
       out.push({
         id: a.id + ':sig', type: t, at: sig.at, found: sig.at,
-        strength: sig.k === 'hiring' || sig.k === 'visited-site' ? 2 : 3,
+        strength: sig.k === 'hiring' || sig.k === 'visited-site' ? 2 : 3, opp: sig.k,
         head: a.name + ' ' + sig.text, why: signalMeans(sig, touchesAt(a.id)),
         src: outletOf(a, sig.src === 'the news' ? 'the news' : sig.src), alt: outletOf(a, 'trade'),
         single: false, dead: false,
@@ -20193,11 +20201,6 @@
     return n <= 7 ? 'This week' : n <= 31 ? 'This month' : n <= 92 ? 'The last three months' : 'Earlier this year';
   };
 
-  function newsFilter(a) {
-    if (NEWS_F.acc !== a.id) NEWS_F = { acc: a.id, type: 'all', days: NEWS_YEAR, strong: false, more: false };
-    return NEWS_F;
-  }
-
   function newsRow(a, x, i, who, lead) {
     const T = NEWS_TYPE[x.type];
     const S = STRENGTH[x.strength];
@@ -20261,40 +20264,11 @@
   function newsBlock(a) {
     const all = newsFeed(a);
     const mk = marketFeed(a);
-    const F = newsFilter(a);
     const who = works() ? consAt(a.id).filter(canRing).sort((x, y) => qRank(x) - qRank(y) || qTie(x, y))[0] : null;
-    const inPeriod = all.filter((x) => x.pending || daysBetween(x.at, TODAY_ISO) <= F.days);
-    const inStrong = inPeriod.filter((x) => x.pending || !F.strong || x.strength === 3);
-    const shown = inStrong.filter((x) => F.type === 'all' || x.type === F.type);
-    const types = NEWS_ORDER.filter((t) => inStrong.some((x) => x.type === t && !x.pending));
-    if (F.type !== 'all' && types.indexOf(F.type) < 0) types.push(F.type);
+    const shown = all.filter(newsMatters).slice(0, NEWS_CAP);
     const ready = all.filter((x) => !x.pending);
     if (all.some((x) => x.pending)) newsFinishLater(a.id);
-    const fresh = ready.filter((x) => x.isNew).length;
-    const strong = ready.filter((x) => x.strength === 3 && daysBetween(x.at, TODAY_ISO) <= 92)[0];
-
-    const chip = (attr, on, label, n) => '<button class="filter-chip' + (on ? ' active' : '') +
-      '" type="button" ' + attr + ' aria-pressed="' + on + '">' + esc(label) +
-      (n != null ? '<span class="b-news-n">' + n + '</span>' : '') + '</button>';
-    const periods = [[30, '30 days'], [92, '3 months'], [NEWS_YEAR, 'Year']];
-    const controls = ready.length > 1
-      ? '<div class="b-news-ctl">' +
-          '<div class="b-news-chips" role="group" aria-label="Show which kind">' +
-            chip('data-newstype="all"', F.type === 'all', 'All', inStrong.filter((x) => !x.pending).length) +
-            types.map((t) => chip('data-newstype="' + t + '"', F.type === t, NEWS_TYPE[t].label,
-              inStrong.filter((x) => x.type === t && !x.pending).length)).join('') +
-          '</div>' +
-          '<div class="b-news-ctl-r">' +
-            chip('data-newsstrong', F.strong, 'Strong only') +
-            '<div class="seg b-news-seg" role="group" aria-label="How far back">' +
-              '<span class="b-news-pill" aria-hidden="true"></span>' +
-              periods.map((p) => '<button class="seg-btn' + (F.days === p[0] ? ' active' : '') +
-                '" type="button" data-newsdays="' + p[0] + '" aria-pressed="' + (F.days === p[0]) + '">' +
-                esc(p[1]) + '</button>').join('') +
-            '</div>' +
-          '</div>' +
-        '</div>'
-      : '';
+    const strong = shown.filter((x) => !x.pending && x.strength === 3 && daysBetween(x.at, TODAY_ISO) <= 92)[0];
 
     /* ══ NOTHING YET IS STILL A WATCH ═══════════════════════════════════
        The first empty state was one sentence in a short box, beside a tall
@@ -20304,12 +20278,13 @@
     const watched = ['Their website', 'LinkedIn', PRESS[a.region] || 'The business press',
       TRADE[a.industry] || 'The trade press', 'Company register'];
     let list;
-    if (!all.length) {
+    if (!shown.length) {
       const busy = NEWS_CHECKING[a.id];
       list = '<div class="b-news-empty is-none">' +
         '<span class="b-news-halo" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
         '<div class="b-news-empty-main">' +
-          '<p class="b-news-empty-h">Nothing about ' + esc(a.name) + ' in the last year</p>' +
+          '<p class="b-news-empty-h">' + (ready.length ? 'No openings for us at ' : 'Nothing about ') +
+            esc(a.name) + ' in the last year</p>' +
           '<p class="b-news-empty-p">AiMY reads these every morning. Anything new about them lands here first.</p>' +
           '<ul class="b-news-watch">' + watched.map((w) =>
             '<li>' + chIcon('check') + '<span>' + esc(w) + '</span></li>').join('') + '</ul>' +
@@ -20321,38 +20296,25 @@
           '</div>' +
         '</div>' +
       '</div>';
-    } else if (!shown.length) {
-      list = '<div class="b-news-empty">' +
-        '<span class="b-news-halo" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
-        '<div class="b-news-empty-main"><p class="b-news-empty-h">Nothing matches these filters</p>' +
-        '<p class="b-news-empty-p">' + esc(plural(ready.length, 'item')) + ' about ' + esc(a.name) + ' are hidden by them.</p>' +
-        '<div class="b-news-empty-foot"><button class="b-news-act is-solid" type="button" data-newsreset>Show everything</button></div></div>' +
-      '</div>';
     } else {
       /* The lead: the newest strong item from the last month, drawn larger
          and on its own ground, so the one worth raising is found first. */
       const leadId = (shown.filter((x) => !x.pending && x.strength === 3 &&
         daysBetween(x.at, TODAY_ISO) <= 31)[0] || {}).id;
       let last = '';
-      const cut = F.more ? shown : shown.slice(0, NEWS_CAP);
-      list = cut.map((x, i) => {
+      list = shown.map((x, i) => {
         const g = newsWhen(x.at);
         const head = g !== last ? '<h3 class="b-news-when"><span>' + esc(g) + '</span></h3>' : '';
         last = g;
         return head + newsRow(a, x, i, who, x.id === leadId);
-      }).join('') +
-      (shown.length > NEWS_CAP
-        ? '<button class="b-news-more" type="button" data-newsmore aria-expanded="' + F.more + '">' +
-            '<span>' + (F.more ? 'Show fewer' : 'Show ' + (shown.length - NEWS_CAP) + ' more') + '</span>' +
-            '<span class="b-news-chev" aria-hidden="true">' + chIcon('chev-down') + '</span></button>'
-        : '');
+      }).join('');
     }
 
     /* ══ THEIR MARKET, AS CARDS THAT GO WHERE THERE IS ROOM ═════════════
        Beside a long feed it is a column, and sticks while the feed scrolls.
        Beside a short or empty one it left a hole the height of four cards,
        so under three items it moves below the feed as a row of cards. */
-    const side = ready.length >= 3 && shown.length >= 3;
+    const side = shown.length >= 3;
     const market = mk.length
       ? '<aside class="b-news-mkt" aria-label="Their market">' +
           '<div class="b-news-mkt-top">' +
@@ -20382,8 +20344,8 @@
       : '';
 
     /* ══ FOLDED, THE SECTION IS ITS HEAD AND AiMY'S LINE ═══════════════
-       Nour, 23 Oct 2026: it might get too long. One press folds the filters,
-       the feed and the market away; the count and the strongest signal stay,
+       Nour, 23 Oct 2026: it might get too long. One press folds the feed
+       and the market away; the heading and the strongest signal stay,
        so folding it never hides the one thing worth raising. The choice is
        remembered (`UI.newsShut`) because it is about how this reader likes
        the page, not about one company. */
@@ -20391,9 +20353,6 @@
     return '<section class="s-block s-block-wide b-news" id="news-' + esc(a.id) + '" data-open="' + open + '" aria-label="News and signals">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">News and signals</h2>' +
-        '<span class="s-block-say">' + (ready.length
-          ? esc(plural(ready.length, 'item')) + ' in the last year' + (fresh ? ', ' + fresh + ' new' : '')
-          : all.length ? 'Reading a new item now' : 'Nothing yet') + '</span>' +
         '<button class="b-news-fold" type="button" data-newsfold aria-expanded="' + open +
           '" aria-controls="newsBody-' + esc(a.id) + '">' +
           '<span class="b-news-fold-w">' + (open ? 'Collapse' : 'Expand') + '</span>' +
@@ -20402,7 +20361,6 @@
       recap +
       '<div class="b-news-panel" id="newsBody-' + esc(a.id) + '"' + (open ? '' : ' inert') + '>' +
         '<div class="b-news-panel-in">' +
-          controls +
           '<div class="b-news-grid ' + (!market ? 'is-solo' : side ? 'is-side' : 'is-stacked') + '">' +
             '<div class="b-news-list" id="newsList">' + list + '</div>' +
             market +
@@ -20424,15 +20382,12 @@
     }, 5000);
   }
 
-  /* Redraw the section in place. The period pill slides from where it was
-     to where it now belongs; the list staggers in after a filter change;
-     an item that finished loading reveals out of its skeleton. */
+  /* Redraw the section in place; an item that finished loading reveals out
+     of its skeleton. */
   function newsRepaint(accId, how) {
     const el = byId('news-' + accId);
     const a = DB.byAcc[accId];
     if (!el || !a) { paint(); return; }
-    const oldPill = el.querySelector('.b-news-pill');
-    const from = oldPill ? { x: oldPill.style.transform, w: oldPill.style.width } : null;
     const tmp = document.createElement('div');
     tmp.innerHTML = newsBlock(a);
     const next = tmp.firstElementChild;
@@ -20440,28 +20395,8 @@
       const it = next.querySelector('.b-news-item:not(.is-loading)');
       if (it) it.classList.add('is-revealed');
     }
-    if (how === 'filter') next.querySelector('.b-news-list').classList.add('is-entering');
     el.replaceWith(next);
-    newsPill(next, from);
   }
-  /* The tabs-sliding pill: snap without a transition, then tween. */
-  function newsPill(root, from) {
-    const seg = root && root.querySelector('.b-news-seg');
-    if (!seg) return;
-    const pill = seg.querySelector('.b-news-pill');
-    const on = seg.querySelector('.seg-btn.active');
-    if (!pill || !on) return;
-    const place = (x, w) => { pill.style.transform = x; pill.style.width = w; };
-    pill.style.transition = 'none';
-    if (from && from.w) place(from.x, from.w);
-    else place('translateX(' + on.offsetLeft + 'px)', on.offsetWidth + 'px');
-    void pill.offsetWidth;
-    pill.style.transition = '';
-    place('translateX(' + on.offsetLeft + 'px)', on.offsetWidth + 'px');
-  }
-
-  /* The pill is measured, so a resize puts it back without a slide. */
-  window.addEventListener('resize', () => newsPill(byId('wbStage')));
 
   function newsFind(a, id) {
     const x = newsFeed(a).filter((y) => y.id === id)[0];
@@ -34161,18 +34096,7 @@
         fb.setAttribute('aria-expanded', String(open));
         fb.querySelector('.b-news-fold-w').textContent = open ? 'Collapse' : 'Expand';
         const body = nsec.querySelector('.b-news-panel');
-        if (open) { body.removeAttribute('inert'); newsPill(nsec, null); } else body.setAttribute('inert', '');
-        return;
-      }
-      if (t.closest('[data-newsmore]')) { NEWS_F.more = !NEWS_F.more; newsRepaint(nacc.id, 'filter'); return; }
-      const ntype = t.closest('[data-newstype]');
-      if (ntype) { NEWS_F.type = ntype.getAttribute('data-newstype'); newsRepaint(nacc.id, 'filter'); return; }
-      const ndays = t.closest('[data-newsdays]');
-      if (ndays) { NEWS_F.days = Number(ndays.getAttribute('data-newsdays')); newsRepaint(nacc.id, 'filter'); return; }
-      if (t.closest('[data-newsstrong]')) { NEWS_F.strong = !NEWS_F.strong; newsRepaint(nacc.id, 'filter'); return; }
-      if (t.closest('[data-newsreset]')) {
-        NEWS_F = { acc: nacc.id, type: 'all', days: NEWS_YEAR, strong: false, more: false };
-        newsRepaint(nacc.id, 'filter');
+        if (open) body.removeAttribute('inert'); else body.setAttribute('inert', '');
         return;
       }
       const nseen = t.closest('[data-newsseen]');
