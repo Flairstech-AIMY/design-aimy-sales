@@ -20069,6 +20069,8 @@
   const NEWS_READY = Object.create(null);
   const NEWS_TIMER = Object.create(null);
   const NEWS_FINDING = Object.create(null);
+  const NEWS_CHECKING = Object.create(null);
+  const NEWS_CHECKED = Object.create(null);
   const newsD = () => DELTA.news || (DELTA.news = { seen: {}, brief: {}, src: {} });
 
   /* The seeded spread: none, one, a few, many. */
@@ -20119,16 +20121,18 @@
       });
     }
     const nw = newsAt(a);
+    /* One event of each kind per company: two acquisitions read as buying
+       and being bought in one feed, two results as growth and a loss. */
     if (nw) {
-      used[nw.say] = 1;
+      used[nw.k] = 1;
       out.push(newsItem(a, nw, a.id + ':news', daysBetween(nw.at, TODAY_ISO)));
     }
     const pool = NEWS.filter((n) => !n.inds || n.inds.indexOf(a.industry) >= 0).concat(NEWS_MORE);
     const want = newsCount(a);
     for (let i = 0; out.length < want && i < 40; i++) {
       const ev = pool[hx(a.id, 'ev' + i, pool.length)];
-      if (used[ev.say]) continue;
-      used[ev.say] = 1;
+      if (used[ev.k]) continue;
+      used[ev.k] = 1;
       /* Spread across the year, closer together near today. */
       const r = hx(a.id, 'd' + i, 1000) / 1000;
       out.push(newsItem(a, ev, a.id + ':' + i, 1 + Math.floor(r * r * (NEWS_YEAR - 2))));
@@ -20192,7 +20196,7 @@
     return NEWS_F;
   }
 
-  function newsRow(a, x, i, who) {
+  function newsRow(a, x, i, who, lead) {
     const T = NEWS_TYPE[x.type];
     const S = STRENGTH[x.strength];
     if (x.pending) {
@@ -20227,7 +20231,7 @@
       acts.push('<button class="b-news-act" type="button" data-newsseen="' + esc(x.id) + '">' +
         chIcon('eye') + '<span>Mark seen</span></button>');
     }
-    return '<article class="b-news-item ' + S.cls + (x.isNew ? ' is-new' : '') + (x.revealed ? ' is-revealed' : '') +
+    return '<article class="b-news-item ' + S.cls + (x.isNew ? ' is-new' : '') + (lead ? ' is-lead' : '') +
         '" style="--i:' + Math.min(i, 8) + '">' +
       '<span class="b-news-ic" aria-hidden="true">' + chIcon(T.icon) + '</span>' +
       '<div class="b-news-body">' +
@@ -20290,43 +20294,77 @@
         '</div>'
       : '';
 
+    /* ══ NOTHING YET IS STILL A WATCH ═══════════════════════════════════
+       The first empty state was one sentence in a short box, beside a tall
+       market column: a hole on the page and nothing to do (Nour, 23 Oct
+       2026: "fix layout, it is so flat"). It says what AiMY reads, when it
+       last read it, and lets the reader ask it to look again now. */
+    const watched = ['Their website', 'LinkedIn', PRESS[a.region] || 'The business press',
+      TRADE[a.industry] || 'The trade press', 'Company register'];
     let list;
     if (!all.length) {
-      list = '<div class="b-news-empty">' +
-        '<span class="b-news-ic" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
-        '<div><p class="b-news-empty-h">Nothing about ' + esc(a.name) + ' in the last year.</p>' +
-        '<p class="b-news-empty-p">AiMY reads their website, LinkedIn and the press every morning. New items land here.</p></div>' +
+      const busy = NEWS_CHECKING[a.id];
+      list = '<div class="b-news-empty is-none">' +
+        '<span class="b-news-halo" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
+        '<div class="b-news-empty-main">' +
+          '<p class="b-news-empty-h">Nothing about ' + esc(a.name) + ' in the last year</p>' +
+          '<p class="b-news-empty-p">AiMY reads these every morning. Anything new about them lands here first.</p>' +
+          '<ul class="b-news-watch">' + watched.map((w) =>
+            '<li>' + chIcon('check') + '<span>' + esc(w) + '</span></li>').join('') + '</ul>' +
+          '<div class="b-news-empty-foot">' +
+            '<span class="b-news-checked">' + (NEWS_CHECKED[a.id] ? 'Checked just now' : 'Last checked this morning at 07:00') + '</span>' +
+            (busy
+              ? '<span class="b-news-act is-busy"><span class="b-fill-say">Checking every source now</span></span>'
+              : '<button class="b-news-act is-solid" type="button" data-newscheck>' + chIcon('refresh-cw') + '<span>Check now</span></button>') +
+          '</div>' +
+        '</div>' +
       '</div>';
     } else if (!shown.length) {
       list = '<div class="b-news-empty">' +
-        '<span class="b-news-ic" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
-        '<div><p class="b-news-empty-h">Nothing matches these filters.</p>' +
-        '<button class="s-inline-btn" type="button" data-newsreset>Show everything</button></div>' +
+        '<span class="b-news-halo" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
+        '<div class="b-news-empty-main"><p class="b-news-empty-h">Nothing matches these filters</p>' +
+        '<p class="b-news-empty-p">' + esc(plural(ready.length, 'item')) + ' about ' + esc(a.name) + ' are hidden by them.</p>' +
+        '<div class="b-news-empty-foot"><button class="b-news-act is-solid" type="button" data-newsreset>Show everything</button></div></div>' +
       '</div>';
     } else {
+      /* The lead: the newest strong item from the last month, drawn larger
+         and on its own ground, so the one worth raising is found first. */
+      const leadId = (shown.filter((x) => !x.pending && x.strength === 3 &&
+        daysBetween(x.at, TODAY_ISO) <= 31)[0] || {}).id;
       let last = '';
       list = shown.map((x, i) => {
         const g = newsWhen(x.at);
-        const head = g !== last ? '<h3 class="b-news-when">' + esc(g) + '</h3>' : '';
+        const head = g !== last ? '<h3 class="b-news-when"><span>' + esc(g) + '</span></h3>' : '';
         last = g;
-        return head + newsRow(a, x, i, who);
+        return head + newsRow(a, x, i, who, x.id === leadId);
       }).join('');
     }
 
+    /* ══ THEIR MARKET, AS CARDS THAT GO WHERE THERE IS ROOM ═════════════
+       Beside a long feed it is a column, and sticks while the feed scrolls.
+       Beside a short or empty one it left a hole the height of four cards,
+       so under three items it moves below the feed as a row of cards. */
+    const side = ready.length >= 3 && shown.length >= 3;
     const market = mk.length
       ? '<aside class="b-news-mkt" aria-label="Their market">' +
-          '<h3 class="b-news-mkt-h">Their market</h3>' +
-          '<p class="b-news-mkt-p">' + esc(INDUSTRY[a.industry].label) +
-            (REGION[a.region] ? ' in ' + esc(REGION[a.region].label) : '') + ', and who they compete with</p>' +
-          mk.map((x) => '<article class="b-news-mrow">' +
+          '<div class="b-news-mkt-top">' +
+            '<h3 class="b-news-mkt-h">Their market</h3>' +
+            '<p class="b-news-mkt-p">' + esc(INDUSTRY[a.industry].label) +
+              (REGION[a.region] ? ' in ' + esc(REGION[a.region].label) : '') + ', and who they compete with</p>' +
+          '</div>' +
+          '<div class="b-news-mcards" style="--n:' + mk.length + '">' +
+          mk.map((x) => '<article class="b-news-mrow' + (x.rival ? ' is-rival' : '') + '">' +
             '<p class="b-news-kind"><span class="b-news-type">' + chIcon(NEWS_TYPE[x.type].icon) +
               esc(NEWS_TYPE[x.type].label) + '</span></p>' +
             '<h4 class="b-news-mhead">' + esc(x.head) + '</h4>' +
             '<p class="b-news-mwhy">' + x.why + '</p>' +
-            '<p class="b-news-meta"><span>' + esc(x.src) + ', ' + esc(sayDay(x.at)) + '</span>' +
-              (x.rival ? '<button class="s-inline-btn" type="button" data-acc="' + esc(x.rival.id) + '">Open ' + esc(x.rival.name) + '</button>' : '') +
-            '</p>' +
+            '<div class="b-news-mfoot">' +
+              '<span class="b-news-msrc">' + esc(x.src) + ', ' + esc(sayDay(x.at)) + '</span>' +
+              (x.rival ? '<button class="b-news-act" type="button" data-acc="' + esc(x.rival.id) + '">' +
+                '<span>Open ' + esc(x.rival.name) + '</span>' + chIcon('arrow-up-right') + '</button>' : '') +
+            '</div>' +
           '</article>').join('') +
+          '</div>' +
         '</aside>'
       : '';
 
@@ -20344,7 +20382,7 @@
       '</div>' +
       recap +
       controls +
-      '<div class="b-news-grid' + (market ? '' : ' is-solo') + '">' +
+      '<div class="b-news-grid ' + (!market ? 'is-solo' : side ? 'is-side' : 'is-stacked') + '">' +
         '<div class="b-news-list" id="newsList">' + list + '</div>' +
         market +
       '</div>' +
@@ -23914,6 +23952,8 @@
     'clipboard-plus': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/> <path d="M9 14h6"/> <path d="M12 17v-6"/>',
     'link-2-off': '<path d="M9 17H7A5 5 0 0 1 7 7"/> <path d="M15 7h2a5 5 0 0 1 4 8"/> <line x1="8" x2="12" y1="12" y2="12"/> <line x1="2" x2="22" y1="2" y2="22"/>',
     'newspaper': '<path d="M15 18h-5"/> <path d="M18 14h-8"/> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/> <rect width="8" height="4" x="10" y="6" rx="1"/>',
+    'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/> <path d="M21 3v5h-5"/> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/> <path d="M8 16H3v5"/>',
+    'arrow-up-right': '<path d="M7 7h10v10"/> <path d="M7 17 17 7"/>',
     'badge-check': '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/> <path d="m9 12 2 2 4-4"/>',
     'clock-alert': '<path d="M12 6v6l4 2"/> <path d="M16 21.16a10 10 0 1 1 5-13.516"/> <path d="M20 11.5v6"/> <path d="M20 21.5h.01"/>',
     'circle-help': '<circle cx="12" cy="12" r="10"/> <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/> <path d="M12 17h.01"/>',
@@ -34130,6 +34170,19 @@
         const bits = ncall.getAttribute('data-newscall').split('|');
         newsD().brief[bits[0]] = 1; newsD().seen[bits[0]] = 1; save();
         startCall(bits[1]);
+        return;
+      }
+      if (t.closest('[data-newscheck]')) {
+        const id = nacc.id;
+        NEWS_CHECKING[id] = 1;
+        newsRepaint(id);
+        setTimeout(() => {
+          delete NEWS_CHECKING[id];
+          NEWS_CHECKED[id] = 1;
+          newsRepaint(id);
+          toast('Nothing new about ' + nacc.name, null,
+            'AiMY checked their website, LinkedIn, the press and the company register.');
+        }, 2400);
         return;
       }
       const nfind = t.closest('[data-newsfind]');
