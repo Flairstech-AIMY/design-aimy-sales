@@ -3514,7 +3514,7 @@
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
             dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [], chat: [],
-            wait: { camp: {}, list: {} } }, d);
+            wait: { camp: {}, list: {} }, news: { seen: {}, brief: {}, src: {} } }, d);
           /* The conversations come back whole. They reference nothing in the
              corpus — a turn is the words that were on screen — so unlike a
              contact patch or a saved list they need nothing to exist first,
@@ -4428,6 +4428,7 @@
     paintProto();
     guardBack();
     postPaint(pre);
+    newsPill(byId('wbStage'));
     /* Put down by the paint that used it, so the next one — a write, a page
        of the queue — draws its cards plain unless go() says otherwise. */
     SKEL_ON = false;
@@ -19956,6 +19957,467 @@
     }, 2400);
   }
 
+  /* ══ NEWS AND SIGNALS: A FEED, NOT A LINE (AIMY-2739) ═══════════════════
+     The company page had one piece of news, folded into AiMY's reading, and
+     a signal as one fact in the masthead. Nothing showed a company over
+     time, what kind of thing each event was, how much it mattered or where
+     it came from. This is the feed: newest first, grouped by when, each item
+     typed, graded and sourced, with AiMY's one line on why it matters to a
+     caller. Their market sits beside it, kept apart: news about the
+     industry and about their competitors is context, not news about them.
+
+     References (Mobbin, 23 Oct 2026): Binance's news view for day groups
+     on a rail, one-click category chips and an "important only" switch;
+     Apollo's company News tab for a type tag on every item; Perplexity
+     Finance for a dated timeline with an AI line on each event.
+
+     NOTHING HERE DRAWS FROM THE SEED'S CURSOR. Which items a company has,
+     and when, is read off the id's hash (`hx`), so the corpus is unmoved.
+     The signal and the customer news the rest of the product already reads
+     (`signalOf`, `newsAt`) are items in this feed, so the masthead, AiMY's
+     reading, the brief and the feed can never disagree about what happened.
+
+     What a reader does here (seen, added to the brief, another source
+     found) is theirs and persists in the delta; the filters and the
+     prototype switch last for the session. */
+  const NEWS_TYPE = {
+    funding:  { label: 'Funding', icon: 'banknote' },
+    people:   { label: 'Hiring and leadership', icon: 'user-plus' },
+    contract: { label: 'Contracts and renewals', icon: 'file-pen-line' },
+    launch:   { label: 'Launches and expansion', icon: 'rocket' },
+    partner:  { label: 'Partnerships', icon: 'handshake' },
+    deal:     { label: 'Mergers and acquisitions', icon: 'git-merge' },
+    results:  { label: 'Results', icon: 'chart-column' },
+    legal:    { label: 'Regulation and legal', icon: 'scale' },
+    trouble:  { label: 'Problems in public', icon: 'triangle-alert' },
+    visit:    { label: 'Visited our site', icon: 'mouse-pointer-click' },
+    industry: { label: 'Their industry', icon: 'globe' },
+    rival:    { label: 'Competitors', icon: 'swords' },
+  };
+  const NEWS_ORDER = ['funding', 'people', 'contract', 'launch', 'partner', 'deal', 'results', 'legal', 'trouble', 'visit'];
+  const NEWS_K_TYPE = { funded: 'funding', grew: 'launch', bought: 'deal', hiring: 'people', exec: 'people',
+    shipped: 'launch', ruled: 'legal', broke: 'trouble', tender: 'contract', partner: 'partner', results: 'results' };
+  const NEWS_BASE = { funded: 3, exec: 3, tender: 3, ruled: 3, bought: 3, hiring: 2, grew: 2, shipped: 2,
+    broke: 2, partner: 2, results: 2 };
+  const STRENGTH = {
+    3: { label: 'Strong signal', icon: 'signal-high', cls: 'is-s3' },
+    2: { label: 'Worth knowing', icon: 'signal-medium', cls: 'is-s2' },
+    1: { label: 'Background', icon: 'signal-low', cls: 'is-s1' },
+  };
+  /* Two kinds `NEWS` never had: who they work with, and how the year went. */
+  const NEWS_MORE = [
+    { k: 'partner', src: 'their website',
+      say: 'signed a partnership to resell a larger vendor’s service tools to its own customers',
+      means: 'their customers will start calling about a product they did not build', points: ['support', 'know'] },
+    { k: 'partner', src: 'the news',
+      say: 'announced a joint venture with a logistics group in the Gulf',
+      means: 'a second operation in another language, run from a desk that was built for one', points: ['support', 'voice', 'back'] },
+    { k: 'results', src: 'their filings',
+      say: 'reported revenue up 18% for the year, ahead of its own plan',
+      means: 'this quarter’s budget talk is about where to spend more, not where to cut', points: ['support', 'eng', 'test'] },
+    { k: 'results', src: 'their filings',
+      say: 'reported a loss and said it will cut costs in operations',
+      means: 'every supplier is about to be asked to justify itself, and work that costs less than headcount gets heard', points: ['back', 'support', 'data'] },
+    { k: 'results', src: 'the news',
+      say: 'named customer complaints as a risk in its half-year results',
+      means: 'the board is reading about the support desk now, and somebody has been asked to fix it', points: ['qa', 'support', 'voice'] },
+  ];
+  /* The market: what is happening to everybody in their line of work. */
+  const MARKET = {
+    software: [['European software teams moved to weekly releases, a survey of 400 teams finds', 'More releases on the same testers is the gap test automation fills.'],
+      ['EU AI Act duties for software vendors start to apply next year', 'Every vendor selling into Europe will need its testing written down.']],
+    banking: [['Regulators ask banks to record and review more customer calls', 'Listening to a sample stops being enough, which is the case for scoring every call.'],
+      ['Fraud calls to bank contact centres rose for a third quarter', 'Longer calls on the same headcount, and a queue that grows with every scam.']],
+    logistics: [['Parcel volumes reached a new peak across Europe this autumn', 'Where-is-my-order calls rise with every parcel, and most need no person.'],
+      ['Carriers face new rules on delivery-time disclosure', 'Every late delivery becomes a call they have to answer properly.']],
+    health: [['Outpatient waiting times are back on the political agenda', 'Every booking line is under pressure to answer faster.'],
+      ['Health providers move appointment booking online', 'The calls that remain are the hard ones, and they need the answers to hand.']],
+    retail: [['Retailers report the busiest pre-season online traffic in five years', 'Peak volume arrives before they can hire for it.'],
+      ['Returns rules for online orders tighten in several EU countries', 'More return calls, each with a rule to get right.']],
+    energy: [['Energy suppliers brace for a winter of price-change calls', 'A spike in calls that lasts weeks, then drops away.'],
+      ['Grid operators publish new targets for fault response times', 'Every outage becomes a measured call-answering problem.']],
+    public: [['Councils are told to cut phone waiting times for residents', 'A target they will be measured on, with no new budget for staff.'],
+      ['Universities move student services to one front door', 'One desk answering what five offices used to.']],
+    telecom: [['Operators switch off old copper networks across the region', 'Every switch-off is a wave of customers calling to ask what happens next.'],
+      ['Regulators publish complaint league tables for broadband providers', 'Complaints are public now, and the bottom of the table is reported.']],
+    industry: [['Manufacturers report long waits for spare parts across Europe', 'Their service desk is answering delay calls it cannot fix.'],
+      ['New product-safety rules require traceable supplier records', 'Paperwork that has to be right and findable, at audit time.']],
+    hospitality: [['Hotel groups report record autumn bookings', 'More guests asking the same questions, on the same small team.'],
+      ['Short-stay rules change in several European cities', 'A wave of booking questions only a trained person can answer today.']],
+  };
+  const PRESS = { benelux: 'Benelux Business Review', dach: 'DACH Market Report', nordics: 'Nordic Business Daily',
+    uki: 'Isles Business Journal', seur: 'Southern Europe Business Review', cee: 'CEE Market Report',
+    mena: 'Gulf and Levant Business Review' };
+  const TRADE = { software: 'Software Weekly', banking: 'Retail Banking Review', logistics: 'Freight and Logistics News',
+    health: 'Care Provider News', retail: 'Retail Trade Weekly', energy: 'Power and Grid Report',
+    public: 'Public Sector Review', telecom: 'Network Operator News', industry: 'Manufacturing Report',
+    hospitality: 'Hotel Trade News' };
+  const NEWS_YEAR = 365;
+  const NEWS_NEW_DAYS = 7;
+
+  /* Where an item came from, as a named outlet rather than "the news". */
+  const outletOf = (a, src) => (src === 'LinkedIn' ? 'LinkedIn'
+    : src === 'their filings' ? 'Company register'
+    : src === 'their website' ? (a.domain || 'Their website')
+    : src === 'our site' ? 'Our website'
+    : src === 'trade' ? (TRADE[a.industry] || 'Trade press')
+    : (PRESS[a.region] || 'Business press'));
+
+  /* Session state: the prototype switch, filters, items still loading. */
+  let NEWS_FORCE = '';
+  let NEWS_F = { acc: '', type: 'all', days: NEWS_YEAR, strong: false };
+  const NEWS_READY = Object.create(null);
+  const NEWS_TIMER = Object.create(null);
+  const NEWS_FINDING = Object.create(null);
+  const newsD = () => DELTA.news || (DELTA.news = { seen: {}, brief: {}, src: {} });
+
+  /* The seeded spread: none, one, a few, many. */
+  function newsCount(a) {
+    if (NEWS_FORCE === 'none') return 0;
+    if (NEWS_FORCE === 'one') return 1;
+    if (NEWS_FORCE === 'many') return 9;
+    const n = hx(a.id, 'nn', 20);
+    const base = n < 3 ? 0 : n < 6 ? 1 : n < 14 ? 2 + hx(a.id, 'nn2', 3) : 5 + hx(a.id, 'nn2', 5);
+    return Math.max(base, newsAt(a) ? 1 : 0, signalOf(a) ? 1 : 0, NEWS_FORCE ? 2 : 0);
+  }
+
+  /* One item, from an authored event, at this company, on this date. */
+  function newsItem(a, ev, id, daysAgo) {
+    const type = NEWS_K_TYPE[ev.k] || 'launch';
+    const at = isoAdd(TODAY_ISO, -daysAgo);
+    const found = isoAdd(at, Math.min(daysAgo, hx(id, 'fd', 3)));
+    const base = NEWS_BASE[ev.k] || 2;
+    const strength = Math.max(1, base - (daysAgo > 180 ? 1 : 0));
+    const fit = seesGrade() && IND_FIT[a.industry]
+      ? (ev.points || []).filter((k) => IND_FIT[a.industry].fits.indexOf(k) >= 0)[0] : null;
+    return {
+      id: id, type: type, at: at, found: found, strength: strength, base: base,
+      head: a.name + ' ' + ev.say,
+      why: 'That means ' + esc(ev.means) + '.' + (fit && strength === 3 && SELL[fit]
+        ? ' It is the case for ' + esc(SELL[fit].name) + '.' : ''),
+      src: outletOf(a, ev.src), alt: outletOf(a, 'trade'),
+      /* One in six rests on a single source so far; one in nine older than
+         two months has a link that has gone. */
+      single: hx(id, 'one', 6) === 0 && ev.src !== 'their filings',
+      dead: daysAgo > 60 && hx(id, 'dead', 9) === 0,
+    };
+  }
+
+  function newsFeed(a) {
+    const out = [];
+    const used = Object.create(null);
+    const sig = signalOf(a);
+    /* What the rest of the product already says happened leads. */
+    if (sig) {
+      const t = { funded: 'funding', hiring: 'people', 'new-hire': 'people', 'renewal-near': 'contract', 'visited-site': 'visit' }[sig.k];
+      out.push({
+        id: a.id + ':sig', type: t, at: sig.at, found: sig.at,
+        strength: sig.k === 'hiring' || sig.k === 'visited-site' ? 2 : 3,
+        head: a.name + ' ' + sig.text, why: signalMeans(sig, touchesAt(a.id)),
+        src: outletOf(a, sig.src === 'the news' ? 'the news' : sig.src), alt: outletOf(a, 'trade'),
+        single: false, dead: false,
+      });
+    }
+    const nw = newsAt(a);
+    if (nw) {
+      used[nw.say] = 1;
+      out.push(newsItem(a, nw, a.id + ':news', daysBetween(nw.at, TODAY_ISO)));
+    }
+    const pool = NEWS.filter((n) => !n.inds || n.inds.indexOf(a.industry) >= 0).concat(NEWS_MORE);
+    const want = newsCount(a);
+    for (let i = 0; out.length < want && i < 40; i++) {
+      const ev = pool[hx(a.id, 'ev' + i, pool.length)];
+      if (used[ev.say]) continue;
+      used[ev.say] = 1;
+      /* Spread across the year, closer together near today. */
+      const r = hx(a.id, 'd' + i, 1000) / 1000;
+      out.push(newsItem(a, ev, a.id + ':' + i, 1 + Math.floor(r * r * (NEWS_YEAR - 2))));
+    }
+    out.splice(want);
+    /* A new item still being read: a seeded one in eight, or the switch. */
+    const pend = out.length && (NEWS_FORCE === 'loading' ||
+      (!NEWS_FORCE && hx(a.id, 'pend', 8) === 0));
+    /* Dated today, so graded as today's news rather than as the old item
+       it was drawn from. */
+    if (pend) {
+      const x = out[out.length - 1];
+      Object.assign(x, { at: TODAY_ISO, found: TODAY_ISO, strength: x.base || x.strength, pending: !NEWS_READY[a.id] });
+    }
+    if (NEWS_FORCE === 'dead') out.forEach((x, i) => { if (i < 2) x.dead = true; });
+    const d = newsD();
+    out.forEach((x) => {
+      if (d.src[x.id]) { x.src = d.src[x.id]; x.dead = false; x.refound = true; }
+      x.seen = !!d.seen[x.id];
+      x.brief = !!d.brief[x.id];
+      x.isNew = !x.seen && daysBetween(x.found, TODAY_ISO) <= NEWS_NEW_DAYS;
+    });
+    return out.sort((x, y) => (y.at > x.at ? 1 : y.at < x.at ? -1 : y.strength - x.strength));
+  }
+
+  /* Their market: two lines about the industry, and up to two competitors
+     whose own feed has something worth knowing. */
+  function marketFeed(a) {
+    const ind = INDUSTRY[a.industry] ? a.industry : null;
+    if (!ind) return [];
+    const out = (MARKET[ind] || []).map((m, i) => ({
+      id: a.id + ':m' + i, type: 'industry', head: m[0], why: esc(m[1]),
+      at: isoAdd(TODAY_ISO, -(3 + hx(a.id, 'md' + i, 60))), src: TRADE[ind], strength: 1,
+    }));
+    const rivals = DB.acc.filter((x) => x.id !== a.id && x.industry === ind)
+      .sort((x, y) => ((y.region === a.region) - (x.region === a.region)) || (hx(a.id + x.id, 'rv', 99) - hx(a.id + y.id, 'rv', 99)))
+      .slice(0, 6);
+    rivals.forEach((r) => {
+      if (out.filter((x) => x.type === 'rival').length >= 2) return;
+      const top = newsFeedQuiet(r).filter((x) => x.strength >= 2 && x.type !== 'visit')[0];
+      if (!top) return;
+      out.push({ id: a.id + ':r:' + r.id, type: 'rival', head: top.head, at: top.at, src: top.src, strength: 2,
+        rival: r, why: 'When a competitor does this, ' + esc(a.name) + ' is usually asked how it will answer.' });
+    });
+    return out.sort((x, y) => (y.at > x.at ? 1 : -1));
+  }
+  /* A competitor's items, without the reader's own marks or the switch. */
+  function newsFeedQuiet(r) {
+    const keep = NEWS_FORCE;
+    NEWS_FORCE = '';
+    try { return newsFeed(r).filter((x) => !x.pending); } finally { NEWS_FORCE = keep; }
+  }
+
+  const newsWhen = (iso) => {
+    const n = daysBetween(iso, TODAY_ISO);
+    return n <= 7 ? 'This week' : n <= 31 ? 'This month' : n <= 92 ? 'The last three months' : 'Earlier this year';
+  };
+
+  function newsFilter(a) {
+    if (NEWS_F.acc !== a.id) NEWS_F = { acc: a.id, type: 'all', days: NEWS_YEAR, strong: false };
+    return NEWS_F;
+  }
+
+  function newsRow(a, x, i, who) {
+    const T = NEWS_TYPE[x.type];
+    const S = STRENGTH[x.strength];
+    if (x.pending) {
+      return '<article class="b-news-item is-loading" aria-busy="true" style="--i:' + i + '">' +
+        '<span class="b-news-ic is-skel" aria-hidden="true"></span>' +
+        '<div class="b-news-body">' +
+          '<p class="b-news-kind"><span class="b-fill-say">AiMY is reading a new article from ' + esc(x.src) + '</span></p>' +
+          '<span class="b-news-skel" aria-hidden="true"></span>' +
+          '<span class="b-news-skel is-short" aria-hidden="true"></span>' +
+        '</div>' +
+      '</article>';
+    }
+    const first = who ? who.name.split(' ')[0] : '';
+    const acts = [];
+    if (x.dead) {
+      acts.push(NEWS_FINDING[x.id]
+        ? '<span class="b-news-act is-busy"><span class="b-fill-say">Looking for another source</span></span>'
+        : '<button class="b-news-act" type="button" data-newsfind="' + esc(x.id) + '">Find another source</button>');
+    } else {
+      acts.push('<button class="b-news-act" type="button" data-newsread="' + esc(x.id) + '">' +
+        chIcon('external') + '<span>Read it</span></button>');
+    }
+    if (works()) {
+      acts.push('<button class="b-news-act' + (x.brief ? ' is-on' : '') + '" type="button" data-newsbrief="' + esc(x.id) + '" aria-pressed="' + x.brief + '">' +
+        chIcon(x.brief ? 'check' : 'clipboard-plus') + '<span>' + (x.brief ? 'In the brief' : 'Add to the brief') + '</span></button>');
+      if (who) {
+        acts.push('<button class="b-news-act" type="button" data-newscall="' + esc(x.id + '|' + who.id) + '">' +
+          chIcon('phone') + '<span>Call ' + esc(first) + ' about it</span></button>');
+      }
+    }
+    if (x.isNew) {
+      acts.push('<button class="b-news-act" type="button" data-newsseen="' + esc(x.id) + '">' +
+        chIcon('eye') + '<span>Mark seen</span></button>');
+    }
+    return '<article class="b-news-item ' + S.cls + (x.isNew ? ' is-new' : '') + (x.revealed ? ' is-revealed' : '') +
+        '" style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-news-ic" aria-hidden="true">' + chIcon(T.icon) + '</span>' +
+      '<div class="b-news-body">' +
+        '<p class="b-news-kind">' +
+          '<span class="b-news-type">' + esc(T.label) + '</span>' +
+          '<span class="b-news-str">' + chIcon(S.icon) + esc(S.label) + '</span>' +
+          (x.isNew ? '<span class="b-news-tag is-new">New</span>' : '') +
+        '</p>' +
+        '<h4 class="b-news-head">' + esc(x.head) + '</h4>' +
+        '<p class="b-news-why">' +
+          '<svg class="b-aimy-mark" width="12" height="14" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          '<span>' + x.why + '</span></p>' +
+        '<p class="b-news-meta">' +
+          '<span>' + esc(x.src) + ', ' + esc(sayDay(x.at)) + '</span>' +
+          (x.found !== x.at ? '<span>AiMY found it ' + esc(sayWhen(x.found)) + '</span>' : '') +
+          (x.single ? '<span class="b-news-tag is-one">One source so far</span>' : '') +
+          (x.dead ? '<span class="b-news-tag is-dead">' + chIcon('link-2-off') + 'The link no longer works</span>' : '') +
+          (x.refound ? '<span class="b-news-tag is-one">Found again on ' + esc(x.src) + '</span>' : '') +
+        '</p>' +
+        '<div class="b-news-acts">' + acts.join('') + '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function newsBlock(a) {
+    const all = newsFeed(a);
+    const mk = marketFeed(a);
+    const F = newsFilter(a);
+    const who = works() ? consAt(a.id).filter(canRing).sort((x, y) => qRank(x) - qRank(y) || qTie(x, y))[0] : null;
+    const inPeriod = all.filter((x) => x.pending || daysBetween(x.at, TODAY_ISO) <= F.days);
+    const inStrong = inPeriod.filter((x) => x.pending || !F.strong || x.strength === 3);
+    const shown = inStrong.filter((x) => F.type === 'all' || x.type === F.type);
+    const types = NEWS_ORDER.filter((t) => inStrong.some((x) => x.type === t && !x.pending));
+    if (F.type !== 'all' && types.indexOf(F.type) < 0) types.push(F.type);
+    const ready = all.filter((x) => !x.pending);
+    if (all.some((x) => x.pending)) newsFinishLater(a.id);
+    const fresh = ready.filter((x) => x.isNew).length;
+    const strong = ready.filter((x) => x.strength === 3 && daysBetween(x.at, TODAY_ISO) <= 92)[0];
+
+    const chip = (attr, on, label, n) => '<button class="filter-chip' + (on ? ' active' : '') +
+      '" type="button" ' + attr + ' aria-pressed="' + on + '">' + esc(label) +
+      (n != null ? '<span class="b-news-n">' + n + '</span>' : '') + '</button>';
+    const periods = [[30, '30 days'], [92, '3 months'], [NEWS_YEAR, 'Year']];
+    const controls = ready.length > 1
+      ? '<div class="b-news-ctl">' +
+          '<div class="b-news-chips" role="group" aria-label="Show which kind">' +
+            chip('data-newstype="all"', F.type === 'all', 'All', inStrong.filter((x) => !x.pending).length) +
+            types.map((t) => chip('data-newstype="' + t + '"', F.type === t, NEWS_TYPE[t].label,
+              inStrong.filter((x) => x.type === t && !x.pending).length)).join('') +
+          '</div>' +
+          '<div class="b-news-ctl-r">' +
+            chip('data-newsstrong', F.strong, 'Strong only') +
+            '<div class="seg b-news-seg" role="group" aria-label="How far back">' +
+              '<span class="b-news-pill" aria-hidden="true"></span>' +
+              periods.map((p) => '<button class="seg-btn' + (F.days === p[0] ? ' active' : '') +
+                '" type="button" data-newsdays="' + p[0] + '" aria-pressed="' + (F.days === p[0]) + '">' +
+                esc(p[1]) + '</button>').join('') +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      : '';
+
+    let list;
+    if (!all.length) {
+      list = '<div class="b-news-empty">' +
+        '<span class="b-news-ic" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
+        '<div><p class="b-news-empty-h">Nothing about ' + esc(a.name) + ' in the last year.</p>' +
+        '<p class="b-news-empty-p">AiMY reads their website, LinkedIn and the press every morning. New items land here.</p></div>' +
+      '</div>';
+    } else if (!shown.length) {
+      list = '<div class="b-news-empty">' +
+        '<span class="b-news-ic" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
+        '<div><p class="b-news-empty-h">Nothing matches these filters.</p>' +
+        '<button class="s-inline-btn" type="button" data-newsreset>Show everything</button></div>' +
+      '</div>';
+    } else {
+      let last = '';
+      list = shown.map((x, i) => {
+        const g = newsWhen(x.at);
+        const head = g !== last ? '<h3 class="b-news-when">' + esc(g) + '</h3>' : '';
+        last = g;
+        return head + newsRow(a, x, i, who);
+      }).join('');
+    }
+
+    const market = mk.length
+      ? '<aside class="b-news-mkt" aria-label="Their market">' +
+          '<h3 class="b-news-mkt-h">Their market</h3>' +
+          '<p class="b-news-mkt-p">' + esc(INDUSTRY[a.industry].label) +
+            (REGION[a.region] ? ' in ' + esc(REGION[a.region].label) : '') + ', and who they compete with</p>' +
+          mk.map((x) => '<article class="b-news-mrow">' +
+            '<p class="b-news-kind"><span class="b-news-type">' + chIcon(NEWS_TYPE[x.type].icon) +
+              esc(NEWS_TYPE[x.type].label) + '</span></p>' +
+            '<h4 class="b-news-mhead">' + esc(x.head) + '</h4>' +
+            '<p class="b-news-mwhy">' + x.why + '</p>' +
+            '<p class="b-news-meta"><span>' + esc(x.src) + ', ' + esc(sayDay(x.at)) + '</span>' +
+              (x.rival ? '<button class="s-inline-btn" type="button" data-acc="' + esc(x.rival.id) + '">Open ' + esc(x.rival.name) + '</button>' : '') +
+            '</p>' +
+          '</article>').join('') +
+        '</aside>'
+      : '';
+
+    const recap = strong
+      ? aimyBlock({ text: 'Raise this on the next call: ' + esc(strong.head) + '. ' + strong.why,
+          from: 'the strongest signal in the last three months' }, false)
+      : '';
+
+    return '<section class="s-block s-block-wide b-news" id="news-' + esc(a.id) + '" aria-label="News and signals">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">News and signals</h2>' +
+        '<span class="s-block-say">' + (ready.length
+          ? esc(plural(ready.length, 'item')) + ' in the last year' + (fresh ? ', ' + fresh + ' new' : '')
+          : all.length ? 'Reading a new item now' : 'Nothing yet') + '</span>' +
+      '</div>' +
+      recap +
+      controls +
+      '<div class="b-news-grid' + (market ? '' : ' is-solo') + '">' +
+        '<div class="b-news-list" id="newsList">' + list + '</div>' +
+        market +
+      '</div>' +
+    '</section>';
+  }
+
+  /* An item still being read lands on its own after five seconds, unless the
+     panel is holding it there. */
+  function newsFinishLater(id) {
+    if (NEWS_FORCE === 'loading' || NEWS_TIMER[id] || NEWS_READY[id]) return;
+    NEWS_TIMER[id] = setTimeout(() => {
+      delete NEWS_TIMER[id];
+      if (NEWS_FORCE === 'loading') return;
+      NEWS_READY[id] = 1;
+      newsRepaint(id, 'land');
+    }, 5000);
+  }
+
+  /* Redraw the section in place. The period pill slides from where it was
+     to where it now belongs; the list staggers in after a filter change;
+     an item that finished loading reveals out of its skeleton. */
+  function newsRepaint(accId, how) {
+    const el = byId('news-' + accId);
+    const a = DB.byAcc[accId];
+    if (!el || !a) { paint(); return; }
+    const oldPill = el.querySelector('.b-news-pill');
+    const from = oldPill ? { x: oldPill.style.transform, w: oldPill.style.width } : null;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = newsBlock(a);
+    const next = tmp.firstElementChild;
+    if (how === 'land') {
+      const it = next.querySelector('.b-news-item:not(.is-loading)');
+      if (it) it.classList.add('is-revealed');
+    }
+    if (how === 'filter') next.querySelector('.b-news-list').classList.add('is-entering');
+    el.replaceWith(next);
+    newsPill(next, from);
+  }
+  /* The tabs-sliding pill: snap without a transition, then tween. */
+  function newsPill(root, from) {
+    const seg = root && root.querySelector('.b-news-seg');
+    if (!seg) return;
+    const pill = seg.querySelector('.b-news-pill');
+    const on = seg.querySelector('.seg-btn.active');
+    if (!pill || !on) return;
+    const place = (x, w) => { pill.style.transform = x; pill.style.width = w; };
+    pill.style.transition = 'none';
+    if (from && from.w) place(from.x, from.w);
+    else place('translateX(' + on.offsetLeft + 'px)', on.offsetWidth + 'px');
+    void pill.offsetWidth;
+    pill.style.transition = '';
+    place('translateX(' + on.offsetLeft + 'px)', on.offsetWidth + 'px');
+  }
+
+  /* The pill is measured, so a resize puts it back without a slide. */
+  window.addEventListener('resize', () => newsPill(byId('wbStage')));
+
+  function newsFind(a, id) {
+    const x = newsFeed(a).filter((y) => y.id === id)[0];
+    if (!x || NEWS_FINDING[id]) return;
+    NEWS_FINDING[id] = 1;
+    newsRepaint(a.id);
+    setTimeout(() => {
+      delete NEWS_FINDING[id];
+      const d = newsD();
+      d.src[id] = x.alt;
+      save();
+      newsRepaint(a.id);
+      toast('Found it on ' + x.alt, () => { delete newsD().src[id]; save(); newsRepaint(a.id); },
+        'The item now opens from there.');
+    }, 2400);
+  }
+
   function accPage() {
     const a = DB.byAcc[S.acc];
     if (!a) {
@@ -20176,6 +20638,8 @@
       '</section>' +
 
       aboutBlock('acc', a) +
+
+      newsBlock(a) +
 
       /* `custStory` is the story of OUR relationship with this company —
          what they pay, what we have billed, their tier, when we are next
@@ -23169,6 +23633,13 @@
             (PROF_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
       '</div>' +
       '<div class="proto-sec">' +
+        '<div class="proto-h">News, on company pages</div>' +
+        [['', 'As the seed has it'], ['none', 'No news yet'], ['one', 'One item'], ['many', 'Many items'],
+          ['loading', 'A new item loading'], ['dead', 'A link that no longer works']].map((x) =>
+          '<button class="proto-link" type="button" data-newsset="' + x[0] + '" aria-pressed="' +
+            (NEWS_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
+      '</div>' +
+      '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
         /* The gap is in the label because it is the whole reason to press
            it, and on a demo opened the same day there is no gap to state. */
@@ -23424,6 +23895,25 @@
      every surface. Nothing that already has a word gets one. */
   const ICONS = {
     dot: '<circle cx="12" cy="12" r="10"/>',
+    'banknote': '<rect width="20" height="12" x="2" y="6" rx="2"/> <circle cx="12" cy="12" r="2"/> <path d="M6 12h.01M18 12h.01"/>',
+    'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <line x1="19" x2="19" y1="8" y2="14"/> <line x1="22" x2="16" y1="11" y2="11"/>',
+    'file-pen-line': '<path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"/> <path d="M14.487 7.858A1 1 0 0 1 14 7V2"/> <path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"/> <path d="M8 18h1"/>',
+    'rocket': '<path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/> <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/> <path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/> <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/>',
+    'handshake': '<path d="m11 17 2 2a1 1 0 1 0 3-3"/> <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/> <path d="m21 3 1 11h-2"/> <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/> <path d="M3 4h8"/>',
+    'git-merge': '<circle cx="18" cy="18" r="3"/> <circle cx="6" cy="6" r="3"/> <path d="M6 21V9a9 9 0 0 0 9 9"/>',
+    'chart-column': '<path d="M3 3v16a2 2 0 0 0 2 2h16"/> <path d="M18 17V9"/> <path d="M13 17V5"/> <path d="M8 17v-3"/>',
+    'scale': '<path d="M12 3v18"/> <path d="m19 8 3 8a5 5 0 0 1-6 0zV7"/> <path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1"/> <path d="m5 8 3 8a5 5 0 0 1-6 0zV7"/> <path d="M7 21h10"/>',
+    'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/> <path d="M12 9v4"/> <path d="M12 17h.01"/>',
+    'mouse-pointer-click': '<path d="M14 4.1 12 6"/> <path d="m5.1 8-2.9-.8"/> <path d="m6 12-1.9 2"/> <path d="M7.2 2.2 8 5.1"/> <path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/>',
+    'globe': '<circle cx="12" cy="12" r="10"/> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/> <path d="M2 12h20"/>',
+    'swords': '<path d="m13 19 6-6"/> <path d="M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5"/> <path d="m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586"/> <path d="m16 16 4 4"/> <path d="m19 21 2-2"/> <path d="m5 14 4 4"/> <path d="m5 21-2-2"/> <path d="M7.5 16.5 4 20"/>',
+    'signal-high': '<path d="M2 20h.01"/> <path d="M7 20v-4"/> <path d="M12 20v-8"/> <path d="M17 20V8"/>',
+    'signal-medium': '<path d="M2 20h.01"/> <path d="M7 20v-4"/> <path d="M12 20v-8"/>',
+    'signal-low': '<path d="M2 20h.01"/> <path d="M7 20v-4"/>',
+    'eye': '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/> <circle cx="12" cy="12" r="3"/>',
+    'clipboard-plus': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/> <path d="M9 14h6"/> <path d="M12 17v-6"/>',
+    'link-2-off': '<path d="M9 17H7A5 5 0 0 1 7 7"/> <path d="M15 7h2a5 5 0 0 1 4 8"/> <line x1="8" x2="12" y1="12" y2="12"/> <line x1="2" x2="22" y1="2" y2="22"/>',
+    'newspaper': '<path d="M15 18h-5"/> <path d="M18 14h-8"/> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/> <rect width="8" height="4" x="10" y="6" rx="1"/>',
     'badge-check': '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/> <path d="m9 12 2 2 4-4"/>',
     'clock-alert': '<path d="M12 6v6l4 2"/> <path d="M16 21.16a10 10 0 1 1 5-13.516"/> <path d="M20 11.5v6"/> <path d="M20 21.5h.01"/>',
     'circle-help': '<circle cx="12" cy="12" r="10"/> <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/> <path d="M12 17h.01"/>',
@@ -30168,6 +30658,13 @@
       know.push(['What changed', esc(a.name + ' ' + sig.text + ' · ' + sayWhen(sig.at)) + ' — ' +
         signalMeans(sig, hist) + ' <span class="s-callp-who">— ' + esc(sig.src) + '</span>']);
     }
+    /* What the caller added to the brief from the company's news. */
+    if (a) {
+      newsFeed(a).filter((x) => x.brief && !x.pending).forEach((x) => {
+        know.push(['From the news', esc(x.head) + '. ' + x.why +
+          ' <span class="s-callp-who">' + esc(x.src) + ', ' + esc(sayWhen(x.at)) + '</span>']);
+      });
+    }
     know.push(['Last time', (hist.length
       ? esc(plural(hist.length, 'touchpoint') + ', last ' + kindLabel(last).toLowerCase() +
         ' ' + sayWhen(last.at)) + (last.note ? ' — ' + esc(last.note) : '')
@@ -33586,6 +34083,59 @@
       return;
     }
 
+    /* News and signals (AIMY-2739). Filters redraw the section in place;
+       the marks a reader makes persist and come with an undo. */
+    const nsec = t.closest('.b-news');
+    const nacc = nsec ? DB.byAcc[nsec.id.replace(/^news-/, '')] : null;
+    if (nacc) {
+      const ntype = t.closest('[data-newstype]');
+      if (ntype) { NEWS_F.type = ntype.getAttribute('data-newstype'); newsRepaint(nacc.id, 'filter'); return; }
+      const ndays = t.closest('[data-newsdays]');
+      if (ndays) { NEWS_F.days = Number(ndays.getAttribute('data-newsdays')); newsRepaint(nacc.id, 'filter'); return; }
+      if (t.closest('[data-newsstrong]')) { NEWS_F.strong = !NEWS_F.strong; newsRepaint(nacc.id, 'filter'); return; }
+      if (t.closest('[data-newsreset]')) {
+        NEWS_F = { acc: nacc.id, type: 'all', days: NEWS_YEAR, strong: false };
+        newsRepaint(nacc.id, 'filter');
+        return;
+      }
+      const nseen = t.closest('[data-newsseen]');
+      if (nseen) {
+        const id = nseen.getAttribute('data-newsseen');
+        newsD().seen[id] = 1; save(); newsRepaint(nacc.id);
+        toast('Marked as seen', () => { delete newsD().seen[id]; save(); newsRepaint(nacc.id); });
+        return;
+      }
+      const nread = t.closest('[data-newsread]');
+      if (nread) {
+        const id = nread.getAttribute('data-newsread');
+        const x = newsFeed(nacc).filter((y) => y.id === id)[0];
+        newsD().seen[id] = 1; save(); newsRepaint(nacc.id);
+        toast('Opening it on ' + (x ? x.src : 'the source'), null, 'The prototype has no real articles behind its news.');
+        return;
+      }
+      const nbrief = t.closest('[data-newsbrief]');
+      if (nbrief) {
+        const id = nbrief.getAttribute('data-newsbrief');
+        const was = !!newsD().brief[id];
+        if (was) delete newsD().brief[id]; else newsD().brief[id] = 1;
+        save(); newsRepaint(nacc.id);
+        toast(was ? 'Taken out of the brief' : 'Added to the brief for the next call', () => {
+          if (was) newsD().brief[id] = 1; else delete newsD().brief[id];
+          save(); newsRepaint(nacc.id);
+        });
+        return;
+      }
+      const ncall = t.closest('[data-newscall]');
+      if (ncall) {
+        const bits = ncall.getAttribute('data-newscall').split('|');
+        newsD().brief[bits[0]] = 1; newsD().seen[bits[0]] = 1; save();
+        startCall(bits[1]);
+        return;
+      }
+      const nfind = t.closest('[data-newsfind]');
+      if (nfind) { newsFind(nacc, nfind.getAttribute('data-newsfind')); return; }
+    }
+
     /* The About block's two verbs (AIMY-2738). */
     const pmore = t.closest('[data-profmore]');
     if (pmore) { profMore(pmore.getAttribute('data-profmore')); return; }
@@ -34190,6 +34740,15 @@
 
     /* Force one About state on every company and contact page, for the
        session. It clears what the verbs did, so the state shows itself. */
+    const nset = t.closest('[data-newsset]');
+    if (nset) {
+      NEWS_FORCE = nset.getAttribute('data-newsset');
+      Object.keys(NEWS_READY).forEach((k) => delete NEWS_READY[k]);
+      paintProto();
+      paint();
+      return;
+    }
+
     const pset = t.closest('[data-profset]');
     if (pset) {
       PROF_FORCE = pset.getAttribute('data-profset');
