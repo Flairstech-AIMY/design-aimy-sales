@@ -4428,7 +4428,6 @@
     paintProto();
     guardBack();
     postPaint(pre);
-    newsAfterPaint();
     /* Put down by the paint that used it, so the next one — a write, a page
        of the queue — draws its cards plain unless go() says otherwise. */
     SKEL_ON = false;
@@ -20271,161 +20270,160 @@
     '</article>';
   }
 
-  /* What both the summary and the panel read: the openings shown, the
-     person a caller would ring about them, and the market. */
+  /* What the block reads: the openings shown, the top one, the rest, and
+     the person a caller would ring about them. */
   function newsParts(a) {
     const all = newsFeed(a);
     const shown = all.filter(newsMatters).slice(0, NEWS_CAP);
     if (all.some((x) => x.pending)) newsFinishLater(a.id);
+    const ranked = shown.filter((x) => !x.pending)
+      .sort((x, y) => (y.strength - x.strength) || (y.at > x.at ? 1 : y.at < x.at ? -1 : 0));
+    const pending = shown.filter((x) => x.pending)[0] || null;
+    const top = ranked[0] || null;
+    /* The rest, newest first, with an item still being read at its head. */
+    const rest = (pending && top ? [pending] : []).concat(ranked.slice(1)
+      .sort((x, y) => (y.at > x.at ? 1 : y.at < x.at ? -1 : 0)));
     return {
-      all: all, shown: shown,
+      all: all, shown: shown, top: top, pending: pending, rest: rest,
       ready: all.filter((x) => !x.pending),
-      fresh: shown.filter((x) => x.isNew || x.pending).length,
+      /* New among what the reader cannot see yet: the tag on the button. */
+      fresh: rest.filter((x) => x.isNew || x.pending).length,
       who: works() ? consAt(a.id).filter(canRing).sort((x, y) => qRank(x) - qRank(y) || qTie(x, y))[0] : null,
     };
   }
 
-  /* ══ ON THE PAGE: THE TOP STORY, AiMY ON THE REST, AND THE DOOR ═════════
-     Nour, 23 Oct 2026: keep a summary on every company page, take the
-     newspaper off the page and put it behind a trigger. Then: make the
-     summary the lead-story block, the top news first and an AiMY line under
-     it for the rest, with a number tag on the door for what is new.
+  /* Their market, as cards. */
+  function newsMarket(a) {
+    const mk = marketFeed(a);
+    if (!mk.length) return '';
+    return '<aside class="b-news-mkt" aria-label="Their market">' +
+      '<div class="b-news-mkt-top">' +
+        '<h3 class="b-news-mkt-h">Their market</h3>' +
+        '<p class="b-news-mkt-p">' + esc(INDUSTRY[a.industry].label) +
+          (REGION[a.region] ? ' in ' + esc(REGION[a.region].label) : '') + ', and who they compete with</p>' +
+      '</div>' +
+      '<div class="b-news-mcards" style="--n:' + mk.length + '">' +
+      mk.map((x) => '<article class="b-news-mrow">' +
+        '<p class="b-news-kind"><span class="b-news-type">' + chIcon(NEWS_TYPE[x.type].icon) +
+          esc(NEWS_TYPE[x.type].label) + '</span></p>' +
+        '<h4 class="b-news-mhead">' + esc(x.head) + '</h4>' +
+        '<p class="b-news-mwhy">' + x.why + '</p>' +
+        '<div class="b-news-mfoot">' +
+          '<span class="b-news-msrc">' + esc(x.src) + ', ' + esc(sayDay(x.at)) + '</span>' +
+          (x.rival ? '<button class="b-news-act" type="button" data-acc="' + esc(x.rival.id) + '">' +
+            '<span>Open ' + esc(x.rival.name) + '</span>' + chIcon('arrow-up-right') + '</button>' : '') +
+        '</div>' +
+      '</article>').join('') +
+      '</div>' +
+    '</aside>';
+  }
 
-     So the page shows one item, the strongest opening and then the newest,
-     drawn as the lead with its own verbs; under it AiMY names what else is
-     in their news; and the door opens the rest in a side panel. A side
-     panel rather than a modal: it opens beside the page, the company stays
-     in view while the news is read, and it is the shape of the call rail a
-     caller already knows on that side. */
+  /* ══ NOTHING YET IS STILL A WATCH ═══════════════════════════════════════
+     What AiMY reads, when it last read it, and one press to look again now
+     (Nour, 23 Oct 2026: "it is so flat"). */
+  function newsWatch(a, p) {
+    const watched = ['Their website', 'LinkedIn', PRESS[a.region] || 'The business press',
+      TRADE[a.industry] || 'The trade press', 'Company register'];
+    const busy = NEWS_CHECKING[a.id];
+    return '<div class="b-news-empty is-none">' +
+      '<span class="b-news-halo" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
+      '<div class="b-news-empty-main">' +
+        '<p class="b-news-empty-h">' + (p.ready.length ? 'No openings for us at ' : 'Nothing about ') +
+          esc(a.name) + ' in the last year</p>' +
+        '<p class="b-news-empty-p">AiMY reads these every morning. Anything new about them lands here first.</p>' +
+        '<ul class="b-news-watch">' + watched.map((w) =>
+          '<li>' + chIcon('check') + '<span>' + esc(w) + '</span></li>').join('') + '</ul>' +
+        '<div class="b-news-empty-foot">' +
+          '<span class="b-news-checked">' + (NEWS_CHECKED[a.id] ? 'Checked just now' : 'Last checked this morning at 07:00') + '</span>' +
+          (busy
+            ? '<span class="b-news-act is-busy"><span class="b-fill-say">Checking every source now</span></span>'
+            : '<button class="b-news-act is-solid" type="button" data-newscheck>' + chIcon('refresh-cw') + '<span>Check now</span></button>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ══ THE TOP STORY, AiMY ON THE REST, AND THE REST IN PLACE ════════════
+     Nour, 23 Oct 2026, in turn: keep a summary on every company page; make
+     it the lead-story block, the top news and an AiMY line for the rest; a
+     number tag for what is new. The rest first went behind a side panel,
+     then Nour asked whether a panel was right, and it was not: with five
+     openings at most and the top one already on the page it held four
+     short items, blocked the page with a scrim and fought the call rail
+     for the same side. So the rest opens in place, under AiMY's line, as an
+     accordion (transitions.dev, grid rows 0fr to 1fr). The button stays
+     where it was pressed, so the cursor does not have to chase it, and its
+     tag counts what is new among the items still folded away. */
   function newsBlock(a) {
     const p = newsParts(a);
-    const ranked = p.shown.filter((x) => !x.pending)
-      .sort((x, y) => (y.strength - x.strength) || (y.at > x.at ? 1 : y.at < x.at ? -1 : 0));
-    const pending = p.shown.filter((x) => x.pending)[0];
-    const top = ranked[0];
-    const rest = ranked.slice(1);
-    let rows = '';
+    const top = p.top || p.pending;
+    const rest = p.top ? p.rest : [];
+    const mk = newsMarket(a);
+    const open = !!NEWS_UNFOLD[a.id];
     let say;
-    if (top) {
-      rows = newsRow(a, top, 0, p.who, true);
-      /* The rest by what kind of thing happened and when; the headlines
-         are a press away, in the panel. */
+    if (p.top) {
       const noun = { funding: 'a funding round', people: 'a hire or a new leader', contract: 'a contract or renewal',
         launch: 'a launch or expansion', partner: 'a partnership', deal: 'an acquisition', results: 'their results',
         legal: 'a regulatory matter', trouble: 'a problem in public', visit: 'a visit to our site' };
-      const named = rest.slice(0, 2).map((x) => '<b>' + esc(noun[x.type] || 'news') + '</b> on ' + esc(sayDay(x.at)));
-      if (rest.length > 2) named.push(plural(rest.length - 2, 'more'));
-      say = !rest.length
+      const done = rest.filter((x) => !x.pending);
+      const named = done.slice(0, 2).map((x) => '<b>' + esc(noun[x.type] || 'news') + '</b> on ' + esc(sayDay(x.at)));
+      if (done.length > 2) named.push(plural(done.length - 2, 'more'));
+      say = !done.length
         ? 'That is the only opening for us at ' + esc(a.name) + ' this year.'
-        : (rest.length === 1 ? 'One more opening' : plural(rest.length, 'more opening')) +
+        : (done.length === 1 ? 'One more opening' : plural(done.length, 'more opening')) +
           ' in their news: ' + joinAnd(named) + '.';
-      if (pending) say += ' AiMY is reading one more article now.';
-    } else if (pending) {
-      rows = newsRow(a, pending, 0, p.who, false);
+      if (p.pending) say += ' AiMY is reading one more article now.';
+    } else if (p.pending) {
       say = 'AiMY is reading a new article about ' + esc(a.name) + ' now.';
     } else if (p.ready.length) {
       say = 'Nothing at ' + esc(a.name) + ' opens work for us this year. AiMY found ' +
-        esc(plural(p.ready.length, 'item')) + ' and left them out.';
+        esc(plural(p.ready.length, 'item')) + ' and left ' + (p.ready.length === 1 ? 'it' : 'them') + ' out.';
     } else {
-      say = 'Nothing about ' + esc(a.name) + ' in the last year. AiMY reads their website, LinkedIn and the press every morning.';
+      say = 'Nothing about ' + esc(a.name) + ' in the last year.';
     }
-    /* The tag pops only when its number changes, not on every repaint. */
-    const was = NEWS_BADGE[a.id];
-    NEWS_BADGE[a.id] = p.fresh;
-    const badge = p.fresh
-      ? '<span class="b-news-badge' + (was !== p.fresh ? ' is-pop' : '') + '">' + p.fresh + '</span>'
-      : '';
-    return '<section class="s-block s-block-wide b-news" id="newssum-' + esc(a.id) +
-        '" data-newsacc="' + esc(a.id) + '" aria-label="News and signals">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h">News and signals</h2></div>' +
-      '<div class="b-news-list b-news-sumpanel">' +
-        rows +
-        '<div class="b-news-rest' + (rows ? '' : ' is-alone') + '">' +
-          '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<p class="b-news-rest-say">' + say + '</p>' +
-          '<button class="b-news-open" type="button" data-newsopen="' + esc(a.id) + '" aria-haspopup="dialog"' +
-            (p.fresh ? ' aria-label="Open the news, ' + p.fresh + ' new"' : '') + '>' +
-            chIcon('newspaper') + '<span>Open the news</span>' + badge + '</button>' +
-        '</div>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* ══ IN THE PANEL: THE FEED AND THEIR MARKET ═══════════════════════════ */
-  function newsBody(a) {
-    const p = newsParts(a);
-    const mk = marketFeed(a);
-    /* ══ NOTHING YET IS STILL A WATCH ═══════════════════════════════════
-       It says what AiMY reads, when it last read it, and lets the reader
-       ask it to look again now (Nour, 23 Oct 2026: "it is so flat"). */
-    const watched = ['Their website', 'LinkedIn', PRESS[a.region] || 'The business press',
-      TRADE[a.industry] || 'The trade press', 'Company register'];
-    let list;
-    if (!p.shown.length) {
-      const busy = NEWS_CHECKING[a.id];
-      list = '<div class="b-news-empty is-none">' +
-        '<span class="b-news-halo" aria-hidden="true">' + chIcon('newspaper') + '</span>' +
-        '<div class="b-news-empty-main">' +
-          '<p class="b-news-empty-h">' + (p.ready.length ? 'No openings for us at ' : 'Nothing about ') +
-            esc(a.name) + ' in the last year</p>' +
-          '<p class="b-news-empty-p">AiMY reads these every morning. Anything new about them lands here first.</p>' +
-          '<ul class="b-news-watch">' + watched.map((w) =>
-            '<li>' + chIcon('check') + '<span>' + esc(w) + '</span></li>').join('') + '</ul>' +
-          '<div class="b-news-empty-foot">' +
-            '<span class="b-news-checked">' + (NEWS_CHECKED[a.id] ? 'Checked just now' : 'Last checked this morning at 07:00') + '</span>' +
-            (busy
-              ? '<span class="b-news-act is-busy"><span class="b-fill-say">Checking every source now</span></span>'
-              : '<button class="b-news-act is-solid" type="button" data-newscheck>' + chIcon('refresh-cw') + '<span>Check now</span></button>') +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    } else {
-      /* The lead: the newest strong item from the last month, drawn larger
-         and on its own ground, so the one worth raising is found first. */
-      const leadId = (p.shown.filter((x) => !x.pending && x.strength === 3 &&
-        daysBetween(x.at, TODAY_ISO) <= 31)[0] || {}).id;
+    /* What opens: the rest of the openings, then their market. */
+    let more = '';
+    if (rest.length) {
       let last = '';
-      list = '<div class="b-news-list">' + p.shown.map((x, i) => {
+      more += '<div class="b-news-list b-news-morelist">' + rest.map((x, i) => {
         const g = newsWhen(x.at);
         const head = g !== last ? '<h3 class="b-news-when"><span>' + esc(g) + '</span></h3>' : '';
         last = g;
-        return head + newsRow(a, x, i, p.who, x.id === leadId);
+        return head + newsRow(a, x, i, p.who, false);
       }).join('') + '</div>';
     }
-    const market = mk.length
-      ? '<aside class="b-news-mkt" aria-label="Their market">' +
-          '<div class="b-news-mkt-top">' +
-            '<h3 class="b-news-mkt-h">Their market</h3>' +
-            '<p class="b-news-mkt-p">' + esc(INDUSTRY[a.industry].label) +
-              (REGION[a.region] ? ' in ' + esc(REGION[a.region].label) : '') + ', and who they compete with</p>' +
-          '</div>' +
-          '<div class="b-news-mcards">' +
-          mk.map((x) => '<article class="b-news-mrow">' +
-            '<p class="b-news-kind"><span class="b-news-type">' + chIcon(NEWS_TYPE[x.type].icon) +
-              esc(NEWS_TYPE[x.type].label) + '</span></p>' +
-            '<h4 class="b-news-mhead">' + esc(x.head) + '</h4>' +
-            '<p class="b-news-mwhy">' + x.why + '</p>' +
-            '<div class="b-news-mfoot">' +
-              '<span class="b-news-msrc">' + esc(x.src) + ', ' + esc(sayDay(x.at)) + '</span>' +
-              (x.rival ? '<button class="b-news-act" type="button" data-acc="' + esc(x.rival.id) + '">' +
-                '<span>Open ' + esc(x.rival.name) + '</span>' + chIcon('arrow-up-right') + '</button>' : '') +
-            '</div>' +
-          '</article>').join('') +
-          '</div>' +
-        '</aside>'
+    more += mk;
+    const label = rest.length
+      ? 'Show ' + (rest.length === 1 ? 'one more opening' : plural(rest.length, 'more opening'))
+      : 'Show their market';
+    /* The tag pops only when its number changes, not on every repaint. */
+    const was = NEWS_BADGE[a.id];
+    NEWS_BADGE[a.id] = p.fresh;
+    const badge = p.fresh && !open
+      ? '<span class="b-news-badge' + (was !== p.fresh ? ' is-pop' : '') + '">' + p.fresh + '</span>'
       : '';
-    return '<div class="b-news b-news-drawer" id="news-' + esc(a.id) + '" data-newsacc="' + esc(a.id) + '" role="dialog" aria-modal="true" aria-labelledby="newsDwTitle">' +
-      '<div class="b-news-dw-head">' +
-        '<div class="b-news-dw-titles">' +
-          '<h2 class="b-news-dw-title" id="newsDwTitle">News about ' + esc(a.name) + '</h2>' +
-          '<p class="b-news-dw-sub">' + (p.shown.length
-            ? 'The ' + (p.shown.length === 1 ? 'one opening' : plural(p.shown.length, 'opening')) + ' for us, newest first'
-            : 'Openings for us, newest first') + '</p>' +
+    return '<section class="s-block s-block-wide b-news" id="newssum-' + esc(a.id) +
+        '" data-newsacc="' + esc(a.id) + '" data-open="' + open + '" aria-label="News and signals">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">News and signals</h2></div>' +
+      '<div class="b-news-list b-news-sumpanel">' +
+        (top ? newsRow(a, top, 0, p.who, !!p.top) : newsWatch(a, p)) +
+        '<div class="b-news-rest">' +
+          '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          '<p class="b-news-rest-say">' + say + '</p>' +
+          (more
+            ? '<button class="b-news-open" type="button" data-newsmore aria-expanded="' + open +
+                '" aria-controls="newsMore-' + esc(a.id) + '"' +
+                (p.fresh && !open ? ' aria-label="' + esc(label) + ', ' + p.fresh + ' new"' : '') + '>' +
+                '<span class="b-news-open-w">' + (open ? 'Show less' : esc(label)) + '</span>' + badge +
+                '<span class="b-news-chev" aria-hidden="true">' + chIcon('chev-down') + '</span></button>'
+            : '') +
         '</div>' +
-        '<button class="modal-close" type="button" data-newsclose aria-label="Close the news">' + chIcon('x') + '</button>' +
+        (more
+          ? '<div class="b-news-fold" id="newsMore-' + esc(a.id) + '"' + (open ? '' : ' inert') + '>' +
+              '<div class="b-news-fold-in">' + more + '</div></div>'
+          : '') +
       '</div>' +
-      '<div class="b-news-dw-body">' + list + market + '</div>' +
-    '</div>';
+    '</section>';
   }
 
   /* An item still being read lands on its own after five seconds, unless the
@@ -20440,96 +20438,42 @@
     }, 5000);
   }
 
-  /* Redraw the summary and, when it is open, the panel, in place; an item
-     that finished loading reveals out of its skeleton. */
+  /* Redraw the block in place; an item that finished loading reveals out of
+     its skeleton. */
   function newsRepaint(accId, how) {
     const a = DB.byAcc[accId];
-    if (!a) return;
-    const sum = byId('newssum-' + accId);
-    if (sum) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = newsBlock(a);
-      sum.replaceWith(tmp.firstElementChild);
+    const el = byId('newssum-' + accId);
+    if (!a || !el) return;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = newsBlock(a);
+    const next = tmp.firstElementChild;
+    if (how === 'land') {
+      const it = next.querySelector('.b-news-item:not(.is-loading)');
+      if (it) it.classList.add('is-revealed');
     }
-    const panel = byId('newsDwPanel');
-    if (panel && NEWS_OPEN === accId) {
-      const keep = panel.querySelector('.b-news-dw-body');
-      const y = keep ? keep.scrollTop : 0;
-      panel.innerHTML = newsBody(a);
-      const body = panel.querySelector('.b-news-dw-body');
-      if (body) body.scrollTop = y;
-      if (how === 'land') {
-        const it = panel.querySelector('.b-news-item:not(.is-loading)');
-        if (it) it.classList.add('is-revealed');
-      }
-    }
+    el.replaceWith(next);
   }
-
-  /* ══ THE PANEL ITSELF ═══════════════════════════════════════════════════
-     One host at the foot of the body, made the first time it is needed.
-     Opening slides it in from the right over a scrim (transitions.dev panel
-     reveal, 400ms in, 350ms out, smooth-out); Escape, the cross and the
-     scrim close it, and focus goes back to the button that opened it. */
-  let NEWS_OPEN = null;
+  /* Open or fold the rest, in place, so the rows tween rather than the page
+     redrawing; remembered per company for the session. */
+  function newsToggle(sec, accId) {
+    const open = !NEWS_UNFOLD[accId];
+    if (open) NEWS_UNFOLD[accId] = 1; else delete NEWS_UNFOLD[accId];
+    sec.setAttribute('data-open', String(open));
+    const b = sec.querySelector('[data-newsmore]');
+    const fold = sec.querySelector('.b-news-fold');
+    if (!b || !fold) return;
+    b.setAttribute('aria-expanded', String(open));
+    b.removeAttribute('aria-label');
+    const tag = b.querySelector('.b-news-badge');
+    if (tag) tag.remove();
+    const p = newsParts(DB.byAcc[accId]);
+    const n = p.top ? p.rest.length : 0;
+    b.querySelector('.b-news-open-w').textContent = open ? 'Show less'
+      : n ? 'Show ' + (n === 1 ? 'one more opening' : plural(n, 'more opening')) : 'Show their market';
+    if (open) fold.removeAttribute('inert'); else fold.setAttribute('inert', '');
+  }
+  const NEWS_UNFOLD = Object.create(null);
   const NEWS_BADGE = Object.create(null);
-  let NEWS_FROM = null;
-  let NEWS_SHUT_T = null;
-  function newsHost() {
-    let h = byId('newsDw');
-    if (!h) {
-      h = document.createElement('div');
-      h.id = 'newsDw';
-      h.className = 'b-news-dw';
-      h.innerHTML = '<div class="b-news-dw-scrim" data-newsclose></div>' +
-        '<div class="b-news-dw-panel" id="newsDwPanel"></div>';
-      document.body.appendChild(h);
-    }
-    return h;
-  }
-  function newsOpen(a, from) {
-    if (!a) return;
-    const h = newsHost();
-    if (NEWS_SHUT_T) { clearTimeout(NEWS_SHUT_T); NEWS_SHUT_T = null; }
-    NEWS_OPEN = a.id;
-    NEWS_FROM = from || null;
-    byId('newsDwPanel').innerHTML = newsBody(a);
-    h.classList.remove('is-closing');
-    void h.offsetWidth;
-    h.classList.add('is-open');
-    document.documentElement.classList.add('news-dw-open');
-    const x = h.querySelector('[data-newsclose].modal-close');
-    if (x) x.focus({ preventScroll: true });
-  }
-  function newsClose(now) {
-    const h = byId('newsDw');
-    if (!h || !NEWS_OPEN) return;
-    NEWS_OPEN = null;
-    document.documentElement.classList.remove('news-dw-open');
-    h.classList.remove('is-open');
-    if (now) { byId('newsDwPanel').innerHTML = ''; }
-    else {
-      h.classList.add('is-closing');
-      NEWS_SHUT_T = setTimeout(() => {
-        NEWS_SHUT_T = null;
-        h.classList.remove('is-closing');
-        if (!NEWS_OPEN) byId('newsDwPanel').innerHTML = '';
-      }, 360);
-    }
-    const back = NEWS_FROM && byId('newssum-' + NEWS_FROM.replace(/^news-/, ''));
-    const btn = back && back.querySelector('[data-newsopen]');
-    if (btn && !now) btn.focus({ preventScroll: true });
-    NEWS_FROM = null;
-  }
-  /* After a paint: a panel for a company no longer on screen shuts, and one
-     still on screen is redrawn from the fresh record. */
-  function newsAfterPaint() {
-    if (!NEWS_OPEN) return;
-    if (S.acc !== NEWS_OPEN || S.con) { newsClose(true); return; }
-    newsRepaint(NEWS_OPEN);
-  }
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && NEWS_OPEN) { e.preventDefault(); newsClose(); }
-  });
 
   function newsFind(a, id) {
     const x = newsFeed(a).filter((y) => y.id === id)[0];
@@ -34214,12 +34158,10 @@
 
     /* News and signals (AIMY-2739). Filters redraw the section in place;
        the marks a reader makes persist and come with an undo. */
-    const nopen = t.closest('[data-newsopen]');
-    if (nopen) { newsOpen(DB.byAcc[nopen.getAttribute('data-newsopen')], nopen.getAttribute('data-newsopen')); return; }
-    if (t.closest('[data-newsclose]')) { newsClose(); return; }
     const nsec = t.closest('[data-newsacc]');
     const nacc = nsec ? DB.byAcc[nsec.getAttribute('data-newsacc')] : null;
     if (nacc) {
+      if (t.closest('[data-newsmore]')) { newsToggle(nsec, nacc.id); return; }
       /* The link opens the source itself; this only marks the item seen,
          after the browser has taken the click, so the redraw cannot pull
          the link out from under it. */
@@ -34234,8 +34176,6 @@
       if (ncall) {
         const bits = ncall.getAttribute('data-newscall').split('|');
         newsD().brief[bits[0]] = 1; newsD().seen[bits[0]] = 1; save();
-        /* The call rail opens on the side the panel is on. */
-        newsClose(true);
         startCall(bits[1]);
         return;
       }

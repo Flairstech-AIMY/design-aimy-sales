@@ -7638,20 +7638,21 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-news-empty { grid-template-columns: minmax(0, 1fr); padding: 20px; gap: 14px; }
 }
 
-/* ══ 107b. THE SUMMARY ON THE PAGE, AND THE NEWS PANEL ═══════════════════════
-   `newsBlock` / `newsBody` in bdr.js. On the page: the top opening drawn as
-   the lead story, AiMY's line on the rest, and the door with a number tag
-   for what is new. The door opens the full news in a panel from the right,
-   over a scrim (transitions.dev panel reveal: 400ms in, 350ms out,
-   smooth-out). The tag pops in with the notification-badge bounce, and only
-   when its number changes. */
+/* ══ 107b. THE TOP STORY, AiMY ON THE REST, AND THE REST IN PLACE ═════════════
+   `newsBlock` in bdr.js. The top opening drawn as the lead story; under it
+   AiMY's line and one button, at the far right, that opens the rest of the
+   openings and their market in place (transitions.dev accordion: rows 0fr
+   to 1fr over 250ms smooth-out, the inside fading and un-blurring with it,
+   the chevron flipped with scaleY). Its tag counts what is new among the
+   folded items and pops with the notification-badge bounce, only when its
+   number changes. This replaced a side panel (Nour, 23 Oct 2026). */
 .b-news .s-camp-list-head { align-items: center; }
 .b-news-sumpanel { padding: 10px 22px 18px; }
 .b-news-sumpanel .b-news-item.is-lead { margin: 8px -14px 0; }
-/* No rule above it, the mark on the text's own line, and the door at the
-   far right edge (Nour, 23 Oct 2026). */
+.b-news-sumpanel > .b-news-empty { margin: 12px 0 0; }
+/* No rule above it, the mark on the text's own line, and the button at the
+   far right edge. */
 .b-news-rest { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
-.b-news-rest.is-alone { margin-top: 6px; }
 .b-news-rest .b-aimy-mark { flex: none; }
 .b-news-rest-say {
   flex: 1; min-width: 0; margin: 0;
@@ -7659,14 +7660,17 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 .b-news-rest-say b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-news-open {
-  flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 14px;
+  flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 12px 0 16px;
   border-radius: var(--r-pill); border: 1px solid rgba(var(--accent-rgb), 0.35);
   background: var(--accent-dim); color: var(--accent); cursor: pointer; white-space: nowrap;
   font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
   transition: background-color 150ms ease-out, transform 150ms ease-out;
 }
-.b-news-open svg { width: 16px; height: 16px; flex: none; }
 .b-news-open:hover { background: rgba(var(--accent-rgb), 0.22); }
+/* The label swaps between "Show 4 more openings" and "Show less"; centred,
+   so the shorter word does not hug one side of the wider pill. */
+.b-news-open-w { min-width: 6.5em; text-align: center; }
 .b-news-open:active { transform: scale(0.97); }
 .b-news-open:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .b-news-badge {
@@ -7674,64 +7678,43 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   border-radius: var(--r-pill); background: var(--accent); color: #fff;
   font-size: 12px; font-weight: var(--fw-bold, 700); font-variant-numeric: tabular-nums;
 }
+.b-news-chev { display: inline-flex; transform: scaleY(1); transform-origin: center; transition: transform 250ms var(--news-ease); }
+.b-news-chev svg { width: 14px; height: 14px; }
+.b-news-chev path { vector-effect: non-scaling-stroke; }
+.b-news[data-open="true"] .b-news-chev { transform: scaleY(-1); }
 
-/* The panel. */
-.b-news-dw {
-  --dw-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  position: fixed; inset: 0; z-index: 600; pointer-events: none; visibility: hidden;
+/* The rest, folded. */
+.b-news-fold {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 250ms var(--news-ease);
 }
-.b-news-dw.is-open, .b-news-dw.is-closing { visibility: visible; }
-.b-news-dw.is-open { pointer-events: auto; }
-.b-news-dw-scrim {
-  position: absolute; inset: 0; background: rgba(5, 8, 13, 0.5); opacity: 0;
-  transition: opacity 350ms var(--dw-ease);
+.b-news[data-open="true"] .b-news-fold { grid-template-rows: 1fr; }
+.b-news-fold-in {
+  min-height: 0; overflow: hidden; opacity: 0; filter: blur(2px);
+  display: flex; flex-direction: column; gap: 22px;
+  transition: opacity 250ms var(--news-ease), filter 250ms var(--news-ease);
 }
-:root[data-theme="light"] .b-news-dw-scrim { background: rgba(16, 24, 40, 0.28); }
-.b-news-dw-panel {
-  position: absolute; top: 0; right: 0; bottom: 0; width: min(640px, 100vw);
-  display: flex; flex-direction: column;
-  background: var(--card-bg); border-left: 1px solid var(--card-border);
-  box-shadow: -24px 0 48px rgba(0, 0, 0, 0.35);
-  transform: translateX(100%);
-  transition: transform 350ms var(--dw-ease);
+.b-news[data-open="true"] .b-news-fold-in { opacity: 1; filter: none; padding-top: 6px; }
+/* Inside the block the rest is not a second panel. */
+.b-news-morelist { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.b-news-fold .b-news-mcards {
+  display: grid; gap: 12px; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr));
 }
-:root[data-theme="light"] .b-news-dw-panel { box-shadow: -24px 0 48px rgba(16, 24, 40, 0.14); }
-.b-news-dw.is-open .b-news-dw-scrim { opacity: 1; transition-duration: 400ms; }
-.b-news-dw.is-open .b-news-dw-panel { transform: none; transition-duration: 400ms; }
-html.news-dw-open { overflow: hidden; }
-.b-news-drawer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.b-news-dw-head {
-  display: flex; align-items: flex-start; gap: 12px; padding: 22px 24px 16px;
-  border-bottom: 1px solid var(--card-border);
-  background: linear-gradient(180deg, var(--card-bg-raised), var(--card-bg));
-}
-.b-news-dw-titles { flex: 1; min-width: 0; }
-.b-news-dw-title {
-  margin: 0; font-size: calc(var(--t-body) * 1.25); font-weight: var(--fw-semibold);
-  line-height: 1.3; color: var(--d50);
-}
-.b-news-dw-sub { margin: 4px 0 0; font-size: var(--t-small); color: var(--d200); }
-.b-news-dw-head .modal-close { color: var(--d100); }
-.b-news-dw-head .modal-close svg { width: 16px; height: 16px; }
-.b-news-dw-body {
-  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  display: flex; flex-direction: column; gap: 24px; padding: 20px 24px 32px;
-}
-.b-news-drawer .b-news-mcards { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 @media (prefers-reduced-motion: no-preference) {
   .b-news-badge.is-pop { animation: b-news-badge 500ms cubic-bezier(0.34, 1.36, 0.64, 1) both; }
 }
 @keyframes b-news-badge { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .b-news-dw-scrim, .b-news-dw-panel, .b-news-open { transition: none !important; }
+  .b-news-fold, .b-news-fold-in, .b-news-chev, .b-news-open { transition: none !important; }
+}
+@media (max-width: 1100px) {
+  .b-news-fold .b-news-mcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   .b-news-sumpanel { padding: 6px 14px 14px; }
   .b-news-sumpanel .b-news-item.is-lead { margin: 6px -8px 0; }
   .b-news-rest { flex-wrap: wrap; }
   .b-news-open { width: 100%; justify-content: center; }
-  .b-news-dw-head { padding: 18px 16px 14px; }
-  .b-news-dw-body { padding: 16px 16px 28px; }
-  .b-news-drawer .b-news-mcards { grid-template-columns: minmax(0, 1fr); }
+  .b-news-fold .b-news-mcards { grid-template-columns: minmax(0, 1fr); }
 }
