@@ -9121,6 +9121,12 @@
       '</button>';
   }
   function railDoors() {
+    /* A client book with no money target (hiring signs no revenue) has no
+       bar to fill: the card read "of a €0 target, 0% reached". It gets
+       the year's card instead, which every client book has. */
+    if (isBuyer() && !bookAttain().target) {
+      return '<div class="rail-doors">' + diaryDoor() + yearCard() + '</div>';
+    }
     /* The door keeps the contract's figure on every page, the report
        included, which reads by quarter on this desk. */
     const worth = isBuyer()
@@ -9158,10 +9164,14 @@
      does not. The reading says how the promises stand; this says when the
      year ends and whether the window to do anything about it has gone. */
   function yearDoor() {
+    const card = yearCard();
+    return card ? '<div class="rail-doors">' + card + '</div>' : '';
+  }
+  function yearCard() {
     if (!isBuyer()) return '';
     const y = myYear();
     if (y.left == null) return '';
-    return '<div class="rail-doors">' +
+    return '' +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Your journey</span>' +
@@ -9175,8 +9185,7 @@
             : 'Renews ' + sayDay(isoAdd(y.p.end, 1)) + ' unless you say otherwise by ' + sayDay(y.shut))
           : 'Ends ' + sayDay(y.p.end)) + '</span>' +
         doorGo('Open the report') +
-      '</button>' +
-    '</div>';
+      '</button>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
