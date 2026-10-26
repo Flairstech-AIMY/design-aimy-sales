@@ -111,6 +111,12 @@ dl.kv dt{font-weight:600} dl.kv dd{color:var(--ink2)}
 .links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 40px;margin-top:18px}
 .links ul{list-style:none;padding:0}
 .links li{margin:6px 0}
+.dec-group{margin:36px 0 4px;font-size:17px}
+.decs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 40px}
+.dec{padding:18px 0;border-top:1px solid var(--line)}
+.dec p{margin:0 0 8px;color:var(--ink2)}
+.dec .why{color:var(--ink)}
+.dec .why b{color:var(--accent)}
 footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-size:14px;color:var(--ink2)}
 
 @media (max-width:1100px){
@@ -125,7 +131,7 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-si
 }
 @media (max-width:640px){
   .hero h1{font-size:32px} h2{font-size:24px}
-  .cols,.links{grid-template-columns:minmax(0,1fr)}
+  .cols,.links,.decs{grid-template-columns:minmax(0,1fr)}
   dl.kv{grid-template-columns:minmax(0,1fr)} dl.kv dt{border-bottom:0;padding-bottom:0}
   .gal-tabs button{width:64px}
 }
@@ -170,14 +176,14 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-si
 <a href="#s3"><span class="n">S3</span><span>Request a campaign, add a lead, join a deal</span></a>
 <div class="grp">Client</div>
 <a href="#c1"><span class="n">C1</span><span>Read "Your journey with AiMY"</span></a>
-<a href="#c2"><span class="n">C2</span><span>Follow her campaigns</span></a>
+<a href="#c3"><span class="n">C2</span><span>Meet her account manager</span></a>
+<a href="#c2"><span class="n">C3</span><span>Follow her campaigns</span></a>
 <div class="grp">Across desks</div>
 <a href="#x1"><span class="n">X1</span><span>The CEO writes a campaign; Lina runs it</span></a>
 <a href="#x2"><span class="n">X2</span><span>A client requests a campaign; it is talked through first</span></a>
 <a href="#x3"><span class="n">X3</span><span>Leads that cross desks</span></a>
 <div class="grp">Reference</div>
-<a href="#rules">Decisions already made</a>
-<a href="#gaps">Known gaps</a>
+<a href="#ux">UX decisions</a>
 <a href="#links">Every link</a>
 </details></nav>
 <main>
@@ -607,9 +613,9 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-si
   <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p419" target="_blank" rel="noopener">Open Henry Murphy (demo)</a></div>
   <ol>
-    <li>Today lists today's meetings first (Noah Wright at 14:00, Henry Murphy's demo at 15:00), then Requests (only when one exists) and Connections.</li>
-    <li>Press <b>Prepare me for 14:00</b>, bottom right. AiMY opens full screen: "Before you meet Noah Wright": Say this first, stage, How far to go (account tier), Who, How it started, Last time, Remember, If they push back, Selling and Why now.</li>
-    <li>The same brief opens from <b>Prepare me</b> on a contact page and from the bell.</li>
+    <li>Today lists today's meetings first: a check-in with the client Kestrel Labs at 11:30, Noah Wright at 14:00 and Henry Murphy's demo at 15:00. Then Requests (only when one exists) and Connections.</li>
+    <li>Open Noah Wright and press <b>Prepare me</b>. AiMY opens full screen: "Before you meet Noah Wright": Say this first, stage, How far to go (account tier), Who, How it started, Last time, Remember, If they push back, Selling and Why now.</li>
+    <li><b>Prepare me</b> at the bottom right of Today briefs you for the next meeting. Before a client meeting the brief is the client's year, seen from our side.</li>
   </ol>
 
 </div><div class="scn-media"><div class="gal" data-gal>
@@ -883,14 +889,12 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-si
 
 <h2 id="p-cli">Client processes <span class="desk d-cli">Client</span></h2>
 
-<div class="note"><b>Read first.</b> Kestrel's contract dates are fixed (1 October 2025 for 12 months), unlike everything else, which moves with the clock. The year ended on 30 Sep 2026, so today the client desk says "last day of the year", its Diary is empty, and Lina's diary has no Kestrel meetings. The report still works. See <a href="#gaps">Known gaps</a>.</div>
-
 <section class="scn" id="c1">
   <h3><span class="id">C1</span>Read "Your journey with AiMY"</h3>
   <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money" target="_blank" rel="noopener">Everything</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=reach" target="_blank" rel="noopener">AiMY Talent</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=tool" target="_blank" rel="noopener">AiMY QA</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=desk" target="_blank" rel="noopener">Managed support</a></div>
   <ol>
-    <li>Open the report from the call panel ("Your journey") or the Start strip. It reads by calendar quarter: This quarter or Last quarter.</li>
+    <li>Open the report from the left column ("Your journey") or the Start strip. It reads by calendar quarter: This quarter or Last quarter.</li>
     <li>"How the quarter is going" says how many promises were kept and who owns what is behind. A renewal flag shows the notice window.</li>
     <li>The ledger splits promises into <b>Ours to keep</b> and <b>Yours</b>. Under each of ours that is behind, AiMY says how far short and how long is left.</li>
     <li>Pick an engagement with the chip menu at the top right. On a staffed floor, a line links out to AiMY QA for "which goal each agent is losing".</li>
@@ -910,8 +914,31 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-si
 </div></div></div>
 </section>
 
+<section class="scn" id="c3">
+  <h3><span class="id">C2</span>Meet her account manager</h3>
+  <div class="scn-body"><div class="scn-text">
+  <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=cal" target="_blank" rel="noopener">Open her diary</a></div>
+  <ol>
+    <li>Her diary holds only the meetings she is actually in with us: the kickoff, a monthly check-in, a quarterly review every third month, each service going live, and a talk about next year shortly before her year ends.</li>
+    <li>Today's check-in with Lina Haddad is at 11:30. Press <b>Prepare me for 11:30</b> on Today.</li>
+    <li>AiMY briefs her from her side of the table: how the year is going, whose each missed promise is, what she asked for, and questions worth asking.</li>
+    <li>The same meetings sit in Lina's diary at the same times.</li>
+  </ol>
+  <p class="see"><b>Renewal:</b> her year renews unless she says otherwise before the notice date. Today, the briefing and the left column all say when that is.</p>
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g90-0"><a href="shots/cli-diary.jpg" target="_blank" rel="noopener" aria-label="Open full size: Client diary"><img loading="lazy" src="shots/cli-diary.jpg" alt="Client diary"></a><figcaption>Her diary: meetings with us, not with prospects.</figcaption></figure>
+<figure class="gal-fig" id="g90-1" data-rest><a href="shots/cli-prep.jpg" target="_blank" rel="noopener" aria-label="Open full size: Client brief"><img loading="lazy" src="shots/cli-prep.jpg" alt="Client brief"></a><figcaption>Prepare me, from her side of the table.</figcaption></figure>
+<figure class="gal-fig" id="g90-2" data-rest><a href="shots/cli-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Client Today"><img loading="lazy" src="shots/cli-home.jpg" alt="Client Today"></a><figcaption>Today: the check-in, her campaigns and the renewal date.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g90-0" aria-selected="true" title="Her diary: meetings with us, not with prospects."><img src="shots/cli-diary.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g90-1" aria-selected="false" title="Prepare me, from her side of the table."><img src="shots/cli-prep.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g90-2" aria-selected="false" title="Today: the check-in, her campaigns and the renewal date."><img src="shots/cli-home.jpg" alt=""><span>3</span></button>
+</div>
+</div></div></div>
+</section>
+
 <section class="scn" id="c2">
-  <h3><span class="id">C2</span>Follow her campaigns</h3>
+  <h3><span class="id">C3</span>Follow her campaigns</h3>
   <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=camps" target="_blank" rel="noopener">Campaigns</a></div>
   <ul>
@@ -992,52 +1019,90 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-si
 </div></div>
 </section>
 
-<h2 id="rules">Decisions already made</h2>
-<p>These are settled. A design that breaks one will be sent back.</p>
-<div class="cols">
-  <div><h4>How things work</h4><ul>
-    <li>No pop-up windows, pickers or drag-and-drop as the only way to do something. One click on the page, with Undo after.</li>
-    <li>No "are you sure?" dialogs. A choice with several answers is shown on the page itself, as with an unsaved list.</li>
-    <li>Quick settings (team, wait between calls) change in place. Longer text (pitch, notes) is changed through Edit.</li>
-    <li>On a small screen a control changes shape (a drawer, a menu, its own line). It is never hidden.</li>
-  </ul></div>
-  <div><h4>How things look</h4><ul>
-    <li>No faded or grey text to show a state. Use words, weight and colour.</li>
-    <li>Icons come from the Lucide set.</li>
-    <li>One typeface, Poppins. Light and dark themes both work.</li>
-    <li>Designs are judged at a 1536px wide screen first, then smaller.</li>
-    <li>Reuse what AiMY Knowledge and AiMY QA already have before designing something new.</li>
-  </ul></div>
-  <div><h4>How things are worded</h4><ul>
-    <li>"Call", never "ring". "Contacts", never "board" or "book".</li>
-    <li>Plain English, no sales slang.</li>
-    <li>An AiMY insight is one plain sentence.</li>
-    <li>Money as people say it: "€139k of €300k".</li>
-    <li>Facts about a person must be public (LinkedIn, their website, the press). No guesses about team size or who they report to.</li>
-  </ul></div>
-  <div><h4>Who sees what</h4><ul>
-    <li>A page belongs to whoever does the work on it. Scoring individual agents belongs to AiMY QA, so Sales links there.</li>
-    <li>The client never sees our costs, how we rate accounts, or the names of the people we call.</li>
-    <li>The CEO and the stakeholder read; they do not change the work.</li>
-    <li>Follow-ups go to the bell, not onto Today.</li>
-  </ul></div>
+<h2 id="ux">UX decisions</h2>
+<p>The decisions that shaped AiMY Sales, and why each was made. Keep them unless the reason no longer holds.</p>
+
+<h3 class="dec-group">How the product is organised</h3>
+<div class="decs">
+  <div class="dec"><h4>Open on a briefing, not a database</h4>
+    <p>Every desk opens on "Today": a few sentences on what needs you, then a Start strip of the next things to do.</p>
+    <p class="why"><b>Why:</b> leaders rejected the earlier table-first version. People come to the product to know what to do next, not to browse records.</p></div>
+  <div class="dec"><h4>One product, five desks</h4>
+    <p>The caller, manager, stakeholder, client and CEO use the same screens. The more senior the person, the more they see and the less they change.</p>
+    <p class="why"><b>Why:</b> one set of words and one set of numbers. A manager and the CEO can never read two different figures for the same thing.</p></div>
+  <div class="dec"><h4>The page title is the tab switcher</h4>
+    <p>Contacts, Diary, Campaigns and Lists sit in the heading itself, with a count on each. There is no navigation column.</p>
+    <p class="why"><b>Why:</b> a product with four places to go does not need a row of menus to say which one you are in.</p></div>
+  <div class="dec"><h4>Fifteen at a time, not an endless list</h4>
+    <p>Lists show fifteen cards and a button for the next fifteen, with "1 to 15 of 109" written underneath.</p>
+    <p class="why"><b>Why:</b> with a thousand rows behind a scrollbar you cannot tell where you are, come back to the same place, or ever finish.</p></div>
 </div>
 
-<h2 id="gaps">Known gaps</h2>
-<p>What is missing, partial, or worth deciding next.</p>
-<ul>
-  <li><b>The client's year has ended.</b> Kestrel's contract dates are fixed, while everything else follows the calendar. Since 30 September the client's diary is empty, Lina sees no client meetings, and the client desk says "last day of the year". The dates need to follow the calendar like the rest.</li>
-  <li>The diary shows a month and a day. There is no week view.</li>
-  <li>Campaign requests only exist once someone makes one; a fresh prototype has none.</li>
-  <li>A client's request appears in Lina's Requests but does not reach her bell.</li>
-  <li>The phone in the top bar and the choice of which number to call from exist for the caller only.</li>
-  <li>Booking a call does not yet ask whether it is a phone or video call.</li>
-  <li>The browser's own Back button does not follow the in-page back links.</li>
-  <li>Voice mode needs a real microphone.</li>
-  <li>The CEO's "a team is behind" alert only appears in the second half of a quarter.</li>
-  <li>Not built yet for the CEO: his own quarter number, asking a deal owner a question, moving a running campaign, setting targets, approvals.</li>
-  <li>The walkthrough videos predate October and miss the caller's diary, the phone, number finding, voice mode and the usage meter.</li>
-</ul>
+<h3 class="dec-group">How work gets done</h3>
+<div class="decs">
+  <div class="dec"><h4>Logging a call is confirming, not filling a form</h4>
+    <p>When a call ends AiMY says what it heard ("I read that as connected. Is that right?"). One press logs it, or one sentence corrects it.</p>
+    <p class="why"><b>Why:</b> the call already holds the answer. A form after the call asks the caller to report the same call twice, 200 times a day.</p></div>
+  <div class="dec"><h4>The call sits beside the page</h4>
+    <p>A call opens in a panel on the right, never in a pop-up window.</p>
+    <p class="why"><b>Why:</b> during a call you need the person's record and the campaign's pitch. A pop-up would cover the very things you need.</p></div>
+  <div class="dec"><h4>Undo instead of "are you sure?"</h4>
+    <p>Every change happens on one click and shows a short message with Undo. There are no confirmation dialogs or pop-up forms.</p>
+    <p class="why"><b>Why:</b> dialogs slow down every action to protect against the rare mistake. Undo protects against the mistake and costs nothing the rest of the time.</p></div>
+  <div class="dec"><h4>Say it in a sentence</h4>
+    <p>The AiMY bar takes plain sentences: "Had a demo with Noah, they want a proposal next week" moves the deal and books the follow-up.</p>
+    <p class="why"><b>Why:</b> managers are on the road and wrote meeting notes on paper. A sentence, typed or spoken, is the fastest way to keep the record true.</p></div>
+  <div class="dec"><h4>Finding leads is a conversation</h4>
+    <p>There is no search builder page. You describe who you want; AiMY finds them and brings back a list to review, name and save.</p>
+    <p class="why"><b>Why:</b> people know who they want in words, not in filters. The review step keeps the person in charge of what gets saved.</p></div>
+  <div class="dec"><h4>What a person saw is one press</h4>
+    <p>"They showed up" and "They are interested" are buttons on the contact, not something AiMY works out.</p>
+    <p class="why"><b>Why:</b> no call record can prove that someone turned up or is interested. Only the person who was there knows.</p></div>
+  <div class="dec"><h4>Quick settings change in place, longer text behind Edit</h4>
+    <p>A team or the wait between calls changes right on the page. A pitch or notes are changed through Edit.</p>
+    <p class="why"><b>Why:</b> the line is whether a change has a middle. A setting is done in one click; a paragraph is a draft until you finish it.</p></div>
+  <div class="dec"><h4>The campaign sets the pace of calls</h4>
+    <p>The wait between calls is set on the campaign and wins over any list's own wait. During a run the caller sees only the countdown and "Call now".</p>
+    <p class="why"><b>Why:</b> one owner for the pace, and nothing for the caller to fiddle with in the middle of a run.</p></div>
+</div>
+
+<h3 class="dec-group">Who sees what</h3>
+<div class="decs">
+  <div class="dec"><h4>The client sees results, not our operation</h4>
+    <p>The client never sees our costs, how we rate accounts, or the names of the people we call. Her report counts promises kept, by calendar quarter.</p>
+    <p class="why"><b>Why:</b> she bought an outcome. How many times we called someone is our work, not her delivery, and a quarter gives her a regular point to check progress, instead of one figure at the end of the year.</p></div>
+  <div class="dec"><h4>A client's request is talked through first</h4>
+    <p>When a client asks for a campaign, her account manager books a meeting with her before it can run.</p>
+    <p class="why"><b>Why:</b> a campaign spends real money and calls on her behalf. Agreeing the details face to face avoids running the wrong one.</p></div>
+  <div class="dec"><h4>The CEO assigns; managers run</h4>
+    <p>The CEO reads everything and changes nothing. He gives work to a manager, with AiMY's suggestion and its reason, and joins deals that need him.</p>
+    <p class="why"><b>Why:</b> the work stays with the people accountable for it, and the reason travels with the assignment so the manager knows why it is theirs.</p></div>
+  <div class="dec"><h4>Follow-ups come back in the bell</h4>
+    <p>When work leaves a desk (a hand-over, an assignment, a request) its news returns to the sender's bell.</p>
+    <p class="why"><b>Why:</b> a review of all five desks found the same gap everywhere: work that left a desk never came back. Today stays about today.</p></div>
+  <div class="dec"><h4>A page belongs to whoever does the work</h4>
+    <p>Scoring individual support agents lives in AiMY QA. The client report links there rather than copying it.</p>
+    <p class="why"><b>Why:</b> one place for each job. Two copies drift apart and then disagree.</p></div>
+  <div class="dec"><h4>Only public facts about a person</h4>
+    <p>A contact's profile shows their job, career, public posts and how to reach them. No guesses about team size or who they report to.</p>
+    <p class="why"><b>Why:</b> callers act on these facts. A guess presented as a fact loses trust the first time it is wrong.</p></div>
+</div>
+
+<h3 class="dec-group">How it looks and reads</h3>
+<div class="decs">
+  <div class="dec"><h4>Plain words, one word per thing</h4>
+    <p>"Call", never "ring". "Contacts" for the caller and the manager alike. No sales slang.</p>
+    <p class="why"><b>Why:</b> a caller handing a lead to a manager should not have to translate. Plain words also read the same to a client.</p></div>
+  <div class="dec"><h4>No faded text</h4>
+    <p>A state is shown in words, weight and colour, never by greying text out.</p>
+    <p class="why"><b>Why:</b> faded text is hard to read, and what is hard to read gets missed.</p></div>
+  <div class="dec"><h4>Change shape, never hide</h4>
+    <p>On a small screen the left column becomes a drawer and long rows wrap. Nothing is removed.</p>
+    <p class="why"><b>Why:</b> hiding a control on a small screen takes away something the person can do.</p></div>
+  <div class="dec"><h4>Show the one thing that matters, expand for the rest</h4>
+    <p>A company's news shows its single best opening for us, with the rest opening in place underneath.</p>
+    <p class="why"><b>Why:</b> there are at most a few openings worth acting on. A side panel would cover the page and clash with the call panel.</p></div>
+</div>
 
 <h2 id="links">Every link</h2>
 <p>All open the live prototype. Reset first for the results described above.</p>
