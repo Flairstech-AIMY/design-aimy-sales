@@ -1,335 +1,444 @@
 <title>AiMY Sales Handoff</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap">
 <style>
-/* Layout: a sticky contents column beside one reading column; it folds to a single column under 1000px. */
+/* Layout: a contents rail that follows the reader, beside one column; each process puts its steps beside one large screenshot. */
 :root{
-  --bg:#f6f5fb; --surface:#ffffff; --ink:#16132a; --ink2:#38344f; --line:#e2dfee;
-  --accent:#5a3dd8; --accent-ink:#ffffff; --accent-soft:#efeafe; --blue:#0b63c9;
-  --warn:#8a4b00; --warn-soft:#fff2dc; --ok:#11713f; --ok-soft:#e3f6ea; --code-bg:#efedf7;
-  --f-display:"Poppins", "Segoe UI", system-ui, sans-serif;
-  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  --f-mono:"JetBrains Mono", Consolas, "Courier New", monospace;
+  --bg:#f7f7f9; --surface:#ffffff; --sunk:#eff0f4; --ink:#14151a; --ink2:#3b3e48; --line:#e3e4ea;
+  --accent:#5b45e0; --accent-ink:#ffffff; --accent-soft:#eeebfd;
+  --warn:#8a4a00; --warn-soft:#fdf1df; --ok:#0f6b3d; --ok-soft:#e2f4e9;
+  --f:"Geist", "Segoe UI", system-ui, sans-serif; --f-mono:"Geist Mono", Consolas, monospace;
+  --r:12px;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0f0e19; --surface:#18172a; --ink:#eeecf8; --ink2:#c9c5de; --line:#2e2b47;
-  --accent:#a990ff; --accent-ink:#120f24; --accent-soft:#272150; --blue:#7eb0ff;
-  --warn:#f2b660; --warn-soft:#33270f; --ok:#6fd49a; --ok-soft:#14301f; --code-bg:#23213a; color-scheme:dark }}
+  --bg:#0e0f13; --surface:#16171d; --sunk:#1c1d25; --ink:#ecedf2; --ink2:#c3c5cf; --line:#2a2c36;
+  --accent:#a593ff; --accent-ink:#0e0f13; --accent-soft:#221f3d;
+  --warn:#f1b764; --warn-soft:#2e2412; --ok:#72d39f; --ok-soft:#14291d; color-scheme:dark }}
 :root[data-theme="dark"]{
-  --bg:#0f0e19; --surface:#18172a; --ink:#eeecf8; --ink2:#c9c5de; --line:#2e2b47;
-  --accent:#a990ff; --accent-ink:#120f24; --accent-soft:#272150; --blue:#7eb0ff;
-  --warn:#f2b660; --warn-soft:#33270f; --ok:#6fd49a; --ok-soft:#14301f; --code-bg:#23213a; color-scheme:dark }
+  --bg:#0e0f13; --surface:#16171d; --sunk:#1c1d25; --ink:#ecedf2; --ink2:#c3c5cf; --line:#2a2c36;
+  --accent:#a593ff; --accent-ink:#0e0f13; --accent-soft:#221f3d;
+  --warn:#f1b764; --warn-soft:#2e2412; --ok:#72d39f; --ok-soft:#14291d; color-scheme:dark }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--f-body);
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 64px}
-.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px}
-nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;max-height:100vh;overflow:auto;padding:32px 0 24px;font-size:15px}
-nav.toc b{display:block;font:600 12px/1.4 var(--f-display);letter-spacing:.08em;text-transform:uppercase;margin:18px 0 6px;color:var(--ink)}
-nav.toc a{display:block;color:var(--ink2);text-decoration:none;padding:3px 0 3px 10px;border-left:2px solid var(--line)}
-nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent)}
-main{min-width:0;padding-top:32px}
-header.top{border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:8px}
-.eyebrow{font:600 12px/1.4 var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-h1{font:700 44px/1.1 var(--f-display);margin:8px 0 12px;text-wrap:balance}
-h2{font:600 28px/1.2 var(--f-display);margin:56px 0 12px;padding-top:8px;text-wrap:balance;scroll-margin-top:16px}
-h3{font:600 20px/1.3 var(--f-display);margin:32px 0 8px;text-wrap:balance;scroll-margin-top:16px}
-h4{font:600 16px/1.4 var(--f-display);margin:20px 0 4px}
-p,li{max-width:68ch}
-p{margin:0 0 12px}
-ul,ol{margin:0 0 14px;padding-left:22px}
-li{margin:3px 0}
-a{color:var(--blue)}
-a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
-code{font:14px/1.5 var(--f-mono);background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
-pre{font:14px/1.6 var(--f-mono);background:var(--code-bg);padding:12px 14px;border-radius:8px;overflow-x:auto;max-width:100%}
-.lede{font-size:19px;color:var(--ink2);max-width:62ch}
-.facts{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:16px;font-size:15px}
-.facts span b{font-weight:700}
-.btn{display:inline-flex;align-items:center;gap:6px;font:600 14px/1 var(--f-display);text-decoration:none;
-  background:var(--accent);color:var(--accent-ink);padding:9px 14px;border-radius:999px}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f);-webkit-font-smoothing:antialiased;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+.wrap{max-width:1380px;margin:0 auto;display:grid;grid-template-columns:232px minmax(0,1fr);gap:56px}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+b{font-weight:600}
+
+/* contents rail */
+.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;max-height:100vh;overflow:auto;padding:36px 4px 32px 0;font-size:14px;scrollbar-width:thin}
+.toc summary{display:none}
+.toc .grp{font-weight:600;color:var(--ink);margin:20px 0 6px;font-size:13px}
+.toc .grp:first-of-type{margin-top:0}
+.toc a{display:flex;gap:8px;color:var(--ink2);text-decoration:none;padding:4px 10px;border-radius:8px;line-height:1.35}
+.toc a .n{font:500 12px/1.6 var(--f-mono);color:var(--ink2);min-width:22px}
+.toc a:hover{background:var(--sunk);color:var(--ink)}
+.toc a.on{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc a.on .n{color:var(--accent)}
+
+main{min-width:0;padding-top:36px}
+.hero{padding-bottom:36px;border-bottom:1px solid var(--line)}
+.hero h1{font:700 44px/1.08 var(--f);letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.hero p{font-size:18px;color:var(--ink2);max-width:60ch;margin:0 0 20px}
+.btn{display:inline-flex;align-items:center;font:600 14px/1 var(--f);text-decoration:none;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:999px;white-space:nowrap}
 .btn.ghost{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
-.btns{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
-.desk{display:inline-block;font:600 12px/1 var(--f-display);letter-spacing:.04em;padding:5px 9px;border-radius:999px;vertical-align:middle;margin-right:6px}
-.d-bdr{background:#e4efff;color:#0b4fa3}.d-mgr{background:#efe7ff;color:#4b2bb8}.d-stk{background:#e2f5ec;color:#0f6a3c}
-.d-cli{background:#fff0dc;color:#7a4300}.d-ceo{background:#fde4ea;color:#9a1c3c}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .d-bdr{background:#13294a;color:#9cc4ff} :root:not([data-theme="light"]) .d-mgr{background:#2a2050;color:#c7b5ff} :root:not([data-theme="light"]) .d-stk{background:#12321f;color:#8be0b0} :root:not([data-theme="light"]) .d-cli{background:#3a2a10;color:#f6c98a} :root:not([data-theme="light"]) .d-ceo{background:#3d1622;color:#ffadc0}}
-:root[data-theme="dark"] .d-bdr{background:#13294a;color:#9cc4ff}:root[data-theme="dark"] .d-mgr{background:#2a2050;color:#c7b5ff}:root[data-theme="dark"] .d-stk{background:#12321f;color:#8be0b0}:root[data-theme="dark"] .d-cli{background:#3a2a10;color:#f6c98a}:root[data-theme="dark"] .d-ceo{background:#3d1622;color:#ffadc0}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:18px 0}
-.scn{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:22px 0;scroll-margin-top:16px}
-.scn h3{margin-top:4px}
-.scn .id{font:600 13px/1 var(--f-mono);color:var(--accent);margin-right:8px}
-.scn .meta{font-size:15px;color:var(--ink2);margin-bottom:6px}
-.see{background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;max-width:none}
-.code-line{font-size:15px;color:var(--ink2)}
-.note{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:12px 16px;margin:14px 0}
+.btn:active{transform:translateY(1px)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 18px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:28px;font-size:14px}
+.facts div{color:var(--ink2)} .facts b{display:block;color:var(--ink);font-size:13px}
+
+h2{font:700 30px/1.15 var(--f);letter-spacing:-.015em;margin:72px 0 10px;text-wrap:balance;scroll-margin-top:20px}
+h2 + p{color:var(--ink2);max-width:64ch;margin-bottom:8px}
+h3{font:600 20px/1.3 var(--f);margin:0 0 14px;text-wrap:balance}
+h4{font:600 15px/1.4 var(--f);margin:0 0 8px}
+p,li{max-width:66ch}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 16px;padding-left:20px}
+li{margin:5px 0}
+kbd{font:500 12px/1 var(--f-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:2px 6px;background:var(--surface)}
+
+/* numbered steps */
+ol.steps,.scn-text ol{list-style:none;padding:0;counter-reset:s}
+.scn-text ol li{counter-increment:s;position:relative;padding-left:36px;margin:12px 0}
+.scn-text ol li::before{content:counter(s);position:absolute;left:0;top:1px;width:24px;height:24px;border-radius:50%;
+  background:var(--sunk);color:var(--ink);font:600 12px/24px var(--f);text-align:center}
+
+/* a process */
+.scn{border-top:1px solid var(--line);padding:40px 0 8px;scroll-margin-top:12px}
+.scn h3 .id{display:inline-block;font:500 12px/1 var(--f-mono);color:var(--accent);background:var(--accent-soft);padding:5px 7px;border-radius:6px;margin-right:10px;vertical-align:3px}
+.scn-body{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:40px;align-items:start}
+.scn-body.is-solo{grid-template-columns:minmax(0,1fr)}
+.scn-media{position:sticky;top:20px}
+.meta{color:var(--ink2);margin-bottom:12px}
+.see{background:var(--sunk);border-radius:10px;padding:12px 16px;margin:16px 0;max-width:none;font-size:15px}
+.note{background:var(--warn-soft);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:none}
 .note b{color:var(--warn)}
-figure{margin:16px 0 20px}
-figure a{display:block;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
-figure img{display:block;width:100%;height:auto}
-figcaption{font-size:14px;color:var(--ink2);margin-top:6px}
-.shots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.shots figure{margin:0}
-.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.grid2 .card{margin:0}
-dl.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 16px;margin:8px 0 14px}
-dl.kv dt{font-weight:700}
-dl.kv dd{margin:0}
-.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 14px;font:600 14px/1 var(--f-display)}
+
+/* screenshot viewer */
+.gal-fig{margin:0 0 16px}
+.gal-fig a{display:block;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:#0e0f13;box-shadow:0 12px 32px -18px rgb(10 10 30 / .45)}
+.gal-fig img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;object-position:top}
+.gal-fig figcaption{font-size:14px;color:var(--ink2);margin-top:10px}
+.gal-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.gal-tabs button{position:relative;padding:0;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);cursor:pointer;width:84px}
+.gal-tabs img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;object-position:top;opacity:.7}
+.gal-tabs span{position:absolute;left:4px;top:4px;font:600 11px/18px var(--f);min-width:18px;height:18px;border-radius:9px;background:var(--surface);color:var(--ink);text-align:center}
+.gal-tabs button[aria-selected="true"]{border-color:var(--accent)}
+.gal-tabs button[aria-selected="true"] img,.gal-tabs button:hover img{opacity:1}
+.gal-tabs button[aria-selected="true"] span{background:var(--accent);color:var(--accent-ink)}
+
+/* desks */
+.desk{display:inline-block;font:600 12px/1 var(--f);padding:5px 9px;border-radius:999px;vertical-align:3px;margin-right:8px}
+.d-bdr{background:#e3edff;color:#0b4a9c}.d-mgr{background:#ece7ff;color:#4528b0}.d-stk{background:#dff3e8;color:#0d6236}
+.d-cli{background:#fdeed8;color:#774000}.d-ceo{background:#fde3e9;color:#951a3a}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .d-bdr{background:#132845;color:#a6c8ff} :root:not([data-theme="light"]) .d-mgr{background:#251f4a;color:#cbbcff} :root:not([data-theme="light"]) .d-stk{background:#112d1d;color:#8fe0b3} :root:not([data-theme="light"]) .d-cli{background:#35270f;color:#f5ca8c} :root:not([data-theme="light"]) .d-ceo{background:#38151f;color:#ffb0c2}}
+:root[data-theme="dark"] .d-bdr{background:#132845;color:#a6c8ff}:root[data-theme="dark"] .d-mgr{background:#251f4a;color:#cbbcff}:root[data-theme="dark"] .d-stk{background:#112d1d;color:#8fe0b3}:root[data-theme="dark"] .d-cli{background:#35270f;color:#f5ca8c}:root[data-theme="dark"] .d-ceo{background:#38151f;color:#ffb0c2}
+
+/* words */
+dl.kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:0;margin:16px 0;border-top:1px solid var(--line)}
+dl.kv dt,dl.kv dd{padding:12px 0;border-bottom:1px solid var(--line);margin:0}
+dl.kv dt{font-weight:600} dl.kv dd{color:var(--ink2)}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 18px;font:500 13px/1 var(--f)}
 .flow span{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 11px}
-.flow i{font-style:normal;color:var(--accent)}
+.flow i{font-style:normal;color:var(--ink2)}
 .flow span.exit{background:var(--warn-soft);border-color:transparent}
 .flow span.end{background:var(--ok-soft);border-color:transparent}
-kbd{font:600 13px/1 var(--f-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:2px 6px;background:var(--surface)}
-footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-size:14px;color:var(--ink2)}
+
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 40px;margin-top:20px}
+.cols ul{padding-left:18px}
+.links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 40px;margin-top:18px}
+.links ul{list-style:none;padding:0}
+.links li{margin:6px 0}
+footer{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;font-size:14px;color:var(--ink2)}
+
+@media (max-width:1100px){
+  .scn-body{grid-template-columns:minmax(0,1fr);gap:20px}
+  .scn-media{position:static}
+}
 @media (max-width:1000px){
   .wrap{grid-template-columns:minmax(0,1fr);gap:0}
-  nav.toc{position:static;max-height:none;border-bottom:1px solid var(--line);padding:16px 0 14px;display:flex;flex-wrap:wrap;gap:6px;font-size:14px}
-  nav.toc b{display:none}
-  nav.toc a{border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface)}
+  .toc{position:static;max-height:none;padding:16px 0;border-bottom:1px solid var(--line)}
+  .toc summary{display:block;font-weight:600;cursor:pointer;padding:6px 0}
+  main{padding-top:24px}
 }
 @media (max-width:640px){
-  h1{font-size:32px} h2{font-size:24px}
-  .shots,.grid2{grid-template-columns:minmax(0,1fr)}
-  dl.kv{grid-template-columns:minmax(0,1fr)} dl.kv dd{margin-bottom:8px}
+  .hero h1{font-size:32px} h2{font-size:24px}
+  .cols,.links{grid-template-columns:minmax(0,1fr)}
+  dl.kv{grid-template-columns:minmax(0,1fr)} dl.kv dt{border-bottom:0;padding-bottom:0}
+  .gal-tabs button{width:64px}
 }
+@media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
 </style>
 
 <div class="wrap">
-<nav class="toc" aria-label="Contents">
-  <b>Start</b>
-  <a href="#start">Start here</a>
-  <a href="#words">The words we use</a>
-  <a href="#desks">The five desks</a>
-  <a href="#shell">The shell</a>
-  <b>Processes</b>
-  <a href="#p-bdr">Caller (BDR)</a>
-  <a href="#p-mgr">Sales manager</a>
-  <a href="#p-ceo">CEO</a>
-  <a href="#p-stk">Stakeholder</a>
-  <a href="#p-cli">Client</a>
-  <a href="#p-cross">Across desks</a>
-  <b>Build</b>
-  <a href="#rules">Rules to keep</a>
-  <a href="#dev">Developer guide</a>
-  <a href="#data">Data and state</a>
-  <a href="#ship">Run, check, ship</a>
-  <a href="#traps">Traps</a>
-  <b>Reference</b>
-  <a href="#gaps">Known gaps</a>
-  <a href="#links">Every link</a>
-</nav>
+<nav class="toc" aria-label="Contents"><details open id="tocD"><summary>Contents</summary>
+<div class="grp">Start</div>
+<a href="#use">Before you start</a>
+<a href="#words">The words we use</a>
+<a href="#desks">The five desks</a>
+<a href="#shell">Around the screen</a>
+<div class="grp">Caller</div>
+<a href="#b1"><span class="n">B1</span><span>Work the queue</span></a>
+<a href="#b2"><span class="n">B2</span><span>Make a call and log it</span></a>
+<a href="#b3"><span class="n">B3</span><span>Call a whole page in one run</span></a>
+<a href="#b4"><span class="n">B4</span><span>Prepare for a video call</span></a>
+<a href="#b5"><span class="n">B5</span><span>Answer an incoming call</span></a>
+<a href="#b6"><span class="n">B6</span><span>Dial a typed number</span></a>
+<a href="#b7"><span class="n">B7</span><span>Move a lead by hand, and hand it over</span></a>
+<a href="#b8"><span class="n">B8</span><span>Find leads through the chat</span></a>
+<a href="#b9"><span class="n">B9</span><span>Put a list to work</span></a>
+<a href="#b10"><span class="n">B10</span><span>Read a company before calling</span></a>
+<a href="#b11"><span class="n">B11</span><span>Diary, campaigns and notes</span></a>
+<div class="grp">Sales manager</div>
+<a href="#m1"><span class="n">M1</span><span>Start the day and prepare for a meeting</span></a>
+<a href="#m2"><span class="n">M2</span><span>Write up a meeting</span></a>
+<a href="#m3"><span class="n">M3</span><span>Work the deals</span></a>
+<a href="#m4"><span class="n">M4</span><span>Look after customers</span></a>
+<a href="#m5"><span class="n">M5</span><span>Close the loop on meetings</span></a>
+<a href="#m6"><span class="n">M6</span><span>Build a campaign</span></a>
+<a href="#m7"><span class="n">M7</span><span>Reach a LinkedIn connection</span></a>
+<a href="#m8"><span class="n">M8</span><span>Read the money</span></a>
+<a href="#m9"><span class="n">M9</span><span>Hear what arrives</span></a>
+<div class="grp">CEO</div>
+<a href="#r1"><span class="n">R1</span><span>Read the company by team</span></a>
+<a href="#r2"><span class="n">R2</span><span>Join a deal, assign, reassign</span></a>
+<div class="grp">Stakeholder</div>
+<a href="#s1"><span class="n">S1</span><span>Hear what buyers say about the product</span></a>
+<a href="#s2"><span class="n">S2</span><span>Connect LinkedIn and write an ask</span></a>
+<a href="#s3"><span class="n">S3</span><span>Request a campaign, add a lead, join a deal</span></a>
+<div class="grp">Client</div>
+<a href="#c1"><span class="n">C1</span><span>Read "Your journey with AiMY"</span></a>
+<a href="#c2"><span class="n">C2</span><span>Follow her campaigns</span></a>
+<div class="grp">Across desks</div>
+<a href="#x1"><span class="n">X1</span><span>The CEO writes a campaign; Lina runs it</span></a>
+<a href="#x2"><span class="n">X2</span><span>A client requests a campaign; it is talked through first</span></a>
+<a href="#x3"><span class="n">X3</span><span>Leads that cross desks</span></a>
+<div class="grp">Reference</div>
+<a href="#rules">Decisions already made</a>
+<a href="#gaps">Known gaps</a>
+<a href="#links">Every link</a>
+</details></nav>
 <main>
-
-<header class="top" id="start">
-  <div class="eyebrow">AiMY Sales · handoff · 26 Oct 2026 · build bdr.js v1322</div>
+<header class="hero" id="start">
   <h1>AiMY Sales Handoff</h1>
-  <p class="lede">AiMY Sales is FlairsTech's AI-native sales product, built as a clickable prototype. Five people use it, from the caller who makes 200 calls a day to the CEO. This page shows every process step by step, with a link that opens each step in the prototype and a screenshot of what you should see.</p>
+  <p>How AiMY Sales works for each of its five users, process by process. Every process links to the live prototype and shows what you should see.</p>
   <div class="btns">
     <a class="btn" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open the prototype</a>
-    <a class="btn ghost" href="https://github.com/Flairstech-AIMY/design-aimy-sales" target="_blank" rel="noopener">Repository</a>
   </div>
   <div class="facts">
-    <span><b>Owner</b> Nour Ali, designer-engineer</span>
-    <span><b>Repo</b> Flairstech-AIMY/design-aimy-sales, branch master</span>
-    <span><b>Live</b> aimy-sales.nour-ali.workers.dev</span>
-    <span><b>Backend</b> none: seeded data, simulated phone</span>
+    <div><b>What it is</b>FlairsTech's AI sales product, as a clickable prototype</div>
+    <div><b>Owner</b>Nour Ali, product designer</div>
+    <div><b>Data</b>Example companies and people; calls are simulated</div>
+    <div><b>Updated</b>26 October 2026</div>
   </div>
 </header>
 
-<h2>How to use this page</h2>
+<h2 id="use">Before you start</h2>
 <ul>
-  <li><b>Designers:</b> read <a href="#words">the words</a>, <a href="#desks">the desks</a> and <a href="#shell">the shell</a>, then work through the processes for the desk you are changing. <a href="#rules">Rules to keep</a> lists the decisions that are already settled.</li>
-  <li><b>Developers:</b> read <a href="#desks">the desks</a>, then the <a href="#dev">developer guide</a>, <a href="#data">data and state</a> and <a href="#traps">traps</a> before touching code. Each process names the functions behind it.</li>
-  <li><b>Everyone:</b> every process has an <b>Open</b> button. It opens the live prototype at the right desk and record. The prototype keeps your changes in your browser, so <b>reset before each walk-through</b>: press the small sliders icon at the bottom right of the prototype, then <b>Reset to seed</b>.</li>
-  <li>Screenshots were taken today from a clean seed at 1536px in light mode. Click one to see it full size. Dates in the prototype move with the real clock, so a callback "due yesterday" is always due yesterday.</li>
+  <li><b>Each process has an Open button.</b> It opens the prototype as the right person, on the right page.</li>
+  <li><b>Start each walk-through fresh.</b> The prototype remembers what you change, in your browser only. To start over, press the small sliders button at the bottom right of the prototype, then <b>Reset to seed</b>.</li>
+  <li><b>Dates move with the calendar.</b> A callback that is "due yesterday" will still be due yesterday when you open it next month.</li>
+  <li><b>Screenshots</b> are from 26 October 2026, at a 1536px wide screen. Click a screenshot to open it full size; click the small pictures under it to see the next step.</li>
 </ul>
 
 <h2 id="words">The words we use</h2>
-<p>The product uses these words in its copy. Use the same ones in designs, tickets and code comments.</p>
+<p>Use these words in designs, tickets and conversations, the same way the product uses them.</p>
 <dl class="kv">
-  <dt>Desk</dt><dd>One person's view of the product. There are five. The URL key <code>?as=</code> picks it.</dd>
-  <dt>Contacts</dt><dd>The people we approach. On a caller's desk this is the call queue; on a manager's desk it is their deals. Never "board" or "book".</dd>
-  <dt>Account</dt><dd>A company. A company that already buys from us is a customer and sits in the <b>Accounts</b> cut on a manager's Contacts tab.</dd>
-  <dt>Campaign</dt><dd>A push to win a goal, for example "4 new clients", in one market, selling one or more of our services. A manager owns it and callers work it.</dd>
-  <dt>List</dt><dd>A set of people found for a market. A list feeds a campaign. Every campaign has at least one.</dd>
-  <dt>The ladder</dt><dd>Where one lead stands with the caller. It is a stored field, moved by calls and by one-press buttons, and every move can be undone.</dd>
-  <dt>Deal stage</dt><dd>Where a handed-over lead stands with the manager: Not met, Scoped, Shown, Priced, then Won, Lost or Follow-up.</dd>
-  <dt>Touchpoint</dt><dd>One logged contact: a call, a meeting or a move. Everything the product reports is worked out from touchpoints.</dd>
-  <dt>AiMY</dt><dd>The assistant. It lives in the bar at the bottom of every page, answers in a card above the bar, and opens full screen as the canvas.</dd>
-  <dt>Brief</dt><dd>What AiMY tells you before a call ("Before you speak to …") or a meeting ("Before you meet …"). The meeting brief is reached from <b>Prepare me</b>.</dd>
-  <dt>Say "call"</dt><dd>The verb is always "call", never "ring". Write plain English: no sales slang such as "warm" or "cold" in copy.</dd>
+  <dt>Desk</dt><dd>One person's view of the product. There are five, one per role.</dd>
+  <dt>Contacts</dt><dd>The people we approach. For a caller this is who to call; for a manager it is their deals.</dd>
+  <dt>Account</dt><dd>A company. A company that already buys from us is a customer.</dd>
+  <dt>Campaign</dt><dd>A push to reach a goal, such as "4 new clients", in one market, selling one or more of our services. A manager owns it and callers work it.</dd>
+  <dt>List</dt><dd>A set of people found for a market. Lists feed campaigns; every campaign has at least one.</dd>
+  <dt>The ladder</dt><dd>Where a lead stands with the caller, from Not called to Handed over.</dd>
+  <dt>Deal stage</dt><dd>Where a lead stands with the manager after the hand-over.</dd>
+  <dt>AiMY</dt><dd>The assistant. You type or speak to it in the bar at the bottom of every page. It answers in a card above the bar, and opens full screen for longer work.</dd>
+  <dt>Brief</dt><dd>What AiMY tells you before a call or a meeting: how to open, what happened last time, what they may push back on.</dd>
+  <dt>Bell</dt><dd>Notifications and follow-ups, each with one action.</dd>
 </dl>
+<p>Two wording rules: the verb is always "call", never "ring", and copy uses plain English with no sales slang.</p>
 
-<h3>The ladder</h3>
+<h3 style="margin-top:28px">The ladder</h3>
 <div class="flow" aria-label="Ladder steps">
   <span>Not called</span><i>→</i><span>No answer</span><i>→</i><span>Callback</span><i>→</i><span>Answered</span><i>→</i><span>Meeting set</span><i>→</i><span>Showed up</span><i>→</i><span>Interested</span><i>→</i><span class="end">Handed over</span>
 </div>
-<div class="flow" aria-label="Ladder exits"><span class="exit">Declined</span><span class="exit">Wrong number</span><span class="exit">Do not call</span></div>
-<p>A call never moves a lead backwards and never lifts it out of an exit; only Undo does. Showed up and Interested are things a person saw, so they are one press each on the contact page. After Handed over the lead belongs to a manager and the caller can no longer call it.</p>
+<p>A lead can also leave the ladder: <b>Declined</b>, <b>Wrong number</b> or <b>Do not call</b>. A call never moves a lead backwards. Every move can be undone.</p>
 
-<h3>Deal stages (manager)</h3>
+<h3 style="margin-top:28px">Deal stages</h3>
 <div class="flow" aria-label="Deal stages">
   <span>Not met</span><i>→</i><span>Scoped</span><i>→</i><span>Shown</span><i>→</i><span>Priced</span><i>→</i><span class="end">Won</span><span class="exit">Lost</span><span>Follow-up</span>
 </div>
 
-<h3>Call outcomes</h3>
+<h3 style="margin-top:28px">How a call can end</h3>
 <p>Seven outcomes, each on a number key: <kbd>1</kbd> Connected, <kbd>2</kbd> Callback, <kbd>3</kbd> No answer, <kbd>4</kbd> Gatekeeper, <kbd>5</kbd> Not interested, <kbd>6</kbd> Wrong number, <kbd>7</kbd> Do not call.</p>
 
 <h2 id="desks">The five desks</h2>
-<p>One product, five readings of it. The higher the desk, the more of the company it sees and the less of it it operates. Switch desk from the profile pill at the top right, or with <code>?as=</code> in the URL.</p>
-
-<div class="card">
-  <h3 style="margin-top:0"><span class="desk d-bdr">BDR</span>Engy Saleh, caller</h3>
-  <p><b>URL:</b> no <code>?as=</code> (the default desk). Engy makes about 200 calls a day on the campaigns she is assigned to. She calls, confirms AiMY's read-back of each call, moves leads up the ladder, and hands interested leads to a sales manager. She builds lists through the chat. She does not create campaigns.</p>
+<p>One product, five views of it. The more senior the person, the more of the company they see and the less of it they change. In the prototype, switch person from the name at the top right.</p>
+<section class="scn desk-row">
+  <h3><span class="desk d-bdr">Caller</span>Engy Saleh, caller</h3>
+  <div class="scn-body"><div class="scn-text">
+  <p>The person you are when the prototype opens. Engy makes about 200 calls a day on the campaigns she is assigned to. She calls, confirms AiMY's summary of each call, moves leads up the ladder, and hands interested leads to a sales manager. She builds lists through the chat. She does not create campaigns.</p>
   <p><b>Tabs:</b> Contacts (the call queue), Diary, Campaigns, Lists. A "Today" briefing sits above the tabs. She is the only desk with the navbar dialer.</p>
   <div class="btns"><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open Engy's desk</a></div>
-  <figure><a href="shots/bdr-home.jpg" target="_blank"><img loading="lazy" src="shots/bdr-home.jpg" alt="Engy's desk: Today briefing, Start strip and the Contacts tabs"></a><figcaption>The caller opens on a briefing and a Start strip, with the call queue underneath.</figcaption></figure>
-</div>
+  
 
-<div class="card">
-  <h3 style="margin-top:0"><span class="desk d-mgr">Manager</span>Lina Haddad, sales manager</h3>
-  <p><b>URL:</b> <code>?as=lina</code>. Head of the Enterprise Team, often on the road meeting leads. She runs deals, meetings and campaigns, and is account manager for the client Kestrel Labs. The other two managers, Nadia Fouad (Growth) and Hazem Saad (Quality), exist in the data but have no desk.</p>
-  <p><b>Tabs:</b> Today, Contacts (her deals, with an Accounts cut for customers), Diary, Campaigns, Lists. The rail adds Financials.</p>
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g30-0"><a href="shots/bdr-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Engy&#x27;s desk: Today briefing, Start strip and the Contacts tabs"><img loading="lazy" src="shots/bdr-home.jpg" alt="Engy's desk: Today briefing, Start strip and the Contacts tabs"></a><figcaption>The caller opens on a briefing and a Start strip, with the call queue underneath.</figcaption></figure>
+</div></div></div>
+</section>
+<section class="scn desk-row">
+  <h3><span class="desk d-mgr">Manager</span>Lina Haddad, sales manager</h3>
+  <div class="scn-body"><div class="scn-text">
+  <p>Head of the Enterprise Team, often on the road meeting leads. She runs deals, meetings and campaigns, and is account manager for the client Kestrel Labs. The other two managers, Nadia Fouad (Growth) and Hazem Saad (Quality), exist in the data but have no desk.</p>
+  <p><b>Tabs:</b> Today, Contacts (her deals, with an Accounts filter for customers), Diary, Campaigns, Lists. The rail adds Financials.</p>
   <div class="btns"><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Open Lina's desk</a></div>
-  <figure><a href="shots/mgr-home.jpg" target="_blank"><img loading="lazy" src="shots/mgr-home.jpg" alt="Lina's desk: Today with meetings first"></a><figcaption>The manager's Today leads with the diary, then what is owed.</figcaption></figure>
-</div>
+  
 
-<div class="card">
-  <h3 style="margin-top:0"><span class="desk d-stk">Stakeholder</span>Sherif Amin, owns AiMY QA</h3>
-  <p><b>URL:</b> <code>?as=sherif</code>. Owns one product line. He reads the manager's view, limited to campaigns and deals that sell AiMY QA, and operates none of it. His verbs: Request a campaign, Add a lead, Join a deal, Ask AiMY. Only his desk shows "What buyers say about AiMY QA", and only his desk starts with LinkedIn disconnected.</p>
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g31-0"><a href="shots/mgr-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Lina&#x27;s desk: Today with meetings first"><img loading="lazy" src="shots/mgr-home.jpg" alt="Lina's desk: Today with meetings first"></a><figcaption>The manager's Today leads with the diary, then what is owed.</figcaption></figure>
+</div></div></div>
+</section>
+<section class="scn desk-row">
+  <h3><span class="desk d-stk">Stakeholder</span>Sherif Amin, owns AiMY QA</h3>
+  <div class="scn-body"><div class="scn-text">
+  <p>Owns one product line. He reads the manager's view, limited to campaigns and deals that sell AiMY QA, and operates none of it. His verbs: Request a campaign, Add a lead, Join a deal, Ask AiMY. Only his desk shows "What buyers say about AiMY QA", and only his desk starts with LinkedIn disconnected.</p>
   <div class="btns"><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=sherif" target="_blank" rel="noopener">Open Sherif's desk</a></div>
-  <figure><a href="shots/stk-home.jpg" target="_blank"><img loading="lazy" src="shots/stk-home.jpg" alt="Sherif's desk"></a><figcaption>Same shell as the manager, bounded to one product, with reading-only verbs.</figcaption></figure>
-</div>
+  
 
-<div class="card">
-  <h3 style="margin-top:0"><span class="desk d-cli">Client</span>Marit Okonjo, Kestrel Labs</h3>
-  <p><b>URL:</b> <code>?as=kestrel</code>. A customer. Kestrel bought three things from us, called engagements: AiMY Talent (hiring), AiMY QA (software) and managed customer support (a service). A chip menu, or <code>?eng=reach|tool|desk</code>, picks one. She sees Today, a Diary of meetings she is actually in with us, Campaigns we run for her (without the people in them), and "Your journey with AiMY", a quarterly report of what was promised and what happened.</p>
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g32-0"><a href="shots/stk-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Sherif&#x27;s desk"><img loading="lazy" src="shots/stk-home.jpg" alt="Sherif's desk"></a><figcaption>Same shell as the manager, bounded to one product, with reading-only verbs.</figcaption></figure>
+</div></div></div>
+</section>
+<section class="scn desk-row">
+  <h3><span class="desk d-cli">Client</span>Marit Okonjo, Kestrel Labs</h3>
+  <div class="scn-body"><div class="scn-text">
+  <p>A customer. Kestrel bought three things from us, called engagements: AiMY Talent (hiring), AiMY QA (software) and managed customer support (a service). A menu at the top right picks which one she is reading about. She sees Today, a Diary of meetings she is actually in with us, Campaigns we run for her (without the people in them), and "Your journey with AiMY", a quarterly report of what was promised and what happened.</p>
   <p>She never sees our costs, how we grade accounts, or any named prospect. Contacts, Lists, Notes, contact and company pages are refused for her.</p>
   <div class="btns"><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel" target="_blank" rel="noopener">Open Marit's desk</a></div>
-  <figure><a href="shots/cli-home.jpg" target="_blank"><img loading="lazy" src="shots/cli-home.jpg" alt="Marit's desk"></a><figcaption>The client desk subtracts: no contacts, no lists, no costs.</figcaption></figure>
-</div>
+  
 
-<div class="card">
-  <h3 style="margin-top:0"><span class="desk d-ceo">CEO</span>Rami Fahim, FlairsTech CEO</h3>
-  <p><b>URL:</b> <code>?as=rami</code>. Reads everything, operates nothing. He reads by teams ("Enterprise Team managed by Lina Haddad"). His verbs: Assign (a request, a connection, a contact nobody holds, or Reassign a deal), Join a deal, write and assign a campaign, and Ask AiMY. What he sends out comes back to him in the bell.</p>
-  <p><b>Tabs:</b> Today, Contacts (the whole company), Diary (only deals he joined), Campaigns, Lists. Financials gains a Teams cut.</p>
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g33-0"><a href="shots/cli-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Marit&#x27;s desk"><img loading="lazy" src="shots/cli-home.jpg" alt="Marit's desk"></a><figcaption>The client desk subtracts: no contacts, no lists, no costs.</figcaption></figure>
+</div></div></div>
+</section>
+<section class="scn desk-row">
+  <h3><span class="desk d-ceo">CEO</span>Rami Fahim, FlairsTech CEO</h3>
+  <div class="scn-body"><div class="scn-text">
+  <p>Reads everything, operates nothing. He reads by teams ("Enterprise Team managed by Lina Haddad"). His verbs: Assign (a request, a connection, a contact nobody holds, or Reassign a deal), Join a deal, write and assign a campaign, and Ask AiMY. What he sends out comes back to him in the bell.</p>
+  <p><b>Tabs:</b> Today, Contacts (the whole company), Diary (only deals he joined), Campaigns, Lists. Financials can be read by team.</p>
   <div class="btns"><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=rami" target="_blank" rel="noopener">Open Rami's desk</a></div>
-  <figure><a href="shots/ceo-home.jpg" target="_blank"><img loading="lazy" src="shots/ceo-home.jpg" alt="Rami's desk"></a><figcaption>The CEO's Today: the quarter in plain money words, then Teams, Where you are needed and Connections.</figcaption></figure>
+  
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g34-0"><a href="shots/ceo-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Rami&#x27;s desk"><img loading="lazy" src="shots/ceo-home.jpg" alt="Rami's desk"></a><figcaption>The CEO's Today: the quarter in plain money words, then Teams, Where you are needed and Connections.</figcaption></figure>
+</div></div></div>
+</section>
+
+<h3 style="margin-top:40px">Who can do what</h3>
+<div class="cols">
+  <ul>
+    <li><b>Make calls:</b> the caller and the sales manager.</li>
+    <li><b>Move a lead or a deal:</b> the caller moves the ladder; the manager moves deal stages.</li>
+    <li><b>Build and run a campaign:</b> the manager. The stakeholder and client request one; the CEO writes one and gives it to a manager.</li>
+  </ul>
+  <ul>
+    <li><b>Find leads:</b> everyone except the client.</li>
+    <li><b>Add a lead:</b> everyone. A lead from the stakeholder or client goes straight to a manager.</li>
+    <li><b>Join a deal:</b> the CEO, and the stakeholder on his own product.</li>
+    <li><b>See costs and how we rate accounts:</b> everyone except the client.</li>
+  </ul>
 </div>
 
-<h3>Who can do what</h3>
+<h2 id="shell">Around the screen</h2>
+<p>Every desk shares the same frame, which AiMY Sales shares with AiMY Knowledge and AiMY QA.</p>
+<div class="scn-body" style="margin-top:20px"><div class="scn-text">
 <ul>
-  <li><b>Call:</b> Engy and Lina. Not Sherif, Marit or Rami.</li>
-  <li><b>Move a lead or a deal:</b> Engy moves the ladder; Lina moves deal stages. Nobody else.</li>
-  <li><b>Build and run a campaign:</b> Lina. Sherif and Marit request one; Rami writes one and assigns it to a manager.</li>
-  <li><b>Build a list:</b> Engy, Lina, Sherif and Rami can find leads through the chat. Marit has no lists.</li>
-  <li><b>Add a lead:</b> every desk. A lead from Sherif or Marit goes straight to a manager.</li>
-  <li><b>Join a deal:</b> Rami and Sherif (Sherif only on his product). The meeting lands in their diary with Prepare me.</li>
-  <li><b>See costs and grades:</b> everyone except Marit.</li>
+  <li><b>Top bar:</b> the AiMY product switcher, the phone (caller only), light or dark theme, the bell, and the person's name.</li>
+  <li><b>Left column:</b> what needs you now, today's diary, and the money or the client's report.</li>
+  <li><b>Page title:</b> the title is also the tab switcher (Contacts, Diary, Campaigns, Lists). Each tab shows how many are in it.</li>
+  <li><b>The AiMY bar:</b> type a question, a name, or a sentence such as "Spoke to Amelia, she wants a demo". AiMY answers in the card above. The microphone dictates; the round button starts a voice conversation.</li>
+  <li><b>Undo, not "are you sure":</b> every change shows a short message with Undo.</li>
+  <li><b>Back links</b> return to exactly where you were before.</li>
+  <li><b>Prototype panel</b> (sliders button, bottom right): make someone call in, show different states, reset.</li>
 </ul>
-
-<h2 id="shell">The shell</h2>
-<p>Every desk shares one frame. It reuses the AiMY shell from Knowledge and QA: the same topnav, design tokens and components.</p>
-<div class="shots">
-  <figure><a href="shots/bdr-contacts.jpg" target="_blank"><img loading="lazy" src="shots/bdr-contacts.jpg" alt="Tabs, cuts and queue cards"></a><figcaption>The heading is the tab switcher. Under it, cut chips and cards.</figcaption></figure>
-  <figure><a href="shots/bdr-bell.jpg" target="_blank"><img loading="lazy" src="shots/bdr-bell.jpg" alt="The bell"></a><figcaption>The bell holds notifications and every follow-up, each with one action.</figcaption></figure>
-  <figure><a href="shots/bdr-canvas.jpg" target="_blank"><img loading="lazy" src="shots/bdr-canvas.jpg" alt="The AiMY canvas"></a><figcaption>The canvas: AiMY full screen, with the chat history column from Knowledge.</figcaption></figure>
-  <figure><a href="shots/bdr-welcome.jpg" target="_blank"><img loading="lazy" src="shots/bdr-welcome.jpg" alt="Answer card above the bar"></a><figcaption>The answer card ("peek") sits above the bar. On load it says welcome.</figcaption></figure>
-  <figure><a href="shots/bdr-usage.jpg" target="_blank"><img loading="lazy" src="shots/bdr-usage.jpg" alt="Usage popover"></a><figcaption>Hover the AiMY mark in the bar: usage this month, ported from Knowledge. Amber when past the share; nothing stops.</figcaption></figure>
-  <figure><a href="shots/bdr-persona.jpg" target="_blank"><img loading="lazy" src="shots/bdr-persona.jpg" alt="Desk switcher"></a><figcaption>The profile pill switches desk. It is a prototype control.</figcaption></figure>
-  <figure><a href="shots/bdr-proto.jpg" target="_blank"><img loading="lazy" src="shots/bdr-proto.jpg" alt="Prototype panel"></a><figcaption>The prototype panel (sliders icon, bottom right): trigger incoming calls, force About and News states, move dates on, reset.</figcaption></figure>
-  <figure><a href="shots/bdr-dark.jpg" target="_blank"><img loading="lazy" src="shots/bdr-dark.jpg" alt="Dark theme"></a><figcaption>Dark is the default theme; light and dark are both maintained. The moon icon in the topnav switches.</figcaption></figure>
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g35-0"><a href="shots/bdr-contacts.jpg" target="_blank" rel="noopener" aria-label="Open full size: Tabs, cuts and queue cards"><img loading="lazy" src="shots/bdr-contacts.jpg" alt="Tabs, cuts and queue cards"></a><figcaption>The heading is the tab switcher. Under it, cut chips and cards.</figcaption></figure>
+<figure class="gal-fig" id="g35-1" data-rest><a href="shots/bdr-bell.jpg" target="_blank" rel="noopener" aria-label="Open full size: The bell"><img loading="lazy" src="shots/bdr-bell.jpg" alt="The bell"></a><figcaption>The bell holds notifications and every follow-up, each with one action.</figcaption></figure>
+<figure class="gal-fig" id="g35-2" data-rest><a href="shots/bdr-canvas.jpg" target="_blank" rel="noopener" aria-label="Open full size: AiMY, full screen"><img loading="lazy" src="shots/bdr-canvas.jpg" alt="AiMY, full screen"></a><figcaption>AiMY full screen, with the chat history column from Knowledge.</figcaption></figure>
+<figure class="gal-fig" id="g35-3" data-rest><a href="shots/bdr-welcome.jpg" target="_blank" rel="noopener" aria-label="Open full size: Answer card above the bar"><img loading="lazy" src="shots/bdr-welcome.jpg" alt="Answer card above the bar"></a><figcaption>The answer card sits above the bar. On load it says welcome.</figcaption></figure>
+<figure class="gal-fig" id="g35-4" data-rest><a href="shots/bdr-usage.jpg" target="_blank" rel="noopener" aria-label="Open full size: Usage popover"><img loading="lazy" src="shots/bdr-usage.jpg" alt="Usage popover"></a><figcaption>Hover the AiMY mark in the bar: usage this month, ported from Knowledge. Amber when past the share; nothing stops.</figcaption></figure>
+<figure class="gal-fig" id="g35-5" data-rest><a href="shots/bdr-persona.jpg" target="_blank" rel="noopener" aria-label="Open full size: Desk switcher"><img loading="lazy" src="shots/bdr-persona.jpg" alt="Desk switcher"></a><figcaption>The profile pill switches desk. It is a prototype control.</figcaption></figure>
+<figure class="gal-fig" id="g35-6" data-rest><a href="shots/bdr-proto.jpg" target="_blank" rel="noopener" aria-label="Open full size: Prototype panel"><img loading="lazy" src="shots/bdr-proto.jpg" alt="Prototype panel"></a><figcaption>The prototype panel (sliders icon, bottom right): trigger incoming calls, show different About and News examples, move dates on, reset.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g35-0" aria-selected="true" title="The heading is the tab switcher. Under it, cut chips and cards."><img src="shots/bdr-contacts.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g35-1" aria-selected="false" title="The bell holds notifications and every follow-up, each with one action."><img src="shots/bdr-bell.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g35-2" aria-selected="false" title="AiMY full screen, with the chat history column from Knowledge."><img src="shots/bdr-canvas.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g35-3" aria-selected="false" title="The answer card (answer card) sits above the bar. On load it says welcome."><img src="shots/bdr-welcome.jpg" alt=""><span>4</span></button>
+<button type="button" role="tab" aria-controls="g35-4" aria-selected="false" title="Hover the AiMY mark in the bar: usage this month, ported from Knowledge. Amber when past the share; nothing stops."><img src="shots/bdr-usage.jpg" alt=""><span>5</span></button>
+<button type="button" role="tab" aria-controls="g35-5" aria-selected="false" title="The profile pill switches desk. It is a prototype control."><img src="shots/bdr-persona.jpg" alt=""><span>6</span></button>
+<button type="button" role="tab" aria-controls="g35-6" aria-selected="false" title="The prototype panel (sliders icon, bottom right): trigger incoming calls, show different About and News examples, move dates on, reset."><img src="shots/bdr-proto.jpg" alt=""><span>7</span></button>
 </div>
-<ul>
-  <li><b>Topnav:</b> AiMY product switcher (AiMY, Connect, Talent, QA, Sales), the dialer (caller only), theme, bell, profile pill.</li>
-  <li><b>Rail (left):</b> one reading card about where you are ("Awaiting you", "Reading", "Found"), the Today/diary card, Financials or Your journey, and a Console link to the Knowledge console. Below 918px the rail becomes a drawer.</li>
-  <li><b>Tabs:</b> the page heading is the switcher. Each tab shows a count; Today shows none.</li>
-  <li><b>The bar:</b> type a question, a name, a filter, or a sentence such as "Spoke to Amelia, she wants a demo". AiMY answers in the card above. <kbd>/</kbd> focuses it. The mic dictates; the round button opens voice mode (needs a real microphone).</li>
-  <li><b>Toasts:</b> every change shows a toast with <b>Undo</b>. There are no confirm dialogs.</li>
-  <li><b>Back links:</b> "Back to …" always returns to the last view you were on, with its cut and scroll.</li>
-  <li><b>Record pages:</b> campaign <code>?camp=</code>, contact <code>?con=</code>, account <code>?acc=</code>, list <code>?list=</code>.</li>
-</ul>
+</div></div></div>
 
-<h2 id="p-bdr">Caller processes <span class="desk d-bdr">BDR</span></h2>
-<p>All of these run on Engy's desk. Reset to seed before each one.</p>
+<h2 id="p-bdr">Caller processes <span class="desk d-bdr">Caller</span></h2>
+<p>All of these run on Engy's desk. Reset the prototype before each one.</p>
 
 <section class="scn" id="b1">
   <h3><span class="id">B1</span>Work the queue</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: pick who to call next.</div>
-  <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?q=after" target="_blank" rel="noopener">Open the After meeting cut</a></div>
+  <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?q=after" target="_blank" rel="noopener">Open the After meeting filter</a></div>
   <ol>
     <li>Read the Today briefing. Each underlined phrase opens the set it names.</li>
     <li>Use the Start strip: Call the next one, Work the callbacks, Say what happened, Find leads.</li>
-    <li>Under Contacts, pick a cut: All, Callbacks, New, No answer, Answered, After meeting. A cut is a step on the ladder, so the cuts add up to All.</li>
+    <li>Under Contacts, pick a filter: All, Callbacks, New, No answer, Answered, After meeting. Each filter is a step on the ladder, so they add up to All.</li>
     <li>Each card shows the step, the campaign, who they are, AiMY's reason they are here, and the number. Press <b>Call</b>. Fifteen cards per page; the pager is at the bottom.</li>
     <li>On After meeting, each card asks "They showed up" or "Did not show", one press each.</li>
   </ol>
   <p class="see"><b>You should see:</b> 109 to call; Callbacks 5, New 69, No answer 21, Answered 14, After meeting 4. Amelia Taylor is first.</p>
-  <div class="shots">
-    <figure><a href="shots/bdr-contacts.jpg" target="_blank"><img loading="lazy" src="shots/bdr-contacts.jpg" alt="Queue cards"></a><figcaption>Cards, three across. The first card's Call is primary.</figcaption></figure>
-    <figure><a href="shots/bdr-cut-after.jpg" target="_blank"><img loading="lazy" src="shots/bdr-cut-after.jpg" alt="After meeting cut"></a><figcaption>After meeting: did they turn up?</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>homePage</code>, <code>queueBlock</code>, <code>cuts</code>, <code>qcard</code>, <code>queue</code> (ranking), <code>BUCKETS</code>, <code>startStrip</code>, <code>topBrief</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g1-0"><a href="shots/bdr-contacts.jpg" target="_blank" rel="noopener" aria-label="Open full size: Queue cards"><img loading="lazy" src="shots/bdr-contacts.jpg" alt="Queue cards"></a><figcaption>Cards, three across. The first card's Call is primary.</figcaption></figure>
+<figure class="gal-fig" id="g1-1" data-rest><a href="shots/bdr-cut-after.jpg" target="_blank" rel="noopener" aria-label="Open full size: After meeting cut"><img loading="lazy" src="shots/bdr-cut-after.jpg" alt="After meeting cut"></a><figcaption>After meeting: did they turn up?</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g1-0" aria-selected="true" title="Cards, three across. The first card&#x27;s Call is primary."><img src="shots/bdr-contacts.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g1-1" aria-selected="false" title="After meeting: did they turn up?"><img src="shots/bdr-cut-after.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b2">
   <h3><span class="id">B2</span>Make a call and log it</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: one call, from ready to logged. The call is simulated: a transcript grows a line at a time.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?con=p121" target="_blank" rel="noopener">Open Daisy Watson</a></div>
   <ol>
-    <li>Press <b>Call</b> on Daisy Watson. The call rail opens on the right in <b>ready</b>, and AiMY's brief opens: Open with, Last time, If they push back, Selling, Asking for, You can send.</li>
+    <li>Press <b>Call</b> on Daisy Watson. The call panel opens on the right, ready to dial, and AiMY's brief opens: Open with, Last time, If they push back, Selling, Asking for, You can send.</li>
     <li>Optional: choose which of our numbers to call from with the <b>From</b> menu. AiMY reuses the number this person has seen before.</li>
-    <li>Press <b>Call from …</b>. It shows Connecting for 1.6 seconds, then <b>live</b> with a timer.</li>
+    <li>Press the blue <b>Call from</b> button. It shows Connecting for 1.6 seconds, then <b>live</b> with a timer.</li>
     <li>Press the record button and agree to the consent question. The transcript only grows while recording.</li>
-    <li>Press the red hang-up button. AiMY reads the call back: "I read that as connected. Is that right?", with outcome, what they asked for, checkpoint and transcript.</li>
-    <li>Correct it by typing, or press <kbd>1</kbd>–<kbd>7</kbd>. Then <b>Log it</b>, or <b>Log it and call &lt;next&gt;</b>.</li>
-    <li>A toast confirms the log and the ladder move, with Undo.</li>
+    <li>Press the red hang-up button. AiMY reads the call back: "I read that as connected. Is that right?", with outcome, what they asked for, the new ladder step and the transcript.</li>
+    <li>Correct it by typing, or press <kbd>1</kbd> to <kbd>7</kbd>. Then <b>Log it</b>, or <b>Log it and call &lt;next&gt;</b>.</li>
+    <li>A message confirms the log and the ladder move, with Undo.</li>
   </ol>
-  <p class="see"><b>Keyboard:</b> <kbd>Enter</kbd> always does the obvious next thing (call, place, hang up, log). <kbd>1</kbd>–<kbd>7</kbd> pick an outcome. <kbd>S</kbd> skips. <kbd>J</kbd>/<kbd>K</kbd> move between cards, <kbd>O</kbd> opens one. <kbd>Esc</kbd> closes the innermost thing.</p>
-  <div class="shots">
-    <figure><a href="shots/bdr-call-from.jpg" target="_blank"><img loading="lazy" src="shots/bdr-call-from.jpg" alt="Ready with From menu"></a><figcaption>Ready: the brief on the left, the rail with the From menu on the right.</figcaption></figure>
-    <figure><a href="shots/bdr-call-live.jpg" target="_blank"><img loading="lazy" src="shots/bdr-call-live.jpg" alt="Live call"></a><figcaption>Live and recording: the transcript grows in the rail.</figcaption></figure>
-    <figure><a href="shots/bdr-call-readback.jpg" target="_blank"><img loading="lazy" src="shots/bdr-call-readback.jpg" alt="Read-back"></a><figcaption>Logging is a read-back to confirm, not a form.</figcaption></figure>
-    <figure><a href="shots/bdr-call-logged.jpg" target="_blank"><img loading="lazy" src="shots/bdr-call-logged.jpg" alt="Logged toast"></a><figcaption>Logged: the card moves cut and a toast offers Undo.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>startCall</code>, <code>callGo</code>, <code>callPanel</code>, <code>growTranscript</code>, <code>endCall</code>, <code>callLogPropose</code>, <code>logCall</code>, <code>moveFor</code>, <code>callPrep</code>; fixtures <code>SCENARIOS</code>, <code>CALL_SCRIPTS</code>; numbers <code>TEL_LINES</code>, <code>telPick</code>.</p>
+  <p class="see"><b>Keyboard:</b> <kbd>Enter</kbd> always does the obvious next thing (call, place, hang up, log). <kbd>1</kbd> to <kbd>7</kbd> pick an outcome. <kbd>S</kbd> skips. <kbd>J</kbd>/<kbd>K</kbd> move between cards, <kbd>O</kbd> opens one. <kbd>Esc</kbd> closes the innermost thing.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g2-0"><a href="shots/bdr-call-from.jpg" target="_blank" rel="noopener" aria-label="Open full size: Ready with From menu"><img loading="lazy" src="shots/bdr-call-from.jpg" alt="Ready with From menu"></a><figcaption>Ready: the brief on the left, the call panel with the From menu on the right.</figcaption></figure>
+<figure class="gal-fig" id="g2-1" data-rest><a href="shots/bdr-call-live.jpg" target="_blank" rel="noopener" aria-label="Open full size: Live call"><img loading="lazy" src="shots/bdr-call-live.jpg" alt="Live call"></a><figcaption>Live and recording: the transcript grows in the call panel.</figcaption></figure>
+<figure class="gal-fig" id="g2-2" data-rest><a href="shots/bdr-call-readback.jpg" target="_blank" rel="noopener" aria-label="Open full size: Read-back"><img loading="lazy" src="shots/bdr-call-readback.jpg" alt="Summary to confirm"></a><figcaption>Logging is a summary to confirm, not a form.</figcaption></figure>
+<figure class="gal-fig" id="g2-3" data-rest><a href="shots/bdr-call-logged.jpg" target="_blank" rel="noopener" aria-label="Open full size: Logged message"><img loading="lazy" src="shots/bdr-call-logged.jpg" alt="Logged message"></a><figcaption>Logged: the card moves on and a message offers Undo.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g2-0" aria-selected="true" title="Ready: the brief on the left, the call panel with the From menu on the right."><img src="shots/bdr-call-from.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g2-1" aria-selected="false" title="Live and recording: the transcript grows in the call panel."><img src="shots/bdr-call-live.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g2-2" aria-selected="false" title="Logging is a summary to confirm, not a form."><img src="shots/bdr-call-readback.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g2-3" aria-selected="false" title="Logged: the card moves on and a message offers Undo."><img src="shots/bdr-call-logged.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b3">
   <h3><span class="id">B3</span>Call a whole page in one run</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: call everyone on a campaign or list page, with a wait between calls (Jira AIMY-2667).</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?camp=c4" target="_blank" rel="noopener">Open campaign c4</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?list=ls2" target="_blank" rel="noopener">Open list ls2</a></div>
   <ol>
-    <li>On a campaign page press <b>Call all 15</b> at the end of the cuts row. On a list page it sits in the "Who is on it" header.</li>
+    <li>On a campaign page press <b>Call all 15</b> at the end of the filter row. On a list page it sits in the "Who is on it" header.</li>
     <li>The first call opens in ready. Place it, then log it as usual.</li>
     <li>The next call opens with a countdown and a draining bar. At zero it places itself. <b>Call now</b> skips the wait.</li>
     <li>The brief carries <b>Skip this one</b> and <b>Stop the run</b>. At the end AiMY says "That run is finished".</li>
   </ol>
   <p><b>Where the wait comes from:</b> default 30 seconds, 5 to 120 in steps of 5. A manager sets it on the campaign (create or Edit). A list on no campaign has its own stepper. A list on a campaign shows a locked pill: the campaign's wait wins.</p>
-  <div class="shots">
-    <figure><a href="shots/bdr-run-wait.jpg" target="_blank"><img loading="lazy" src="shots/bdr-run-wait.jpg" alt="Countdown in the rail"></a><figcaption>"2 of 15": the rail counts down to the next call.</figcaption></figure>
-    <figure><a href="shots/bdr-list-locked.jpg" target="_blank"><img loading="lazy" src="shots/bdr-list-locked.jpg" alt="Locked wait"></a><figcaption>A list on a campaign: the wait is set by the campaign.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>callAll</code>, <code>advance</code>, <code>waitStart</code>, <code>waitBlock</code>, <code>waitFor</code>, <code>listWaitRow</code>, <code>waitField</code>, <code>sessionSummary</code>; stored in <code>DELTA.wait</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g3-0"><a href="shots/bdr-run-wait.jpg" target="_blank" rel="noopener" aria-label="Open full size: Countdown in the call panel"><img loading="lazy" src="shots/bdr-run-wait.jpg" alt="Countdown in the call panel"></a><figcaption>"2 of 15": the call panel counts down to the next call.</figcaption></figure>
+<figure class="gal-fig" id="g3-1" data-rest><a href="shots/bdr-list-locked.jpg" target="_blank" rel="noopener" aria-label="Open full size: Locked wait"><img loading="lazy" src="shots/bdr-list-locked.jpg" alt="Locked wait"></a><figcaption>A list on a campaign: the wait is set by the campaign.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g3-0" aria-selected="true" title="&quot;2 of 15&quot;: the call panel counts down to the next call."><img src="shots/bdr-run-wait.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g3-1" aria-selected="false" title="A list on a campaign: the wait is set by the campaign."><img src="shots/bdr-list-locked.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b4">
   <h3><span class="id">B4</span>Prepare for a video call</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: body-language tips before a call booked as video (Jira AIMY-2665).</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?con=p170" target="_blank" rel="noopener">Open Amelia Taylor</a></div>
   <ol>
-    <li>Press <b>Call Amelia</b>. The rail says "Video call" and the button reads <b>Start the video call</b>; there is no From menu.</li>
+    <li>Press <b>Call Amelia</b>. The call panel says "Video call" and the button reads <b>Start the video call</b>; there is no From menu.</li>
     <li>The brief opens with a folded line "On video. 5 tips for how you come across". Open it: Open, Eye line, Posture and hands, Listening, Camera and room.</li>
   </ol>
-  <figure><a href="shots/bdr-video-brief.jpg" target="_blank"><img loading="lazy" src="shots/bdr-video-brief.jpg" alt="Video tips"></a><figcaption>Tips are fitted to how senior they are and whether we have spoken before.</figcaption></figure>
-  <p class="code-line">Code: <code>onVideo</code>, <code>videoTips</code>, <code>videoBlock</code>. Nothing in the product books a call as video yet; it comes from the seed.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g4-0"><a href="shots/bdr-video-brief.jpg" target="_blank" rel="noopener" aria-label="Open full size: Video tips"><img loading="lazy" src="shots/bdr-video-brief.jpg" alt="Video tips"></a><figcaption>Tips are fitted to how senior they are and whether we have spoken before.</figcaption></figure>
+</div></div></div>
 </section>
 
 <section class="scn" id="b5">
   <h3><span class="id">B5</span>Answer an incoming call</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: someone calls us, known or not.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open</a></div>
   <ol>
@@ -338,86 +447,115 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li>Answered, the call starts live with an inbound brief: "While you have Nathan Cooper on the line", Why they called, What to get.</li>
     <li>For a stranger, choose "A stranger calls in". After the call AiMY asks who it was and offers to open a contact. Type "Ruben Haverkamp, Head of Facilities at Kuijpers".</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/bdr-inbound-ring.jpg" target="_blank"><img loading="lazy" src="shots/bdr-inbound-ring.jpg" alt="Incoming call widget"></a><figcaption>Ringing, with AiMY's guess at the reason.</figcaption></figure>
-    <figure><a href="shots/bdr-inbound-live.jpg" target="_blank"><img loading="lazy" src="shots/bdr-inbound-live.jpg" alt="Inbound brief"></a><figcaption>Answered: the brief is about why they called.</figcaption></figure>
-    <figure><a href="shots/bdr-stranger.jpg" target="_blank"><img loading="lazy" src="shots/bdr-stranger.jpg" alt="Unknown caller"></a><figcaption>A stranger: AiMY asks who it was.</figcaption></figure>
-    <figure><a href="shots/bdr-missed.jpg" target="_blank"><img loading="lazy" src="shots/bdr-missed.jpg" alt="Call log"></a><figcaption>The Call log (<code>?on=missed</code>): missed calls and voicemail.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>ringTrigger</code>, <code>ringHtml</code>, <code>answerInbound</code>, <code>strangerPrep</code>, <code>callLogProposeUnknown</code>, <code>whoisMake</code>, <code>missedPage</code>. The ringtone is synthesised (WebAudio); "Sound off" in the panel mutes it.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g5-0"><a href="shots/bdr-inbound-ring.jpg" target="_blank" rel="noopener" aria-label="Open full size: Incoming call widget"><img loading="lazy" src="shots/bdr-inbound-ring.jpg" alt="Incoming call widget"></a><figcaption>Ringing, with AiMY's guess at the reason.</figcaption></figure>
+<figure class="gal-fig" id="g5-1" data-rest><a href="shots/bdr-inbound-live.jpg" target="_blank" rel="noopener" aria-label="Open full size: Inbound brief"><img loading="lazy" src="shots/bdr-inbound-live.jpg" alt="Inbound brief"></a><figcaption>Answered: the brief is about why they called.</figcaption></figure>
+<figure class="gal-fig" id="g5-2" data-rest><a href="shots/bdr-stranger.jpg" target="_blank" rel="noopener" aria-label="Open full size: Unknown caller"><img loading="lazy" src="shots/bdr-stranger.jpg" alt="Unknown caller"></a><figcaption>A stranger: AiMY asks who it was.</figcaption></figure>
+<figure class="gal-fig" id="g5-3" data-rest><a href="shots/bdr-missed.jpg" target="_blank" rel="noopener" aria-label="Open full size: Call log"><img loading="lazy" src="shots/bdr-missed.jpg" alt="Call log"></a><figcaption>The Call log: missed calls and voicemail.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g5-0" aria-selected="true" title="Ringing, with AiMY&#x27;s guess at the reason."><img src="shots/bdr-inbound-ring.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g5-1" aria-selected="false" title="Answered: the brief is about why they called."><img src="shots/bdr-inbound-live.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g5-2" aria-selected="false" title="A stranger: AiMY asks who it was."><img src="shots/bdr-stranger.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g5-3" aria-selected="false" title="The Call log: missed calls and voicemail."><img src="shots/bdr-missed.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b6">
   <h3><span class="id">B6</span>Dial a typed number</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: call a number that is not on a card. Caller desk only.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open</a></div>
   <ol>
     <li>Press the phone icon in the topnav. Pick the From number.</li>
-    <li>Type <code>+49 13555590</code>. AiMY reads it: "That is Daisy Watson at Valstone Clinics".</li>
-    <li>Press <b>Call from …</b>. An unknown number goes through the stranger read-back after the call.</li>
+    <li>Type +49 13555590. AiMY reads it: "That is Daisy Watson at Valstone Clinics".</li>
+    <li>Press the blue <b>Call from</b> button. An unknown number goes through the stranger read-back after the call.</li>
   </ol>
-  <figure><a href="shots/bdr-dialer.jpg" target="_blank"><img loading="lazy" src="shots/bdr-dialer.jpg" alt="Dialer"></a><figcaption>The dialer recognises the number as you type.</figcaption></figure>
-  <p class="code-line">Code: <code>paintDial</code>, <code>dialBody</code>, <code>dialWho</code>, <code>dialGo</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g6-0"><a href="shots/bdr-dialer.jpg" target="_blank" rel="noopener" aria-label="Open full size: Dialer"><img loading="lazy" src="shots/bdr-dialer.jpg" alt="Dialer"></a><figcaption>The dialer recognises the number as you type.</figcaption></figure>
+</div></div></div>
 </section>
 
 <section class="scn" id="b7">
   <h3><span class="id">B7</span>Move a lead by hand, and hand it over</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: record what a person saw, then pass an interested lead to a manager.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?con=p342" target="_blank" rel="noopener">Open Benjamin Foster</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?con=p152" target="_blank" rel="noopener">Open Kate Clarke</a></div>
   <ol>
-    <li>On Benjamin Foster (meeting set), the row "What happened?" offers They showed up, They did not show, They are interested. One press moves the ladder; the toast has Undo.</li>
+    <li>On Benjamin Foster (meeting set), the row "What happened?" offers They showed up, They did not show, They are interested. One press moves the ladder; the message has Undo.</li>
     <li><b>They said no</b> (top right) asks once, then moves the lead to Declined.</li>
     <li>On Kate Clarke (interested), press <b>Handover</b> and pick a manager. The record now reads "Lina Haddad has it now" and Call disappears.</li>
     <li>The caller hears what became of each hand-over in her bell.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/bdr-contact.jpg" target="_blank"><img loading="lazy" src="shots/bdr-contact.jpg" alt="Contact page"></a><figcaption>Contact page: masthead, Call, Handover, What happened, then About.</figcaption></figure>
-    <figure><a href="shots/bdr-handover-menu.jpg" target="_blank"><img loading="lazy" src="shots/bdr-handover-menu.jpg" alt="Handover menu"></a><figcaption>Hand over to one of three managers.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>contactPage</code>, <code>actionsRow</code>, <code>setCheckpoint</code>, <code>MOVES</code>, <code>endGate</code>, <code>mgrMenu</code>, <code>handover</code>, <code>storyBlock</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g7-0"><a href="shots/bdr-contact.jpg" target="_blank" rel="noopener" aria-label="Open full size: Contact page"><img loading="lazy" src="shots/bdr-contact.jpg" alt="Contact page"></a><figcaption>Contact page: masthead, Call, Handover, What happened, then About.</figcaption></figure>
+<figure class="gal-fig" id="g7-1" data-rest><a href="shots/bdr-handover-menu.jpg" target="_blank" rel="noopener" aria-label="Open full size: Handover menu"><img loading="lazy" src="shots/bdr-handover-menu.jpg" alt="Handover menu"></a><figcaption>Hand over to one of three managers.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g7-0" aria-selected="true" title="Contact page: masthead, Call, Handover, What happened, then About."><img src="shots/bdr-contact.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g7-1" aria-selected="false" title="Hand over to one of three managers."><img src="shots/bdr-handover-menu.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b8">
   <h3><span class="id">B8</span>Find leads through the chat</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: describe who to look for and get a list. There is no builder page; the chat runs it end to end.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Open</a></div>
   <ol>
-    <li>Press <b>Find leads</b> in the Start strip. The canvas opens: "Companies or the people at them?" Choose People.</li>
+    <li>Press <b>Find leads</b> in the Start strip. AiMY opens full screen: "Companies or the people at them?" Choose People.</li>
     <li>Type who you want, for example "Heads of customer support at banks". AiMY reads it back and may suggest one narrowing. Press <b>That is enough</b>.</li>
     <li>AiMY proposes a list name. Press <b>Curate the list</b>. A five-step progress runs for about 6 seconds (it asks Apollo).</li>
     <li>The draft list page opens, marked "Not saved yet": who came back, what is missing, and a Keep tick on each card.</li>
     <li>Choose <b>Add to campaign</b>, <b>Save</b> or <b>Discard</b>. You can also say "only ones with a number" or "call it …" in the bar.</li>
     <li>Leaving with an unsaved draft shows a gate at the top of the page (Save, Discard, Stay), not a dialog. The browser's Back is caught too.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/bdr-find-ask.jpg" target="_blank"><img loading="lazy" src="shots/bdr-find-ask.jpg" alt="Find leads chat"></a><figcaption>The chat reads what you asked for.</figcaption></figure>
-    <figure><a href="shots/bdr-find-curate.jpg" target="_blank"><img loading="lazy" src="shots/bdr-find-curate.jpg" alt="Curating"></a><figcaption>Curating, step by step.</figcaption></figure>
-    <figure><a href="shots/bdr-draft.jpg" target="_blank"><img loading="lazy" src="shots/bdr-draft.jpg" alt="Draft list"></a><figcaption>The draft list, not saved yet.</figcaption></figure>
-    <figure><a href="shots/bdr-leave-gate.jpg" target="_blank"><img loading="lazy" src="shots/bdr-leave-gate.jpg" alt="Leave gate"></a><figcaption>The leave gate, inline.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>lbuildStart</code>, <code>lbuildRead</code>, <code>lbuildPlan</code>, <code>curateStart</code>, <code>curStepper</code>, <code>draftPage</code>, <code>draftEdit</code>, <code>saveDraft</code>, <code>leaveGate</code>, <code>guardBack</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g8-0"><a href="shots/bdr-find-ask.jpg" target="_blank" rel="noopener" aria-label="Open full size: Find leads chat"><img loading="lazy" src="shots/bdr-find-ask.jpg" alt="Find leads chat"></a><figcaption>The chat reads what you asked for.</figcaption></figure>
+<figure class="gal-fig" id="g8-1" data-rest><a href="shots/bdr-find-curate.jpg" target="_blank" rel="noopener" aria-label="Open full size: Curating"><img loading="lazy" src="shots/bdr-find-curate.jpg" alt="Curating"></a><figcaption>Curating, step by step.</figcaption></figure>
+<figure class="gal-fig" id="g8-2" data-rest><a href="shots/bdr-draft.jpg" target="_blank" rel="noopener" aria-label="Open full size: Draft list"><img loading="lazy" src="shots/bdr-draft.jpg" alt="Draft list"></a><figcaption>The draft list, not saved yet.</figcaption></figure>
+<figure class="gal-fig" id="g8-3" data-rest><a href="shots/bdr-leave-gate.jpg" target="_blank" rel="noopener" aria-label="Open full size: Leave gate"><img loading="lazy" src="shots/bdr-leave-gate.jpg" alt="Leave gate"></a><figcaption>The leave gate, inline.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g8-0" aria-selected="true" title="The chat reads what you asked for."><img src="shots/bdr-find-ask.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g8-1" aria-selected="false" title="Curating, step by step."><img src="shots/bdr-find-curate.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g8-2" aria-selected="false" title="The draft list, not saved yet."><img src="shots/bdr-draft.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g8-3" aria-selected="false" title="The leave gate, inline."><img src="shots/bdr-leave-gate.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b9">
   <h3><span class="id">B9</span>Put a list to work</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: attach a list to a campaign, fill in missing numbers.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?list=ls2" target="_blank" rel="noopener">Open list ls2</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?list=ls3" target="_blank" rel="noopener">Open list ls3</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?on=lists" target="_blank" rel="noopener">All lists</a></div>
   <ol>
-    <li>On ls2 (not on a campaign), press <b>Put it on a campaign</b>. The menu says how many people fit each campaign's market. Pick one; the toast says how many joined, with Undo. The campaign's owner is told in their bell.</li>
+    <li>On ls2 (not on a campaign), press <b>Put it on a campaign</b>. The menu says how many people fit each campaign's market. Pick one; the message says how many joined, with Undo. The campaign's owner is told in their bell.</li>
     <li>On ls3, press <b>Fill in what is missing</b>. Cards without a number breathe for about 6 seconds while Apollo looks, then land. Found numbers last for the session only.</li>
     <li>From a campaign, <b>View campaign's lists</b> opens the Lists tab filtered to that campaign, shown as a chip you can clear.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/bdr-list-puton.jpg" target="_blank"><img loading="lazy" src="shots/bdr-list-puton.jpg" alt="Put on a campaign"></a><figcaption>Put it on a campaign.</figcaption></figure>
-    <figure><a href="shots/bdr-fill.jpg" target="_blank"><img loading="lazy" src="shots/bdr-fill.jpg" alt="Filling numbers"></a><figcaption>Finding numbers with Apollo.</figcaption></figure>
-    <figure><a href="shots/bdr-lists.jpg" target="_blank"><img loading="lazy" src="shots/bdr-lists.jpg" alt="Lists tab"></a><figcaption>The Lists tab.</figcaption></figure>
-    <figure><a href="shots/bdr-list.jpg" target="_blank"><img loading="lazy" src="shots/bdr-list.jpg" alt="A list page"></a><figcaption>A list on no campaign, with its own wait stepper.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>listPage</code>, <code>listsPage</code>, <code>campMenu</code>, <code>putOn</code>, <code>fillList</code>, <code>fillTick</code>, <code>enrichCon</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g9-0"><a href="shots/bdr-list-puton.jpg" target="_blank" rel="noopener" aria-label="Open full size: Put on a campaign"><img loading="lazy" src="shots/bdr-list-puton.jpg" alt="Put on a campaign"></a><figcaption>Put it on a campaign.</figcaption></figure>
+<figure class="gal-fig" id="g9-1" data-rest><a href="shots/bdr-fill.jpg" target="_blank" rel="noopener" aria-label="Open full size: Filling numbers"><img loading="lazy" src="shots/bdr-fill.jpg" alt="Filling numbers"></a><figcaption>Finding numbers with Apollo.</figcaption></figure>
+<figure class="gal-fig" id="g9-2" data-rest><a href="shots/bdr-lists.jpg" target="_blank" rel="noopener" aria-label="Open full size: Lists tab"><img loading="lazy" src="shots/bdr-lists.jpg" alt="Lists tab"></a><figcaption>The Lists tab.</figcaption></figure>
+<figure class="gal-fig" id="g9-3" data-rest><a href="shots/bdr-list.jpg" target="_blank" rel="noopener" aria-label="Open full size: A list page"><img loading="lazy" src="shots/bdr-list.jpg" alt="A list page"></a><figcaption>A list on no campaign, with its own wait stepper.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g9-0" aria-selected="true" title="Put it on a campaign."><img src="shots/bdr-list-puton.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g9-1" aria-selected="false" title="Finding numbers with Apollo."><img src="shots/bdr-fill.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g9-2" aria-selected="false" title="The Lists tab."><img src="shots/bdr-lists.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g9-3" aria-selected="false" title="A list on no campaign, with its own wait stepper."><img src="shots/bdr-list.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b10">
   <h3><span class="id">B10</span>Read a company before calling</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: use About and News and signals on a company page (Jira AIMY-2738, AIMY-2739).</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?acc=a164" target="_blank" rel="noopener">Open Rancroft Bank</a></div>
   <ol>
@@ -427,49 +565,66 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li>Contact pages carry About too, with public facts only: job, career, in public, where and how to reach.</li>
     <li>To see every state, use the prototype panel: "About, on company and contact pages" and "News, on company pages".</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/bdr-account-about.jpg" target="_blank"><img loading="lazy" src="shots/bdr-account-about.jpg" alt="About block"></a><figcaption>About, while AiMY is still writing it.</figcaption></figure>
-    <figure><a href="shots/bdr-news-open.jpg" target="_blank"><img loading="lazy" src="shots/bdr-news-open.jpg" alt="News expanded"></a><figcaption>News, expanded in place.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>accPage</code>, <code>aboutBlock</code>, <code>profState</code>, <code>profCheck</code>, <code>profMore</code>, <code>newsBlock</code>, <code>newsRow</code>, <code>newsMatters</code>, <code>newsUrl</code>; stored in <code>DELTA.news</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g10-0"><a href="shots/bdr-account-about.jpg" target="_blank" rel="noopener" aria-label="Open full size: About block"><img loading="lazy" src="shots/bdr-account-about.jpg" alt="About block"></a><figcaption>About, while AiMY is still writing it.</figcaption></figure>
+<figure class="gal-fig" id="g10-1" data-rest><a href="shots/bdr-news-open.jpg" target="_blank" rel="noopener" aria-label="Open full size: News expanded"><img loading="lazy" src="shots/bdr-news-open.jpg" alt="News expanded"></a><figcaption>News, expanded in place.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g10-0" aria-selected="true" title="About, while AiMY is still writing it."><img src="shots/bdr-account-about.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g10-1" aria-selected="false" title="News, expanded in place."><img src="shots/bdr-news-open.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="b11">
   <h3><span class="id">B11</span>Diary, campaigns and notes</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?on=cal" target="_blank" rel="noopener">Diary</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?on=camps" target="_blank" rel="noopener">Campaigns</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?camp=c4" target="_blank" rel="noopener">A campaign</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?on=notes" target="_blank" rel="noopener">Notes</a></div>
   <ul>
     <li><b>Diary:</b> a month grid and the day's agenda, holding callbacks she promised and meetings she set. "Missing details" lists meetings with nothing written. A Call log door sits in the header.</li>
     <li><b>Campaigns:</b> the ones she is on. A campaign page has the goal, what we sell, the client, persona, pitch, team, then the queue, Where it stands, What is in the way, and What happened. A caller cannot edit a campaign.</li>
     <li><b>Notes:</b> everything she wrote, by day.</li>
   </ul>
-  <div class="shots">
-    <figure><a href="shots/bdr-diary.jpg" target="_blank"><img loading="lazy" src="shots/bdr-diary.jpg" alt="Diary"></a><figcaption>Diary.</figcaption></figure>
-    <figure><a href="shots/bdr-camp.jpg" target="_blank"><img loading="lazy" src="shots/bdr-camp.jpg" alt="Campaign page"></a><figcaption>A campaign, read from the caller's side.</figcaption></figure>
-    <figure><a href="shots/bdr-campaigns.jpg" target="_blank"><img loading="lazy" src="shots/bdr-campaigns.jpg" alt="Campaigns tab"></a><figcaption>The Campaigns tab.</figcaption></figure>
-    <figure><a href="shots/bdr-camp-queue.jpg" target="_blank"><img loading="lazy" src="shots/bdr-camp-queue.jpg" alt="Campaign queue"></a><figcaption>The campaign's own queue, with Call all.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>diaryPage</code>, <code>calBody</code>, <code>openLoop</code>, <code>campsPage</code>, <code>campPage</code>, <code>campLead</code>, <code>blockersBlock</code>, <code>notesPage</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g11-0"><a href="shots/bdr-diary.jpg" target="_blank" rel="noopener" aria-label="Open full size: Diary"><img loading="lazy" src="shots/bdr-diary.jpg" alt="Diary"></a><figcaption>Diary.</figcaption></figure>
+<figure class="gal-fig" id="g11-1" data-rest><a href="shots/bdr-camp.jpg" target="_blank" rel="noopener" aria-label="Open full size: Campaign page"><img loading="lazy" src="shots/bdr-camp.jpg" alt="Campaign page"></a><figcaption>A campaign, read from the caller's side.</figcaption></figure>
+<figure class="gal-fig" id="g11-2" data-rest><a href="shots/bdr-campaigns.jpg" target="_blank" rel="noopener" aria-label="Open full size: Campaigns tab"><img loading="lazy" src="shots/bdr-campaigns.jpg" alt="Campaigns tab"></a><figcaption>The Campaigns tab.</figcaption></figure>
+<figure class="gal-fig" id="g11-3" data-rest><a href="shots/bdr-camp-queue.jpg" target="_blank" rel="noopener" aria-label="Open full size: Campaign queue"><img loading="lazy" src="shots/bdr-camp-queue.jpg" alt="Campaign queue"></a><figcaption>The campaign's own queue, with Call all.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g11-0" aria-selected="true" title="Diary."><img src="shots/bdr-diary.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g11-1" aria-selected="false" title="A campaign, read from the caller&#x27;s side."><img src="shots/bdr-camp.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g11-2" aria-selected="false" title="The Campaigns tab."><img src="shots/bdr-campaigns.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g11-3" aria-selected="false" title="The campaign&#x27;s own queue, with Call all."><img src="shots/bdr-camp-queue.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <h2 id="p-mgr">Sales manager processes <span class="desk d-mgr">Manager</span></h2>
 
 <section class="scn" id="m1">
   <h3><span class="id">M1</span>Start the day and prepare for a meeting</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p419" target="_blank" rel="noopener">Open Henry Murphy (demo)</a></div>
   <ol>
     <li>Today lists today's meetings first (Noah Wright at 14:00, Henry Murphy's demo at 15:00), then Requests (only when one exists) and Connections.</li>
-    <li>Press <b>Prepare me for 14:00</b>, bottom right. The canvas opens "Before you meet Noah Wright": Say this first, stage, How far to go (account tier), Who, How it started, Last time, Remember, If they push back, Selling and Why now.</li>
+    <li>Press <b>Prepare me for 14:00</b>, bottom right. AiMY opens full screen: "Before you meet Noah Wright": Say this first, stage, How far to go (account tier), Who, How it started, Last time, Remember, If they push back, Selling and Why now.</li>
     <li>The same brief opens from <b>Prepare me</b> on a contact page and from the bell.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/mgr-home.jpg" target="_blank"><img loading="lazy" src="shots/mgr-home.jpg" alt="Manager Today"></a><figcaption>Today, meetings first.</figcaption></figure>
-    <figure><a href="shots/mgr-prep.jpg" target="_blank"><img loading="lazy" src="shots/mgr-prep.jpg" alt="Meeting brief"></a><figcaption>Before you meet.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>mgrHome</code>, <code>dayBlock</code>, <code>meetPrep</code>, <code>reqBlock</code>, <code>connBlock</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g12-0"><a href="shots/mgr-home.jpg" target="_blank" rel="noopener" aria-label="Open full size: Manager Today"><img loading="lazy" src="shots/mgr-home.jpg" alt="Manager Today"></a><figcaption>Today, meetings first.</figcaption></figure>
+<figure class="gal-fig" id="g12-1" data-rest><a href="shots/mgr-prep.jpg" target="_blank" rel="noopener" aria-label="Open full size: Meeting brief"><img loading="lazy" src="shots/mgr-prep.jpg" alt="Meeting brief"></a><figcaption>Before you meet.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g12-0" aria-selected="true" title="Today, meetings first."><img src="shots/mgr-home.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g12-1" aria-selected="false" title="Before you meet."><img src="shots/mgr-prep.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="m2">
   <h3><span class="id">M2</span>Write up a meeting</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: say how it went in one sentence and let AiMY move the deal.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p470" target="_blank" rel="noopener">Open Noah Wright</a></div>
   <ol>
@@ -478,43 +633,56 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li>To close as lost, press <b>We lost it</b> at the top right; it asks once.</li>
     <li>Voice notes work the same way through the mic (needs a real microphone).</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/mgr-meeting-state.jpg" target="_blank"><img loading="lazy" src="shots/mgr-meeting-state.jpg" alt="What happened block"></a><figcaption>One press per outcome.</figcaption></figure>
-    <figure><a href="shots/mgr-meeting-log.jpg" target="_blank"><img loading="lazy" src="shots/mgr-meeting-log.jpg" alt="Sentence read back"></a><figcaption>Or one sentence, read back.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>stateBlock</code>, <code>runInput</code>, <code>readMeet</code>, <code>meetPropose</code>, <code>meetCommit</code>, <code>setStage</code>, <code>dealMoves</code>, <code>nextForStage</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g13-0"><a href="shots/mgr-meeting-state.jpg" target="_blank" rel="noopener" aria-label="Open full size: What happened block"><img loading="lazy" src="shots/mgr-meeting-state.jpg" alt="What happened block"></a><figcaption>One press per outcome.</figcaption></figure>
+<figure class="gal-fig" id="g13-1" data-rest><a href="shots/mgr-meeting-log.jpg" target="_blank" rel="noopener" aria-label="Open full size: Sentence read back"><img loading="lazy" src="shots/mgr-meeting-log.jpg" alt="Sentence read back"></a><figcaption>Or one sentence, read back.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g13-0" aria-selected="true" title="One press per outcome."><img src="shots/mgr-meeting-state.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g13-1" aria-selected="false" title="Or one sentence, read back."><img src="shots/mgr-meeting-log.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="m3">
   <h3><span class="id">M3</span>Work the deals</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals" target="_blank" rel="noopener">Contacts</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals&q=commercial" target="_blank" rel="noopener">Priced</a></div>
   <ul>
     <li>The headline says what is open ("€2.3m still open, across 37 deals") with doors to "who is not met" and "the 15 already priced".</li>
     <li>Cuts: All, Not met, Scoped, Shown, Priced, Lost, Follow-up. Each card says what is owed and offers Call, Say how it went, or Prepare me.</li>
   </ul>
-  <figure><a href="shots/mgr-deals-priced.jpg" target="_blank"><img loading="lazy" src="shots/mgr-deals-priced.jpg" alt="Priced deals"></a><figcaption>The Priced cut.</figcaption></figure>
-  <p class="code-line">Code: <code>dealsPage</code>, <code>dealsTake</code>, <code>dealQueue</code>, <code>dealSays</code>, <code>MGR_BUCKETS</code>, <code>DEAL_STAGES</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g14-0"><a href="shots/mgr-deals-priced.jpg" target="_blank" rel="noopener" aria-label="Open full size: Priced deals"><img loading="lazy" src="shots/mgr-deals-priced.jpg" alt="Priced deals"></a><figcaption>The Priced filter.</figcaption></figure>
+</div></div></div>
 </section>
 
 <section class="scn" id="m4">
   <h3><span class="id">M4</span>Look after customers</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Goal: see who renews and where to sell more.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals&q=won" target="_blank" rel="noopener">Accounts</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals&q=won&acc=a22" target="_blank" rel="noopener">Wolvercroft (Gold)</a></div>
   <ul>
-    <li>The <b>Accounts</b> chip sits apart at the end of the cuts. It holds companies that already buy from us (36), ranked by what moved, not by what they pay. Its badge counts the ones that moved.</li>
+    <li>The <b>Accounts</b> chip sits apart at the end of the filters. It holds companies that already buy from us (36), ranked by what moved, not by what they pay. Its badge counts the ones that moved.</li>
     <li>Each card is a company: Renewing, Opening, Check in or Account, with an AiMY sentence that ties a news event to one of our services.</li>
     <li>Every company carries a tier shield: Gold (check in every 21 days), Silver (42), Bench (91).</li>
     <li>A company page offers <b>Offer &lt;service&gt;</b> for each opening.</li>
   </ul>
-  <div class="shots">
-    <figure><a href="shots/mgr-clients.jpg" target="_blank"><img loading="lazy" src="shots/mgr-clients.jpg" alt="Accounts cut"></a><figcaption>Customers, ranked by what moved.</figcaption></figure>
-    <figure><a href="shots/mgr-account-gold.jpg" target="_blank"><img loading="lazy" src="shots/mgr-account-gold.jpg" alt="Gold account"></a><figcaption>A Gold account.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>custCard</code>, <code>custTake</code>, <code>custState</code>, <code>openingAt</code>, <code>ACC_TIERS</code>, <code>tierOf</code>, <code>tierMark</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g15-0"><a href="shots/mgr-clients.jpg" target="_blank" rel="noopener" aria-label="Open full size: Accounts cut"><img loading="lazy" src="shots/mgr-clients.jpg" alt="Accounts cut"></a><figcaption>Customers, ranked by what moved.</figcaption></figure>
+<figure class="gal-fig" id="g15-1" data-rest><a href="shots/mgr-account-gold.jpg" target="_blank" rel="noopener" aria-label="Open full size: Gold account"><img loading="lazy" src="shots/mgr-account-gold.jpg" alt="Gold account"></a><figcaption>A Gold account.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g15-0" aria-selected="true" title="Customers, ranked by what moved."><img src="shots/mgr-clients.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g15-1" aria-selected="false" title="A Gold account."><img src="shots/mgr-account-gold.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="m5">
   <h3><span class="id">M5</span>Close the loop on meetings</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=cal" target="_blank" rel="noopener">Diary</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=missed&q=meets" target="_blank" rel="noopener">Call log: meetings</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=notes" target="_blank" rel="noopener">Notes</a></div>
   <ul>
     <li><b>Diary:</b> a month grid, today's agenda, Next in the diary, and Add to calendar (fills the bar). There is no week view.</li>
@@ -522,17 +690,24 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li><b>Call log:</b> Calls (missed, with voicemail) and Meetings (unwritten).</li>
     <li><b>Notes:</b> by month, each line linked to its contact.</li>
   </ul>
-  <div class="shots">
-    <figure><a href="shots/mgr-diary.jpg" target="_blank"><img loading="lazy" src="shots/mgr-diary.jpg" alt="Diary"></a><figcaption>Diary.</figcaption></figure>
-    <figure><a href="shots/mgr-diary-loop.jpg" target="_blank"><img loading="lazy" src="shots/mgr-diary-loop.jpg" alt="Missing details"></a><figcaption>Missing details.</figcaption></figure>
-    <figure><a href="shots/mgr-missed-meets.jpg" target="_blank"><img loading="lazy" src="shots/mgr-missed-meets.jpg" alt="Unwritten meetings"></a><figcaption>Call log, meetings.</figcaption></figure>
-    <figure><a href="shots/mgr-notes.jpg" target="_blank"><img loading="lazy" src="shots/mgr-notes.jpg" alt="Notes"></a><figcaption>Notes.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>diaryPage</code>, <code>calBody</code>, <code>openLoop</code>, <code>missedPage</code>, <code>logMeets</code>, <code>notesPage</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g16-0"><a href="shots/mgr-diary.jpg" target="_blank" rel="noopener" aria-label="Open full size: Diary"><img loading="lazy" src="shots/mgr-diary.jpg" alt="Diary"></a><figcaption>Diary.</figcaption></figure>
+<figure class="gal-fig" id="g16-1" data-rest><a href="shots/mgr-diary-loop.jpg" target="_blank" rel="noopener" aria-label="Open full size: Missing details"><img loading="lazy" src="shots/mgr-diary-loop.jpg" alt="Missing details"></a><figcaption>Missing details.</figcaption></figure>
+<figure class="gal-fig" id="g16-2" data-rest><a href="shots/mgr-missed-meets.jpg" target="_blank" rel="noopener" aria-label="Open full size: Unwritten meetings"><img loading="lazy" src="shots/mgr-missed-meets.jpg" alt="Unwritten meetings"></a><figcaption>Call log, meetings.</figcaption></figure>
+<figure class="gal-fig" id="g16-3" data-rest><a href="shots/mgr-notes.jpg" target="_blank" rel="noopener" aria-label="Open full size: Notes"><img loading="lazy" src="shots/mgr-notes.jpg" alt="Notes"></a><figcaption>Notes.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g16-0" aria-selected="true" title="Diary."><img src="shots/mgr-diary.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g16-1" aria-selected="false" title="Missing details."><img src="shots/mgr-diary-loop.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g16-2" aria-selected="false" title="Call log, meetings."><img src="shots/mgr-missed-meets.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g16-3" aria-selected="false" title="Notes."><img src="shots/mgr-notes.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="m6">
   <h3><span class="id">M6</span>Build a campaign</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta">Two ways: through the chat, or on a page filled by hand.</div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=camps" target="_blank" rel="noopener">Open Campaigns</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&camp=c2&ed=c2" target="_blank" rel="noopener">Edit c2</a></div>
   <ol>
@@ -541,67 +716,88 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li><b>Page:</b> name, goal, what we sell, client, industry, region, size, team, lists, time frame, wait between calls, persona, pitch, notes. AiMY can draft persona, aim and pitch per field, or <b>Let AiMY fill the rest</b>. Then <b>Save as draft</b> or <b>Run it</b> (greyed until everything it needs is there).</li>
     <li>On a running campaign, <b>Edit the campaign</b> opens the same fields. Atomic things (team, wait) change in place; prose sits behind Edit.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/mgr-build-canvas.jpg" target="_blank"><img loading="lazy" src="shots/mgr-build-canvas.jpg" alt="Chat builder card"></a><figcaption>Chat builder: the summary card before Make it.</figcaption></figure>
-    <figure><a href="shots/mgr-build-manual.jpg" target="_blank"><img loading="lazy" src="shots/mgr-build-manual.jpg" alt="Manual campaign page"></a><figcaption>The page, filled by hand.</figcaption></figure>
-    <figure><a href="shots/mgr-camp-edit.jpg" target="_blank"><img loading="lazy" src="shots/mgr-camp-edit.jpg" alt="Wait between calls"></a><figcaption>Edit: wait between calls, set for this campaign.</figcaption></figure>
-    <figure><a href="shots/mgr-campaigns.jpg" target="_blank"><img loading="lazy" src="shots/mgr-campaigns.jpg" alt="Campaigns"></a><figcaption>Lina's campaigns.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>cbuildStart</code>, <code>cbuildOpt</code>, <code>cbuildCard</code>, <code>cbuildMake</code>, <code>emptyCamp</code>, <code>campDraftPage</code>, <code>draftMiss</code>, <code>campRun</code>, <code>campFill</code>, <code>campSet</code>, <code>waitField</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g17-0"><a href="shots/mgr-build-canvas.jpg" target="_blank" rel="noopener" aria-label="Open full size: Chat builder card"><img loading="lazy" src="shots/mgr-build-canvas.jpg" alt="Chat builder card"></a><figcaption>Chat builder: the summary card before Make it.</figcaption></figure>
+<figure class="gal-fig" id="g17-1" data-rest><a href="shots/mgr-build-manual.jpg" target="_blank" rel="noopener" aria-label="Open full size: Manual campaign page"><img loading="lazy" src="shots/mgr-build-manual.jpg" alt="Manual campaign page"></a><figcaption>The page, filled by hand.</figcaption></figure>
+<figure class="gal-fig" id="g17-2" data-rest><a href="shots/mgr-camp-edit.jpg" target="_blank" rel="noopener" aria-label="Open full size: Wait between calls"><img loading="lazy" src="shots/mgr-camp-edit.jpg" alt="Wait between calls"></a><figcaption>Edit: wait between calls, set for this campaign.</figcaption></figure>
+<figure class="gal-fig" id="g17-3" data-rest><a href="shots/mgr-campaigns.jpg" target="_blank" rel="noopener" aria-label="Open full size: Campaigns"><img loading="lazy" src="shots/mgr-campaigns.jpg" alt="Campaigns"></a><figcaption>Lina's campaigns.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g17-0" aria-selected="true" title="Chat builder: the summary card before Make it."><img src="shots/mgr-build-canvas.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g17-1" aria-selected="false" title="The page, filled by hand."><img src="shots/mgr-build-manual.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g17-2" aria-selected="false" title="Edit: wait between calls, set for this campaign."><img src="shots/mgr-camp-edit.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g17-3" aria-selected="false" title="Lina&#x27;s campaigns."><img src="shots/mgr-campaigns.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="m7">
   <h3><span class="id">M7</span>Reach a LinkedIn connection</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Open</a></div>
   <ol>
     <li>On Today, Connections lists people in her network at companies that fit what we sell.</li>
-    <li><b>Write the message</b> opens the canvas with a drafted note. <b>Add them to my contacts</b> brings them into Contacts.</li>
+    <li><b>Write the message</b> opens AiMY full screen with a drafted note. <b>Add them to my contacts</b> brings them into Contacts.</li>
   </ol>
-  <figure><a href="shots/mgr-connection.jpg" target="_blank"><img loading="lazy" src="shots/mgr-connection.jpg" alt="Drafted LinkedIn note"></a><figcaption>A first note, drafted by AiMY.</figcaption></figure>
-  <p class="code-line">Code: <code>connBlock</code>, <code>reachAll</code>, <code>reachDraft</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g18-0"><a href="shots/mgr-connection.jpg" target="_blank" rel="noopener" aria-label="Open full size: Drafted LinkedIn note"><img loading="lazy" src="shots/mgr-connection.jpg" alt="Drafted LinkedIn note"></a><figcaption>A first note, drafted by AiMY.</figcaption></figure>
+</div></div></div>
 </section>
 
 <section class="scn" id="m8">
   <h3><span class="id">M8</span>Read the money</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=money" target="_blank" rel="noopener">Financials</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=money&by=svc" target="_blank" rel="noopener">By service</a></div>
   <ul>
     <li>How the quarter is going (€139k of €300k), the bar, Still needed, Potential, Ahead or behind, Spent.</li>
-    <li>What you spent it on, and Which campaigns paid off. Periods: This quarter, Last quarter, This year, Rolling 12 months. Cut by Campaigns or Services and products.</li>
+    <li>What you spent it on, and Which campaigns paid off. Periods: This quarter, Last quarter, This year, Rolling 12 months. Read by campaign or by service and products.</li>
   </ul>
-  <figure><a href="shots/mgr-money.jpg" target="_blank"><img loading="lazy" src="shots/mgr-money.jpg" alt="Financials"></a><figcaption>Financials, in plain money words.</figcaption></figure>
-  <p class="code-line">Code: <code>moneyPage</code>, <code>PERIODS</code>, <code>cutChips</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g19-0"><a href="shots/mgr-money.jpg" target="_blank" rel="noopener" aria-label="Open full size: Financials"><img loading="lazy" src="shots/mgr-money.jpg" alt="Financials"></a><figcaption>Financials, in plain money words.</figcaption></figure>
+</div></div></div>
 </section>
 
 <section class="scn" id="m9">
   <h3><span class="id">M9</span>Hear what arrives</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Open</a></div>
   <ul>
     <li>The bell holds "New to you" (who sent what since yesterday: a CEO assignment with its reason, a lead from a client or stakeholder, a request, a caller's hand-over), meetings to write up, late and quiet deals, renewals, and client promises behind.</li>
     <li><b>Hand it back</b> on an assigned lead or request returns it to the CEO, who is told why.</li>
   </ul>
-  <figure><a href="shots/mgr-bell.jpg" target="_blank"><img loading="lazy" src="shots/mgr-bell.jpg" alt="Manager bell"></a><figcaption>The manager's bell.</figcaption></figure>
-  <p class="code-line">Code: <code>mgrTasks</code>, <code>refreshTasks</code>, <code>taskGo</code>, <code>handBack</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g20-0"><a href="shots/mgr-bell.jpg" target="_blank" rel="noopener" aria-label="Open full size: Manager bell"><img loading="lazy" src="shots/mgr-bell.jpg" alt="Manager bell"></a><figcaption>The manager's bell.</figcaption></figure>
+</div></div></div>
 </section>
 
 <h2 id="p-ceo">CEO processes <span class="desk d-ceo">CEO</span></h2>
 
 <section class="scn" id="r1">
   <h3><span class="id">R1</span>Read the company by team</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=rami" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=money&by=mgr" target="_blank" rel="noopener">Financials by team</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=deals" target="_blank" rel="noopener">All deals</a></div>
   <ul>
     <li>Today: the quarter (€195k of €900k), then <b>Teams</b>, furthest behind first (Growth, Quality, Enterprise).</li>
     <li>Start strip: Assign a campaign, Prepare the weekly call, Ask what can still be caught, See Financials. The two asks answer in the card above the bar.</li>
-    <li>Financials adds a Teams cut: "Who is making the number".</li>
+    <li>Financials can be read by team: "Who is making the number".</li>
   </ul>
-  <div class="shots">
-    <figure><a href="shots/ceo-teams.jpg" target="_blank"><img loading="lazy" src="shots/ceo-teams.jpg" alt="Teams"></a><figcaption>Teams, furthest behind first.</figcaption></figure>
-    <figure><a href="shots/ceo-money.jpg" target="_blank"><img loading="lazy" src="shots/ceo-money.jpg" alt="CEO Financials"></a><figcaption>The company's quarter.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>mgrBlock</code>, <code>mgrRead</code>, <code>mgrPans</code>, <code>ceoAnswer</code>, <code>isWhole</code>, <code>teamOf</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g21-0"><a href="shots/ceo-teams.jpg" target="_blank" rel="noopener" aria-label="Open full size: Teams"><img loading="lazy" src="shots/ceo-teams.jpg" alt="Teams"></a><figcaption>Teams, furthest behind first.</figcaption></figure>
+<figure class="gal-fig" id="g21-1" data-rest><a href="shots/ceo-money.jpg" target="_blank" rel="noopener" aria-label="Open full size: CEO Financials"><img loading="lazy" src="shots/ceo-money.jpg" alt="CEO Financials"></a><figcaption>The company's quarter.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g21-0" aria-selected="true" title="Teams, furthest behind first."><img src="shots/ceo-teams.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g21-1" aria-selected="false" title="The company&#x27;s quarter."><img src="shots/ceo-money.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="r2">
   <h3><span class="id">R2</span>Join a deal, assign, reassign</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=rami" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p576" target="_blank" rel="noopener">Lucy Lewis (held deal)</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p2" target="_blank" rel="noopener">Grace Ward (nobody holds)</a></div>
   <ol>
     <li><b>Where you are needed</b> suggests up to three big deals. <b>Join it</b> puts him on the deal: the meeting lands in his diary with Prepare me, and the manager is told. He sits on eight at most.</li>
@@ -609,95 +805,128 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li>On a held deal the button reads <b>Reassign</b>; the current holder is marked "Has it now". The old manager is told in their bell.</li>
     <li>Connections on Today carry the same Assign strip.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/ceo-join.jpg" target="_blank"><img loading="lazy" src="shots/ceo-join.jpg" alt="Joined a deal"></a><figcaption>Joined: the toast says who is told.</figcaption></figure>
-    <figure><a href="shots/ceo-reassign.jpg" target="_blank"><img loading="lazy" src="shots/ceo-reassign.jpg" alt="Reassign menu"></a><figcaption>Reassign, with each manager's load.</figcaption></figure>
-    <figure><a href="shots/ceo-assign-con.jpg" target="_blank"><img loading="lazy" src="shots/ceo-assign-con.jpg" alt="Assign a contact"></a><figcaption>AiMY's pick, as a fact.</figcaption></figure>
-    <figure><a href="shots/ceo-bell.jpg" target="_blank"><img loading="lazy" src="shots/ceo-bell.jpg" alt="CEO bell"></a><figcaption>Follow-up comes back in the bell.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>needBlock</code>, <code>needFor</code>, <code>joinDeal</code>, <code>SITS_MAX</code>, <code>giveStrip</code>, <code>giveTo</code>, <code>giveLearnt</code>, <code>give</code>, <code>regive</code>, <code>netGive</code>; seeded with <code>seedJoins</code>, <code>seedGives</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g22-0"><a href="shots/ceo-join.jpg" target="_blank" rel="noopener" aria-label="Open full size: Joined a deal"><img loading="lazy" src="shots/ceo-join.jpg" alt="Joined a deal"></a><figcaption>Joined: the message says who is told.</figcaption></figure>
+<figure class="gal-fig" id="g22-1" data-rest><a href="shots/ceo-reassign.jpg" target="_blank" rel="noopener" aria-label="Open full size: Reassign menu"><img loading="lazy" src="shots/ceo-reassign.jpg" alt="Reassign menu"></a><figcaption>Reassign, with each manager's load.</figcaption></figure>
+<figure class="gal-fig" id="g22-2" data-rest><a href="shots/ceo-assign-con.jpg" target="_blank" rel="noopener" aria-label="Open full size: Assign a contact"><img loading="lazy" src="shots/ceo-assign-con.jpg" alt="Assign a contact"></a><figcaption>AiMY's pick, as a fact.</figcaption></figure>
+<figure class="gal-fig" id="g22-3" data-rest><a href="shots/ceo-bell.jpg" target="_blank" rel="noopener" aria-label="Open full size: CEO bell"><img loading="lazy" src="shots/ceo-bell.jpg" alt="CEO bell"></a><figcaption>Follow-up comes back in the bell.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g22-0" aria-selected="true" title="Joined: the message says who is told."><img src="shots/ceo-join.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g22-1" aria-selected="false" title="Reassign, with each manager&#x27;s load."><img src="shots/ceo-reassign.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g22-2" aria-selected="false" title="AiMY&#x27;s pick, as a fact."><img src="shots/ceo-assign-con.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g22-3" aria-selected="false" title="Follow-up comes back in the bell."><img src="shots/ceo-bell.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <h2 id="p-stk">Stakeholder processes <span class="desk d-stk">Stakeholder</span></h2>
 
 <section class="scn" id="s1">
   <h3><span class="id">S1</span>Hear what buyers say about the product</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=sherif" target="_blank" rel="noopener">Open</a></div>
   <ol>
     <li>"What buyers say about AiMY QA" lists the reasons buyers give on calls across every campaign selling QA (features, services, pricing, timing), and what was lost this period. <b>See it</b> opens the campaign where each comes up most.</li>
     <li>Press <b>Ask what buyers say</b> in the Start strip, then send. The answer appears in the card above the bar.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/stk-voice.jpg" target="_blank"><img loading="lazy" src="shots/stk-voice.jpg" alt="What buyers say"></a><figcaption>What buyers say about AiMY QA.</figcaption></figure>
-    <figure><a href="shots/stk-ask.jpg" target="_blank"><img loading="lazy" src="shots/stk-ask.jpg" alt="AiMY answer"></a><figcaption>Asked, answered above the bar.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>lineVoice</code>, <code>voiceSay</code>, <code>voiceBlock</code>, <code>isLine</code>, <code>myLine</code>, <code>onLine</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g23-0"><a href="shots/stk-voice.jpg" target="_blank" rel="noopener" aria-label="Open full size: What buyers say"><img loading="lazy" src="shots/stk-voice.jpg" alt="What buyers say"></a><figcaption>What buyers say about AiMY QA.</figcaption></figure>
+<figure class="gal-fig" id="g23-1" data-rest><a href="shots/stk-ask.jpg" target="_blank" rel="noopener" aria-label="Open full size: AiMY answer"><img loading="lazy" src="shots/stk-ask.jpg" alt="AiMY answer"></a><figcaption>Asked, answered above the bar.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g23-0" aria-selected="true" title="What buyers say about AiMY QA."><img src="shots/stk-voice.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g23-1" aria-selected="false" title="Asked, answered above the bar."><img src="shots/stk-ask.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="s2">
   <h3><span class="id">S2</span>Connect LinkedIn and write an ask</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=sherif" target="_blank" rel="noopener">Open</a></div>
   <ol>
     <li>Connections starts empty with <b>Connect LinkedIn</b>. The connection is not saved: a reload starts disconnected.</li>
-    <li>Connected, each person has <b>Write the ask</b>, which drafts a note in the canvas. Disconnect from the profile menu.</li>
+    <li>Connected, each person has <b>Write the ask</b>, which drafts a note in AiMY. Disconnect from the profile menu.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/stk-linkedin.jpg" target="_blank"><img loading="lazy" src="shots/stk-linkedin.jpg" alt="Connect LinkedIn"></a><figcaption>Before connecting.</figcaption></figure>
-    <figure><a href="shots/stk-linkedin-on.jpg" target="_blank"><img loading="lazy" src="shots/stk-linkedin-on.jpg" alt="Connected"></a><figcaption>Connected.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>LINKED</code>, <code>onLinkedIn</code>, <code>linkIn</code>, <code>reachOf</code>, <code>connBlock</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g24-0"><a href="shots/stk-linkedin.jpg" target="_blank" rel="noopener" aria-label="Open full size: Connect LinkedIn"><img loading="lazy" src="shots/stk-linkedin.jpg" alt="Connect LinkedIn"></a><figcaption>Before connecting.</figcaption></figure>
+<figure class="gal-fig" id="g24-1" data-rest><a href="shots/stk-linkedin-on.jpg" target="_blank" rel="noopener" aria-label="Open full size: Connected"><img loading="lazy" src="shots/stk-linkedin-on.jpg" alt="Connected"></a><figcaption>Connected.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g24-0" aria-selected="true" title="Before connecting."><img src="shots/stk-linkedin.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g24-1" aria-selected="false" title="Connected."><img src="shots/stk-linkedin-on.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="s3">
   <h3><span class="id">S3</span>Request a campaign, add a lead, join a deal</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=sherif" target="_blank" rel="noopener">Open</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=sherif&on=money" target="_blank" rel="noopener">His Financials</a></div>
   <ul>
     <li><b>Request a campaign:</b> the same builder as the manager's, ending in <b>Request it</b>. It waits, owned by nobody, until a manager runs it. The page version has no region, team or lists: those are the manager's to set.</li>
-    <li><b>Add a lead:</b> the bar fills "Add a lead: ". Type "Omar Nabil, Head of Quality at Nilegate Telecom, we met at GITEX". The lead goes to the manager AiMY picks; the toast names them.</li>
+    <li><b>Add a lead:</b> the bar fills "Add a lead: ". Type "Omar Nabil, Head of Quality at Nilegate Telecom, we met at GITEX". The lead goes to the manager AiMY picks; the message names them.</li>
     <li><b>Join it</b> on a QA deal in Where you are needed: the meeting lands in his diary, the manager is told.</li>
     <li>Financials are his product's only, against an €85k quarter target.</li>
   </ul>
-  <div class="shots">
-    <figure><a href="shots/stk-request.jpg" target="_blank"><img loading="lazy" src="shots/stk-request.jpg" alt="Request page"></a><figcaption>A request, filled by hand.</figcaption></figure>
-    <figure><a href="shots/stk-money.jpg" target="_blank"><img loading="lazy" src="shots/stk-money.jpg" alt="Stakeholder Financials"></a><figcaption>Financials, bounded to AiMY QA.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>cbuildStart</code>, <code>campAsk</code>, <code>readLead</code>, <code>giveTo</code>, <code>joinDeal</code>, <code>bookScope</code>, <code>TARGET_LINE</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g25-0"><a href="shots/stk-request.jpg" target="_blank" rel="noopener" aria-label="Open full size: Request page"><img loading="lazy" src="shots/stk-request.jpg" alt="Request page"></a><figcaption>A request, filled by hand.</figcaption></figure>
+<figure class="gal-fig" id="g25-1" data-rest><a href="shots/stk-money.jpg" target="_blank" rel="noopener" aria-label="Open full size: Stakeholder Financials"><img loading="lazy" src="shots/stk-money.jpg" alt="Stakeholder Financials"></a><figcaption>Financials, bounded to AiMY QA.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g25-0" aria-selected="true" title="A request, filled by hand."><img src="shots/stk-request.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g25-1" aria-selected="false" title="Financials, bounded to AiMY QA."><img src="shots/stk-money.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <h2 id="p-cli">Client processes <span class="desk d-cli">Client</span></h2>
 
-<div class="note"><b>Read first.</b> Kestrel's contract dates are fixed in the seed (1 Oct 2025 for 12 months), unlike everything else, which moves with the clock. The year ended on 30 Sep 2026, so today the client desk says "last day of the year", its Diary is empty, and Lina's diary has no Kestrel meetings. The report still works. See <a href="#gaps">Known gaps</a>.</div>
+<div class="note"><b>Read first.</b> Kestrel's contract dates are fixed (1 October 2025 for 12 months), unlike everything else, which moves with the clock. The year ended on 30 Sep 2026, so today the client desk says "last day of the year", its Diary is empty, and Lina's diary has no Kestrel meetings. The report still works. See <a href="#gaps">Known gaps</a>.</div>
 
 <section class="scn" id="c1">
   <h3><span class="id">C1</span>Read "Your journey with AiMY"</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money" target="_blank" rel="noopener">Everything</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=reach" target="_blank" rel="noopener">AiMY Talent</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=tool" target="_blank" rel="noopener">AiMY QA</a><a class="btn ghost" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=desk" target="_blank" rel="noopener">Managed support</a></div>
   <ol>
-    <li>Open the report from the rail ("Your journey") or the Start strip. It reads by calendar quarter: This quarter or Last quarter.</li>
+    <li>Open the report from the call panel ("Your journey") or the Start strip. It reads by calendar quarter: This quarter or Last quarter.</li>
     <li>"How the quarter is going" says how many promises were kept and who owns what is behind. A renewal flag shows the notice window.</li>
     <li>The ledger splits promises into <b>Ours to keep</b> and <b>Yours</b>. Under each of ours that is behind, AiMY says how far short and how long is left.</li>
     <li>Pick an engagement with the chip menu at the top right. On a staffed floor, a line links out to AiMY QA for "which goal each agent is losing".</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/cli-journey.jpg" target="_blank"><img loading="lazy" src="shots/cli-journey.jpg" alt="Journey overview"></a><figcaption>All three engagements.</figcaption></figure>
-    <figure><a href="shots/cli-ledger.jpg" target="_blank"><img loading="lazy" src="shots/cli-ledger.jpg" alt="Promise ledger"></a><figcaption>The promise ledger, AiMY Talent.</figcaption></figure>
-    <figure><a href="shots/cli-qa.jpg" target="_blank"><img loading="lazy" src="shots/cli-qa.jpg" alt="AiMY QA engagement"></a><figcaption>AiMY QA, with the link out to QA.</figcaption></figure>
-    <figure><a href="shots/cli-engpick.jpg" target="_blank"><img loading="lazy" src="shots/cli-engpick.jpg" alt="Engagement menu"></a><figcaption>The engagement menu.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>moneyPage</code> (client branch), <code>buyerBrief</code>, <code>promiseLedger</code>, <code>promiseGot</code>, <code>promDoing</code>, <code>qaLine</code>, <code>renewFlag</code>, <code>engChips</code>, <code>myDeal</code>, <code>reportQ</code>, <code>qProms</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g26-0"><a href="shots/cli-journey.jpg" target="_blank" rel="noopener" aria-label="Open full size: Journey overview"><img loading="lazy" src="shots/cli-journey.jpg" alt="Journey overview"></a><figcaption>All three engagements.</figcaption></figure>
+<figure class="gal-fig" id="g26-1" data-rest><a href="shots/cli-ledger.jpg" target="_blank" rel="noopener" aria-label="Open full size: Promise ledger"><img loading="lazy" src="shots/cli-ledger.jpg" alt="Promise ledger"></a><figcaption>The promise ledger, AiMY Talent.</figcaption></figure>
+<figure class="gal-fig" id="g26-2" data-rest><a href="shots/cli-qa.jpg" target="_blank" rel="noopener" aria-label="Open full size: AiMY QA engagement"><img loading="lazy" src="shots/cli-qa.jpg" alt="AiMY QA engagement"></a><figcaption>AiMY QA, with the link out to QA.</figcaption></figure>
+<figure class="gal-fig" id="g26-3" data-rest><a href="shots/cli-engpick.jpg" target="_blank" rel="noopener" aria-label="Open full size: Engagement menu"><img loading="lazy" src="shots/cli-engpick.jpg" alt="Engagement menu"></a><figcaption>The engagement menu.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g26-0" aria-selected="true" title="All three engagements."><img src="shots/cli-journey.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g26-1" aria-selected="false" title="The promise ledger, AiMY Talent."><img src="shots/cli-ledger.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g26-2" aria-selected="false" title="AiMY QA, with the link out to QA."><img src="shots/cli-qa.jpg" alt=""><span>3</span></button>
+<button type="button" role="tab" aria-controls="g26-3" aria-selected="false" title="The engagement menu."><img src="shots/cli-engpick.jpg" alt=""><span>4</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="c2">
   <h3><span class="id">C2</span>Follow her campaigns</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=camps" target="_blank" rel="noopener">Campaigns</a></div>
   <ul>
     <li>Cards say "N of its M people reached, K handed over" and "See it". The page keeps the brief, where it stands and what is in the way, and drops the people, the queue and the day-by-day.</li>
     <li>"What is in the way" says what we are doing about each obstacle, in our voice, never as an instruction to a caller.</li>
   </ul>
-  <div class="shots">
-    <figure><a href="shots/cli-camps.jpg" target="_blank"><img loading="lazy" src="shots/cli-camps.jpg" alt="Client campaigns"></a><figcaption>Campaigns we run for Kestrel.</figcaption></figure>
-    <figure><a href="shots/cli-camp.jpg" target="_blank"><img loading="lazy" src="shots/cli-camp.jpg" alt="Client campaign page"></a><figcaption>A campaign without its people.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>ccard</code>, <code>campsLead</code>, <code>campPage</code>, <code>seesCost</code>, <code>seesGrade</code>, <code>isBuyer</code>; refusals in <code>parse</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g27-0"><a href="shots/cli-camps.jpg" target="_blank" rel="noopener" aria-label="Open full size: Client campaigns"><img loading="lazy" src="shots/cli-camps.jpg" alt="Client campaigns"></a><figcaption>Campaigns we run for Kestrel.</figcaption></figure>
+<figure class="gal-fig" id="g27-1" data-rest><a href="shots/cli-camp.jpg" target="_blank" rel="noopener" aria-label="Open full size: Client campaign page"><img loading="lazy" src="shots/cli-camp.jpg" alt="Client campaign page"></a><figcaption>A campaign without its people.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g27-0" aria-selected="true" title="Campaigns we run for Kestrel."><img src="shots/cli-camps.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g27-1" aria-selected="false" title="A campaign without its people."><img src="shots/cli-camp.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <h2 id="p-cross">Across desks</h2>
@@ -705,6 +934,7 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
 
 <section class="scn" id="x1">
   <h3><span class="id">X1</span>The CEO writes a campaign; Lina runs it</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta"><span class="desk d-ceo">CEO</span><span class="desk d-mgr">Manager</span></div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=rami" target="_blank" rel="noopener">Start as Rami</a></div>
   <ol>
@@ -712,194 +942,167 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding-top:16px;font-si
     <li>The page reads "Written. Nobody has it yet". Open <b>Assign</b>: AiMY suggests a manager and why. Pick Lina. The pill turns to "Assigned".</li>
     <li>Switch to Lina. Her bell's "New to you" says Rami assigned her the request; Requests on Today shows it.</li>
     <li>She opens it, sets region and team, and presses <b>Run it</b>. Or <b>Hand it back</b>.</li>
-    <li>Back as Rami, his bell says "Lina ran AiMY QA — Banking &amp; finance".</li>
+    <li>Back as Rami, his bell says that Lina ran the campaign.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/flow-ceo-write.jpg" target="_blank"><img loading="lazy" src="shots/flow-ceo-write.jpg" alt="Assign the written campaign"></a><figcaption>Rami assigns what he wrote.</figcaption></figure>
-    <figure><a href="shots/flow-lina-new.jpg" target="_blank"><img loading="lazy" src="shots/flow-lina-new.jpg" alt="New to you"></a><figcaption>Lina's bell: New to you.</figcaption></figure>
-    <figure><a href="shots/flow-lina-request.jpg" target="_blank"><img loading="lazy" src="shots/flow-lina-request.jpg" alt="Request on Lina's desk"></a><figcaption>The request, waiting for region and team.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>cbuildMake</code>, <code>campAskPage</code>, <code>campGive</code>, <code>reqBlock</code>, <code>mgrTasks</code> (<code>new-to-you</code>, <code>sent-moved</code>), <code>campRun</code>, <code>handBack</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g28-0"><a href="shots/flow-ceo-write.jpg" target="_blank" rel="noopener" aria-label="Open full size: Assign the written campaign"><img loading="lazy" src="shots/flow-ceo-write.jpg" alt="Assign the written campaign"></a><figcaption>Rami assigns what he wrote.</figcaption></figure>
+<figure class="gal-fig" id="g28-1" data-rest><a href="shots/flow-lina-new.jpg" target="_blank" rel="noopener" aria-label="Open full size: New to you"><img loading="lazy" src="shots/flow-lina-new.jpg" alt="New to you"></a><figcaption>Lina's bell: New to you.</figcaption></figure>
+<figure class="gal-fig" id="g28-2" data-rest><a href="shots/flow-lina-request.jpg" target="_blank" rel="noopener" aria-label="Open full size: Request on Lina&#x27;s desk"><img loading="lazy" src="shots/flow-lina-request.jpg" alt="Request on Lina's desk"></a><figcaption>The request, waiting for region and team.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g28-0" aria-selected="true" title="Rami assigns what he wrote."><img src="shots/flow-ceo-write.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g28-1" aria-selected="false" title="Lina&#x27;s bell: New to you."><img src="shots/flow-lina-new.jpg" alt=""><span>2</span></button>
+<button type="button" role="tab" aria-controls="g28-2" aria-selected="false" title="The request, waiting for region and team."><img src="shots/flow-lina-request.jpg" alt=""><span>3</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="x2">
   <h3><span class="id">X2</span>A client requests a campaign; it is talked through first</h3>
+  <div class="scn-body"><div class="scn-text">
   <div class="meta"><span class="desk d-cli">Client</span><span class="desk d-mgr">Manager</span></div>
   <div class="btns"><a class="btn" href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel" target="_blank" rel="noopener">Start as Marit</a></div>
   <ol>
-    <li>As Marit, press <b>Request a campaign</b>, Ask me through it, Managed customer support, type "retail companies", pick a goal, Meeting, 8, then <b>Request it</b>. The toast: sent to Lina Haddad, to talk through with you first.</li>
+    <li>As Marit, press <b>Request a campaign</b>, Ask me through it, Managed customer support, type "retail companies", pick a goal, Meeting, 8, then <b>Request it</b>. The message reads: sent to Lina Haddad, to talk through with you first.</li>
     <li>Switch to Lina and open it from Requests. <b>Run it</b> stays greyed until the talk happens.</li>
     <li>Press <b>Set a meeting with Marit</b>; the bar fills "Meet Marit on ". Type "Thursday at 11:00" and Enter. The meeting is in both diaries.</li>
     <li>After it, press <b>We talked it through</b>, set region and team, then Run it.</li>
   </ol>
-  <div class="shots">
-    <figure><a href="shots/flow-client-request.jpg" target="_blank"><img loading="lazy" src="shots/flow-client-request.jpg" alt="Client request card"></a><figcaption>Marit's request, before sending.</figcaption></figure>
-    <figure><a href="shots/flow-client-talk.jpg" target="_blank"><img loading="lazy" src="shots/flow-client-talk.jpg" alt="Set a meeting with Marit"></a><figcaption>On Lina's desk: Set a meeting with Marit.</figcaption></figure>
-  </div>
-  <p class="code-line">Code: <code>clientAsk</code>, <code>acctMgr</code>, <code>talkBook</code>, <code>draftMiss</code>, <code>clientMeets</code>.</p>
+
+</div><div class="scn-media"><div class="gal" data-gal>
+<figure class="gal-fig" id="g29-0"><a href="shots/flow-client-request.jpg" target="_blank" rel="noopener" aria-label="Open full size: Client request card"><img loading="lazy" src="shots/flow-client-request.jpg" alt="Client request card"></a><figcaption>Marit's request, before sending.</figcaption></figure>
+<figure class="gal-fig" id="g29-1" data-rest><a href="shots/flow-client-talk.jpg" target="_blank" rel="noopener" aria-label="Open full size: Set a meeting with Marit"><img loading="lazy" src="shots/flow-client-talk.jpg" alt="Set a meeting with Marit"></a><figcaption>On Lina's desk: Set a meeting with Marit.</figcaption></figure>
+<div class="gal-tabs" role="tablist" aria-label="Screens" hidden>
+<button type="button" role="tab" aria-controls="g29-0" aria-selected="true" title="Marit&#x27;s request, before sending."><img src="shots/flow-client-request.jpg" alt=""><span>1</span></button>
+<button type="button" role="tab" aria-controls="g29-1" aria-selected="false" title="On Lina&#x27;s desk: Set a meeting with Marit."><img src="shots/flow-client-talk.jpg" alt=""><span>2</span></button>
+</div>
+</div></div></div>
 </section>
 
 <section class="scn" id="x3">
   <h3><span class="id">X3</span>Leads that cross desks</h3>
+  <div class="scn-body is-solo"><div class="scn-text">
   <ul>
     <li><b>Caller to manager:</b> Engy hands Kate Clarke to Lina (<a href="#b7">B7</a>). Lina's "New to you" includes it the same day; Engy's bell later says what became of it.</li>
     <li><b>CEO to manager:</b> as Rami on <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p2" target="_blank" rel="noopener">Grace Ward</a>, press "Assign to Lina". As Lina, "New to you" gives the reason.</li>
-    <li><b>Manager back to CEO:</b> as Lina on <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p151" target="_blank" rel="noopener">Poppy Kelly</a> (seeded as Rami's gift), press <b>Hand it back</b>. Rami's bell: "Lina Haddad handed back Poppy Kelly: 37 open deals already", with Reassign it.</li>
+    <li><b>Manager back to CEO:</b> as Lina on <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p151" target="_blank" rel="noopener">Poppy Kelly</a> (an example Rami gave her), press <b>Hand it back</b>. Rami's bell: "Lina Haddad handed back Poppy Kelly: 37 open deals already", with Reassign it.</li>
     <li><b>Client or stakeholder to manager:</b> Add a lead on their desk; the lead lands with a manager, tagged "Added by Kestrel Labs" where it came from a client.</li>
   </ul>
+
+</div></div>
 </section>
 
-<h2 id="rules">Rules to keep</h2>
-<p>These are settled decisions. A change that breaks one will be sent back.</p>
-<div class="grid2">
-  <div class="card"><h4>Interaction</h4><ul>
-    <li>No modals, pickers, choice lists or drag as the only way to do something. One-click inline controls, with a toast and Undo.</li>
-    <li>Every change can be undone from its toast. No confirm dialogs; a decision with three answers is drawn inline (the leave gate).</li>
-    <li>Atomic controls (team, wait, tier) change in place on the record. Prose (pitch, persona, notes) sits behind Edit.</li>
-    <li>When space runs out, the component changes form (drawer, menu, own line). Never hide a control at a breakpoint.</li>
+<h2 id="rules">Decisions already made</h2>
+<p>These are settled. A design that breaks one will be sent back.</p>
+<div class="cols">
+  <div><h4>How things work</h4><ul>
+    <li>No pop-up windows, pickers or drag-and-drop as the only way to do something. One click on the page, with Undo after.</li>
+    <li>No "are you sure?" dialogs. A choice with several answers is shown on the page itself, as with an unsaved list.</li>
+    <li>Quick settings (team, wait between calls) change in place. Longer text (pitch, notes) is changed through Edit.</li>
+    <li>On a small screen a control changes shape (a drawer, a menu, its own line). It is never hidden.</li>
   </ul></div>
-  <div class="card"><h4>Visual</h4><ul>
-    <li>No muted text. Show state with words, weight and colour, never by fading type. Nothing below the design system's <code>--d200</code> for type; 14px floor.</li>
-    <li>Icons are Lucide, path data copied verbatim on the 24 grid.</li>
-    <li>Poppins is the one face. Light and dark are both maintained.</li>
-    <li>Anchor width is 1536px. Check 1536 and narrower; the rail is a drawer under 918px.</li>
-    <li>Reuse the shell: <code>sales.css</code>, <code>aimy-ds.css</code>. Sibling components from Knowledge and QA already live in <code>sales.css</code> under their own prefixes; look before building.</li>
+  <div><h4>How things look</h4><ul>
+    <li>No faded or grey text to show a state. Use words, weight and colour.</li>
+    <li>Icons come from the Lucide set.</li>
+    <li>One typeface, Poppins. Light and dark themes both work.</li>
+    <li>Designs are judged at a 1536px wide screen first, then smaller.</li>
+    <li>Reuse what AiMY Knowledge and AiMY QA already have before designing something new.</li>
   </ul></div>
-  <div class="card"><h4>Words</h4><ul>
-    <li>"Call", never "ring". "Contacts", never "board" or "book". Plain English, no sales slang.</li>
-    <li>An AiMY insight is one plain sentence behind the AiMY mark, using the page's own nouns.</li>
-    <li>Money in words a person would say aloud: "€139k of €300k".</li>
-    <li>Profile facts must have a public source (LinkedIn, website, register, press). No team sizes or reporting lines.</li>
+  <div><h4>How things are worded</h4><ul>
+    <li>"Call", never "ring". "Contacts", never "board" or "book".</li>
+    <li>Plain English, no sales slang.</li>
+    <li>An AiMY insight is one plain sentence.</li>
+    <li>Money as people say it: "€139k of €300k".</li>
+    <li>Facts about a person must be public (LinkedIn, their website, the press). No guesses about team size or who they report to.</li>
   </ul></div>
-  <div class="card"><h4>Scope</h4><ul>
-    <li>A surface belongs to whoever does the verb on it. A roster of scored agents is AiMY QA's; Sales links to it.</li>
-    <li>The client never sees our cost, our grades or named prospects. Check every state of a surface, not just the surface.</li>
-    <li>The CEO and stakeholder read; they do not operate. Gate each verb where it is drawn and again in its handler.</li>
+  <div><h4>Who sees what</h4><ul>
+    <li>A page belongs to whoever does the work on it. Scoring individual agents belongs to AiMY QA, so Sales links there.</li>
+    <li>The client never sees our costs, how we rate accounts, or the names of the people we call.</li>
+    <li>The CEO and the stakeholder read; they do not change the work.</li>
     <li>Follow-ups go to the bell, not onto Today.</li>
   </ul></div>
 </div>
 
-<h2 id="dev">Developer guide</h2>
-<h3>What the code is</h3>
+<h2 id="gaps">Known gaps</h2>
+<p>What is missing, partial, or worth deciding next.</p>
 <ul>
-  <li>A browser prototype with no backend and no build step. Vanilla JS, one page.</li>
-  <li><code>index.html</code>: the shell (topnav, rail, bar, canvas, call rail, panels) and the asset stamps.</li>
-  <li><code>assets/bdr.js</code> (about 35,600 lines): the whole product. One IIFE in sections: helpers, vocabulary, corpus (<code>seed()</code>), store, derivations, URL, painting, router, boot.</li>
-  <li><code>assets/bdr.css</code>: an appendix to <code>sales.css</code>, numbered by section (§104 wait, §105 video, §106 About, §107 News). Only what did not exist before.</li>
-  <li><code>assets/sales.css</code> (shell components), <code>assets/aimy-ds.css</code> and <code>aimy-ds.js</code> (shared design system and theme toggle), <code>assets/voice.js</code>/<code>voice.css</code> (voice mode, shared with Knowledge).</li>
-  <li><code>assets/audit.js</code>: nine static checks. <code>devserver.py</code>: local server. <code>old/</code>: the archived V3 build, still served at <code>/old/</code>.</li>
-  <li><code>README.md</code> is partly stale (its top still describes a BDR-only build). Trust the code and this page.</li>
-</ul>
-
-<h3>How a page is drawn</h3>
-<ol>
-  <li>The URL is the state. <code>parse()</code> reads these keys into <code>S</code>: <code>on, con, acc, camp, list, build, bk, bt, q, p, find, chat, as, period, by, eng, ed, lk</code>. Defaults: <code>on=calls</code>, <code>q=all</code>, <code>period=q</code>, <code>by=camp</code>.</li>
-  <li><code>parse()</code> also refuses what a desk cannot read: a caller's <code>on=deals</code> becomes Contacts; a client's lists, notes, deals, contacts and companies are cleared; <code>by=mgr</code> is the CEO's only.</li>
-  <li><code>paint()</code> dispatches in order: <code>con</code> → <code>contactPage</code>, <code>acc</code> → <code>accPage</code>, <code>camp</code> → <code>campPage</code>, lists, notes, missed, cal (<code>diaryPage</code>), money (<code>moneyPage</code>), deals (<code>dealsPage</code>), camps (<code>campsPage</code>), else <code>homePage</code>.</li>
-  <li><code>go(over, replace)</code> pushes a new URL and repaints. <code>cleared()</code> resets every key except <code>as</code> and <code>eng</code>.</li>
-  <li>One delegated click listener routes every <code>[data-*]</code> attribute (<code>data-call</code>, <code>data-go</code>, <code>data-start</code>, <code>data-pickopen</code>, <code>data-undo</code> and so on). Menus open with <code>data-pickopen="&lt;id&gt;"</code>.</li>
-  <li>Long lists are windowed (<code>vlist</code>): only about 30 rows exist at a time. The body carries CSS <code>zoom</code>, so it measures in layout pixels (<code>offsetTop</code>), not <code>getBoundingClientRect</code>.</li>
-</ol>
-
-<h3>Who is reading: the predicates</h3>
-<ul>
-  <li><code>me()</code>: the current desk's person. <code>DESKS = ['engy','lina','sherif','kestrel','rami']</code>.</li>
-  <li><code>onBook()</code>: anyone but the caller. <code>isMgr()</code>: the sales manager. <code>isWhole()</code>: the CEO. <code>isLine()</code>: the stakeholder. <code>isBuyer()</code>: the client.</li>
-  <li><code>reads()</code>: CEO or stakeholder. <code>works()</code>: the opposite; gates every verb that changes something.</li>
-  <li><code>seesCost()</code> and <code>seesGrade()</code>: false only for the client. Two rules, kept separate on purpose.</li>
-  <li><code>mine(k)</code>: whether a campaign is this desk's.</li>
-</ul>
-
-<h2 id="data">Data and state</h2>
-<ul>
-  <li><b>Seed:</b> the corpus is regenerated from one seed (<code>SEED = 20260904</code>) on every load, with dates relative to today: 11 campaigns, 200 accounts, about 600 contacts, 13 lists, about 1,900 touchpoints, plus a network of LinkedIn people. Ids come from indices (<code>p170</code>, <code>a22</code>, <code>c4</code>, <code>ls2</code>, <code>n826</code>), so links stay valid on any day.</li>
-  <li><b>Delta:</b> only your changes are saved, in localStorage <code>aimy-sales-bdr:db:v1</code> (<code>DELTA</code>: contact and account patches, touchpoints, lists, made records, campaigns, calendar, chats, wait, news marks, the draft list). UI settings in <code>aimy-sales-bdr:ui</code>, theme in <code>aimy-ds-theme</code>, back trail in sessionStorage <code>aimy-sales-bdr:trail</code>.</li>
-  <li><b>Writes:</b> go through <code>patchCon</code>, <code>patchAcc</code>, <code>addTouch</code>, <code>campSet</code>, then a debounced <code>save()</code>. <code>reindex()</code> rebuilds the lookups (<code>byCamp</code>, <code>byMgr</code>, <code>byLine</code>, <code>byClient</code> …).</li>
-  <li><b>Reset:</b> prototype panel → Reset to seed, or clear both localStorage keys. "Move everything on N days to today" (<code>catchUp</code>) shifts saved dates.</li>
-  <li><b>Console:</b> <code>window.BDR</code> exposes <code>db</code>, <code>go</code>, <code>queue</code>, <code>reset</code>, <code>stats()</code> and more. For example <code>BDR.go({con:'p170'})</code>.</li>
-  <li><b>Fixtures:</b> money, telephony, Apollo, LinkedIn, news sources, usage figures. Calls follow a script picked by each contact's hidden <code>fate</code>, so a demo walked twice tells the same story.</li>
-  <li><b>Load-bearing lists:</b> the lengths of <code>SELLS</code> (8 services) and <code>CLIENTS</code> decide how the seed deals campaigns. Adding a row re-deals every figure. Compare <code>BDR.db.camp.map(c =&gt; [c.id, c.client])</code> before and after.</li>
-</ul>
-<h4>Record shapes</h4>
-<ul>
-  <li><b>Campaign:</b> <code>id, name, client, target {n, noun}, persona, size, notes, goal, aim, pitch, sells[], objections[], resources[], from, to, owner, crew[], lists[], state (running | draft | asked | done), industry, region</code>; at runtime <code>by, askedAt, talk, talked, givenBy, givenWhy</code>.</li>
-  <li><b>Contact:</b> <code>id, acc, name, title, phone, email, camps[], owner, checkpoint, checkpointAt, attempts, lastCallAt, next {what, due}, remember, dnc, fate, manager</code>; at runtime <code>joined, givenBy, back</code>.</li>
-  <li><b>Account:</b> <code>id, name, domain, industry, city, country, region, size</code>.</li>
-  <li><b>Touchpoint:</b> <code>id, con, camp, by, at, secs, dir, outcome, proposals[], objections[], openings[], note, lines[], next, moved [from, to]</code>; deal moves carry <code>outcome: 'phase'</code>.</li>
-  <li><b>List:</b> <code>id, name, kind, terms, crit, has[], by, at, for, via, found</code>.</li>
-</ul>
-
-<h2 id="ship">Run, check, ship</h2>
-<pre>python devserver.py 8098        # then open http://localhost:8098/
-node assets/audit.js            # before every commit; read the whole output</pre>
-<ul>
-  <li>Use <code>devserver.py</code>, not <code>python -m http.server</code>: it sends <code>no-store</code> on HTML and a year's cache on stamped assets.</li>
-  <li><b>Stamps:</b> every asset in <code>index.html</code> carries <code>?v=</code> (today bdr.js 1322, bdr.css 1312, the rest 1286). Bump the stamp of any file you change, from its real current value. The console logs "AiMY Sales v1322".</li>
-  <li><b>Audit:</b> checks drawn-but-unwired and wired-but-undrawn <code>data-*</code>, undefined classes, unused <code>bdr.css</code> rules, comment and brace balance, banned patterns (native select, inline handlers, <code>transition: all</code>), mixed line endings, call-script fixtures, and the target sums. It exits 1 on failure.</li>
-  <li><b>Commit</b> after every verified change, on <code>master</code>.</li>
-  <li><b>Deploy:</b> pushing to <code>master</code> deploys the Cloudflare Worker <code>aimy-sales</code> in about 90 seconds. Then check the live <code>bdr.js?v=</code> matches <code>index.html</code>. If the edge serves an old file under the new stamp, bump again. A clean-folder <code>wrangler deploy</code> is the fallback; <code>.assetsignore</code> keeps <code>.git</code>, <code>docs</code> and dev files off the site.</li>
-  <li><b>Siblings:</b> AiMY Knowledge and AiMY QA sit beside this repo and share the shell. Check them before designing a cross-cutting fix.</li>
-</ul>
-
-<h2 id="traps">Traps this repo has sprung</h2>
-<ul>
-  <li><b>Line endings:</b> files are CRLF. Many tools flatten them and the diff hides it. Check after every write; the audit flags mixed endings.</li>
-  <li><b>Shell and backslashes:</b> heredocs and <code>sed</code> can eat backslashes, leaving a regex that is valid and matches nothing. Edit regexes in an editor.</li>
-  <li><b>Never delete by computed boundary.</b> A regex-bounded deletion once removed 9,489 lines. Commit first, delete by exact text.</li>
-  <li><b>Stale delta:</b> saved changes layer over the seed. Clear them before any before-and-after comparison.</li>
-  <li><b>Stamp cache:</b> a changed file without a new stamp keeps serving the old one, locally and at the edge.</li>
-  <li><b>Zoom units:</b> rects are visual pixels and CSS lengths are not. Geometry bugs show at 1536 and up and hide on a narrow pane.</li>
-  <li><b>Token overrides:</b> each product re-declares the shell's tokens, and light-theme rules in <code>aimy-ds.css</code> can flatten a colour. Verify in the running page, in both themes.</li>
-  <li><b>Rename sweeps:</b> compare whole-word and substring counts before a blanket rename; "sprung" once became "spstep".</li>
-</ul>
-
-<h2 id="gaps">Known gaps and open questions</h2>
-<ul>
-  <li><b>Kestrel's year has ended.</b> Its contract is fixed at 1 Oct 2025 for 12 months while everything else moves with the clock. Since 30 Sep 2026 the client's Diary is empty, Lina's diary has no client meetings, and the desk says "last day of the year". Fix: make <code>since</code> relative to today in the <code>CLIENT</code> seed.</li>
-  <li>The Diary has no week view: a month grid, one day's agenda, and the next three entries.</li>
-  <li>No requests exist on a clean seed. The Requests block appears only after someone requests a campaign.</li>
-  <li>A client's request does not ring Lina's bell; it shows only in Requests.</li>
-  <li>The dialer and the From number choice exist on the caller's desk only.</li>
-  <li>Video calls come from the seed; booking a call does not yet ask phone or video.</li>
-  <li>The browser's own Back is not mirrored onto the "Back to …" trail.</li>
-  <li>Voice mode and dictation need a real microphone and the browser speech API.</li>
-  <li>Rami's "a team is behind" bell row appears only after half the quarter has passed.</li>
-  <li>Possible, from code reading only: a known incoming call may still ring on the client desk.</li>
-  <li>Unbuilt from the CEO plan: his own quarter number, Ask the owner, moving a running campaign, setting targets, approvals.</li>
-  <li>The walkthrough films (local, not in the repo) predate October: no Diary for the caller, dialer, Apollo loading, voice mode or usage ring.</li>
+  <li><b>The client's year has ended.</b> Kestrel's contract dates are fixed, while everything else follows the calendar. Since 30 September the client's diary is empty, Lina sees no client meetings, and the client desk says "last day of the year". The dates need to follow the calendar like the rest.</li>
+  <li>The diary shows a month and a day. There is no week view.</li>
+  <li>Campaign requests only exist once someone makes one; a fresh prototype has none.</li>
+  <li>A client's request appears in Lina's Requests but does not reach her bell.</li>
+  <li>The phone in the top bar and the choice of which number to call from exist for the caller only.</li>
+  <li>Booking a call does not yet ask whether it is a phone or video call.</li>
+  <li>The browser's own Back button does not follow the in-page back links.</li>
+  <li>Voice mode needs a real microphone.</li>
+  <li>The CEO's "a team is behind" alert only appears in the second half of a quarter.</li>
+  <li>Not built yet for the CEO: his own quarter number, asking a deal owner a question, moving a running campaign, setting targets, approvals.</li>
+  <li>The walkthrough videos predate October and miss the caller's diary, the phone, number finding, voice mode and the usage meter.</li>
 </ul>
 
 <h2 id="links">Every link</h2>
-<p>All open the live prototype. Reset to seed first.</p>
-<div class="grid2">
-  <div class="card"><h4><span class="desk d-bdr">BDR</span>Engy</h4><ul>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Contacts and Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?q=callback" target="_blank" rel="noopener">Callbacks</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?q=after" target="_blank" rel="noopener">After meeting</a></li>
+<p>All open the live prototype. Reset first for the results described above.</p>
+<div class="links">
+  <div><h4><span class="desk d-bdr">Caller</span>Engy</h4><ul>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/" target="_blank" rel="noopener">Contacts and Today</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?q=callback" target="_blank" rel="noopener">Callbacks</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?q=after" target="_blank" rel="noopener">After a meeting</a></li>
     <li><a href="https://aimy-sales.nour-ali.workers.dev/?on=cal" target="_blank" rel="noopener">Diary</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?on=missed" target="_blank" rel="noopener">Call log</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?on=notes" target="_blank" rel="noopener">Notes</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?on=camps" target="_blank" rel="noopener">Campaigns</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?camp=c4" target="_blank" rel="noopener">c4 running</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?camp=c2" target="_blank" rel="noopener">c2 closed</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?on=lists" target="_blank" rel="noopener">Lists</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?list=ls2" target="_blank" rel="noopener">ls2 loose</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?list=ls0" target="_blank" rel="noopener">ls0 locked wait</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?list=ls3" target="_blank" rel="noopener">ls3 missing numbers</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?on=lists&lk=c4" target="_blank" rel="noopener">c4's lists</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?con=p170" target="_blank" rel="noopener">p170 video call</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?con=p121" target="_blank" rel="noopener">p121 callback</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?con=p342" target="_blank" rel="noopener">p342 meeting set</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?con=p152" target="_blank" rel="noopener">p152 interested</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?acc=a164" target="_blank" rel="noopener">a164 About and News</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?acc=a3" target="_blank" rel="noopener">a3 no news</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?on=camps" target="_blank" rel="noopener">Campaigns</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?camp=c4" target="_blank" rel="noopener">A running campaign</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?camp=c2" target="_blank" rel="noopener">A closed one</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?on=lists" target="_blank" rel="noopener">Lists</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?list=ls2" target="_blank" rel="noopener">A list on no campaign</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?list=ls3" target="_blank" rel="noopener">A list missing numbers</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?con=p170" target="_blank" rel="noopener">Video call (Amelia)</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?con=p342" target="_blank" rel="noopener">Meeting set (Benjamin)</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?con=p152" target="_blank" rel="noopener">Interested (Kate)</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?acc=a164" target="_blank" rel="noopener">A company with news (Rancroft Bank)</a></li>
   </ul></div>
-  <div class="card"><h4><span class="desk d-mgr">Manager</span>Lina</h4><ul>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals" target="_blank" rel="noopener">Contacts</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals&q=won" target="_blank" rel="noopener">Accounts</a></li>
+  <div><h4><span class="desk d-mgr">Manager</span>Lina</h4><ul>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina" target="_blank" rel="noopener">Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals" target="_blank" rel="noopener">Contacts</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=deals&q=won" target="_blank" rel="noopener">Customers</a></li>
     <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=cal" target="_blank" rel="noopener">Diary</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=missed" target="_blank" rel="noopener">Call log</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=notes" target="_blank" rel="noopener">Notes</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=camps" target="_blank" rel="noopener">Campaigns</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&camp=c2&ed=c2" target="_blank" rel="noopener">Edit c2</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=lists" target="_blank" rel="noopener">Lists</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=money" target="_blank" rel="noopener">Financials</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=money&period=lq" target="_blank" rel="noopener">last quarter</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=money&by=svc" target="_blank" rel="noopener">by service</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p470" target="_blank" rel="noopener">p470 meeting today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p419" target="_blank" rel="noopener">p419 demo</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p151" target="_blank" rel="noopener">p151 from the CEO</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&acc=a22" target="_blank" rel="noopener">a22 Gold</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&acc=a39" target="_blank" rel="noopener">a39 Silver</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=camps" target="_blank" rel="noopener">Campaigns</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&camp=c2&ed=c2" target="_blank" rel="noopener">Editing a campaign</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&on=money" target="_blank" rel="noopener">Financials</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p470" target="_blank" rel="noopener">Meeting today (Noah)</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&con=p419" target="_blank" rel="noopener">Demo today (Henry)</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=lina&acc=a22" target="_blank" rel="noopener">A Gold customer</a></li>
   </ul></div>
-  <div class="card"><h4><span class="desk d-ceo">CEO</span>Rami</h4><ul>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=rami" target="_blank" rel="noopener">Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=deals" target="_blank" rel="noopener">Contacts</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=cal" target="_blank" rel="noopener">Diary</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=camps" target="_blank" rel="noopener">Campaigns</a></li>
+  <div><h4><span class="desk d-ceo">CEO</span>Rami</h4><ul>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=rami" target="_blank" rel="noopener">Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=deals" target="_blank" rel="noopener">All deals</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=camps" target="_blank" rel="noopener">Campaigns</a></li>
     <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&on=money&by=mgr" target="_blank" rel="noopener">Financials by team</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p576" target="_blank" rel="noopener">p576 reassign</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p2" target="_blank" rel="noopener">p2 assign</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p599" target="_blank" rel="noopener">p599 join</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p576" target="_blank" rel="noopener">A deal to reassign</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=rami&con=p2" target="_blank" rel="noopener">A lead to assign</a></li>
   </ul></div>
-  <div class="card"><h4><span class="desk d-stk">Stakeholder</span> and <span class="desk d-cli">Client</span></h4><ul>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=sherif" target="_blank" rel="noopener">Sherif Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=sherif&on=deals" target="_blank" rel="noopener">QA deals</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=sherif&on=money" target="_blank" rel="noopener">Financials</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel" target="_blank" rel="noopener">Marit Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=camps" target="_blank" rel="noopener">Campaigns</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=cal" target="_blank" rel="noopener">Diary</a></li>
-    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money" target="_blank" rel="noopener">Journey</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&period=lq" target="_blank" rel="noopener">last quarter</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=reach" target="_blank" rel="noopener">Talent</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=tool" target="_blank" rel="noopener">QA</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=desk" target="_blank" rel="noopener">Support</a></li>
+  <div><h4><span class="desk d-stk">Stakeholder</span>Sherif · <span class="desk d-cli">Client</span>Marit</h4><ul>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=sherif" target="_blank" rel="noopener">Sherif's Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=sherif&on=money" target="_blank" rel="noopener">His Financials</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel" target="_blank" rel="noopener">Marit's Today</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=camps" target="_blank" rel="noopener">Her campaigns</a></li>
+    <li><a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money" target="_blank" rel="noopener">Her report</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=reach" target="_blank" rel="noopener">Hiring</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=tool" target="_blank" rel="noopener">AiMY QA</a> · <a href="https://aimy-sales.nour-ali.workers.dev/?as=kestrel&on=money&eng=desk" target="_blank" rel="noopener">Support</a></li>
   </ul></div>
 </div>
 
-<footer>Written 26 Oct 2026 from the code at commit eebbff2 (bdr.js v1322). Source: <code>docs/handoff/</code> in the Sales repo; screenshots in <code>docs/handoff/shots/</code>. Questions go to Nour Ali.</footer>
-
+<footer>AiMY Sales handoff, 26 October 2026. Questions go to Nour Ali.</footer>
 </main>
 </div>
+<script>
+(function(){
+  /* screenshot viewer: the small pictures switch the large one */
+  document.querySelectorAll('[data-gal]').forEach(function(g){
+    var tabs = g.querySelector('.gal-tabs'); if(!tabs) return;
+    var figs = g.querySelectorAll('.gal-fig'), btns = tabs.querySelectorAll('button');
+    function show(i){ figs.forEach(function(f,k){ f.hidden = k!==i; }); btns.forEach(function(b,k){ b.setAttribute('aria-selected', k===i); b.tabIndex = k===i?0:-1; }); }
+    tabs.hidden = false; show(0);
+    btns.forEach(function(b,i){
+      b.addEventListener('click', function(){ show(i); });
+      b.addEventListener('keydown', function(e){
+        var d = e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0; if(!d) return;
+        e.preventDefault(); var n=(i+d+btns.length)%btns.length; show(n); btns[n].focus();
+      });
+    });
+  });
+  /* contents rail follows the reader */
+  var links = {}; document.querySelectorAll('.toc a[href^="#"]').forEach(function(a){ links[a.getAttribute('href').slice(1)] = a; });
+  var current = null;
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){
+        if(current) current.classList.remove('on');
+        current = links[e.target.id]; if(current){ current.classList.add('on'); }
+      }});
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    Object.keys(links).forEach(function(id){ var el=document.getElementById(id); if(el) io.observe(el); });
+  }
+  /* on a narrow screen the contents start folded */
+  try { if (window.matchMedia('(max-width:1000px)').matches) document.getElementById('tocD').open = false; } catch(e){}
+  document.querySelectorAll('.toc a').forEach(function(a){ a.addEventListener('click', function(){ if (window.matchMedia('(max-width:1000px)').matches) document.getElementById('tocD').open = false; }); });
+})();
+</script>
