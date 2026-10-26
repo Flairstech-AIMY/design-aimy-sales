@@ -86,13 +86,19 @@
   const TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
   const DAY_MS = 86400000;
 
-  const dayOf = (n) => new Date(TODAY.getTime() + n * DAY_MS);
+  /* Calendar days, not 24-hour blocks: a block crosses a clock change an
+     hour short and lands on the day before, which is how a quarter ending
+     31 Dec read "to 30 Dec" wherever the clocks go back in the autumn. */
+  const dayOf = (n) => new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + n);
   const isoDay = (d) => {
     const p = (x) => String(x).padStart(2, '0');
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   };
   const dayAdd = (n) => isoDay(dayOf(n));
-  const isoAdd = (iso, n) => isoDay(new Date(new Date(iso + 'T00:00:00').getTime() + n * DAY_MS));
+  const isoAdd = (iso, n) => {
+    const d = new Date(iso + 'T00:00:00');
+    return isoDay(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+  };
   const TODAY_ISO = isoDay(TODAY);
   const daysBetween = (isoA, isoB) =>
     Math.round((new Date(isoB + 'T00:00:00') - new Date(isoA + 'T00:00:00')) / DAY_MS);
@@ -517,10 +523,17 @@
      `harlow` and `ostend` hold no campaigns in this corpus, so their
      promises have nothing to score against until the readings that could
      score them exist. */
+  /* A contract year starts on the first of a month counted back from today,
+     the way every other date in the corpus is relative. Fixed dates ran out:
+     Kestrel's year ended on 30 Sep 2026 and took its diary, its meetings in
+     the manager's diary and its renewal reading with it. Nine months back
+     keeps the current calendar quarter inside the term on any day. */
+  const termFrom = (monthsBack) =>
+    isoDay(new Date(TODAY.getFullYear(), TODAY.getMonth() - monthsBack, 1));
   const CLIENTS = [
     { k: 'norvant', name: 'Redlake Data', sells: ['data'],
       what: 'training-data operations. We find the teams still labelling by hand',
-      deal: { kind: 'outbound', fee: 120000, since: '2025-07-01', term: 12,
+      deal: { kind: 'outbound', fee: 120000, since: termFrom(11), term: 12,
         line: 'We find them and qualify them. The conversation about the work is yours.',
         promises: [
           { k: 'met', read: 'funnel.met', unit: 'count', to: 40, was: null, ours: true,
@@ -532,7 +545,7 @@
         ] } },
     { k: 'harlow', name: 'Harlow Delivery', sells: ['back'],
       what: 'back-office delivery. Their offer, our callers, their diary',
-      deal: { kind: 'outbound', fee: 95000, since: '2026-01-01', term: 12,
+      deal: { kind: 'outbound', fee: 95000, since: termFrom(9), term: 12,
         line: 'Our callers, their offer. The diary is theirs and so is the room.',
         promises: [
           { k: 'met', read: 'funnel.met', unit: 'count', to: 25, was: null, ours: true,
@@ -568,7 +581,7 @@
          the contract, and it is here at all because thirteen days from the
          end of a year it is the only question a C-level is actually
          asking. */
-      deal: { since: '2025-10-01', term: 12, notice: 60,
+      deal: { since: termFrom(9), term: 12, notice: 60,
         engagements: [
           /* ══ AND LEAD GENERATION IS THE PRODUCT THEY ARE READING ══
              It was "Outbound", which named the direction we dial in on the
@@ -728,7 +741,7 @@
         ] } },
     { k: 'ostend', name: 'Lambourne Care', sells: ['support'],
       what: 'outsourced customer support. We open the market and hand every meeting over',
-      deal: { kind: 'outbound', fee: 140000, since: '2026-02-01', term: 12,
+      deal: { kind: 'outbound', fee: 140000, since: termFrom(8), term: 12,
         line: 'We open the market and hand every meeting over.',
         promises: [
           { k: 'met', read: 'funnel.met', unit: 'count', to: 35, was: null, ours: true,
@@ -1287,7 +1300,8 @@
      and `isoDay`. Adapters rather than edits: the reader is ported verbatim
      so it can be diffed against its original, and a rename inside it is the
      first step towards two readers that quietly disagree. */
-  const shift = (d, n) => new Date(d.getTime() + n * DAY_MS);
+  const shift = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n,
+    d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
   const iso = (d) => isoDay(d);
 
   /* How a call reads at a glance, on the four-value axis the V3 build used
