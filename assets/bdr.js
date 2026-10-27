@@ -7060,7 +7060,7 @@
            tab because it leaves this build entirely and a desk with a call
            open should not lose it. The panel keeps its own door — the mark
            in the corner still opens it. */
-        '<a class="rail-console" href="https://aimy-knowledge.nour-ali.workers.dev/console" ' +
+        '<a class="rail-console" href="https://design-aimy-knolwedge.aimy.flairstech.com/console" ' +
           'target="_blank" rel="noopener">' +
           chIcon('grid') +
           /* One line, not two. The button named the destination and then
@@ -11397,7 +11397,7 @@
      moves, and this build's rule for that is `SELL` and `REPS`: the string
      lives once and everything reads through it. Trailing slash included,
      so a caller appends a path rather than remembering to. */
-  const QA_HOME = 'https://aimyqa.nour-ali.workers.dev/';
+  const QA_HOME = 'https://design-aimy-qa.aimy.flairstech.com/';
 
   let FLOOR_CACHE = Object.create(null);
   function floorOf(ckey, ekey) {
@@ -28657,7 +28657,7 @@
      the AiMY tab in the masthead does. The ring is painted from paintWho,
      so switching who you are looking as repaints it, and nothing here reads
      `me()` before the desk has booted. */
-  const USE_LINK = 'https://aimy-knowledge.nour-ali.workers.dev/console.html?m=agents&sec=usage';
+  const USE_LINK = 'https://design-aimy-knolwedge.aimy.flairstech.com/console.html?m=agents&sec=usage';
   const USE_MARK = '.overlay-input-bar > .aimy-float-icon, .aimy-float-bar > .aimy-float-icon';
   /* ── Nothing runs out (22 Oct, the same model as Knowledge's popover) ──
      What was a limit is a share: past it, nothing stops, the number and the
