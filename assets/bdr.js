@@ -23819,7 +23819,7 @@
       '<div class="proto-sec">' +
         '<div class="proto-h">Coaching, in a run</div>' +
         [['', 'As it happens'], ['greet', 'Skips the hello'], ['talk', 'Talks too much'],
-          ['rush', 'Rushes the goodbye'], ['none', 'Nothing to suggest'], ['few', 'Too few calls heard']].map((x) =>
+          ['rush', 'Rushes the goodbye'], ['none', 'Nothing to suggest']].map((x) =>
           '<button class="proto-link" type="button" data-coachset="' + x[0] + '" aria-pressed="' +
             (COACH_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
       '</div>' +
@@ -24487,6 +24487,8 @@
     PENDING = {
       con: c.con, camp: c.camp, secs: c.secs, sess: c.sess, auto: c.auto,
       lines: c.script.slice(0, c.shown).map((l) => ({ who: l[0], text: l[1] })),
+      /* Everything said, recorded or not: what AiMY's coaching hears. */
+      said: c.script.slice(),
       note: c.note, read: heard, outcome: disp || nothingHeard,
       guessed: !disp, when: (noted && noted.when) || heard.when || 1,
       /* Who rang whom, the number it came from, and the caller-shaped
@@ -25005,10 +25007,15 @@
      a score. "Got it, carry on" or "Not now" resumes the run in one press,
      with undo. When nothing is wrong, nothing interrupts.
 
-     IT HEARS ONLY WHAT WAS RECORDED (Nour, 27 Oct 2026). Recording asks for
-     consent on every call, so a call nobody recorded is a call AiMY did not
-     hear. A batch is three recorded calls that got through to the person: a
-     voicemail says nothing about how the caller speaks.
+     AiMY HEARS EVERY CALL, AND SAYS NOTHING UNTIL IT HAS A TIP (Nour, 27 Oct
+     2026). Recording is not needed, and no line on the brief reports that
+     AiMY is listening. A batch is three calls placed; the habits are read off
+     the ones that got through, because a voicemail says nothing about how
+     the caller speaks.
+
+     FOR THE DEMO, THE FIRST THREE CALLS OF A RUN ALWAYS END IN A TIP (Nour).
+     When those calls show no habit, because nobody picked up, the run's own
+     habit is the tip. Later batches tip only on what the calls show.
 
      THE PAUSE BELONGS TO THE RUN, not to the call. Skip this one moves to the
      next person and the run stays paused, and the wait between calls
@@ -25023,7 +25030,6 @@
      the added words is in the reader's lexicons, so the read-back is the
      same either way. */
   const COACH_N = 3;
-  const COACH_FEW = 5;
   let COACH_FORCE = '';
   const COACH_GOT = ['reached', 'callback', 'not-interested'];
   const COACH_HELLO = /\b(good morning|morning|afternoon|evening|hello|hi|hey)\b/i;
@@ -25032,23 +25038,26 @@
     'Most companies we work with tell us the hardest part is keeping good people, so that is the part we look after from the first day.',
   ];
   const COACH_RUSH = 'Great, thanks, bye.';
+  /* "On 2 of your last 3 calls", or, when the demo's first tip has no call
+     to count, the calls so far. */
+  const coachOn = (n) => (n ? 'On ' + n + ' of your last 3 calls' : 'On your calls so far');
   const COACH = {
     greet: {
       label: 'Say hello first',
-      saw: (n) => 'On ' + n + ' of your last 3 calls you went straight in without a hello.',
+      saw: (n) => coachOn(n) + ' you went straight in without a hello.',
       tip: 'Try opening with “Good morning, how are you?” before anything else. ' +
         'It gives people a moment to settle, and they tend to listen for longer.',
     },
     talk: {
       label: 'Ask, then listen',
-      saw: (n, x) => 'On ' + n + ' of your last 3 calls you did most of the talking, about ' +
-        x + ' words in every 10.',
+      saw: (n, x) => coachOn(n) + ' you did most of the talking, about ' +
+        (x || 8) + ' words in every 10.',
       tip: 'Try asking one question early, like “How does your team handle support today?”, ' +
         'and then let them answer. People open up when they get to talk.',
     },
     rush: {
       label: 'Say what happens next',
-      saw: (n) => 'On ' + n + ' of your last 3 calls you said goodbye straight after their last word.',
+      saw: (n) => coachOn(n) + ' you said goodbye straight after their last word.',
       tip: 'Before you hang up, say back what happens next, like “So I will call you on Thursday at ten.” ' +
         'It leaves them sure of the next step.',
     },
@@ -25059,7 +25068,7 @@
   function coachOf(sess) {
     if (!sess.coach) {
       sess.coach = {
-        habit: [null, 'greet', 'talk', 'rush'][Math.abs(hash(sess.id)) % 4],
+        habit: COACH_KEYS[Math.abs(hash(sess.id)) % COACH_KEYS.length],
         log: [], from: 0, checks: 0, last: '', tips: [], open: null, fixed: {}, snooze: {},
       };
     }
@@ -25108,14 +25117,15 @@
     const sess = call.sess;
     if (!sess || call.auto || call.dir === 'in') return;
     const co = coachOf(sess);
-    /* The recorded transcript, as the hang-up wrote it onto the pending log. */
-    const lines = (call.lines || []).map((l) => [l.who, l.text]);
+    /* Everything said on the call, recorded or not, as the hang-up put it
+       on the pending log. */
+    /* Whether somebody picked up is what AiMY heard happen, which is the
+       call's own scenario, not the outcome logged: an unrecorded call has
+       no transcript to read, so its read-back guesses No answer. */
+    const sc = SCENARIOS.filter((x) => x.k === (DB.byCon[call.con] || {}).fate)[0];
     co.log.push({
-      con: call.con, outcome: outcome, lines: lines,
-      /* "Too few heard" on the prototype panel: only the run's first call
-         counts, as if the caller had recorded that one and no other. */
-      heard: COACH_GOT.indexOf(outcome) >= 0 && lines.length >= 2 &&
-        (COACH_FORCE !== 'few' || co.log.length === 0),
+      con: call.con, outcome: outcome, lines: (call.said || []).map((l) => l.slice()),
+      got: COACH_GOT.indexOf(sc ? sc.disp : outcome) >= 0,
     });
   }
 
@@ -25135,23 +25145,26 @@
     return n;
   }
 
-  /* Once three recorded calls that got through have come in since the last
-     check, AiMY reads them. A habit on two of the three is a tip; one the
-     caller set aside is left for one batch. Returns the tip or null. */
+  /* Once three calls have been placed since the last check, AiMY reads the
+     ones that got through. A habit on two of the three is a tip; one the
+     caller set aside is left for one batch. The run's first check always
+     tips (the demo). Returns the tip or null. */
   function coachCheck(sess) {
     const co = coachOf(sess);
-    const heard = co.log.slice(co.from).filter((x) => x.heard);
-    if (heard.length < COACH_N) return null;
+    const win = co.log.slice(co.from);
+    if (win.length < COACH_N) return null;
     co.from = co.log.length;
-    const n = coachSigns(heard.slice(-COACH_N));
+    const n = coachSigns(win.filter((x) => x.got));
     /* A tip taken on, and how the calls after it went. */
     co.tips.forEach((t) => { if (t.state === 'go' && !t.after) t.after = n[t.k].n >= 2 ? 'still' : 'better'; });
-    const hits = COACH_KEYS.filter((k) => n[k].n >= 2);
-    const k = hits.filter((x) => !(co.snooze[x] > co.checks))
-      .sort((a, b) => n[b].n - n[a].n)[0];
+    const open = (x) => !(co.snooze[x] > co.checks);
+    let k = COACH_KEYS.filter((x) => n[x].n >= 2 && open(x)).sort((a, b) => n[b].n - n[a].n)[0];
+    if (!k && !co.checks) {
+      const h = coachHabit(sess);
+      k = h || COACH_KEYS.filter((x) => n[x].n && open(x)).sort((a, b) => n[b].n - n[a].n)[0];
+    }
     co.checks++;
-    if (!k) { co.last = hits.length ? 'held' : 'clear'; return null; }
-    co.last = 'tip';
+    if (!k) return null;
     return { k: k, n: n[k].n, x: n[k].x, state: 'open', after: '' };
   }
 
@@ -25171,7 +25184,7 @@
       '<p class="b-coach-state' + (tip.state === 'open' ? ' is-open' : '') + '">' +
         chIcon(tip.state === 'open' ? 'pause' : tip.state === 'go' ? 'check' : 'clock') +
         '<span>' + esc(where) + '</span></p>',
-      'From your last 3 recorded calls');
+      'From your last 3 calls');
   }
   function coachSay(sess, tip) {
     const co = coachOf(sess);
@@ -25219,37 +25232,26 @@
       : 'Set aside. Carrying on with ' + first + '.', () => apply('open'));
   }
 
-  /* One line on the brief saying what AiMY is doing with the run. It is a
-     snapshot, like the rest of the brief, taken as the call is prepared. */
-  function coachLine(sess) {
-    const co = coachOf(sess);
-    const win = co.log.slice(co.from);
-    const heard = win.filter((x) => x.heard).length;
-    const few = COACH_FORCE === 'few' ? COACH_N : COACH_FEW;
-    const text = co.open
-      ? 'The run is paused for the tip above. It carries on when you answer it.'
-      : win.length >= few && heard < COACH_N
-        ? (heard ? 'Only ' + plural(heard, 'recorded call') : 'No recorded call') + ' got through in your last ' +
-          win.length + ', too few to say how your calls are going. Record the next ones to get tips.'
-      : co.last === 'clear' && !heard
-        ? 'Your last 3 recorded calls had nothing to change. Keep going.'
-      : co.last === 'held' && !heard
-        ? 'Your last 3 recorded calls are checked. The tip you set aside is left for now.'
-      : heard
-        ? 'Listening. ' + heard + ' of the 3 recorded calls needed before saying anything.'
-        : 'Listening to this run, and pausing it if something could go better. Only recorded calls are heard.';
-    return '<div class="b-coach-line">' + aimyBlock({ text: esc(text) }, true) + '</div>';
-  }
-
-  /* On the rail while the run is paused: that it is, and why. */
-  function coachBlock() {
+  /* On the rail while the run is paused: that it is, the tip itself, and
+     the two answers (Nour, 27 Oct 2026: "add the tip in the panel"). The
+     same tip stays in the canvas as the run's record; either answers it. */
+  function coachBlock(call) {
+    const tip = call.sess.coach.open;
+    const m = COACH[tip.k];
     const first = (callOn() || {}).name ? callOn().name.split(' ')[0] : 'the next call';
-    return '<div class="call-wait call-held" role="status">' +
-      '<p class="call-held-say">' + chIcon('pause') + '<span>Paused before ' + esc(first) + '</span></p>' +
-      '<p class="call-held-why">AiMY has a tip for your next calls.</p>' +
-      /* Where the call takes the whole width the tip is under it, so the
-         block carries the way to it (shown there only, §108). */
-      '<button class="s-inline-btn call-held-read" type="button" data-coachread>Read the tip</button>' +
+    return '<div class="call-wait call-held" role="group" aria-labelledby="callHeldSay">' +
+      '<p class="call-held-say" id="callHeldSay">' + chIcon('pause') +
+        '<span>Paused before ' + esc(first) + '</span></p>' +
+      '<div class="call-held-tip">' +
+        '<p class="call-held-cap"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" ' +
+          'aria-hidden="true"><use href="#aimy-logo-small"/></svg>A tip for your next calls</p>' +
+        '<p class="call-held-saw">' + esc(m.saw(tip.n, tip.x)) + '</p>' +
+        '<p class="call-held-do">' + esc(m.tip) + '</p>' +
+      '</div>' +
+      '<div class="call-held-acts">' +
+        '<button class="btn btn-brand btn-sm" type="button" data-coach="go">Got it, carry on</button>' +
+        '<button class="btn btn-ghost btn-sm" type="button" data-coach="skip">Not now</button>' +
+      '</div>' +
     '</div>';
   }
 
@@ -25258,7 +25260,6 @@
     const co = sess.coach;
     if (!co) return '';
     if (co.open) { co.open.state = 'stopped'; coachTurn(co.open); co.open = null; }
-    const heard = co.log.filter((x) => x.heard).length;
     const said = co.tips.map((t) => {
       const m = COACH[t.k];
       return '<span class="b-coach-sum"><b>' + esc(m.label) + '.</b> ' + esc(
@@ -25268,11 +25269,12 @@
         : t.state === 'later' ? 'For your next run: ' + m.tip
         : 'The run stopped before you answered it.') + '</span>';
     }).join('');
+    /* Nothing suggested says so only after a check; a run stopped sooner
+       has no row, because AiMY had not said anything yet. */
+    if (!said && !co.checks) return '';
     return '<div class="s-callsum-row"><span class="s-callsum-mem">What AiMY suggested</span>' +
       '<span class="s-callsum-val">' + (said ||
-        (heard >= COACH_N ? 'Nothing. AiMY heard ' + plural(heard, 'recorded call') + ' and had nothing to change.'
-          : 'Nothing yet. ' + (heard ? 'Only ' + plural(heard, 'recorded call') : 'No recorded call') +
-            ' got through, too few to say how the calls went.')) +
+        'Nothing. AiMY heard ' + plural(co.log.length, 'call') + ' and had nothing to change.') +
       '</span></div>';
   }
 
@@ -25388,7 +25390,7 @@
          and the call places itself at zero. Call now is the button below.
          The length is the campaign's or the list's, set on the campaign
          page; the rail only counts it. */
-      (ready && coachHeld(call) ? coachBlock() : ready && call.wait ? waitBlock(call) : '') +
+      (ready && coachHeld(call) ? coachBlock(call) : ready && call.wait ? waitBlock(call) : '') +
 
       /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —
          it is what pushes Notes and the handset to the foot of the column —
@@ -31192,7 +31194,7 @@
        The controls name their own objects — "this one" and "the run" — which
        is the work the sentence was doing. */
     if (sess) {
-      body += coachLine(sess) + '<div class="b-cuts">' +
+      body += '<div class="b-cuts">' +
         '<button class="s-inline-btn" type="button" data-callskip>Skip this one</button>' +
         '<button class="s-inline-btn" type="button" data-sessstop>Stop the run</button>' +
       '</div>';
@@ -34740,18 +34742,6 @@
     if (cb) { cbuildOpt(cb.getAttribute('data-cb')); return; }
     const coachB = t.closest('[data-coach]');
     if (coachB) { coachAnswer(coachB.getAttribute('data-coach')); return; }
-    /* The call steps back to its strip and the tip comes into view. */
-    if (t.closest('[data-coachread]')) {
-      callMin(true);
-      paintCall();
-      /* After the strip has taken its place: scrolled before that, the
-         thread moves under it and the tip lands off screen. */
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        const open = [].slice.call(document.querySelectorAll('.b-coach-state.is-open')).pop();
-        if (open) open.closest('.chat-msg').scrollIntoView({ block: 'start' });
-      }));
-      return;
-    }
 
     const ml = t.closest('[data-meetlog]');
     if (ml) {

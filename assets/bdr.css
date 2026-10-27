@@ -7720,11 +7720,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 
 /* ══ 108. AiMY COACHES THE RUN ══════════════════════════════════════════════
-   AIMY-2666. The tip is an AiMY turn in the canvas: what was noticed, the one
-   thing to try (the strongest line), and where the run stands. The rail says
-   only that the run is paused, in the accent so it reads as AiMY holding it
-   rather than as a warning. The brief carries one AiMY line on what AiMY is
-   doing with the run. */
+   AIMY-2666. When AiMY pauses a run, the tip sits in the call panel: that the
+   run is paused, what was noticed, the one thing to try (the strongest line)
+   and the two answers. The block is in the accent so it reads as AiMY
+   holding the run rather than as a warning. The same tip is an AiMY turn in
+   the canvas, which keeps where it ended up after it is answered. */
 .b-coach-saw { margin: 0 0 8px; color: var(--d100); line-height: var(--lh-base); }
 .b-coach-tip { margin: 0 0 12px; color: var(--d50); font-weight: var(--fw-medium); line-height: var(--lh-base); }
 .b-coach-state {
@@ -7734,16 +7734,16 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-coach-state svg { width: 14px; height: 14px; flex: none; margin-top: 1px; color: var(--ok); }
 .b-coach-state.is-open { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-coach-state.is-open svg { color: var(--accent); }
-.b-coach-line { margin-top: 16px; }
-.b-coach-line .b-aimy { margin: 0; }
 /* The run's wrap-up labels share one width, so a longer label ("What AiMY
    suggested") does not push its value out of line with the rows above. */
 .s-ans .s-callsum-row > .s-callsum-mem { flex: 0 0 132px; }
 .b-coach-sum { display: block; }
 .b-coach-sum + .b-coach-sum { margin-top: 6px; }
 
+/* In the call panel. A bounded height and its own scroll, so a long tip
+   never pushes From and Call now off the panel. */
 .call-held {
-  gap: 4px;
+  gap: 12px; padding: 14px; min-height: 0; overflow-y: auto;
   background: color-mix(in srgb, var(--accent) 9%, var(--card-bg-raised));
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
@@ -7752,11 +7752,18 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); line-height: var(--lh-tight);
 }
 .call-held-say svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
-.call-held-why { margin: 0 0 0 24px; font-size: var(--fs-xs); color: var(--d100); line-height: var(--lh-base); }
-.call-held-read { display: none; }
-@media (max-width: 719.98px) { /* 720 layout px, where the call takes the whole width */
-  .call-held-read { display: inline-flex; align-self: flex-start; margin: 4px 0 0 24px; }
+.call-held-tip {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
+.call-held-cap {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 2px;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--accent); line-height: var(--lh-tight);
+}
+.call-held-cap .b-aimy-mark { flex: none; }
+.call-held-saw { margin: 0; font-size: var(--fs-xs); color: var(--d100); line-height: var(--lh-base); }
+.call-held-do { margin: 0; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d50); line-height: var(--lh-base); }
+.call-held-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (prefers-reduced-motion: no-preference) {
   .call-held { animation: b-arrive var(--t-settle) var(--ease-out) both; }
 }
