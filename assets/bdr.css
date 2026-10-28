@@ -7740,7 +7740,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-coach-state.is-open svg { color: var(--accent); }
 /* The run's wrap-up labels share one width, so a longer label ("What AiMY
    suggested") does not push its value out of line with the rows above. */
-.s-ans .s-callsum-row > .s-callsum-mem { flex: 0 0 132px; }
+/* "What AiMY suggested" measures 174px at this size, plus the 20 of padding,
+   so 132 broke it over two lines; the column takes the longest label whole. */
+.s-ans .s-callsum-row > .s-callsum-mem { flex: 0 0 196px; white-space: nowrap; }
 .b-coach-sum { display: block; }
 .b-coach-sum + .b-coach-sum { margin-top: 6px; }
 
