@@ -7902,7 +7902,7 @@
      cannot show any of the states the page has to. So it is read off what
      IS stored: a connected call is followed by a note, a booked meeting by
      an invitation, a meeting held by what was agreed in it. Whether they
-     answered, opened it or let it bounce comes off the id's hash with its
+     answered or let it bounce comes off the id's hash with its
      own salt, never the seed's generator, so nothing else in the corpus
      moves. Kept per person until their touchpoints change. */
   const MAIL_CACHE = Object.create(null);
@@ -8016,15 +8016,6 @@
             th.msgs.push(b);
           }
         }
-        /* What the last of ours did after it went. */
-        const last = th.msgs[th.msgs.length - 1];
-        if (last.from.us) {
-          last.opens = hx(last.id, 'open', 5);
-          if (last.opens) {
-            const oa = minsLater(last.at, 40 + hx(last.id, 'omins', 2400));
-            last.openedAt = Date.parse(oa) < now ? oa : last.at;
-          }
-        }
       }
       out.push(th);
     });
@@ -8037,18 +8028,25 @@
      carrying the thread it belongs to. A message on a seeded thread is a
      reply; a thread id nothing in the seed has is a new conversation. How
      far it got is read off the clock it was sent at: a few seconds of
-     Sending (which is also how long Undo has), then delivered, then opened.
-     A prototype cannot watch a real inbox, so the opening is a fixed delay
-     and says nothing it could not. */
+     Sending (which is also how long Undo has), then sent.
+
+     ══ AND NOTHING SAYS WHETHER IT WAS OPENED ═══════════════════════════════
+     It did, for one commit: "Opened 4 times". Open counts come from a pixel
+     in the email, which most mail apps now block or load on the reader's
+     behalf, so the number is not something we can know and a sentence built
+     on it ("she has read it four times") would be AiMY asserting a fact it
+     does not have. What we do know is the date it went and whether anybody
+     answered, so silence is read off the calendar instead. */
   const MAIL_HOLD = 5000;
-  const MAIL_OPEN = 45000;
+  /* A week with no answer on the newest thread is silence worth acting on. */
+  const MAIL_QUIET = 7;
   const mailMine = () => (DELTA.mail || (DELTA.mail = []));
   function mailLive(m) {
-    if (!m.sentMs) return m.bounced ? 'bounced' : m.opens ? 'opened' : 'sent';
+    if (!m.sentMs) return m.bounced ? 'bounced' : 'sent';
     const age = Date.now() - m.sentMs;
     if (age < MAIL_HOLD) return 'sending';
     if (m.bad) return 'bounced';
-    return age >= MAIL_OPEN ? 'opened' : 'sent';
+    return 'sent';
   }
   function mailThreads(c) {
     const rows = mailSeed(c).map((th) => Object.assign({}, th, { msgs: th.msgs.slice() }));
@@ -8067,19 +8065,19 @@
     sc.people.forEach((c) => mailThreads(c).forEach((th) => out.push(th)));
     return out.sort((x, y) => (mailLast(x).at > mailLast(y).at ? -1 : 1));
   }
-  /* Where a thread stands, in the words and the tone of a status pill. The
-     ticket's five: sending, sent, opened, answered, bounced. */
+  /* Where a thread stands, in the words and the tone of a status pill:
+     sending, sent, answered, bounced, and no answer once a week has gone. */
   function mailState(th) {
     const m = mailLast(th);
     if (!m.from.us) return { k: 'replied', label: 'They answered', tone: 'ok', ico: 'reply' };
     const live = mailLive(m);
     if (live === 'sending') return { k: 'sending', label: 'Sending', tone: 'accent', ico: 'send' };
     if (live === 'bounced') return { k: 'bounced', label: 'Bounced', tone: 'err', ico: 'mail-x' };
-    const opens = m.sentMs ? (live === 'opened' ? 1 : 0) : (m.opens || 0);
-    if (opens) return { k: 'opened', label: opens === 1 ? 'Opened once' : 'Opened ' + opens + ' times', tone: 'neutral', ico: 'mail-open', opens: opens };
-    return { k: 'sent', label: 'Not opened yet', tone: 'neutral', ico: 'mail' };
+    const days = daysBetween(m.at.slice(0, 10), TODAY_ISO);
+    if (days >= MAIL_QUIET) return { k: 'quiet', label: 'No answer', tone: 'warn', ico: 'mail', days: days };
+    return { k: 'sent', label: 'Sent', tone: 'neutral', ico: 'mail-check' };
   }
-  const MAIL_CHIP = { replied: 'is-ok', sending: 'is-ahead', bounced: 'is-missed', opened: 'is-plain', sent: 'is-plain' };
+  const MAIL_CHIP = { replied: 'is-ok', sending: 'is-ahead', bounced: 'is-missed', quiet: 'is-meet', sent: 'is-plain' };
   const whoSaid = (p) => (p.us && p.id === me().id ? 'You' : p.name);
   const peopleSay = (ps) => ps.map((p) => esc(whoSaid(p))).join(', ');
 
@@ -8102,21 +8100,18 @@
     }
     if (st.k === 'bounced') return MAIL_FIXED[th.con] ? 'It bounced. There is a new address for ' + f + ' now, so it can go again.'
       : 'The address did not take it. ' + f + ' may have left, or the address changed.';
-    if (st.k === 'opened' && st.opens >= 3 && MAIL_LATEST[th.id] && daysBetween(m.at.slice(0, 10), TODAY_ISO) <= 30) {
-      return f + ' has read it ' + st.opens + ' times and not answered. A call will move this faster than another email.';
+    if (st.k === 'quiet' && MAIL_LATEST[th.id] && st.days <= 30) {
+      return 'No answer in ' + st.days + ' days. A call will move this faster than another email.';
     }
     return '';
   }
 
   function mailMsg(m, last) {
     const live = m.from.us ? mailLive(m) : '';
-    const opens = m.sentMs ? (live === 'opened' ? 1 : 0) : (m.opens || 0);
     const st = !m.from.us ? ''
       : live === 'sending' ? '<p class="b-mail-st tone-accent">' + chIcon('send') + 'Sending. Undo on the toast takes it back.</p>'
       : live === 'bounced' ? '<p class="b-mail-st tone-err">' + chIcon('mail-x') + 'Bounced. The address did not take it.</p>'
-      : opens ? '<p class="b-mail-st">' + chIcon('mail-open') + (opens === 1 ? 'Opened once' : 'Opened ' + opens + ' times') +
-          (m.openedAt ? ', last on ' + esc(sayDay(m.openedAt)) + ' at ' + esc(timeOf(m.openedAt)) : '') + '.</p>'
-      : last ? '<p class="b-mail-st">' + chIcon('mail-check') + 'Delivered. Not opened yet.</p>' : '';
+      : last ? '<p class="b-mail-st">' + chIcon('mail-check') + 'Sent. No answer yet.</p>' : '';
     return '<article class="b-mail-msg' + (m.from.us ? ' is-us' : ' is-them') + '">' +
       '<header class="b-mail-mhead">' +
         '<span class="b-mail-who"><b>' + esc(whoSaid(m.from)) + '</b>' +
@@ -8147,7 +8142,7 @@
       else acts.push('<button class="b-ghost b-ai" type="button" data-mailreply="' + esc(th.id) + '">' +
         '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
         (st.k === 'replied' && MAIL_OWES[m.ask] ? 'Answer with AiMY' : st.k === 'bounced' ? 'Send it again with AiMY' : 'Follow up with AiMY') + '</button>');
-      if (st.k === 'opened' && st.opens >= 3 && c.phone && !c.dnc) {
+      if (st.k === 'quiet' && MAIL_LATEST[th.id] && st.days <= 30 && c.phone && !c.dnc) {
         acts.push('<button class="b-ghost" type="button" data-call="' + esc(c.id) + '">' + chIcon('phone') + 'Call ' + esc(fname(c.name)) + '</button>');
       }
     }
@@ -8180,7 +8175,7 @@
      The call insights' form: one sentence behind the mark, about the thing
      that wants doing first, and the verb for it. An answer waiting on us
      outranks everything; then a dead address, because every email after it
-     is wasted; then somebody reading and not answering, where the honest
+     is wasted; then a week of silence on the newest thread, where the honest
      advice is to stop writing and call. */
   function mailInsight(sc, threads) {
     const st = threads.map((th) => ({ th: th, st: mailState(th) }));
@@ -8188,8 +8183,7 @@
     const wait = st.filter((x) => x.st.k === 'replied' && MAIL_OWES[mailLast(x.th).ask] && MAIL_LATEST[x.th.id])
       .sort((x, y) => (mailLast(x.th).at < mailLast(y.th).at ? -1 : 1));
     const dead = st.filter((x) => x.st.k === 'bounced' && !MAIL_FIXED[x.th.con]);
-    const cold = st.filter((x) => x.st.k === 'opened' && x.st.opens >= 3 && MAIL_LATEST[x.th.id] &&
-      daysBetween(mailLast(x.th).at.slice(0, 10), TODAY_ISO) <= 30);
+    const cold = st.filter((x) => x.st.k === 'quiet' && MAIL_LATEST[x.th.id] && x.st.days <= 30);
     const nm = (x) => esc(fname((DB.byCon[x.th.con] || {}).name));
     const sub = (x) => '“' + esc(x.th.subject) + '”';
     if (wait.length) {
@@ -8216,7 +8210,7 @@
     if (cold.length) {
       const k = cold[0];
       const c = DB.byCon[k.th.con];
-      return { text: '<b>' + nm(k) + ' has opened ' + sub(k) + ' ' + k.st.opens + ' times</b> and not answered. A call will move this faster than another email.',
+      return { text: '<b>No answer from ' + nm(k) + ' on ' + sub(k) + '</b> in ' + k.st.days + ' days. A call will move this faster than another email.',
         act: works() && c && c.phone && !c.dnc ? '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">Call ' + nm(k) + '</button>' : '' };
     }
     const m = mailLast(threads[0]);
@@ -8665,12 +8659,7 @@
           { step: 'mail', opts: [{ k: 'find:' + c.id, label: 'Find another address', primary: true }] });
       } else {
         say('aimy', 'Sent to <b>' + esc(c.name) + '</b>' + (back.cc.length ? ', with ' + esc(back.cc.map((p) => p.name).join(' and ')) + ' copied' : '') +
-          '. I will say when ' + esc(fname(c.name)) + ' opens it or answers.' + door);
-        setTimeout(() => {
-          if (mailMine().indexOf(msg) < 0) return;
-          toast(fname(c.name) + ' opened “' + back.subject + '”', null, 'It is on the Emails tab of their history.');
-          if (S.on === 'history') paint();
-        }, MAIL_OPEN - MAIL_HOLD);
+          '. Their answer lands on the thread in their history.' + door);
       }
       if (S.on === 'history') paint();
     }, MAIL_HOLD);
@@ -25350,7 +25339,6 @@
     /* AIMY-2668: the history door and the states of an email. Lucide, path
        for path. */
     history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/> <path d="M3 3v5h5"/> <path d="M12 7v5l4 2"/>',
-    'mail-open': '<path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/> <path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/>',
     'mail-x': '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/> <path d="m17 17 4 4"/> <path d="m21 17-4 4"/>',
     'mail-check': '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/> <path d="m16 19 2 2 4-4"/>',
     send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/> <path d="m21.854 2.147-10.94 10.939"/>',
