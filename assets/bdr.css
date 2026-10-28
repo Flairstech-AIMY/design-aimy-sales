@@ -7930,6 +7930,15 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-draft.is-sent { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
 .b-draft.is-bounced { border-color: color-mix(in srgb, var(--err) 45%, transparent); }
 
+/* The button under a call, and the transcript it puts in the chat. */
+.b-hist-acts { margin: 12px 0 0; }
+.b-hist-acts .b-ghost > svg { width: 13px; height: 15px; flex: none; }
+.b-script {
+  margin-top: 10px; padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--card-border); background: var(--card-bg);
+}
+.b-script-head { margin: 0 0 10px; font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d100); }
+
 /* An earlier version of the draft, folded under the turn that replaced it. */
 .b-draft-old { margin-top: 10px; }
 .b-draft-old > summary {

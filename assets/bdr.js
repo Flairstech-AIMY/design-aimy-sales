@@ -7695,9 +7695,60 @@
       meta: logMeta([many ? kindLabel(t) : dir, whoDid(t).name, t.secs ? fmtClock(t.secs) : '', clockIf(t.at)]),
       note: t.note || '',
       body: callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines) +
-        (t.vm ? vmStrip(t.vm, t.id) : ''),
+        (t.vm ? vmStrip(t.vm, t.id) : '') +
+        (callLines(t).length ? '<div class="b-acts b-hist-acts"><button class="b-ghost b-ai" type="button" data-script="' +
+          esc(t.id) + '">' + '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' + 'Read the transcript in the chat</button></div>' : ''),
     }, i);
   }
+  /* ══ THE TRANSCRIPT, IN THE CHAT ═══════════════════════════════════════
+     A call made in this session carries what was said. A seeded call does
+     not, so it is read off the same scripts the live calls play, picked by
+     how the call ended and what was asked for on it, and fixed by the call's
+     id so it reads the same every time. Nothing was said on a call nobody
+     answered, so there is no transcript to offer on one. */
+  function callLines(t) {
+    if (t.lines && t.lines.length) return t.lines.map((l) => ({ who: l.who === 'you' ? 'you' : 'them', text: l.text }));
+    if (!(OUTCOME[t.outcome] || {}).writes) return [];
+    const fits = SCENARIOS.filter((x) => x.disp === t.outcome && CALL_SCRIPTS[x.k]);
+    if (!fits.length) return [];
+    const asked = fits.filter((x) => (t.proposals || []).some((p) => x.props.indexOf(p) >= 0) ||
+      (t.objections || []).some((o) => x.objs.indexOf(o) >= 0));
+    const pool = asked.length ? asked : fits;
+    const sc = pool[hx(t.id, 'script', pool.length)];
+    const c = DB.byCon[t.con];
+    return CALL_SCRIPTS[sc.k].map((l) => ({ who: l[0], text: l[1].replace(/\{first\}/g, fname(c ? c.name : '')) }));
+  }
+  function callScript(id) {
+    const t = TOUCH[id];
+    const c = t && DB.byCon[t.con];
+    if (!c) return;
+    const lines = callLines(t);
+    const by = whoDid(t).name;
+    openCanvas();
+    say('you', esc('Show me the transcript of the call with ' + c.name + ' on ' + sayDay(t.at)));
+    TURNS.push({ who: 'aimy', html: thinkRow().replace('Reading the record…', 'Reading the recording…'), thinking: true });
+    paintThread();
+    startThinking($('.chat-msg.is-thinking .think-mark'));
+    setTimeout(() => {
+      thinkDrop();
+      if (!lines.length) { say('aimy', 'Nothing was said on that call, so there is no transcript.'); return; }
+      const card = '<div class="b-script">' +
+        '<p class="b-script-head">' + logMeta([kindLabel(t), by, t.secs ? fmtClock(t.secs) : '',
+          sayDay(t.at) + (clockIf(t.at) ? ' ' + clockIf(t.at) : '')]) + '</p>' +
+        '<div class="s-said-lines">' + lines.map((l) =>
+          '<p class="call-line is-' + (l.who === 'you' ? 'you' : 'them') + '">' +
+            '<span class="call-who">' + esc(l.who === 'you' ? fname(by) : fname(c.name)) + '</span>' +
+            esc(l.text) + '</p>').join('') + '</div>' +
+      '</div>' +
+      /* A follow-up only where one is wanted: never to somebody who asked
+         not to be contacted, said no, or was the wrong person. */
+      (works() && c.email && !c.dnc && ['do-not-call', 'not-interested', 'wrong-number'].indexOf(t.outcome) < 0
+        ? '<div class="b-cuts"><button class="s-insight-lnk" type="button" data-mailnew="con:' +
+          esc(c.id) + '">Write a follow-up email</button></div>' : '');
+      say('aimy', 'The call with <b>' + esc(c.name) + '</b> on ' + esc(sayDay(t.at)) + ', as it was said.', { card: card });
+    }, 900);
+  }
+
   function histMeetRow(t, many, i) {
     const c = DB.byCon[t.con];
     if (!c) return '';
@@ -35254,6 +35305,8 @@
       if (c) mailStart(c, { th: id, ask: 'Answer “' + ((mailThreads(c).filter((x) => x.id === id)[0] || {}).subject || 'the email') + '”' });
       return;
     }
+    const scr = t.closest('[data-script]');
+    if (scr) { callScript(scr.getAttribute('data-script')); return; }
     const mailF = t.closest('[data-mailfind]');
     if (mailF) { mailFind(mailF.getAttribute('data-mailfind')); return; }
 
