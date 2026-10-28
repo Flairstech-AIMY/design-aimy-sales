@@ -32520,6 +32520,7 @@
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
     called: t.called || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
+    out: t.out || null,
   });
 
   function callFacts(f, c) {
@@ -32530,15 +32531,24 @@
        what happened, in words — because the one fact worth the row is who
        dialled, and "No answer" is a sentence about the wrong end of it. */
     if (miss) rows.push(['What happened', 'They called. Nobody here picked up.', 'warn']);
-    else if (o) rows.push(['Outcome', o.label, o.tone]);
+    else if (o) rows.push(['Outcome', o.label, o.tone, true]);
     /* A step somebody settled by hand and a profile going out are not
        calls, and the card says what they were rather than filing them
        under an outcome they never had. */
     else if (KINDS[f.outcome]) rows.push(['What happened', KINDS[f.outcome], 'neutral']);
     else if (f.outcome === 'phase') {
-      rows.push(['What happened', (PHASE[f.phase] || {}).label + ' · ' + actor(f.by).name +
-        (f.decision ? (f.decision === 'won' ? ' · they signed' : ' · they said no') : ''),
-        f.decision === 'lost' ? 'warn' : 'ok']);
+      rows.push(['What happened', (PHASE[f.phase] || {}).label + ' · ' + actor(f.by).name, 'neutral']);
+      /* ══ THE OUTCOME IS ITS OWN ROW, AND A STATUS ═══════════════════
+         It was the tail of the line above, "· they signed", in the same
+         ink as the meeting's name and the manager's: the one fact a reader
+         opens a meeting for, set as an afterthought. It is a row now, drawn
+         as the status pill the record's own masthead uses. */
+      if (f.decision) {
+        rows.push(['Outcome', f.decision === 'won' ? 'Signed' : f.decision === 'later' ? 'Rescheduled' : 'Declined',
+          f.decision === 'won' ? 'ok' : f.decision === 'later' ? 'warn' : 'err', true]);
+      } else if (f.out && MEET_OUT_BY[f.out]) {
+        rows.push(['How it went', MEET_OUT_BY[f.out].label, MEET_OUT_BY[f.out].tone, true]);
+      }
     }
     /* Stated even when empty. A groundwork call is a thing that happened,
        and a missing row is indistinguishable from one nobody filled in.
@@ -32575,13 +32585,21 @@
      facts, then what was said, then what is worth remembering, then the
      transcript folded away. The caption is the quiet half and the value the
      loud one, so facts of different kinds read down a single edge. */
+  /* An outcome is drawn as a status pill in its own tone. The call tones
+     include teal, which the pill does not carry, and a call that connected
+     is good news in the same green as a deal that signed. Written out per
+     tone so the audit can pair each class with its rule. */
+  const SUM_PILL = { ok: 'tone-ok', teal: 'tone-ok', warn: 'tone-warn', err: 'tone-err',
+    accent: 'tone-accent', info: 'tone-info', neutral: 'tone-neutral' };
   function callSummaryHtml(f, c, note, lines) {
     lines = lines || [];
     return '<div class="s-callsum">' +
       '<div class="s-callsum-rows">' +
         callFacts(f, c).map((r) => '<div class="s-callsum-row">' +
           '<span class="s-callsum-cap">' + esc(r[0]) + '</span>' +
-          '<span class="s-callsum-val tone-' + esc(r[2]) + '">' + esc(r[1]) + '</span>' +
+          (r[3]
+            ? '<span class="s-callsum-val"><span class="s-meta-st ' + (SUM_PILL[r[2]] || SUM_PILL.neutral) + '">' + esc(r[1]) + '</span></span>'
+            : '<span class="s-callsum-val tone-' + esc(r[2]) + '">' + esc(r[1]) + '</span>') +
         '</div>').join('') +
       '</div>' +
       (note ? '<p class="s-callsum-note">' + esc(note) + '</p>' : '') +
