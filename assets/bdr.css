@@ -7767,3 +7767,186 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 @media (prefers-reduced-motion: no-preference) {
   .call-held { animation: b-arrive var(--t-settle) var(--ease-out) both; }
 }
+
+/* ══ 109. HISTORY, AND EMAIL THROUGH AiMY ═══════════════════════════════════
+   AIMY-2668. A record's history is the call log turned to face one contact or
+   one company: the log's chips, rows and day headings, with a row that opens
+   onto what was said instead of doing something. Emails are a tab of it, and
+   writing one happens in the chat as a draft card AiMY explains. */
+
+/* The door. It sits at the right of the top bar, beside the way out where a
+   record has one. */
+.b-hist-door { margin-left: auto; flex: none; }
+.b-hist-door svg { width: 15px; height: 15px; flex: none; }
+.b-hist-door + .b-end { margin-left: 0; }
+.s-camp-list-head .b-hist-lnk { flex: none; }
+
+/* A row that opens is the log row drawn as a disclosure: same chip, same
+   three lines, a chevron where the log puts its verb. */
+.b-hist-row { list-style: none; }
+.b-hist-row::-webkit-details-marker { display: none; }
+.b-hist-row::marker { content: ''; }
+.b-hist-row.is-still { cursor: default; }
+.b-hist-row.is-still:hover { background: none; }
+.b-log-ico.is-ok { background: var(--ok-bg); color: var(--ok); }
+.b-log-ico.is-plain { background: var(--card-bg-raised); color: var(--d100); }
+.b-log-ico.is-ahead { background: rgba(var(--accent-rgb), 0.14); color: var(--accent-text); }
+/* What was written about it, one line while the row is shut. Open, the
+   summary below says it in full, so the line steps aside. */
+.b-hist-note {
+  margin-top: 4px; font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.b-hist-item[open] .b-hist-note { display: none; }
+.b-hist-tag { flex: none; align-self: center; }
+.s-meta-st.tone-accent { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.12); }
+.b-hist-chev {
+  flex: none; align-self: center; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; color: var(--d100);
+  transition: transform 250ms var(--ease-out), background-color var(--t-fast);
+}
+.b-hist-chev svg { width: 16px; height: 16px; }
+.b-hist-row:hover .b-hist-chev { background: rgba(var(--accent-rgb), 0.12); }
+.b-hist-item[open] > .b-hist-row .b-hist-chev { transform: scaleY(-1); }
+/* Indented to the body column: the chip, its gap and the row's padding. */
+.b-hist-body { padding: 2px 12px 16px 58px; }
+.b-hist-body > .s-callsum,
+.b-hist-body > :first-child { margin-top: 0; }
+.b-hist-body .b-log-vm { margin-left: 0; }
+.b-hist-after { margin-top: 18px; }
+.b-hist-tabs .filter-chip .b-cut-n { font-variant-numeric: tabular-nums; }
+
+/* The body grows rather than appearing, where the browser can size `auto`;
+   elsewhere it opens at once, which is what a disclosure always did. */
+@supports (interpolate-size: allow-keywords) {
+  .b-hist-item { interpolate-size: allow-keywords; }
+  .b-hist-item::details-content {
+    block-size: 0; overflow: clip;
+    transition: block-size 250ms var(--ease-out), content-visibility 250ms allow-discrete;
+  }
+  .b-hist-item[open]::details-content { block-size: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-hist-chev { transition: none; }
+  .b-hist-item::details-content { transition: none; }
+}
+
+/* ── The Emails tab ── */
+.b-mail-head {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin: 0 0 14px;
+}
+.b-mail-to {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-xs); color: var(--ink-secondary);
+}
+.b-mail-to svg { width: 14px; height: 14px; flex: none; }
+.b-mail-new { margin-left: auto; }
+.b-mail-thread { display: flex; flex-direction: column; gap: 10px; }
+/* One message is one card, so a thread reads as a stack of letters. Ours on
+   the accent's faintest ground, theirs on the raised one: whose voice it is
+   at a glance, without a bubble pointing anywhere. */
+.b-mail-msg {
+  padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--card-border); background: var(--card-bg-raised);
+}
+.b-mail-msg.is-us {
+  background: rgba(var(--accent-rgb), 0.05);
+  border-color: rgba(var(--accent-rgb), 0.22);
+}
+.b-mail-mhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.b-mail-who { flex: 1; min-width: 0; font-size: var(--fs-xs); color: var(--d50); }
+.b-mail-who b { font-weight: var(--fw-bold); }
+.b-mail-addr { margin-left: 8px; font-size: var(--fs-2xs); color: var(--ink-secondary); }
+.b-mail-when { font-size: var(--fs-2xs); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
+.b-mail-line { margin: 2px 0 10px; font-size: var(--fs-2xs); color: var(--ink-secondary); line-height: var(--lh-snug); }
+.b-mail-line > span { font-weight: var(--fw-semibold); color: var(--d100); }
+.b-mail-gap { margin-left: 12px; }
+.b-mail-text { max-width: 72ch; }
+.b-mail-text p, .b-draft-text p {
+  margin: 0 0 6px; font-size: var(--fs-xs); color: var(--ink-primary); line-height: var(--lh-base);
+}
+.b-mail-text p:last-child, .b-draft-text p:last-child { margin-bottom: 0; }
+.b-mail-atts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.b-mail-att {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  min-height: 28px; padding: 0 10px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border); background: var(--card-bg);
+  font-size: var(--fs-2xs); color: var(--d100);
+}
+.b-mail-att svg { width: 13px; height: 13px; flex: none; }
+.b-mail-att-n { font-weight: var(--fw-semibold); color: var(--d50); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-mail-att-s { color: var(--ink-secondary); white-space: nowrap; }
+.b-mail-st {
+  display: flex; align-items: center; gap: 6px; margin: 10px 0 0;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d100);
+}
+.b-mail-st svg { width: 14px; height: 14px; flex: none; }
+.b-mail-st.tone-err { color: var(--err-text); }
+.b-mail-st.tone-ok { color: var(--ok-text); }
+.b-mail-st.tone-accent { color: var(--accent-text); }
+.b-mail-acts { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.b-mail-acts .b-ghost svg { width: 14px; height: 14px; flex: none; }
+
+/* ── The draft, as a turn in the chat ──
+   Every field on its own line with its name beside it, the words, what is
+   attached, and AiMY's reasons folded under it: open them when you want to
+   know why, leave them shut when you trust it. */
+.b-draft {
+  position: relative; overflow: hidden;
+  margin-top: 10px; padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--card-border); background: var(--card-bg);
+}
+.b-draft-head {
+  display: grid; gap: 6px; margin: 0; padding-bottom: 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+.b-draft-f { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.b-draft-f dt { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d100); }
+.b-draft-f dd { margin: 0; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: var(--fs-xs); color: var(--d50); }
+.b-draft-p b { font-weight: var(--fw-semibold); }
+.b-draft-p span { margin-left: 6px; font-size: var(--fs-2xs); color: var(--ink-secondary); }
+.b-draft-text { margin-top: 10px; }
+.b-draft-why { margin-top: 12px; }
+.b-draft-why > summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent-text);
+}
+.b-draft-why > summary::-webkit-details-marker { display: none; }
+.b-draft-why > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+.b-draft-why ul { margin: 8px 0 0; padding-left: 18px; }
+.b-draft-why li { font-size: var(--fs-2xs); color: var(--d100); line-height: var(--lh-snug); }
+.b-draft-why li + li { margin-top: 4px; }
+/* Sending: the edge takes the accent and a bar drains across the foot for
+   as long as Undo can still take it back. */
+.b-draft.is-sending { border-color: rgba(var(--accent-rgb), 0.45); }
+.b-draft.is-sending::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: var(--accent); transform-origin: left;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .b-draft.is-sending::after { animation: b-draft-hold 5s linear both; }
+}
+@keyframes b-draft-hold { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.b-draft.is-sent { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.b-draft.is-bounced { border-color: color-mix(in srgb, var(--err) 45%, transparent); }
+
+/* An earlier version of the draft, folded under the turn that replaced it. */
+.b-draft-old { margin-top: 10px; }
+.b-draft-old > summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d100);
+}
+.b-draft-old > summary::-webkit-details-marker { display: none; }
+.b-draft-old > summary svg { width: 14px; height: 14px; transition: transform 200ms var(--ease-out); }
+.b-draft-old[open] > summary svg { transform: scaleY(-1); }
+.b-draft-old > .b-draft { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .b-draft-old > summary svg { transition: none; } }
+
+@media (max-width: 619.98px) {
+  .b-hist-body { padding-left: 12px; }
+  .b-hist-tag { order: 2; margin: 6px 0 0 46px; }
+  .b-hist-chev { order: 3; margin-left: auto; }
+  .b-mail-new { margin-left: 0; width: 100%; justify-content: center; }
+  .b-draft-f { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .b-mail-addr { display: block; margin-left: 0; }
+}

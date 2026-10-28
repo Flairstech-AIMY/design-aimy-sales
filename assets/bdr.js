@@ -3305,6 +3305,8 @@
     /* The wait between calls in a run, set on a campaign or a list. Only
        what somebody set is here; everything else is the default. */
     wait: { camp: {}, list: {} },
+    /* Every email sent from this browser, one row each (AIMY-2668). */
+    mail: [],
     /* What was said in the canvas. `session` above is a run of calls and
        has been since before there was a canvas; the two are unrelated and
        the names are close enough that it is worth saying so here. */
@@ -3528,7 +3530,7 @@
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
             dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [], chat: [],
-            wait: { camp: {}, list: {} }, news: { seen: {}, brief: {}, src: {} } }, d);
+            wait: { camp: {}, list: {} }, news: { seen: {}, brief: {}, src: {} }, mail: [] }, d);
           /* The conversations come back whole. They reference nothing in the
              corpus — a turn is the words that were on screen — so unlike a
              contact patch or a saved list they need nothing to exist first,
@@ -4430,7 +4432,8 @@
     byId('chipBar').innerHTML = '';
     paintWho();
     paintDial();
-    byId('wbStage').innerHTML = S.con ? contactPage()
+    byId('wbStage').innerHTML = S.on === 'history' && (S.con || S.acc) ? historyPage()
+      : S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
       /* A LIST URL IS A LIST, WHICHEVER DOOR IT CAME THROUGH. Save and the old
@@ -6790,6 +6793,8 @@
   function trailLabel(u) {
     const st = trailState(u);
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
+    if (st.on === 'history' && st.con && DB.byCon[st.con]) return cap(DB.byCon[st.con].name) + '’s history';
+    if (st.on === 'history' && st.acc && DB.byAcc[st.acc]) return cap(DB.byAcc[st.acc].name) + '’s history';
     if (st.con && DB.byCon[st.con]) return cap(DB.byCon[st.con].name);
     if (st.acc && DB.byAcc[st.acc]) return cap(DB.byAcc[st.acc].name);
     if (st.camp && DB.byCamp[st.camp]) return cap(DB.byCamp[st.camp].name);
@@ -7578,6 +7583,1123 @@
             ' with ' + m.con.name + ', ') + '"',
         }, i);
       }) + '</div>';
+  }
+
+  /* ══ 8c. THE HISTORY OF ONE CONTACT OR ONE COMPANY (AIMY-2668) ═══════════
+     The call log is what came for you and did not get through. This is the
+     same page turned to face one record: every call, every meeting and every
+     email with this person, or with anybody at this company, newest first.
+     Three tabs because they are three kinds of thing read three ways, on the
+     call log's own chips, rows and day headings, so nothing here is a second
+     component to learn.
+
+     Emails are READ here and WRITTEN in AiMY's chat only. The Emails tab has
+     one door into the chat, and AiMY works out who it is from and to, who is
+     copied, the subject, the words and what is attached, and says why for
+     each before anything goes. A draft is changed by saying so in the bar,
+     never in a form. */
+  const HIST_TABS = [{ k: 'calls', label: 'Calls' }, { k: 'meets', label: 'Meetings' }, { k: 'mail', label: 'Emails' }];
+  const histTab = () => (S.q === 'meets' || S.q === 'mail' ? S.q : 'calls');
+  /* Whose history: the person when there is one, else the company. A
+     company's history is everybody at it, and each row then leads with the
+     person, because on an account the person is what tells two calls apart. */
+  function histScope() {
+    const c = S.con && DB.byCon[S.con];
+    if (c) return { c: c, a: accOf(c), people: [c], name: c.name };
+    const a = S.acc && DB.byAcc[S.acc];
+    if (a) return { c: null, a: a, people: consAt(a.id), name: a.name };
+    return null;
+  }
+  /* The record's own keys plus a tab: the way into the page, and the way
+     between its tabs. `acc` rides along on a contact so the back link can
+     still name the company it came from. */
+  function histOver(q) {
+    const over = Object.assign(cleared(), { on: 'history', q: q || 'calls' });
+    if (S.con) { over.con = S.con; if (S.acc) over.acc = S.acc; } else over.acc = S.acc;
+    return over;
+  }
+  /* The door on a record page. A ghost with the mark, because it goes to a
+     page rather than doing a thing. */
+  const histDoor = () =>
+    '<button class="b-ghost b-hist-door" type="button" data-go="' + esc(JSON.stringify(histOver('calls'))) + '">' +
+      chIcon('history') + 'History</button>';
+
+  const histCalls = (sc) => {
+    const out = [];
+    sc.people.forEach((c) => touchesOfCon(c).forEach((t) => { if (t.outcome !== 'phase' && OUTCOME[t.outcome]) out.push(t); }));
+    return out.sort((x, y) => (x.at > y.at ? -1 : 1));
+  };
+  function histMeets(sc) {
+    const held = [];
+    sc.people.forEach((c) => phasesOf(c).forEach((t) => held.push(t)));
+    held.sort((x, y) => (x.at > y.at ? -1 : 1));
+    const ahead = sc.people.filter((c) => c.next && c.next.due >= TODAY_ISO && !untimed(kindOfNext(c.next.what)))
+      .map((c) => {
+        const k = kindOfNext(c.next.what);
+        const tm = meetTime(c.id, c.next.due, k);
+        return { con: c, iso: c.next.due, h: tm.h, m: tm.m, kind: k, title: c.next.what };
+      })
+      .sort((x, y) => (x.iso < y.iso ? -1 : x.iso > y.iso ? 1 : (x.h || 0) - (y.h || 0)));
+    return { held: held, ahead: ahead };
+  }
+
+  /* ══ ONE ROW THAT OPENS ═══════════════════════════════════════════
+     The call log's row is a press that DOES something: call them back. A
+     history row is a thing that happened, and what you want from it is what
+     was said — so it is a disclosure, drawn with the log row's anatomy (chip,
+     name, meta, a line under it) and opening onto the summary the record's
+     own timeline already draws. One open at a time is not enforced: reading
+     two calls side by side is a reason to open this page. */
+  function histRow(o, i) {
+    const head =
+      '<span class="b-log-ico ' + esc(o.tone || '') + '">' + o.ico + '</span>' +
+      '<span class="b-log-main">' +
+        '<span class="b-log-name">' + esc(o.who) + '</span>' +
+        '<span class="b-log-meta">' + o.meta + '</span>' +
+        (o.say ? '<span class="b-log-say">' + sayMark() + '<span>' + o.say + '</span></span>' : '') +
+        (o.note ? '<span class="b-hist-note">' + esc(o.note) + '</span>' : '') +
+      '</span>' +
+      (o.tag ? '<span class="s-meta-st b-hist-tag tone-' + esc(o.tagTone || 'neutral') + '">' + esc(o.tag) + '</span>' : '');
+    if (!o.body) {
+      return '<div class="b-log-item b-hist-item" style="--i:' + Math.min(i, 8) + '">' +
+        '<div class="b-log-row b-hist-row is-still">' + head +
+          (o.go ? '<button class="b-log-go" type="button" ' + o.act + '>' + (o.goIco || '') + esc(o.go) + '</button>' : '') +
+        '</div></div>';
+    }
+    return '<details class="b-log-item b-hist-item"' + (o.id ? ' id="' + esc(o.id) + '"' : '') +
+      (o.open ? ' open' : '') + ' style="--i:' + Math.min(i, 8) + '">' +
+      '<summary class="b-log-row b-hist-row">' + head +
+        '<span class="b-hist-chev" aria-hidden="true">' + chIcon('down') + '</span>' +
+      '</summary>' +
+      '<div class="b-hist-body">' + o.body + '</div>' +
+    '</details>';
+  }
+
+  /* A call's chip carries how it went, the way the record's timeline dot
+     does: a missed one in the error ground, a call that left something open
+     in amber, one where somebody spoke in green, the rest plain. */
+  const callChip = (t) => {
+    if (wasMissed(t)) return 'is-missed';
+    const o = OUTCOME[t.outcome];
+    if (!o) return '';
+    return o.tone === 'teal' ? 'is-ok' : o.tone === 'warn' ? 'is-meet' : o.tone === 'err' ? 'is-missed' : 'is-plain';
+  };
+  function histCallRow(t, many, i) {
+    const c = DB.byCon[t.con];
+    if (!c) return '';
+    const miss = wasMissed(t);
+    const dir = miss ? 'Called in, missed' : t.dir === 'in' ? 'Called in' : 'Called out';
+    return histRow({
+      tone: callChip(t), ico: chIcon(t.dir === 'in' ? 'call-in' : 'phone'),
+      who: many ? c.name : kindLabel(t),
+      meta: logMeta([many ? kindLabel(t) : dir, whoDid(t).name, t.secs ? fmtClock(t.secs) : '', clockIf(t.at)]),
+      note: t.note || '',
+      body: callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines) +
+        (t.vm ? vmStrip(t.vm, t.id) : ''),
+    }, i);
+  }
+  function histMeetRow(t, many, i) {
+    const c = DB.byCon[t.con];
+    if (!c) return '';
+    const label = (PHASE[t.phase] || {}).label || 'Meeting';
+    const out = t.decision ? (t.decision === 'won' ? 'Signed' : t.decision === 'later' ? 'Rescheduled' : 'Declined')
+      : t.out && MEET_OUT_BY[t.out] ? MEET_OUT_BY[t.out].label : '';
+    const tone = t.decision === 'lost' ? 'err' : t.decision === 'won' ? 'ok'
+      : t.out && MEET_OUT_BY[t.out] ? MEET_OUT_BY[t.out].tone : 'neutral';
+    return histRow({
+      tone: 'is-meet', ico: chIcon('calendar'),
+      who: many ? c.name : label,
+      meta: logMeta([many ? label : '', whoDid(t).name, clockIf(t.at)]),
+      note: t.note || '',
+      tag: out, tagTone: TL_TONE_WORD[tone] || 'neutral',
+      body: callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines),
+    }, i);
+  }
+  /* `MEET_OUT_BY` speaks in the timeline's tones; the pill has four. */
+  const TL_TONE_WORD = { ok: 'ok', teal: 'ok', warn: 'warn', err: 'err', accent: 'neutral', neutral: 'neutral' };
+  function histAheadRow(m, many, i) {
+    const k = MEET_KIND[m.kind] || MEET_KIND.meeting;
+    const prep = onBook() && works() && m.con.checkpoint === 'handed-over';
+    return histRow({
+      tone: 'is-ahead', ico: chIcon('calendar'),
+      who: many ? m.con.name : m.title,
+      meta: logMeta([many ? m.title : k.label, sayWhen(m.iso), clockOf(m)]),
+      tag: 'Coming up', tagTone: 'neutral',
+      go: prep ? 'Prepare me' : '', goIco: chIcon('spark'),
+      act: prep ? 'data-prep="' + esc(m.con.id) + '"' : '',
+    }, i);
+  }
+
+  function historyPage() {
+    const sc = histScope();
+    if (!sc) {
+      return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
+        '<h2 class="s-rec-cap">Nothing to show</h2>' +
+        '<div class="s-rec-body"><p class="s-block-sub">That record is not here any more.</p>' +
+        backBtn('data-home', 'Back to the briefing') + '</div></section></div>';
+    }
+    const many = !sc.c;
+    const on = histTab();
+    const calls = histCalls(sc);
+    const meets = histMeets(sc);
+    const threads = mailOf(sc);
+    const n = { calls: calls.length, meets: meets.held.length + meets.ahead.length, mail: threads.length };
+    const tabs = '<div class="b-cuts b-log-tabs b-hist-tabs">' + HIST_TABS.map((t) =>
+      '<button class="filter-chip' + (on === t.k ? ' active' : '') + '" type="button" ' +
+      'data-q="' + esc(t.k) + '"' + (on === t.k ? ' aria-current="true"' : '') + '>' +
+      esc(t.label) + '<span class="b-cut-n">' + commas(n[t.k]) + '</span></button>').join('') +
+    '</div>';
+    const back = backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(),
+      sc.c ? { con: sc.c.id, acc: S.acc || '' } : { acc: sc.a.id }))) + '"', 'Back to ' + sc.name);
+    const sub = sc.c
+      ? esc(sc.c.title) + (sc.a ? ' at ' + esc(sc.a.name) : '')
+      : esc(plural(sc.people.length, 'person', 'people')) + ' on the record here';
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + back + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="History">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">History</h2>' +
+          '<span class="s-block-say">' + esc(sc.name) + ', ' + sub + '</span>' +
+        '</div>' +
+        tabs +
+        '<div>' +
+          (on === 'mail' ? histMail(sc, threads, many)
+            : on === 'meets' ? histMeetsPane(sc, meets, many)
+            : histCallsPane(sc, calls, many)) +
+        '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  function histCallsPane(sc, calls, many) {
+    if (!calls.length) {
+      return '<p class="b-vfoot">' + (many ? 'Nobody has called anybody at ' + esc(sc.name) + ' yet.'
+        : 'Nobody has called ' + esc(sc.name.split(' ')[0]) + ' yet.') + '</p>';
+    }
+    const pg = paged(calls);
+    const got = calls.filter((t) => (OUTCOME[t.outcome] || {}).writes).length;
+    const missed = calls.filter(wasMissed).length;
+    return aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> since ' + esc(sayDay(calls[calls.length - 1].at)) +
+        (got === calls.length ? (got === 1 ? ', and it got through' : ', and every one got through')
+          : got ? ', and <b>' + esc(commas(got)) + '</b> got through' : ', and none got through') +
+        (missed ? '. <b>' + esc(plural(missed, 'call')) + '</b> came in from ' + (many ? 'them' : esc(sc.name.split(' ')[0])) +
+          ' and nobody took ' + (missed === 1 ? 'it' : 'them') : '') + '.' }, true) +
+      '<div class="b-log">' + logDays(pg.rows, (t) => t.at, (t, i) => histCallRow(t, many, i)) + '</div>' +
+      pager(pg, 'call');
+  }
+
+  function histMeetsPane(sc, meets, many) {
+    if (!meets.held.length && !meets.ahead.length) {
+      return '<p class="b-vfoot">' + (many ? 'No meeting with anybody at ' + esc(sc.name) + ' yet.'
+        : 'No meeting with ' + esc(sc.name.split(' ')[0]) + ' yet.') +
+        ' A meeting lands here once it is booked.</p>';
+    }
+    const pg = paged(meets.held);
+    const said = meets.held.filter((t) => t.out || t.decision).length;
+    return (meets.held.length
+        ? aimyBlock({ text: '<b>' + esc(plural(meets.held.length, 'meeting')) + '</b> held' +
+            (meets.held.length - said ? ', and <b>' + esc(commas(meets.held.length - said)) + '</b> with nothing said about how ' +
+              (meets.held.length - said === 1 ? 'it' : 'they') + ' went' : ', and each says how it went') + '.' }, true)
+        : '') +
+      (meets.ahead.length && pg.p === 0
+        ? '<div class="b-log"><h3 class="b-month">Coming up</h3>' +
+          meets.ahead.map((m, i) => histAheadRow(m, many, i)).join('') + '</div>'
+        : '') +
+      (meets.held.length
+        ? '<div class="b-log' + (meets.ahead.length && pg.p === 0 ? ' b-hist-after' : '') + '">' +
+          logDays(pg.rows, (t) => t.at, (t, i) => histMeetRow(t, many, i)) + '</div>' + pager(pg, 'meeting')
+        : '');
+  }
+
+  /* ══ EMAIL: THE ADDRESSES ═════════════════════════════════════════════
+     Ours are the company's pattern off the name; theirs is the record's. A
+     participant is drawn the same way wherever it appears: name, then the
+     address in the secondary ink, never the address alone. */
+  const repMail = (id) => actor(id).name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').join('.') + '@flairstech.com';
+  const repRole = (id) => {
+    const r = REP[id] || {};
+    return r.fn === 'sales-manager' ? (r.team ? 'Head of the ' + r.team : 'Sales manager')
+      : r.fn === 'bdr' ? 'Business development' : r.fn === 'stakeholder' ? 'Product owner' : '';
+  };
+  const usP = (id) => ({ id: id, name: actor(id).name, addr: repMail(id), us: true });
+  const themP = (c) => ({ id: c.id, name: c.name, addr: c.email, us: false });
+  /* An address that no longer takes mail. One in nine people who never got
+     past a callback, so a deal in hand never has a dead inbox. Found again
+     for the session by Find another address, the way a number is. */
+  const MAIL_FIXED = Object.create(null);
+  const mailDead = (c) => !!c && !!c.email && rank(c.checkpoint) < rank('meeting-set') &&
+    !isExit(c.checkpoint) && hx(c.id, 'bounce', 6) === 0;
+  const mailBad = (c) => mailDead(c) && !MAIL_FIXED[c.id];
+  /* The address the record held before one was found, which is where the
+     old mail went. */
+  const mailWas = (c) => (FOUND[c.id] && FOUND[c.id].email) || c.email;
+  const fname = (n) => String(n || '').split(' ')[0];
+  /* An email goes in office hours. The touchpoints it follows can sit at any
+     hour the seed gave them, and a follow-up stamped 02:23 reads as a fault. */
+  const minsLater = (iso, mins) => {
+    const d = new Date(Date.parse(iso) + mins * 60000);
+    const h = d.getHours();
+    if (h > 18) d.setDate(d.getDate() + 1);
+    if (h < 8 || h > 18) d.setHours(8 + (mins % 3), (mins * 7) % 60);
+    return d.toISOString();
+  };
+  /* The hour, unless the record never had one. */
+  const clockIf = (iso) => { const t = timeOf(iso); return t === '00:00' ? '' : t; };
+
+  /* ══ THE THREADS THE SEED IMPLIES ═════════════════════════════════════
+     Nothing about email is stored in the corpus, and a corpus with no email
+     cannot show any of the states the page has to. So it is read off what
+     IS stored: a connected call is followed by a note, a booked meeting by
+     an invitation, a meeting held by what was agreed in it. Whether they
+     answered, opened it or let it bounce comes off the id's hash with its
+     own salt, never the seed's generator, so nothing else in the corpus
+     moves. Kept per person until their touchpoints change. */
+  const MAIL_CACHE = Object.create(null);
+  const MAIL_ASKS = [
+    { k: 'case', say: (f) => 'Thanks, ' + f + '. Could you send a short case study from a company our size? I will read it this week.' },
+    { k: 'move', say: (f) => 'Thanks, ' + f + '. Thursday afternoon works better for me, if that is possible.' },
+    { k: 'colleague', say: (f, col) => 'Thanks, ' + f + '. I have copied ' + col + ', who looks after this with me. Please keep us both on it.' },
+    { k: 'security', say: (f) => 'Thank you. Before we go further, could you send your security documentation? Our IT team will ask for it.' },
+    { k: 'review', say: () => 'Thank you. We will review it internally and come back to you by the end of next week.' },
+    { k: 'ok', say: (f) => 'Thanks, ' + f + '. That time works. See you then.' },
+    { k: 'agree', say: (f) => 'Thank you, ' + f + '. That is a fair summary. I will bring our head of IT next time.' },
+  ];
+  const MAIL_ASK = Object.create(null);
+  /* The answers that ask us for something. The rest close the loop. */
+  const MAIL_OWES = { case: 1, move: 1, colleague: 1, security: 1 };
+  MAIL_ASKS.forEach((x) => (MAIL_ASK[x.k] = x));
+  function mailSeed(c) {
+    if (!c || !c.email) return [];
+    const key = c.id + '|' + (DB.touchesOf[c.id] || []).length;
+    if (MAIL_CACHE[c.id] && MAIL_CACHE[c.id].key === key) return MAIL_CACHE[c.id].rows;
+    const a = accOf(c);
+    const co = a ? a.name : 'your team';
+    const f = fname(c.name);
+    const sell = SELL[sellOf(c)] || SELLS[0];
+    const mates = a ? consAt(a.id).filter((x) => x.id !== c.id && x.email) : [];
+    const mate = mates.length ? mates[hx(c.id, 'mate', mates.length)] : null;
+    const bad = mailDead(c);
+    const now = Date.now();
+    const them = { id: c.id, name: c.name, addr: mailWas(c), us: false };
+    const out = [];
+    const sign = (id) => ['Best regards,', actor(id).name, (repRole(id) ? repRole(id) + ', ' : '') + 'FlairsTech'];
+    touchesOfCon(c).slice().sort((x, y) => (x.at < y.at ? -1 : 1)).forEach((t) => {
+      let kind = null;
+      if (t.outcome === 'phase' && t.phase !== 'resolution') kind = t.phase;
+      else if (t.moved && t.moved[1] === 'meeting-set') kind = 'invite';
+      else if ((t.outcome === 'reached' || t.outcome === 'callback') && hx(t.id, 'mail', 3) !== 0) kind = 'follow';
+      if (!kind) return;
+      const by = REP[t.by] ? t.by : (REP[c.owner] ? c.owner : directorOf(c).id);
+      const mgr = directorOf(c);
+      const at = minsLater(t.at, 25 + hx(t.id, 'mins', 140));
+      if (Date.parse(at) > now) return;
+      const m = { id: 'ms' + t.id, from: usP(by), to: [them], cc: [], at: at, att: [], body: [] };
+      let subject = '';
+      if (kind === 'follow') {
+        subject = 'Following up on our call';
+        m.body = ['Hi ' + f + ',',
+          'Thank you for your time on the phone today. As promised, here is a short note on ' + sell.name + ': ' + sell.blurb + '.',
+          t.outcome === 'callback'
+            ? 'You asked me to call you back, so I will call you then. If anything changes, reply here.'
+            : 'If it is useful, I can set up thirty minutes with ' + mgr.name + ', who runs this with companies like ' + co + '.'];
+        if ((t.proposals || []).indexOf('info') >= 0 || hx(t.id, 'att', 2) === 0) {
+          m.att.push({ name: sell.name + ' overview.pdf', size: '1.4 MB' });
+        }
+      } else if (kind === 'invite') {
+        const met = phasesOf(c).filter((x) => x.at > t.at)[0];
+        const due = t.next && t.next.due ? sayDay(t.next.due) : met ? sayDay(met.at) : '';
+        subject = due ? 'Our meeting on ' + due : 'Our first meeting';
+        m.body = ['Hi ' + f + ',',
+          'Thank you for agreeing to meet. The invitation' + (due ? ' for ' + due : '') + ' is attached. ' + mgr.name +
+            ' will join to walk you through how ' + sell.name + ' would work at ' + co + '.',
+          'If the time does not suit you, reply here and I will move it.'];
+        m.att.push({ name: 'Invitation.ics', size: '4 KB' });
+        if (mgr.id !== by) m.cc.push(usP(mgr.id));
+      } else {
+        subject = kind === 'commercial' ? 'Our proposal for ' + co
+          : kind === 'proof' ? 'The pilot plan we discussed' : 'After our first meeting';
+        m.body = ['Hi ' + f + ',',
+          'Thank you for your time today. ' +
+            (kind === 'commercial' ? 'The proposal and the prices we went through are attached.'
+              : kind === 'proof' ? 'The plan for the pilot is attached: what we set up, who on your side we need, and how we measure it.'
+              : 'These are the points we agreed to look at before we meet again: where the work is today, who owns it, and what good looks like by the end of the quarter.'),
+          'I will call you in a few days to hear what your team thinks.'];
+        if (kind === 'commercial') m.att.push({ name: 'Proposal, ' + co + '.pdf', size: '2.1 MB' });
+        if (kind === 'proof') m.att.push({ name: 'Pilot plan, ' + co + '.pdf', size: '880 KB' });
+        if (kind === 'commercial' && mate) m.cc.push(themP(mate));
+      }
+      m.body = m.body.concat(sign(by));
+      const th = { id: 'mt' + t.id, con: c.id, subject: subject, msgs: [m] };
+      if (bad) {
+        m.bounced = true;
+      } else {
+        /* Answered more often the further along they are: a deal answers its
+           mail, a cold call mostly does not. */
+        const odds = kind === 'follow' ? 3 : kind === 'invite' ? 2 : 3;
+        const answers = kind === 'follow' ? hx(t.id, 'rep', odds) === 0 : hx(t.id, 'rep', odds) !== 0;
+        const repAt = minsLater(m.at, 120 + hx(t.id, 'rmins', 1500));
+        if (answers && Date.parse(repAt) < now) {
+          const pool = kind === 'follow' ? ['case', 'move', mate ? 'colleague' : 'case']
+            : kind === 'invite' ? ['ok', 'move', mate ? 'colleague' : 'ok']
+            : kind === 'commercial' ? ['review', 'security', 'review']
+            : kind === 'proof' ? ['security', 'case', 'agree'] : ['agree', 'move', mate ? 'colleague' : 'agree'];
+          const ask = pool[hx(t.id, 'ask', pool.length)];
+          const r = { id: 'mr' + t.id, from: them, to: [m.from], cc: m.cc.slice(), at: repAt, att: [], ask: ask,
+            body: [MAIL_ASK[ask].say(fname(m.from.name), mate ? mate.name : ''), f] };
+          if (ask === 'colleague' && mate) r.cc.push(themP(mate));
+          th.msgs.push(r);
+          /* And sometimes we closed the loop. Not always: a thread that is
+             waiting on us is the state the page most needs to show. */
+          const backAt = minsLater(repAt, 60 + hx(t.id, 'bmins', 900));
+          if (ask !== 'review' && hx(t.id, 'back', 2) === 0 && Date.parse(backAt) < now) {
+            const b = { id: 'mb' + t.id, from: m.from, to: [them], cc: r.cc.slice(), at: backAt, att: [],
+              body: ['Hi ' + f + ',',
+                ask === 'case' ? 'Of course. The case study is attached: a team of a similar size, and what changed in their first three months.'
+                  : ask === 'security' ? 'Of course. Our security overview is attached, and I can set up a call with our security lead if your IT team has questions.'
+                  : ask === 'move' ? 'No problem. I have moved it to Thursday at 15:00 and sent a new invitation.'
+                  : ask === 'colleague' ? 'Thank you, and welcome, ' + (mate ? fname(mate.name) : '') + '. I will keep you both on everything from here.'
+                  : 'Thank you. Looking forward to it.'].concat(sign(m.from.id)) };
+            if (ask === 'case') b.att.push({ name: 'Case study, ' + sell.name + '.pdf', size: '960 KB' });
+            if (ask === 'security') b.att.push({ name: 'Security overview.pdf', size: '1.1 MB' });
+            if (ask === 'move') b.att.push({ name: 'Invitation.ics', size: '4 KB' });
+            th.msgs.push(b);
+          }
+        }
+        /* What the last of ours did after it went. */
+        const last = th.msgs[th.msgs.length - 1];
+        if (last.from.us) {
+          last.opens = hx(last.id, 'open', 5);
+          if (last.opens) {
+            const oa = minsLater(last.at, 40 + hx(last.id, 'omins', 2400));
+            last.openedAt = Date.parse(oa) < now ? oa : last.at;
+          }
+        }
+      }
+      out.push(th);
+    });
+    MAIL_CACHE[c.id] = { key: key, rows: out };
+    return out;
+  }
+
+  /* ══ WHAT WAS WRITTEN HERE ══════════════════════════════════════════════
+     `DELTA.mail` holds every message sent from this browser, one row each,
+     carrying the thread it belongs to. A message on a seeded thread is a
+     reply; a thread id nothing in the seed has is a new conversation. How
+     far it got is read off the clock it was sent at: a few seconds of
+     Sending (which is also how long Undo has), then delivered, then opened.
+     A prototype cannot watch a real inbox, so the opening is a fixed delay
+     and says nothing it could not. */
+  const MAIL_HOLD = 5000;
+  const MAIL_OPEN = 45000;
+  const mailMine = () => (DELTA.mail || (DELTA.mail = []));
+  function mailLive(m) {
+    if (!m.sentMs) return m.bounced ? 'bounced' : m.opens ? 'opened' : 'sent';
+    const age = Date.now() - m.sentMs;
+    if (age < MAIL_HOLD) return 'sending';
+    if (m.bad) return 'bounced';
+    return age >= MAIL_OPEN ? 'opened' : 'sent';
+  }
+  function mailThreads(c) {
+    const rows = mailSeed(c).map((th) => Object.assign({}, th, { msgs: th.msgs.slice() }));
+    const byTh = Object.create(null);
+    rows.forEach((th) => (byTh[th.id] = th));
+    mailMine().filter((m) => m && m.con === c.id).forEach((m) => {
+      let th = byTh[m.thread];
+      if (!th) { th = byTh[m.thread] = { id: m.thread, con: c.id, subject: m.subject, msgs: [] }; rows.push(th); }
+      th.msgs.push(m);
+    });
+    return rows;
+  }
+  const mailLast = (th) => th.msgs[th.msgs.length - 1];
+  function mailOf(sc) {
+    const out = [];
+    sc.people.forEach((c) => mailThreads(c).forEach((th) => out.push(th)));
+    return out.sort((x, y) => (mailLast(x).at > mailLast(y).at ? -1 : 1));
+  }
+  /* Where a thread stands, in the words and the tone of a status pill. The
+     ticket's five: sending, sent, opened, answered, bounced. */
+  function mailState(th) {
+    const m = mailLast(th);
+    if (!m.from.us) return { k: 'replied', label: 'They answered', tone: 'ok', ico: 'reply' };
+    const live = mailLive(m);
+    if (live === 'sending') return { k: 'sending', label: 'Sending', tone: 'accent', ico: 'send' };
+    if (live === 'bounced') return { k: 'bounced', label: 'Bounced', tone: 'err', ico: 'mail-x' };
+    const opens = m.sentMs ? (live === 'opened' ? 1 : 0) : (m.opens || 0);
+    if (opens) return { k: 'opened', label: opens === 1 ? 'Opened once' : 'Opened ' + opens + ' times', tone: 'neutral', ico: 'mail-open', opens: opens };
+    return { k: 'sent', label: 'Not opened yet', tone: 'neutral', ico: 'mail' };
+  }
+  const MAIL_CHIP = { replied: 'is-ok', sending: 'is-ahead', bounced: 'is-missed', opened: 'is-plain', sent: 'is-plain' };
+  const whoSaid = (p) => (p.us && p.id === me().id ? 'You' : p.name);
+  const peopleSay = (ps) => ps.map((p) => esc(whoSaid(p))).join(', ');
+
+  /* What AiMY makes of one thread, only where there is something to do.
+     A thread that ended well says nothing: the pill already said it. */
+  function mailSay(th, st) {
+    const m = mailLast(th);
+    const c = DB.byCon[th.con];
+    const f = esc(fname(c ? c.name : ''));
+    if (st.k === 'replied') {
+      const ask = MAIL_ASK[m.ask];
+      return ask && ask.k === 'case' ? f + ' asked for a case study. Nobody has sent one yet.'
+        : ask && ask.k === 'security' ? f + ' asked for the security documentation. Nobody has sent it yet.'
+        : ask && ask.k === 'move' ? f + ' asked to move the meeting. Nobody has answered yet.'
+        : ask && ask.k === 'colleague' ? f + ' brought a colleague in. Answer them both.'
+        : ask && ask.k === 'review' ? (daysBetween(m.at.slice(0, 10), TODAY_ISO) >= 10
+          ? f + ' said the team would come back within two weeks. That was ' + esc(sayDay(m.at)) + ', so a check-in is due.'
+          : f + ' is reviewing it with the team. Nothing is owed until next week.')
+        : '';
+    }
+    if (st.k === 'bounced') return MAIL_FIXED[th.con] ? 'It bounced. There is a new address for ' + f + ' now, so it can go again.'
+      : 'The address did not take it. ' + f + ' may have left, or the address changed.';
+    if (st.k === 'opened' && st.opens >= 3 && MAIL_LATEST[th.id] && daysBetween(m.at.slice(0, 10), TODAY_ISO) <= 30) {
+      return f + ' has read it ' + st.opens + ' times and not answered. A call will move this faster than another email.';
+    }
+    return '';
+  }
+
+  function mailMsg(m, last) {
+    const live = m.from.us ? mailLive(m) : '';
+    const opens = m.sentMs ? (live === 'opened' ? 1 : 0) : (m.opens || 0);
+    const st = !m.from.us ? ''
+      : live === 'sending' ? '<p class="b-mail-st tone-accent">' + chIcon('send') + 'Sending. Undo on the toast takes it back.</p>'
+      : live === 'bounced' ? '<p class="b-mail-st tone-err">' + chIcon('mail-x') + 'Bounced. The address did not take it.</p>'
+      : opens ? '<p class="b-mail-st">' + chIcon('mail-open') + (opens === 1 ? 'Opened once' : 'Opened ' + opens + ' times') +
+          (m.openedAt ? ', last on ' + esc(sayDay(m.openedAt)) + ' at ' + esc(timeOf(m.openedAt)) : '') + '.</p>'
+      : last ? '<p class="b-mail-st">' + chIcon('mail-check') + 'Delivered. Not opened yet.</p>' : '';
+    return '<article class="b-mail-msg' + (m.from.us ? ' is-us' : ' is-them') + '">' +
+      '<header class="b-mail-mhead">' +
+        '<span class="b-mail-who"><b>' + esc(whoSaid(m.from)) + '</b>' +
+          '<span class="b-mail-addr">' + esc(m.from.addr) + '</span></span>' +
+        '<span class="b-mail-when">' + esc(sayDay(m.at)) + ', ' + esc(timeOf(m.at)) + '</span>' +
+      '</header>' +
+      '<p class="b-mail-line"><span>To</span> ' + peopleSay(m.to) +
+        (m.cc && m.cc.length ? '<span class="b-mail-gap">Copied</span> ' + peopleSay(m.cc) : '') + '</p>' +
+      '<div class="b-mail-text">' + m.body.map((p) => '<p>' + esc(p) + '</p>').join('') + '</div>' +
+      (m.att && m.att.length ? '<div class="b-mail-atts">' + m.att.map(attChip).join('') + '</div>' : '') +
+      st +
+    '</article>';
+  }
+  const attChip = (x) => '<span class="b-mail-att">' + chIcon('paperclip') +
+    '<span class="b-mail-att-n">' + esc(x.name) + '</span><span class="b-mail-att-s">' + esc(x.size || '') + '</span></span>';
+
+  function mailRow(th, many, i) {
+    const c = DB.byCon[th.con];
+    if (!c) return '';
+    const st = mailState(th);
+    const m = mailLast(th);
+    const ours = th.msgs.filter((x) => x.from.us).map((x) => x.from);
+    const say = mailSay(th, st);
+    const acts = [];
+    if (works() && st.k !== 'sending') {
+      if (st.k === 'bounced' && !MAIL_FIXED[c.id]) acts.push('<button class="b-ghost" type="button" data-mailfind="' + esc(c.id) + '">' +
+        chIcon('search') + 'Find another address</button>');
+      else acts.push('<button class="b-ghost b-ai" type="button" data-mailreply="' + esc(th.id) + '">' +
+        '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+        (st.k === 'replied' && MAIL_OWES[m.ask] ? 'Answer with AiMY' : st.k === 'bounced' ? 'Send it again with AiMY' : 'Follow up with AiMY') + '</button>');
+      if (st.k === 'opened' && st.opens >= 3 && c.phone && !c.dnc) {
+        acts.push('<button class="b-ghost" type="button" data-call="' + esc(c.id) + '">' + chIcon('phone') + 'Call ' + esc(fname(c.name)) + '</button>');
+      }
+    }
+    return histRow({
+      id: 'mail-' + th.id,
+      open: MAIL_OPEN_TH === th.id,
+      tone: MAIL_CHIP[st.k] || 'is-plain', ico: chIcon(st.ico),
+      who: (many ? c.name + ': ' : '') + th.subject,
+      meta: logMeta([(ours.length ? whoSaid(ours[0]) : 'You') + ' and ' + c.name,
+        plural(th.msgs.length, 'message'), sayDay(m.at) + ' ' + timeOf(m.at)]),
+      say: say,
+      tag: st.label, tagTone: st.tone,
+      body: '<div class="b-mail-thread">' + th.msgs.slice().reverse().map((x, j) => mailMsg(x, j === 0)).join('') + '</div>' +
+        (acts.length ? '<div class="b-acts b-mail-acts">' + acts.join('') + '</div>' : ''),
+    }, i);
+  }
+  /* Inside a thread the newest message is on top, the way the list above it
+     is ordered: what was said last is what you open a thread to read. */
+  /* The thread a send just landed on opens when its page is reached. */
+  let MAIL_OPEN_TH = null;
+  /* Each person's newest thread, which is the only one advice is about. */
+  let MAIL_LATEST = Object.create(null);
+  function mailLatest(threads) {
+    const seen = Object.create(null);
+    MAIL_LATEST = Object.create(null);
+    threads.forEach((th) => { if (!seen[th.con]) { seen[th.con] = 1; MAIL_LATEST[th.id] = 1; } });
+  }
+
+  /* ══ WHAT AiMY MAKES OF THE EMAILS ═════════════════════════════════════
+     The call insights' form: one sentence behind the mark, about the thing
+     that wants doing first, and the verb for it. An answer waiting on us
+     outranks everything; then a dead address, because every email after it
+     is wasted; then somebody reading and not answering, where the honest
+     advice is to stop writing and call. */
+  function mailInsight(sc, threads) {
+    const st = threads.map((th) => ({ th: th, st: mailState(th) }));
+    mailLatest(threads);
+    const wait = st.filter((x) => x.st.k === 'replied' && MAIL_OWES[mailLast(x.th).ask] && MAIL_LATEST[x.th.id])
+      .sort((x, y) => (mailLast(x.th).at < mailLast(y.th).at ? -1 : 1));
+    const dead = st.filter((x) => x.st.k === 'bounced' && !MAIL_FIXED[x.th.con]);
+    const cold = st.filter((x) => x.st.k === 'opened' && x.st.opens >= 3 && MAIL_LATEST[x.th.id] &&
+      daysBetween(mailLast(x.th).at.slice(0, 10), TODAY_ISO) <= 30);
+    const nm = (x) => esc(fname((DB.byCon[x.th.con] || {}).name));
+    const sub = (x) => '“' + esc(x.th.subject) + '”';
+    if (wait.length) {
+      const w = wait[0];
+      return { text: '<b>' + nm(w) + ' answered ' + sub(w) + '</b> ' + esc(sayAgo(mailLast(w.th).at)) +
+          ' and nobody has replied' + (wait.length > 1 ? '. ' + esc(plural(wait.length - 1, 'more thread')) + ' also ' +
+          (wait.length === 2 ? 'waits' : 'wait') + ' on us' : '') + '.',
+        act: works() ? '<button class="s-insight-lnk" type="button" data-mailreply="' + esc(w.th.id) + '">Answer with AiMY</button>' : '' };
+    }
+    /* They said they would come back and the date has gone: the next move is ours. */
+    const late = st.filter((x) => x.st.k === 'replied' && mailLast(x.th).ask === 'review' && MAIL_LATEST[x.th.id] &&
+      daysBetween(mailLast(x.th).at.slice(0, 10), TODAY_ISO) >= 10)[0];
+    if (late) {
+      return { text: '<b>' + nm(late) + ' said the team would review ' + sub(late) + '</b> on ' + esc(sayDay(mailLast(late.th).at)) +
+          ' and nothing has come back since. A check-in is due.',
+        act: works() ? '<button class="s-insight-lnk" type="button" data-mailreply="' + esc(late.th.id) + '">Follow up with AiMY</button>' : '' };
+    }
+    if (dead.length) {
+      const d = dead[0];
+      return { text: '<b>' + nm(d) + '’s address bounced</b> on ' + esc(sayDay(mailLast(d.th).at)) +
+          ', so nothing sent to it has arrived. Find another address before writing again.',
+        act: works() ? '<button class="s-insight-lnk" type="button" data-mailfind="' + esc(d.th.con) + '">Find another address</button>' : '' };
+    }
+    if (cold.length) {
+      const k = cold[0];
+      const c = DB.byCon[k.th.con];
+      return { text: '<b>' + nm(k) + ' has opened ' + sub(k) + ' ' + k.st.opens + ' times</b> and not answered. A call will move this faster than another email.',
+        act: works() && c && c.phone && !c.dnc ? '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">Call ' + nm(k) + '</button>' : '' };
+    }
+    const m = mailLast(threads[0]);
+    return { text: 'Nothing is waiting on us. The last email was ' + (m.from.us ? 'ours, to ' : 'from ') +
+      esc(m.from.us ? (DB.byCon[threads[0].con] || {}).name || '' : m.from.name) + ', ' + esc(sayAgo(m.at)) + '.', act: '' };
+  }
+
+  function histMail(sc, threads, many) {
+    const can = works();
+    const withAddr = sc.people.filter((c) => c.email);
+    const door = can && withAddr.length
+      ? '<button class="b-ghost b-ai b-mail-new" type="button" data-mailnew="' +
+          esc(sc.c ? 'con:' + sc.c.id : 'acc:' + sc.a.id) + '">' +
+          '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          (sc.c ? 'Write to ' + esc(fname(sc.c.name)) + ' with AiMY' : 'Write to someone here with AiMY') + '</button>'
+      : '';
+    const head = '<div class="b-mail-head">' +
+      (sc.c && sc.c.email ? '<span class="b-mail-to">' + chIcon('mail') + esc(sc.c.email) + '</span>' : '') + door + '</div>';
+    if (!withAddr.length) {
+      return '<p class="b-vfoot">' + (sc.c ? 'There is no email address for ' + esc(fname(sc.c.name)) + ' yet'
+          : 'There is no email address for anybody at ' + esc(sc.name) + ' yet') + ', so nothing has been sent.</p>' +
+        (can && sc.c ? '<div class="b-acts"><button class="b-ghost" type="button" data-mailfind="' + esc(sc.c.id) + '">' +
+          chIcon('search') + 'Find an address</button></div>' : '');
+    }
+    if (!threads.length) {
+      return head + '<p class="b-vfoot">No emails ' + (sc.c ? 'with ' + esc(fname(sc.c.name)) : 'with anybody here') + ' yet. ' +
+        (can ? 'AiMY writes the first one with you: who it goes to, the words and what to attach, and you send it.'
+          : 'Whoever works this record writes them with AiMY.') + '</p>';
+    }
+    const ins = mailInsight(sc, threads);
+    const pg = paged(threads);
+    return head + aimyBlock({ text: ins.text }, true, ins.act) +
+      '<div class="b-log">' + logDays(pg.rows, (th) => mailLast(th).at, (th, i) => mailRow(th, many, i)) + '</div>' +
+      pager(pg, 'thread');
+  }
+
+  /* ══ WRITING ONE, IN THE CHAT ══════════════════════════════════════════
+     The draft is a turn: a card that shows every field and, under it, why
+     AiMY put each thing there. It changes by being told — "copy Lina",
+     "attach the case study", "shorter", "say we can start in May" — and every
+     change is a new turn that says what changed, so the thread is a record of
+     how the email came to read the way it does. Send holds it for a few
+     seconds behind an Undo, the way a mail client does. */
+  let MAIL = null;
+  /* What was said in the conversation that the draft has to answer, read off
+     the record rather than asked for: who to, what was promised, what is
+     booked, where the deal stands. */
+  function mailDraft(c, o) {
+    o = o || {};
+    const a = accOf(c);
+    const co = a ? a.name : 'your team';
+    const f = fname(c.name);
+    const sell = SELL[sellOf(c)] || SELLS[0];
+    const meId = me().id;
+    const d = { con: c.id, th: null, from: usP(meId), to: [themP(c)], cc: [], subject: '', body: [], att: [], why: [], tone: 'plain' };
+    const sign = ['Best regards,', me().name, (repRole(meId) ? repRole(meId) + ', ' : '') + 'FlairsTech'];
+    const ccAdd = (p, why) => {
+      if (!p || !p.addr || p.id === meId || d.to.some((x) => x.id === p.id) || d.cc.some((x) => x.id === p.id)) return;
+      d.cc.push(p);
+      d.why.push({ k: 'cc', id: p.id, text: p.name + ' is copied: ' + why });
+    };
+    const attAdd = (x, why) => {
+      if (d.att.some((y) => y.name === x.name)) return;
+      d.att.push(x);
+      d.why.push({ k: 'att', id: x.name, text: x.name + ' is attached: ' + why });
+    };
+    const th = o.th ? mailThreads(c).filter((x) => x.id === o.th)[0] : null;
+    const said = touchesOfCon(c).filter((t) => (OUTCOME[t.outcome] || {}).writes)[0];
+    const holder = c.checkpoint === 'handed-over' ? directorOf(c) : null;
+    if (holder && holder.id !== meId) ccAdd(usP(holder.id), fname(holder.name) + ' holds the deal now, so they should see what goes to ' + f + '.');
+    if (th) {
+      /* A reply goes back to whoever wrote last on our side's behalf, keeps
+         everybody who was on it, and answers what was actually asked. */
+      const last = mailLast(th);
+      d.th = th.id;
+      d.subject = /^re:/i.test(th.subject) ? th.subject : 'Re: ' + th.subject;
+      th.msgs.forEach((m) => (m.cc || []).concat(m.to, [m.from]).forEach((p) => {
+        if (p.id === c.id || p.id === meId) return;
+        ccAdd(p, p.us ? 'they were on this thread.' : (last.ask === 'colleague' && !p.us ? f + ' brought them in and asked to keep them on it.' : 'they were on this thread.'));
+      }));
+      if (!last.from.us) {
+        const ask = last.ask;
+        d.body = ['Hi ' + f + ',',
+          ask === 'case' ? 'Thank you for coming back to me. The case study is attached: a team of a similar size to ' + co + ', and what changed in their first three months.'
+            : ask === 'security' ? 'Of course. Our security overview is attached. If your IT team has questions, I can set up a call with our security lead.'
+            : ask === 'move' ? 'No problem at all. Would Thursday at 15:00 work instead? I will send a new invitation as soon as you confirm.'
+            : ask === 'colleague' ? 'Thank you, and welcome to the thread. I will keep you both on everything from here.'
+            : ask === 'review' ? (daysBetween(last.at.slice(0, 10), TODAY_ISO) >= 5
+              ? 'I wanted to check in on the review. Has the team had a chance to go through it? If questions came up, I can join a call with them.'
+              : 'Thank you. Take the time you need. If questions come up in the review, I can join a call with the team.')
+            : 'Following on from your last email, I wanted to check that everything is in place for our next step.',
+          'Let me know if there is anything else you need from us before we speak again.'];
+        if (ask === 'case') attAdd({ name: 'Case study, ' + sell.name + '.pdf', size: '960 KB' }, f + ' asked for it on ' + sayDay(last.at) + '.');
+        if (ask === 'security') attAdd({ name: 'Security overview.pdf', size: '1.1 MB' }, f + ' asked for it on ' + sayDay(last.at) + '.');
+      } else if (last.bounced || last.bad) {
+        d.body = ['Hi ' + f + ',',
+          'My email of ' + sayDay(last.at) + ' did not reach you, so I am sending it again to this address.'].concat(
+          (last.body || []).slice(1, -3).map((p) => p.replace(/ today/g, ' on ' + sayDay(last.at))));
+        (last.att || []).forEach((x) => attAdd(x, 'it was on the email that did not arrive.'));
+      } else {
+        d.body = ['Hi ' + f + ',',
+          'I wanted to check that my email of ' + sayDay(last.at) + ' reached you. ' +
+            (last.att && last.att.length ? 'The ' + last.att[0].name.replace(/\.\w+$/, '') + ' is attached again in case it is easier to find here.' : 'Is this still a priority for ' + co + '?'),
+          'If it is easier to talk, tell me a time that suits you and I will call.'];
+        if (last.att && last.att.length) attAdd(last.att[0], 'it was on the email you are following up.');
+      }
+      d.why.unshift({ k: 'to', text: 'To ' + c.name + ', ' + (last.from.us ? 'who has not answered since ' + sayDay(last.at) + '.' : 'who wrote last, on ' + sayDay(last.at) + '.') +
+        (o.pick ? ' ' + o.pick : '') });
+    } else {
+      /* A new conversation: the subject is what is actually open between us. */
+      const about = String(o.about || '').trim().replace(/[.?!]+$/, '');
+      const next = c.next && c.next.due >= TODAY_ISO ? c.next : null;
+      const nk = next ? kindOfNext(next.what) : '';
+      const stage = c.checkpoint === 'handed-over' ? stageOf(c) : '';
+      let line = '';
+      if (about) {
+        d.subject = about.charAt(0).toUpperCase() + about.slice(1);
+        if (/pric|cost|quote|proposal/i.test(about)) {
+          d.subject = 'Pricing for ' + co;
+          attAdd({ name: 'Proposal, ' + co + '.pdf', size: '2.1 MB' }, 'you asked to write about pricing, and this is what we priced.');
+        }
+        line = /pric|cost|quote|proposal/i.test(about)
+          ? 'The pricing for ' + co + ' is attached, set out for what we discussed. Every figure is open to a conversation.'
+          : 'I am writing about ' + about.replace(/^(the|our)\s+/i, 'the ') + '.';
+      } else if (next && !untimed(nk)) {
+        d.subject = 'Our ' + (MEET_KIND[nk] || MEET_KIND.meeting).label.toLowerCase() + ' on ' + sayDay(next.due);
+        attAdd({ name: 'Invitation.ics', size: '4 KB' }, 'it puts ' + sayDay(next.due) + ' at ' + clockOf(meetTime(c.id, next.due, nk)) + ' in ' + f + '’s calendar.');
+        line = 'Looking forward to our ' + (MEET_KIND[nk] || MEET_KIND.meeting).label.toLowerCase() + ' on ' + sayDay(next.due) + '. The invitation is attached so it is in your calendar.';
+      } else if (stage === 'commercial' || stage === 'proof') {
+        d.subject = stage === 'commercial' ? 'Our proposal for ' + co : 'The pilot plan for ' + co;
+        attAdd(stage === 'commercial' ? { name: 'Proposal, ' + co + '.pdf', size: '2.1 MB' } : { name: 'Pilot plan, ' + co + '.pdf', size: '880 KB' },
+          'it is what the last meeting agreed to send.');
+        line = stage === 'commercial' ? 'As agreed, the proposal is attached with the prices we went through.'
+          : 'As agreed, the plan for the pilot is attached: what we set up, who we need from your side, and how we measure it.';
+      } else if (said && (said.proposals || []).indexOf('info') >= 0) {
+        d.subject = 'The overview I promised';
+        attAdd({ name: sell.name + ' overview.pdf', size: '1.4 MB' }, 'you promised it on the call on ' + sayDay(said.at) + '.');
+        line = 'As promised on our call, here is a short overview of ' + sell.name + ': ' + sell.blurb + '.';
+      } else if (said) {
+        d.subject = 'Following up on our call';
+        line = 'Thank you for speaking with me on ' + sayDay(said.at) + '. I wanted to follow up on what we discussed about ' + sell.name + '.';
+      } else {
+        d.subject = 'Introduction from FlairsTech';
+        line = 'I lead conversations with ' + (a && a.industry ? a.industry.toLowerCase() + ' ' : '') + 'companies about ' + sell.name + ': ' + sell.blurb + '.';
+      }
+      d.body = ['Hi ' + f + ',', line,
+        said || next ? 'Would twenty minutes this week or next suit you to talk it through?'
+          : 'Would it be worth twenty minutes to see whether it fits ' + co + '?'];
+      d.why.unshift({ k: 'to', text: 'To ' + c.name + ', ' + c.title + (o.pick ? '. ' + o.pick : '.') });
+      d.why.push({ k: 'subj', text: 'The subject is ' + (about ? 'what you asked to write about.'
+        : next && !untimed(nk) ? 'the ' + (MEET_KIND[nk] || MEET_KIND.meeting).label.toLowerCase() + ' that is booked.'
+        : stage ? 'where the deal stands.'
+        : said ? 'your last call with ' + f + ', on ' + sayDay(said.at) + '.'
+        : 'a first introduction: nobody has spoken to ' + f + ' yet.') });
+    }
+    d.body = d.body.concat(sign);
+    return d;
+  }
+
+  /* Written out per state, so the audit can pair each with its rule. */
+  const DRAFT_ST = { sending: ' is-sending', sent: ' is-sent', bounced: ' is-bounced' };
+  function mailCard(d, state) {
+    const row = (k, html) => '<div class="b-draft-f"><dt>' + k + '</dt><dd>' + html + '</dd></div>';
+    const who = (p) => '<span class="b-draft-p"><b>' + esc(p.name) + '</b><span>' + esc(p.addr) + '</span></span>';
+    return '<div class="b-draft' + (DRAFT_ST[state] || '') + '">' +
+      '<dl class="b-draft-head">' +
+        row('From', who(d.from)) +
+        row('To', d.to.map(who).join('')) +
+        (d.cc.length ? row('Copied', d.cc.map(who).join('')) : '') +
+        row('Subject', '<b>' + esc(d.subject) + '</b>') +
+      '</dl>' +
+      '<div class="b-draft-text">' + d.body.map((p) => '<p>' + esc(p) + '</p>').join('') + '</div>' +
+      (d.att.length ? '<div class="b-mail-atts">' + d.att.map(attChip).join('') + '</div>' : '') +
+      (state === 'sending' ? '<p class="b-mail-st tone-accent">' + chIcon('send') + 'Sending. Undo on the toast takes it back.</p>'
+        : state === 'sent' ? '<p class="b-mail-st tone-ok">' + chIcon('mail-check') + 'Sent at ' + esc(timeOf(d.sentAt || new Date().toISOString())) + '.</p>'
+        : state === 'bounced' ? '<p class="b-mail-st tone-err">' + chIcon('mail-x') + 'Bounced. The address did not take it.</p>'
+        : state === 'gone' ? '<p class="b-mail-st">' + chIcon('x') + 'Not sent.</p>'
+        : (d.why.length ? '<details class="b-draft-why"' + (d.whyOpen ? ' open' : '') + '><summary>' +
+            '<svg viewBox="0 0 18 20" width="11" height="13" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+            'Why AiMY wrote it this way</summary><ul>' +
+            d.why.map((w) => '<li>' + esc(w.text) + '</li>').join('') + '</ul></details>' : '')) +
+    '</div>';
+  }
+  /* The example names somebody who could really be copied: a colleague of
+     theirs, else one of ours who is not you. */
+  function mailHint(d) {
+    const c = DB.byCon[d.con];
+    const a = c && accOf(c);
+    const theirs = a ? consAt(a.id).filter((x) => x.email && x.id !== c.id && !d.cc.some((p) => p.id === x.id))[0] : null;
+    const ours = MANAGERS.filter((r) => r.id !== me().id && !d.cc.some((p) => p.id === r.id))[0];
+    const who = theirs ? fname(theirs.name) : ours ? fname(ours.name) : 'a colleague';
+    return 'Say what to change: “copy ' + who + '”, “attach the case study”, “shorter”, “say we can start in May”, or a new subject.';
+  }
+  function mailPush(line) {
+    lbuildSpend();
+    /* The thread is the record of how the email came to read this way, so an
+       earlier version stays, folded, rather than standing at full size. */
+    let first = true;
+    TURNS.forEach((t) => {
+      if (t.step !== 'mail' || !t.card || t.seq !== MAIL.seq) return;
+      first = false;
+      if (t.old) return;
+      t.card = '<details class="b-draft-old"><summary>' + chIcon('down') + 'Earlier version</summary>' + t.card + '</details>';
+      t.old = true;
+    });
+    TURNS.push({ who: 'aimy', html: line, step: 'mail', seq: MAIL.seq, card: mailCard(MAIL), hint: first ? mailHint(MAIL) : '',
+      opts: [{ k: 'send', label: 'Send it', primary: true }, { k: 'discard', label: 'Discard', quiet: true }] });
+    paintThread();
+  }
+  /* The last draft turn, which is the one that changes state as it goes. */
+  const mailTurn = () => { for (let i = TURNS.length - 1; i >= 0; i--) if (TURNS[i].step === 'mail') return TURNS[i]; return null; };
+
+  /* Which person at a company to write to, and the reason, said out loud:
+     somebody waiting on an answer, then the live deal, then whoever we last
+     spoke to, then anybody with an address. */
+  function mailPick(a) {
+    const people = consAt(a.id).filter((c) => c.email && !c.dnc);
+    if (!people.length) return null;
+    const waiting = people.filter((c) => mailThreads(c).some((th) => mailState(th).k === 'replied'))[0];
+    if (waiting) return { c: waiting, why: fname(waiting.name) + ' is waiting on an answer from us.' };
+    const deal = people.filter((c) => c.checkpoint === 'handed-over' && dealLive(c))[0];
+    if (deal) return { c: deal, why: 'The live deal here is with ' + fname(deal.name) + '.' };
+    const spoke = people.map((c) => ({ c: c, t: touchesOfCon(c).filter((t) => (OUTCOME[t.outcome] || {}).writes)[0] }))
+      .filter((x) => x.t).sort((x, y) => (x.t.at > y.t.at ? -1 : 1))[0];
+    if (spoke) return { c: spoke.c, why: 'You last spoke to ' + fname(spoke.c.name) + ', on ' + sayDay(spoke.t.at) + '.' };
+    return { c: people[0], why: fname(people[0].name) + ' is the first person here with an address.' };
+  }
+
+  /* Into the chat. The question is written as if it had been typed, so the
+     thread reads the same however it was started. */
+  function mailStart(c, o) {
+    o = o || {};
+    if (!c) return;
+    if (!works()) { toast('Emails are written by whoever works this record.'); return; }
+    openCanvas();
+    if (MAIL) mailDrop('Put the last draft aside.');
+    say('you', esc(o.ask || ('Write an email to ' + c.name)));
+    if (!c.email) {
+      say('aimy', 'There is no email address for <b>' + esc(c.name) + '</b> yet, so there is nothing to send it to.',
+        { step: 'mail', opts: [{ k: 'find:' + c.id, label: 'Find an address', primary: true }] });
+      return;
+    }
+    /* Asked for "an email" with nothing more said, and a conversation open
+       with them in the last six weeks: it goes on that thread, so the two
+       read as one conversation, and the draft says so. */
+    if (!o.th && !o.about) {
+      const live = mailThreads(c).sort((x, y) => (mailLast(x).at > mailLast(y).at ? -1 : 1))[0];
+      if (live && daysBetween(mailLast(live).at.slice(0, 10), TODAY_ISO) <= 42) {
+        o.th = live.id;
+        o.pick = (o.pick ? o.pick + ' ' : '') + 'It goes on “' + live.subject + '”, your last thread with ' + fname(c.name) + ', so it reads as one conversation.';
+      }
+    }
+    TURNS.push({ who: 'aimy', html: thinkRow().replace('Reading the record…', 'Reading what was said with ' + esc(fname(c.name)) + '…'), thinking: true });
+    paintThread();
+    startThinking($('.chat-msg.is-thinking .think-mark'));
+    setTimeout(() => {
+      thinkDrop();
+      MAIL = mailDraft(c, o);
+      MAIL.seq = Date.now();
+      (o.then || []).forEach((x) => mailApply(x, true));
+      const th = MAIL.th ? mailThreads(c).filter((x) => x.id === MAIL.th)[0] : null;
+      mailPush(th ? (mailLast(th).from.us || !MAIL_OWES[mailLast(th).ask] ? 'Here is a follow-up' : 'Here is an answer') +
+          ' on <b>' + esc(th.subject) + '</b>. ' + (o.pick ? esc(o.pick) + ' ' : '') + 'I kept everybody who was on it.'
+        : 'Here is a draft to <b>' + esc(c.name) + '</b>. ' + (o.pick ? esc(o.pick) + ' ' : '') +
+          'Read it, change anything by saying so, and send it when it reads right.');
+    }, 1300);
+  }
+  function mailDrop(line) {
+    const t = mailTurn();
+    if (t && !t.spent) { t.card = mailCard(MAIL, 'gone'); t.spent = true; }
+    MAIL = null;
+    if (line) say('aimy', line);
+  }
+
+  /* ══ A CHANGE IS A SENTENCE ════════════════════════════════════════════
+     Read in the order that keeps them apart: sending and dropping first,
+     then who is copied, then what is attached, then the words. `quiet` is
+     for changes carried in the sentence that started the draft ("email Priya
+     about pricing and copy Lina"), which go into the first card rather than
+     a turn each. Returns what changed, or '' when nothing could be read. */
+  const ATT_KINDS = [
+    { re: /case stud/i, at: (c, s, co) => ({ name: 'Case study, ' + s.name + '.pdf', size: '960 KB' }) },
+    { re: /proposal|pricing|price list|quote/i, at: (c, s, co) => ({ name: 'Proposal, ' + co + '.pdf', size: '2.1 MB' }) },
+    { re: /overview|brochure|one.?pager|deck/i, at: (c, s) => ({ name: s.name + ' overview.pdf', size: '1.4 MB' }) },
+    { re: /security/i, at: () => ({ name: 'Security overview.pdf', size: '1.1 MB' }) },
+    { re: /pilot/i, at: (c, s, co) => ({ name: 'Pilot plan, ' + co + '.pdf', size: '880 KB' }) },
+    { re: /invit|calendar|\.ics/i, at: () => ({ name: 'Invitation.ics', size: '4 KB' }) },
+  ];
+  /* Everybody this draft could name: our people by first or full name, and
+     theirs at the same company. */
+  function mailNamed(text, c) {
+    const q = ' ' + text.toLowerCase().replace(/[^a-z' ]/g, ' ') + ' ';
+    const a = accOf(c);
+    const pool = REPS.filter((r) => r.fn !== 'client').map((r) => usP(r.id))
+      .concat(a ? consAt(a.id).filter((x) => x.email && x.id !== c.id).map(themP) : []);
+    return pool.filter((p) => {
+      const full = p.name.toLowerCase();
+      const first = full.split(' ')[0];
+      return q.indexOf(' ' + full + ' ') >= 0 || (first.length > 2 && q.indexOf(' ' + first + ' ') >= 0);
+    });
+  }
+  function mailApply(text, quiet) {
+    const d = MAIL;
+    const c = DB.byCon[d.con];
+    const a = accOf(c);
+    const co = a ? a.name : 'your team';
+    const sell = SELL[sellOf(c)] || SELLS[0];
+    const t = String(text).trim();
+    const off = /\b(remove|drop|take|without|no longer|don'?t|do not|leave)\b/i.test(t);
+    const said = [];
+    const named = mailNamed(t, c).filter((p) => !d.to.some((x) => x.id === p.id) && p.id !== d.from.id);
+    if (named.length && /\b(cc|copy|copied|include|loop|add|keep|remove|drop|take|without)\b/i.test(t)) {
+      named.forEach((p) => {
+        if (off) {
+          if (!d.cc.some((x) => x.id === p.id)) return;
+          d.cc = d.cc.filter((x) => x.id !== p.id);
+          d.why = d.why.filter((w) => !(w.k === 'cc' && w.id === p.id));
+          said.push('Took ' + p.name + ' off the copy.');
+        } else {
+          if (d.cc.some((x) => x.id === p.id)) return;
+          d.cc.push(p);
+          d.why.push({ k: 'cc', id: p.id, text: p.name + ' is copied: you asked for ' + (p.us ? 'them' : 'them') + '.' });
+          said.push('Copied ' + p.name + (p.us ? '' : ', at ' + co) + '.');
+        }
+      });
+    }
+    if (/\b(attach|attachment|attached|send|add|include|remove|drop|without)\b/i.test(t)) {
+      ATT_KINDS.forEach((k) => {
+        if (!k.re.test(t)) return;
+        const x = k.at(c, sell, co);
+        if (off) {
+          if (!d.att.some((y) => y.name === x.name)) return;
+          d.att = d.att.filter((y) => y.name !== x.name);
+          d.why = d.why.filter((w) => !(w.k === 'att' && w.id === x.name));
+          said.push('Took ' + x.name + ' off.');
+        } else if (!d.att.some((y) => y.name === x.name)) {
+          d.att.push(x);
+          d.why.push({ k: 'att', id: x.name, text: x.name + ' is attached: you asked for it.' });
+          said.push('Attached ' + x.name + '.');
+        }
+      });
+      if (off && /\b(attachments?|everything attached|the files?)\b/i.test(t) && d.att.length && !said.length) {
+        d.att = [];
+        d.why = d.why.filter((w) => w.k !== 'att');
+        said.push('Took the attachments off.');
+      }
+    }
+    const subj = t.match(/\bsubject\b(?:\s+line)?\s*(?:to|:|should be|as)?\s*["“']?(.+?)["”']?\s*$/i);
+    if (subj && subj[1] && !said.length) {
+      d.subject = subj[1].charAt(0).toUpperCase() + subj[1].slice(1);
+      said.push('The subject is now “' + d.subject + '”.');
+    }
+    if (/\b(shorter|short|brief|briefer|tighter|cut it down|fewer words|less wordy)\b/i.test(t)) {
+      const sign = d.body.slice(-3);
+      const core = d.body.slice(0, -3);
+      if (core.length > 2) {
+        d.body = [core[0], core[1]].concat(sign);
+        said.push('Cut it to the one paragraph that matters.');
+      } else said.push('It is already as short as it can be and still say why you are writing.');
+    }
+    if (/\b(more formal|formal)\b/i.test(t) && d.tone !== 'formal') {
+      d.body[0] = 'Dear ' + c.name + ',';
+      d.body[d.body.length - 3] = 'Kind regards,';
+      d.tone = 'formal';
+      said.push('Made it more formal.');
+    } else if (/\b(less formal|friendlier|warmer|casual|relaxed)\b/i.test(t) && d.tone !== 'plain') {
+      d.body[0] = 'Hi ' + fname(c.name) + ',';
+      d.body[d.body.length - 3] = 'Best,';
+      d.tone = 'plain';
+      said.push('Made it warmer.');
+    }
+    const add = t.match(/^\s*(?:and\s+)?(?:please\s+)?(?:say|tell (?:her|him|them)|mention|add (?:a line )?(?:saying\s+)?that|also say|let (?:her|him|them) know)\s+(?:that\s+)?(.+)$/i);
+    if (add && add[1]) {
+      let s = add[1].trim().replace(/[.!]+$/, '');
+      s = s.replace(/\bi\b/g, 'I');
+      s = s.charAt(0).toUpperCase() + s.slice(1) + '.';
+      d.body.splice(d.body.length - 3, 0, s);
+      said.push('Added: “' + s + '”');
+    }
+    if (said.length && !quiet) d.whyOpen = false;
+    return said.join(' ');
+  }
+
+  function mailEdit(text) {
+    const t = String(text).trim();
+    if (/^\s*(send( it)?( now)?|yes,? send( it)?|go ahead|looks good,? send( it)?|ship it)\s*[.!]?\s*$/i.test(t)) {
+      say('you', esc(t));
+      mailSend();
+      return true;
+    }
+    if (/^\s*(discard|cancel|forget it|scrap it|do not send( it)?|don'?t send( it)?|never ?mind)\b/i.test(t)) {
+      say('you', esc(t));
+      mailDrop('Discarded. Nothing was sent.');
+      return true;
+    }
+    const changed = mailApply(t);
+    if (changed) {
+      say('you', esc(t));
+      mailPush(esc(changed));
+      return true;
+    }
+    /* A question goes to the ordinary answers, and the draft waits. */
+    if (ASK_RE.test(t)) return false;
+    say('you', esc(t));
+    say('aimy', 'I could not tell what to change from that, so the draft is as it was. I can change who is copied, ' +
+      'what is attached, the subject, how formal it is, or add a line: start with “say”.');
+    return true;
+  }
+
+  function mailSend() {
+    const d = MAIL;
+    if (!d) return;
+    const c = DB.byCon[d.con];
+    const msg = { id: 'mu' + Date.now(), thread: d.th || ('mn' + Date.now()), con: d.con,
+      subject: d.subject, from: d.from, to: d.to, cc: d.cc, at: new Date().toISOString(),
+      body: d.body, att: d.att, sentMs: Date.now(), bad: mailBad(c), by: me().id };
+    mailMine().push(msg);
+    save();
+    d.sentAt = msg.at;
+    const turn = mailTurn();
+    if (turn) { turn.card = mailCard(d, 'sending'); turn.spent = true; }
+    MAIL = null;
+    MAIL_OPEN_TH = msg.thread;
+    paintThread();
+    paint();
+    const back = d;
+    toast('Sending to ' + c.name, () => {
+      const i = mailMine().indexOf(msg);
+      if (i < 0 || Date.now() - msg.sentMs >= MAIL_HOLD) return;
+      mailMine().splice(i, 1);
+      save();
+      MAIL = back;
+      if (turn) turn.card = mailCard(back, 'gone');
+      mailPush('Taken back before it left. Here it is again, unchanged.');
+      paint();
+    }, 'It leaves in a few seconds. Undo keeps it here.');
+    setTimeout(() => {
+      if (mailMine().indexOf(msg) < 0) return;
+      if (turn) turn.card = mailCard(back, msg.bad ? 'bounced' : 'sent');
+      const door = '<div class="b-cuts"><button class="s-insight-lnk" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'history', q: 'mail', con: c.id }))) + '">See it in ' +
+        esc(fname(c.name)) + '’s emails</button></div>';
+      if (msg.bad) {
+        say('aimy', '<b>It bounced.</b> ' + esc(c.email) + ' did not take it, so ' + esc(fname(c.name)) +
+          ' may have left or changed address. Find another address and I will send it again.',
+          { step: 'mail', opts: [{ k: 'find:' + c.id, label: 'Find another address', primary: true }] });
+      } else {
+        say('aimy', 'Sent to <b>' + esc(c.name) + '</b>' + (back.cc.length ? ', with ' + esc(back.cc.map((p) => p.name).join(' and ')) + ' copied' : '') +
+          '. I will say when ' + esc(fname(c.name)) + ' opens it or answers.' + door);
+        setTimeout(() => {
+          if (mailMine().indexOf(msg) < 0) return;
+          toast(fname(c.name) + ' opened “' + back.subject + '”', null, 'It is on the Emails tab of their history.');
+          if (S.on === 'history') paint();
+        }, MAIL_OPEN - MAIL_HOLD);
+      }
+      if (S.on === 'history') paint();
+    }, MAIL_HOLD);
+  }
+
+  /* A new address, for the session, the way Find a number works: a wait
+     that says what it is doing, then the address on the record until a
+     reload. */
+  function mailFind(id) {
+    const c = DB.byCon[id];
+    if (!c) return;
+    const a = accOf(c);
+    toast('Looking for ' + c.name + '’s address on Apollo', null, 'It takes a few seconds.');
+    setTimeout(() => {
+      const dom = a && a.domain ? a.domain : 'company.com';
+      const parts = c.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ');
+      const next = parts[0].charAt(0) + '.' + parts[parts.length - 1] + '@' + dom;
+      foundSet(c, { email: next });
+      MAIL_FIXED[c.id] = true;
+      delete MAIL_CACHE[c.id];
+      toast('Found ' + next, null, 'From Apollo. It is on the record for this session.');
+      if (MAIL && MAIL.con === c.id) {
+        MAIL.to = [themP(c)];
+        mailPush('The address is now <b>' + esc(next) + '</b>. The draft goes there.');
+      }
+      paint();
+    }, 2400);
+  }
+
+  /* "Email Priya about pricing and copy Lina", "write to her", "reply to
+     Priya". The name is whoever is named, or whoever is open; anything after
+     "and" that reads as a change goes into the first draft. */
+  /* A name is common in a corpus this size, so the person meant is the one
+     open, then one of yours, then one with an address. */
+  function mailWho(text) {
+    const q = String(text || '').toLowerCase().trim();
+    if (q.length < 3) return null;
+    let hits = DB.con.filter((c) => c.name.toLowerCase() === q);
+    if (!hits.length && q.length > 3) hits = DB.con.filter((c) => c.name.toLowerCase().indexOf(q) >= 0);
+    const meId = me().id;
+    const score = (c) => (c.id === S.con ? 0 : 4) + (c.manager === meId || c.owner === meId ? 0 : 2) + (c.email ? 0 : 1);
+    return hits.sort((x, y) => score(x) - score(y))[0] || null;
+  }
+  const MAIL_RE = /^\s*(?:please\s+)?(?:(?:send|write|draft)\s+(?:an?\s+)?e-?mail\s+to|e-?mail|write\s+to|reply\s+to|answer)\s+(.+)$/i;
+  function mailAsk(t) {
+    const m = t.match(MAIL_RE);
+    if (!m) return false;
+    let rest = m[1].trim();
+    const then = [];
+    const split = rest.split(/\s*(?:,\s*|\s+)(?:and\s+)?(?=(?:cc|copy|copying|attach|attaching|include)\b)/i);
+    rest = split.shift();
+    split.forEach((x) => then.push(x));
+    let about = '';
+    const ab = rest.match(/^(.*?)\s+(?:about|on|regarding|re)\s+(.+)$/i);
+    if (ab) { rest = ab[1]; about = ab[2]; }
+    const reply = /^\s*(?:please\s+)?(?:reply|answer)\b/i.test(t);
+    let c = null;
+    let pick = '';
+    if (/^(her|him|them|this person|this contact)$/i.test(rest.trim()) && S.con) c = DB.byCon[S.con];
+    if (!c) c = mailWho(rest);
+    if (!c) {
+      const q = rest.toLowerCase().trim();
+      const a = DB.acc.filter((x) => x.name.toLowerCase() === q || (q.length > 3 && x.name.toLowerCase().indexOf(q) >= 0))[0] ||
+        (/^(them|this company|the company)$/i.test(q) && S.acc ? DB.byAcc[S.acc] : null);
+      if (a) { const p = mailPick(a); if (p) { c = p.c; pick = p.why; } }
+    }
+    if (!c && S.con) c = DB.byCon[S.con];
+    if (!c) {
+      openCanvas();
+      say('you', esc(t));
+      say('aimy', 'Who is it to? Name the person, or open their page and ask again.');
+      return true;
+    }
+    let th = null;
+    if (reply) {
+      const ths = mailThreads(c);
+      th = (ths.filter((x) => mailState(x).k === 'replied')[0] || ths.sort((x, y) => (mailLast(x).at > mailLast(y).at ? -1 : 1))[0] || null);
+    }
+    mailStart(c, { ask: t, about: about, th: th ? th.id : null, then: then, pick: pick });
+    return true;
   }
 
   function notesPage() {
@@ -20670,7 +21792,7 @@
       : '';
 
     return '<div class="s-home">' +
-      backHere() +
+      '<div class="b-topbar s-block-wide">' + backHere() + histDoor() + '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind b-kinds">' +
@@ -21439,7 +22561,7 @@
     return '<div class="s-home">' +
       /* WIDE, or the two-column grid takes it into the first column and
          the far edge of the row turns out to be the middle of the page. */
-      '<div class="b-topbar s-block-wide">' + backHere() + endGate(c) + '</div>' +
+      '<div class="b-topbar s-block-wide">' + backHere() + histDoor() + endGate(c) + '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
         /* ══ THE EYEBROW OVER THE NAME ═════════════════════════════════════
@@ -21539,8 +22661,12 @@
                run asks first: it comes back with an address far more often
                than a number, and a lead you can only email is still a lead
                you can reach. */
-            (c.email ? fact('mail', '<a class="s-inline-btn" href="mailto:' +
-              esc(c.email) + '">' + esc(c.email) + '</a>') : '') +
+            /* AIMY-2668: an email goes through AiMY, so the address opens a
+               draft in the chat rather than the computer's mail app. */
+            (c.email ? fact('mail', works()
+              ? '<button class="s-inline-btn" type="button" data-mailnew="con:' + esc(c.id) + '" ' +
+                'title="Write to them with AiMY">' + esc(c.email) + '</button>'
+              : esc(c.email)) : '') +
             fact('linkedin', '<a class="s-inline-btn" href="https://www.linkedin.com/in/' +
               esc(liSlug(c)) + '" target="_blank" rel="noopener">' + esc(liSlug(c)) + '</a>') +
 
@@ -21580,6 +22706,8 @@
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">What has been said</h2>' +
           '<span class="s-block-say">' + plural(n, 'touchpoint') + ' on the record</span>' +
+          '<button class="s-insight-lnk b-hist-lnk" type="button" data-go="' + esc(JSON.stringify(histOver('calls'))) + '">' +
+            'Calls, meetings and emails</button>' +
         '</div>' +
         callsBlock(c) +
       '</section>' +
@@ -24168,6 +25296,16 @@
     external: '<path d="M15 3h6v6"/> <path d="M10 14 21 3"/>' +
       ' <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/>',
     more: '<circle cx="12" cy="12" r="1"/> <circle cx="19" cy="12" r="1"/> <circle cx="5" cy="12" r="1"/>',
+    /* AIMY-2668: the history door and the states of an email. Lucide, path
+       for path. */
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/> <path d="M3 3v5h5"/> <path d="M12 7v5l4 2"/>',
+    'mail-open': '<path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/> <path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/>',
+    'mail-x': '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/> <path d="m17 17 4 4"/> <path d="m21 17-4 4"/>',
+    'mail-check': '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/> <path d="m16 19 2 2 4-4"/>',
+    send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/> <path d="m21.854 2.147-10.94 10.939"/>',
+    reply: '<polyline points="9 17 4 12 9 7"/> <path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',
+    paperclip: '<path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/>',
+    search: '<circle cx="11" cy="11" r="8"/> <path d="m21 21-4.3-4.3"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
      line without the mark drifting off the first line of a wrapped fact. */
@@ -27985,6 +29123,7 @@
                 : t.step === 'reach' ? 'data-reach="' + esc(o.k) + '"'
                 : t.step === 'curdone' ? 'data-curopen="' + esc(o.k) + '"'
                 : t.step === 'coach' ? 'data-coach="' + esc(o.k) + '"'
+                : t.step === 'mail' ? 'data-mail="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
               esc(o.label) + '</button>').join('') + '</div>'
           : '') +
@@ -29779,6 +30918,10 @@
       return;
     }
 
+    /* A draft on screen owns the sentence, the way a call being logged does.
+       A question still goes through to the ordinary answers. */
+    if (MAIL && mailEdit(t)) return;
+
     if (CBUILD) {
       if (CBUILD.step === 'who') { cbuildWho(t); return; }
       if (CBUILD.step === 'goal') { say('you', esc(t)); cbuildGoal(t); return; }
@@ -29850,6 +30993,7 @@
     }
 
     if (draftChat(t)) return;
+    if (mailAsk(t)) return;
 
     const addM = t.match(ADD_RE);
     if (addM) {
@@ -34082,6 +35226,37 @@
     const home = t.closest('[data-home]');
     if (home) { go(cleared()); return; }
 
+    /* AIMY-2668: an email is started, answered and sent in the chat. */
+    const mailB = t.closest('[data-mail]');
+    if (mailB) {
+      const k = mailB.getAttribute('data-mail');
+      if (k === 'send') mailSend();
+      else if (k === 'discard') mailDrop('Discarded. Nothing was sent.');
+      else if (k.indexOf('find:') === 0) mailFind(k.slice(5));
+      return;
+    }
+    const mailN = t.closest('[data-mailnew]');
+    if (mailN) {
+      const v = mailN.getAttribute('data-mailnew');
+      if (v.indexOf('acc:') === 0) {
+        const a = DB.byAcc[v.slice(4)];
+        const p = a ? mailPick(a) : null;
+        if (p) mailStart(p.c, { ask: 'Write an email to someone at ' + a.name, pick: p.why });
+      } else mailStart(DB.byCon[v.slice(4)]);
+      return;
+    }
+    const mailR = t.closest('[data-mailreply]');
+    if (mailR) {
+      const id = mailR.getAttribute('data-mailreply');
+      const own = mailMine().filter((m) => m.thread === id)[0];
+      const tp = id.indexOf('mt') === 0 ? TOUCH[id.slice(2)] : null;
+      const c = DB.byCon[own ? own.con : tp ? tp.con : ''];
+      if (c) mailStart(c, { th: id, ask: 'Answer “' + ((mailThreads(c).filter((x) => x.id === id)[0] || {}).subject || 'the email') + '”' });
+      return;
+    }
+    const mailF = t.closest('[data-mailfind]');
+    if (mailF) { mailFind(mailF.getAttribute('data-mailfind')); return; }
+
     const goEl = t.closest('[data-go]');
     if (goEl) {
       let over = {};
@@ -34257,6 +35432,8 @@
          draw a queue at all — the chip worked and the page it worked on
          disappeared. Every key that says WHERE you are survives a cut. */
       if (S.on) over.on = S.on;
+      /* And on a record's history the record is where you are. */
+      if (S.on === 'history') { if (S.con) over.con = S.con; if (S.acc) over.acc = S.acc; }
       go(over);
       return;
     }
