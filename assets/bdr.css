@@ -1147,6 +1147,10 @@
   font-weight: var(--fw-semibold);
 }
 .s-callsum-cap { font-size: var(--fs-xs); }
+/* The caption grew to the body step and its column did not: "What happened"
+   measures 130px at 14px and the sales.css column is 96, so it broke over two
+   lines. The column is the run summary's 132 (§108), on one line. */
+.s-callsum-cap { flex-basis: 132px; white-space: nowrap; }
 .s-callp b { font-size: var(--fs-xs); color: var(--ink-muted); }
 .b-aimy-from { font-size: var(--fs-2xs); }
 /* Shares .tc-head with the state tag, which is 12px. At 14 it outranked the
