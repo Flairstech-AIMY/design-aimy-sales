@@ -7630,8 +7630,14 @@
     return out.sort((x, y) => (x.at > y.at ? -1 : 1));
   };
   function histMeets(sc) {
+    /* The manager's meetings are phase touchpoints. A caller's are not: the
+       meeting she set is recorded by moving them to "showed up", so that
+       move is the meeting, and without it a caller's Meetings tab was empty
+       on almost every record she holds. */
     const held = [];
-    sc.people.forEach((c) => phasesOf(c).forEach((t) => held.push(t)));
+    sc.people.forEach((c) => touchesOfCon(c).forEach((t) => {
+      if (t.outcome === 'phase' || (t.moved && t.moved[1] === 'showed-up')) held.push(t);
+    }));
     held.sort((x, y) => (x.at > y.at ? -1 : 1));
     const ahead = sc.people.filter((c) => c.next && c.next.due >= TODAY_ISO && !untimed(kindOfNext(c.next.what)))
       .map((c) => {
@@ -7752,6 +7758,15 @@
   function histMeetRow(t, many, i) {
     const c = DB.byCon[t.con];
     if (!c) return '';
+    if (t.outcome !== 'phase') {
+      return histRow({
+        tone: 'is-meet', ico: chIcon('calendar'),
+        who: many ? c.name : 'First meeting',
+        meta: logMeta([many ? 'First meeting' : '', whoDid(t).name, clockIf(t.at)]),
+        note: t.note || '',
+        tag: 'They showed up', tagTone: 'ok',
+      }, i);
+    }
     const label = (PHASE[t.phase] || {}).label || 'Meeting';
     const out = t.decision ? (t.decision === 'won' ? 'Signed' : t.decision === 'later' ? 'Rescheduled' : 'Declined')
       : t.out && MEET_OUT_BY[t.out] ? MEET_OUT_BY[t.out].label : '';
@@ -7846,7 +7861,7 @@
         ' A meeting lands here once it is booked.</p>';
     }
     const pg = paged(meets.held);
-    const said = meets.held.filter((t) => t.out || t.decision).length;
+    const said = meets.held.filter((t) => t.outcome !== 'phase' || t.out || t.decision).length;
     return (meets.held.length
         ? aimyBlock({ text: '<b>' + esc(plural(meets.held.length, 'meeting')) + '</b> held' +
             (meets.held.length - said ? ', and <b>' + esc(commas(meets.held.length - said)) + '</b> with nothing said about how ' +
