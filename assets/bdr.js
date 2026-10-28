@@ -7399,14 +7399,26 @@
      can happen for any reason while a message is running — a toast lands, a
      figure ticks — and a fill that restarted from nothing each time would make
      the page look like it had lost its place. */
-  const vmAt = () => (VM_ON ? Math.min(TOUCH[VM_ON].vm.secs, (Date.now() - VM_T0) / 1000) : 0);
+  const vmAt = () => (VM_ON ? Math.min(recOf(TOUCH[VM_ON]).secs, (Date.now() - VM_T0) / 1000) : 0);
+
+  /* ══ A CALL'S RECORDING IS THE SAME OBJECT AS A MESSAGE ═══════════
+     What a touchpoint has to play: the message they left on a missed call,
+     or the recording of a call where somebody spoke, as long as the call
+     was. A call nobody answered has nothing on it. One strip, one player and
+     one at a time across both, because to the reader they are the same
+     thing: something said on a call, with a length, that you can listen to. */
+  function recOf(t) {
+    if (!t) return null;
+    if (t.vm) return t.vm;
+    return t.secs > 0 && !wasMissed(t) && (OUTCOME[t.outcome] || {}).writes ? { secs: t.secs } : null;
+  }
 
   function vmStrip(vm, id) {
     const on = VM_ON === id;
     const el = on ? vmAt() : 0;
     return '<button class="b-log-vm' + (on ? ' is-playing' : '') + '" type="button" ' +
       'data-vm="' + esc(id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" ' +
-      'aria-label="Play the message they left, ' + esc(fmtClock(vm.secs)) + '">' +
+      'aria-label="' + (vm.text ? 'Play the message they left, ' : 'Play the recording of the call, ') + esc(fmtClock(vm.secs)) + '">' +
       '<span class="b-log-vm-go">' + chIcon(on ? 'pause' : 'play') + '</span>' +
       '<span class="b-log-vm-wave">' +
         '<span class="b-log-vm-bars">' + vmWave(id) + '</span>' +
@@ -7435,16 +7447,16 @@
     const was = VM_ON;
     vmStop();
     if (was === id) return;
-    const t = TOUCH[id];
-    if (!t || !t.vm) return;
+    const rec = recOf(TOUCH[id]);
+    if (!rec) return;
     VM_ON = id;
     VM_T0 = Date.now();
     vmDraw(id);
-    VM_TIMER = setTimeout(() => { VM_TIMER = null; vmStop(); }, t.vm.secs * 1000);
+    VM_TIMER = setTimeout(() => { VM_TIMER = null; vmStop(); }, rec.secs * 1000);
     VM_TICK = setInterval(() => {
       const el = document.querySelector('[data-vm="' + VM_ON + '"] .b-log-vm-len');
       if (!el) return;
-      el.textContent = fmtClock(Math.max(0, Math.ceil(TOUCH[VM_ON].vm.secs - vmAt())));
+      el.textContent = fmtClock(Math.max(0, Math.ceil(recOf(TOUCH[VM_ON]).secs - vmAt())));
     }, 250);
   }
 
@@ -7462,9 +7474,9 @@
      pair that drifts. It is one element either way. */
   function vmDraw(id) {
     const el = document.querySelector('[data-vm="' + id + '"]');
-    const t = TOUCH[id];
-    if (!el || !t || !t.vm) return;
-    el.outerHTML = vmStrip(t.vm, id);
+    const rec = recOf(TOUCH[id]);
+    if (!el || !rec) return;
+    el.outerHTML = vmStrip(rec, id);
   }
   function missedPage() {
     const calls = missedCalls();
@@ -7666,13 +7678,21 @@
         (o.note ? '<span class="b-hist-note">' + esc(o.note) + '</span>' : '') +
       '</span>' +
       (o.tag ? '<span class="s-meta-st b-hist-tag tone-' + esc(o.tagTone || 'neutral') + '">' + esc(o.tag) + '</span>' : '');
+    /* The recording hangs under the row, outside the disclosure, the way the
+       call log hangs a message under its row: it is there to play without
+       opening anything, and the item, not the row, carries the entrance. */
+    if (o.after) {
+      return '<div class="b-log-item" style="--i:' + Math.min(i, 8) + '">' +
+        histRow(Object.assign({}, o, { after: '', bare: true }), i) + o.after + '</div>';
+    }
+    const item = o.bare ? '' : 'b-log-item ';
     if (!o.body) {
-      return '<div class="b-log-item b-hist-item" style="--i:' + Math.min(i, 8) + '">' +
+      return '<div class="' + item + 'b-hist-item" style="--i:' + Math.min(i, 8) + '">' +
         '<div class="b-log-row b-hist-row is-still">' + head +
           (o.go ? '<button class="b-log-go" type="button" ' + o.act + '>' + (o.goIco || '') + esc(o.go) + '</button>' : '') +
         '</div></div>';
     }
-    return '<details class="b-log-item b-hist-item"' + (o.id ? ' id="' + esc(o.id) + '"' : '') +
+    return '<details class="' + item + 'b-hist-item"' + (o.id ? ' id="' + esc(o.id) + '"' : '') +
       (o.open ? ' open' : '') + ' style="--i:' + Math.min(i, 8) + '">' +
       '<summary class="b-log-row b-hist-row">' + head +
         '<span class="b-hist-chev" aria-hidden="true">' + chIcon('down') + '</span>' +
@@ -7700,8 +7720,8 @@
       who: many ? c.name : kindLabel(t),
       meta: logMeta([many ? kindLabel(t) : dir, whoDid(t).name, t.secs ? fmtClock(t.secs) : '', clockIf(t.at)]),
       note: t.note || '',
+      after: recOf(t) ? vmStrip(recOf(t), t.id) : '',
       body: callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines) +
-        (t.vm ? vmStrip(t.vm, t.id) : '') +
         (callLines(t).length ? '<div class="b-acts b-hist-acts"><button class="b-ghost b-ai" type="button" data-script="' +
           esc(t.id) + '">' + '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' + 'Read the transcript in the chat</button></div>' : ''),
     }, i);
