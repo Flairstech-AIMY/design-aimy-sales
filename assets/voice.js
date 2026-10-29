@@ -76,7 +76,8 @@
     x:      '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     check:  '<path d="M20 6 9 17l-5-5"/>',
     clip:   '<path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/>',
-    file:   '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>'
+    file:   '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    notes:  '<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/>'
   };
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -128,7 +129,7 @@
   const BARS = [];
   let ASK = null;
 
-  let stage, orb, silk, state, heard, liveClock, mute, end;
+  let stage, orb, silk, state, heard, liveClock, mute, end, notes;
 
   /* One thing at a time, page-wide. `mode` is '' | 'rec' | 'note' | 'live' |
      'error'; `bar` is the composer dictating or showing a note. */
@@ -499,6 +500,12 @@
         '<div class="vx-dock">' +
           `<button class="vx-round vx-mute" type="button" aria-pressed="false" aria-label="Mute" title="Mute">${svg(I.mic, 22, 'vx-i-on')}${svg(I.micOff, 22, 'vx-i-off')}</button>` +
           `<button class="vx-round vx-end" type="button" aria-label="End the voice session" title="End">${svg(I.x, 22)}</button>` +
+          /* Take meeting notes, where the page has the notetaker (notetaker.js, Knowledge's
+             Console): on its own line under the pair, so mute and end stay
+             the call's two controls. Without it the pill never shows, so
+             this file still works unchanged on every other page. */
+          '<span class="vx-dock-br" aria-hidden="true"></span>' +
+          `<button class="vx-notes" type="button" hidden>${svg(I.notes, 18)}Take meeting notes</button>` +
         '</div>' +
       '</div>');
     stage = $('#vxStage');
@@ -512,6 +519,12 @@
     mute.addEventListener('click', toggleMute);
     orb.addEventListener('click', interrupt);
     end.addEventListener('click', endSession);
+    /* The notetaker asks for consent on this stage and, on yes, takes the
+       orb into the corner and ends the voice session itself. */
+    notes = $('.vx-notes', stage);
+    notes.addEventListener('click', () => {
+      if (window.AIMY_NOTES && S.mode === 'live') window.AIMY_NOTES.fromVoice({ stage: stage, orb: orb, done: endSession });
+    });
   }
 
   /* ══ THE EMPTY BAR IS THE VOICE BAR ═════════════════════════════════════
@@ -802,6 +815,7 @@
     S.asked = S.spoke = false;
     openStage();
     mute.hidden = false;
+    notes.hidden = !window.AIMY_NOTES || window.AIMY_NOTES.isOn();
     liveClock.hidden = false;
     end.setAttribute('aria-label', 'End the voice session');
     end.title = 'End';
@@ -976,6 +990,7 @@
     heard.textContent = '';
     orb.disabled = true;
     mute.hidden = true;
+    notes.hidden = true;
     liveClock.hidden = true;
     end.setAttribute('aria-label', 'Close');
     end.title = 'Close';
@@ -989,5 +1004,7 @@
 
   /* `_read` is exported so what gets spoken can be checked against a real
      answer without a speaker. */
-  window.AIMY_VOICE = { mount: mount, _state: S, _bars: BARS, _read: lastAnswer };
+  /* `silk` lends the orb to pages that show an agent (Knowledge's agent
+     profile), so the agent looks the way it does when you talk to it. */
+  window.AIMY_VOICE = { mount: mount, silk: makeSilk, _state: S, _bars: BARS, _read: lastAnswer };
 })();

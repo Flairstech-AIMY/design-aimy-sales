@@ -25027,6 +25027,13 @@
             (COACH_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
       '</div>' +
       '<div class="proto-sec">' +
+        '<div class="proto-h">Meeting notes, each state</div>' +
+        [['collapsed', 'Collapsed'], ['card', 'Open'], ['canvas', 'In the canvas'],
+          ['after', 'After the meeting'], ['ready', 'Notes ready'], ['short', 'Too short'],
+          ['failed', 'Failed'], ['off', 'Off']].map((x) =>
+          '<button class="proto-link" type="button" data-ntjump="' + x[0] + '">' + esc(x[1]) + '</button>').join('') +
+      '</div>' +
+      '<div class="proto-sec">' +
         '<div class="proto-h">Start over</div>' +
         /* The gap is in the label because it is the whole reason to press
            it, and on a demo opened the same day there is no gap to state. */
@@ -27579,7 +27586,10 @@
      click and on Escape, walks the rows with the arrow keys, and sends a
      row's question to the canvas through `window.aimyOpenCanvas`. The one
      line added hands `render` out so the panel can be refreshed after a
-     write, which QA never needed because its rows never changed.
+     write, which QA never needed because its rows never changed. Since the
+     notetaker came over from Knowledge, `rows()` puts its finished steps
+     ahead of ours, and a row with a `go` does that instead of asking the
+     canvas.
 
      What is ours is the ROWS. QA's are QA's business; these are computed
      from the corpus in the same shape — type · status · one sentence · one
@@ -28196,9 +28206,15 @@
 
   var read = {};
 
+  /* The notetaker's finished steps first (notetaker.js hands them over in
+     this shape, with a `go`), then what needs you. */
+  function rows() {
+    return (window.AIMY_NOTES ? window.AIMY_NOTES.bellRows() : []).concat(AIMY_TASKS);
+  }
+
   function unread() {
-    var n = 0;
-    for (var i = 0; i < AIMY_TASKS.length; i++) if (!read[AIMY_TASKS[i].id]) n++;
+    var n = 0, all = rows();
+    for (var i = 0; i < all.length; i++) if (!read[all[i].id]) n++;
     return n;
   }
 
@@ -28215,7 +28231,8 @@
 
   function render() {
     while (list.firstChild) list.removeChild(list.firstChild);
-    if (!AIMY_TASKS.length) {
+    var all = rows();
+    if (!all.length) {
       var empty = document.createElement('li');
       empty.className = 'ntf-empty';
       empty.textContent = 'Nothing waiting on you.';
@@ -28223,13 +28240,13 @@
       syncCount();
       return;
     }
-    AIMY_TASKS.forEach(function (t) {
+    all.forEach(function (t) {
       var li = document.createElement('li');
       li.className = 'ntf-row' + (read[t.id] ? ' is-read' : '');
       li.setAttribute('data-ntf-id', t.id);
 
       var sev = document.createElement('span');
-      sev.className = 'ntf-sev ' + t.sev;
+      sev.className = 'ntf-sev ' + (t.sev || 'p3');
       sev.setAttribute('aria-hidden', 'true');
 
       var main = document.createElement('div');
@@ -28304,7 +28321,7 @@
   function start(t) {
     read[t.id] = true;
     closePanel(false);
-    toCanvas(t.ask);
+    if (t.go) t.go(); else toCanvas(t.ask);
   }
 
   bell.addEventListener('click', function (e) {
@@ -28313,7 +28330,7 @@
   });
 
   if (clear) clear.addEventListener('click', function () {
-    AIMY_TASKS.forEach(function (t) { read[t.id] = true; });
+    rows().forEach(function (t) { read[t.id] = true; });
     render();
   });
 
@@ -28947,6 +28964,16 @@
         : !q && !CHATS.some(mineChat)
           ? '<p class="ov-chat-none">Nothing yet. Ask AiMY something and it lands here.</p>'
           : '');
+    /* A meeting AiMY is taking notes in is the first row while it runs
+       (notetaker.js, the same file as Knowledge's). It is not a thread, so
+       it is not in CHATS. */
+    if (window.AIMY_NOTES) window.AIMY_NOTES.chatRow(host);
+    /* With the meeting there the column is not empty, so the line saying
+       it is goes. A search that missed still says so. */
+    if (!q && host.querySelector('[data-nt-row]')) {
+      const none = host.querySelector('.ov-chat-none');
+      if (none) none.remove();
+    }
     /* The caret goes back where it was: repainting the column on every
        keystroke would otherwise send it to the end of the word. */
     const box = byId('chatFind');
@@ -29614,6 +29641,10 @@
   }
 
   function peekEl() { return byId('aimyPeek'); }
+  /* What pressing the card does when notetaker.js put the message there
+     (its notes are ready, or did not finish). Gone the moment anything else
+     takes the card. */
+  var NT_GO = null;
 
   /* ══ THE DRAWER GOES BEHIND THE COMPOSER ══════════════════════
      One class does the travel; the rest of this is the part a class cannot
@@ -30251,6 +30282,7 @@
   }
 
   function peekStop() {
+    NT_GO = null;
     if (PEEK_AT) { clearTimeout(PEEK_AT); PEEK_AT = null; }
     stopThinking();
     peekStreamStop();
@@ -36393,6 +36425,7 @@
        the canvas over a surface the chip has just changed is the opposite of
        what was asked for. */
     if (t.closest('#peekActs')) { peekAll(); peekHide(); }
+    if (t.closest('#peekOpen') && NT_GO) { const go = NT_GO; peekHide(); go(); return; }
     if (t.closest('#peekOpen')) { openCanvas(); paintThread(); return; }
     if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
@@ -36529,6 +36562,15 @@
        the widget is top-centre, so nothing overlaps, but a panel left open
        over a ringing phone is a prototype control competing with the thing
        it was pressed to demonstrate. */
+    const ntj = t.closest('[data-ntjump]');
+    if (ntj) {
+      const panel = byId('protoPanel');
+      if (panel) panel.hidden = true;
+      const btn = byId('protoToggle');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      if (window.AIMY_NOTES) window.AIMY_NOTES.jump(ntj.getAttribute('data-ntjump'));
+      return;
+    }
     const inb = t.closest('[data-inbound]');
     if (inb) {
       const panel = byId('protoPanel');
@@ -37190,6 +37232,33 @@
        board has to exist to be talked about. */
     reachGreet();
   }
+
+  /* The few things notetaker.js needs from this file, under the names
+     Knowledge's console gives them, so the notetaker is one file in both. */
+  function ntSay(html, go) {
+    const box = peekEl();
+    if (!box || byId('aimyOverlay').classList.contains('open')) return false;
+    peekStop();
+    box.hidden = false;
+    box.classList.remove('is-thinking', 'is-clipped', 'is-curating');
+    peekShut(false);
+    byId('peekBody').style.maxHeight = '';
+    byId('peekActs').innerHTML = '';
+    PEEK_ACTS = '';
+    byId('aimyFloatWrap').classList.add('has-peek');
+    NT_GO = go || null;
+    peekStream(byId('peekBody'), html, peekSettle);
+    return true;
+  }
+  window.AIMY_KNOW = {
+    canvas: { show: () => { openCanvas(); paintThread(); }, close: () => closeCanvas(),
+      isOpen: () => byId('aimyOverlay').classList.contains('open') },
+    /* Knowledge's toast takes the undo as a word; this one takes what it does. */
+    toast: (msg, undo, sub) => toast(msg, undo ? (typeof undo === 'function' ? undo : () => {}) : null, sub),
+    say: ntSay,
+    paintChats: () => paintChats(),
+    bellSync: () => { if (window.aimyNtfRender) window.aimyNtfRender(); },
+  };
 
   /* A handle for checking counts from the console, and for the audit. Not
      product surface: nothing in the app reads it. */

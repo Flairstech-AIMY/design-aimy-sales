@@ -7964,3 +7964,19 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-draft-f { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .b-mail-addr { display: block; margin-left: 0; }
 }
+
+/* ══ KNOWLEDGE'S NAMES, FOR THE NOTETAKER ══════════════════════════════════
+   notetaker.css and voice.css are Knowledge's files, unchanged, and read four
+   tokens Sales never declared. Knowledge's values, both themes. */
+:root {
+  --brand-rgb: 51,105,255;
+  --ink-ok: var(--ok);
+  --ink-err: #f4736a;
+  --surface-sunken: #1a2330;
+}
+:root[data-theme="light"] {
+  --brand-rgb: 29,78,216;
+  --ink-ok: #0a6d41;
+  --ink-err: #b81f14;
+  --surface-sunken: #f2f5fa;
+}

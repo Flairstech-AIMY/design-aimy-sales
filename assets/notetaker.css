@@ -1,0 +1,343 @@
+/* ══ NOTETAKER — the Silk companion (AIMY-2684) ══════════════════════════════
+   The orb, the card it opens into, and the meeting's view inside the AiMY
+   canvas. Shape rule: windows 1rem, bubbles and buttons full pill.
+   Colours are the Console's own tokens; the one this file adds is the brand
+   as TEXT (the fill is too dark to read on the dark card). */
+:root {
+  --nt-brand-ink: #8fb0ff;
+  --nt-rec: var(--ink-err);
+  --nt-shadow: 0 0.0625rem 0 rgba(255,255,255,0.04) inset, 0 1rem 2.75rem rgba(0,0,0,0.55), 0 0.125rem 0.5rem rgba(0,0,0,0.35);
+}
+:root[data-theme="light"] {
+  --nt-brand-ink: #1d4ed8;
+  --nt-shadow: 0 0.5rem 0.75rem -0.375rem rgba(15,23,42,0.08), 0 1.5rem 3rem -0.75rem rgba(15,23,42,0.28), 0 0 0 0.0625rem rgba(15,23,42,0.05);
+}
+
+.nt-ic, .nt-mk { display: block; flex: none; }
+.nt-mk { color: var(--brand); }
+
+/* ── The widget ──────────────────────────────────────────────────────────
+   Above the canvas (600) so it can come back over it when you go to another
+   conversation mid-meeting; under the voice stage (980) and the prototype
+   switch (960). */
+/* 5.5rem up, so the prototype switch in the corner stays reachable. */
+.nt-w { position: fixed; right: max(1.25rem, env(safe-area-inset-right)); bottom: max(5.5rem, env(safe-area-inset-bottom)); z-index: 700;
+  color: var(--ink-primary); font-size: var(--ty-meta); transition: opacity var(--t-fast) var(--ease-out); }
+.nt-w[hidden] { display: none; }
+.nt-w.is-arriving { opacity: 0; transition: none; }
+.nt-w[data-view="canvas"] { pointer-events: none; }
+
+.nt-fold { position: relative; display: grid; justify-items: center; gap: 0.375rem; padding: 0; border: 0; background: none; cursor: pointer;
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out); }
+.nt-w:not([data-view="fold"]) .nt-fold { opacity: 0; transform: scale(0.9); pointer-events: none; }
+.nt-fold:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.25rem; border-radius: 1rem; }
+.nt-orb { position: relative; display: block; width: 5.25rem; height: 5.25rem; border-radius: 50%; overflow: hidden; flex: none;
+  background: var(--body-bg); box-shadow: var(--nt-shadow), inset 0 0 0 0.0625rem var(--card-border-hover); }
+.nt-orb canvas { position: absolute; inset: -0.375rem; width: calc(100% + 0.75rem); height: calc(100% + 0.75rem); }
+.nt-orb.is-sm { width: 3rem; height: 3rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+.nt-orb.is-xs { width: 2.5rem; height: 2.5rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+.nt-who-pill { display: inline-flex; align-items: center; gap: 0.375rem; height: 1.5rem; padding: 0 0.625rem; border-radius: 999px;
+  background: var(--card-bg); box-shadow: var(--nt-shadow); font-size: var(--ty-micro); font-weight: var(--fw-semibold); white-space: nowrap; }
+.nt-badge { position: absolute; top: 0; right: 0; min-width: 1.25rem; height: 1.25rem; padding: 0 0.3125rem; border-radius: 999px;
+  display: grid; place-items: center; background: var(--brand); color: #fff; font-size: 0.6875rem; font-weight: var(--fw-bold);
+  box-shadow: 0 0 0 0.125rem var(--body-bg); transform: scale(0); transition: transform var(--t-fast) cubic-bezier(0.34, 1.36, 0.64, 1); }
+.nt-badge.is-on { transform: scale(1); }
+.nt-badge.is-ok { background: var(--ok); }
+
+.nt-card { position: absolute; right: 0; bottom: 0; width: 23.75rem; height: min(33.75rem, calc(100vh - var(--topbar-height, 3.5rem) - 6.75rem));
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 1rem; background: var(--card-bg); box-shadow: var(--nt-shadow);
+  transform-origin: 100% 100%; opacity: 0; transform: scale(0.96); filter: blur(0.125rem); pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out); }
+.nt-w[data-view="card"] .nt-card { opacity: 1; transform: none; filter: none; pointer-events: auto; transition-duration: var(--t-base); }
+.nt-w[data-view="canvas"] .nt-card { transition: none; }
+.nt-h, .nt-cv-h { display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem 0.5rem 0.625rem 0.75rem; border-bottom: 0.0625rem solid var(--card-border); }
+.nt-ht { flex: 1; min-width: 0; display: grid; }
+.nt-ht b { font-size: var(--ty-meta); font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nt-ps { display: flex; align-items: center; gap: 0.375rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); }
+.nt-who { font-size: var(--ty-micro); color: var(--ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nt-hb { display: flex; }
+.nt-st { color: var(--nt-rec); }
+.nt-tm { color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
+.nt-rec { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--nt-rec); flex: none; animation: nt-breathe 1.6s ease-in-out infinite; }
+@keyframes nt-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* State, in words and colour, on the widget and on the canvas alike. */
+:is(.nt-w[data-phase="writing"], .aimy-overlay[data-nt-phase="writing"]) .nt-st { color: var(--nt-brand-ink); }
+:is(.nt-w[data-phase="ready"], .aimy-overlay[data-nt-phase="ready"]) .nt-st { color: var(--ink-ok); }
+:is(.nt-w[data-phase="short"], .aimy-overlay[data-nt-phase="short"]) .nt-st { color: var(--ink-primary); }
+:is(.nt-w:not([data-phase="live"]), .aimy-overlay:not([data-nt-phase="live"])) :is(.nt-live-only, .nt-rec) { display: none !important; }
+
+.nt-ib { display: inline-grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 0; border-radius: 999px; background: transparent;
+  color: var(--ink-primary); cursor: pointer; flex: none; transition: background-color var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out); }
+.nt-ib:hover { background: var(--brand-dim); }
+.nt-ib:active { transform: scale(0.97); }
+.nt-ib:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
+.nt-stop { color: var(--nt-rec); }
+.nt-stop .nt-ic { fill: currentColor; }
+
+.nt-tabs { display: flex; gap: 0.25rem; padding: 0.5rem 0.625rem 0.25rem; }
+.nt-tabs button { display: inline-flex; align-items: center; gap: 0.375rem; height: 1.875rem; padding: 0 0.75rem; border: 0; border-radius: 999px;
+  background: transparent; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-secondary); cursor: pointer;
+  transition: background-color var(--t-base) var(--ease-out), color var(--t-base) var(--ease-out); }
+.nt-tabs button[aria-selected="true"] { background: var(--brand-dim); color: var(--nt-brand-ink); }
+.nt-tcount { min-width: 1.125rem; height: 1.125rem; padding: 0 0.3125rem; border-radius: 999px; display: inline-grid; place-items: center;
+  background: var(--brand); color: #fff; font-size: 0.6875rem; font-weight: var(--fw-bold); }
+.nt-tcount:empty { display: none; }
+.nt-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.nt-body > * { flex: 1; min-height: 0; }
+.nt-w[data-tab="chat"] .nt-body > .nt-np, .nt-w[data-tab="notes"] .nt-body > .nt-stream { display: none; }
+
+/* ── The stream ──────────────────────────────────────────────────────── */
+.nt-stream { overflow-y: auto; padding: 0.75rem 0.875rem; display: flex; flex-direction: column; gap: 0.75rem; scrollbar-width: thin; }
+.nt-wd { transition: opacity var(--t-slow) var(--ease-out), filter var(--t-slow) var(--ease-out); }
+.nt-wd.is-pre { opacity: 0; filter: blur(0.0625rem); }
+@keyframes nt-rise { from { opacity: 0; transform: translateY(0.5rem); filter: blur(0.125rem); } to { opacity: 1; transform: none; filter: none; } }
+.nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am { animation: nt-rise var(--t-base) var(--ease-out) both; }
+/* What was said: no speakers AiMY can name, so a transcript rather than bubbles. The time
+   sits in a margin of its own and the words run beside it; consecutive lines
+   sit closer than the things around them. */
+.nt-cl { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.5rem; align-items: baseline; }
+.nt-cl time { font-size: var(--ty-micro); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
+.nt-cl + .nt-cl { margin-top: -0.25rem; }
+.nt-cl p, .nt-an p, .nt-yn p, .nt-am-b p { margin: 0; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
+.nt-an { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.5rem; padding: 0.5625rem 0.6875rem; border-radius: 0.75rem; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.nt-an .nt-mk { margin-top: 0.125rem; }
+.nt-an-k { font-size: var(--ty-micro); font-weight: var(--fw-bold); }
+.nt-yn { align-self: flex-end; max-width: 86%; display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.5rem; padding: 0.5rem 0.6875rem; border-radius: 0.75rem;
+  background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.nt-yn > .nt-ic { color: var(--nt-brand-ink); margin-top: 0.125rem; }
+.nt-yn-h { display: flex; gap: 0.5rem; align-items: center; font-size: var(--ty-micro); color: var(--ink-secondary); }
+.nt-only { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6875rem; font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+.nt-q { align-self: flex-end; max-width: 85%; display: grid; gap: 0.125rem; padding: 0.4375rem 0.6875rem; border-radius: 0.875rem 0.875rem 0.25rem 0.875rem;
+  background: var(--brand-dim); box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.45); font-size: var(--ty-meta); color: var(--ink-primary); }
+.nt-q .nt-only { justify-self: end; }
+.nt-am { display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); gap: 0.5rem; }
+.nt-am > .nt-mk { margin-top: 0.125rem; }
+.nt-am-b { display: grid; gap: 0.5rem; min-width: 0; }
+.nt-err { color: var(--ink-err) !important; font-weight: var(--fw-semibold); }
+
+/* The three steps after the meeting. */
+.nt-steps { display: grid; gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: 0.75rem; background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+.nt-step { display: grid; grid-template-columns: 1.125rem minmax(0, 1fr); gap: 0.5rem; align-items: start; }
+.nt-step-i { width: 1.125rem; height: 1.125rem; display: grid; place-items: center; margin-top: 0.0625rem; }
+.nt-step .nt-ic { display: none; }
+.nt-step[data-s="wait"] .nt-step-i::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; box-shadow: inset 0 0 0 0.09375rem var(--ink-secondary); }
+.nt-step[data-s="run"] .nt-i-run { display: block; color: var(--nt-brand-ink); animation: nt-spin 1s linear infinite; }
+.nt-step[data-s="done"] .nt-i-done { display: block; color: var(--ok); animation: nt-pop var(--t-slow) cubic-bezier(0.34, 1.36, 0.64, 1) both; }
+.nt-step[data-s="fail"] .nt-i-fail { display: block; color: var(--ink-err); }
+@keyframes nt-spin { to { transform: rotate(360deg); } }
+@keyframes nt-pop { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.nt-step b { display: block; font-size: var(--ty-meta); font-weight: var(--fw-semibold); }
+.nt-step[data-s="wait"] b { font-weight: var(--fw-regular); color: var(--ink-secondary); }
+.nt-step[data-s="run"] b { background: linear-gradient(90deg, var(--ink-secondary) 0%, var(--ink-secondary) 40%, var(--ink-primary) 50%, var(--ink-secondary) 60%, var(--ink-secondary) 100%);
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: nt-shim 1.8s linear infinite; }
+.nt-step[data-s="fail"] b { color: var(--ink-err); }
+@keyframes nt-shim { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.nt-step small, .nt-rs small, .nt-np li small { display: block; font-size: var(--ty-micro); color: var(--ink-secondary); }
+
+/* The final notes, in the chat and in Notes. */
+.nt-sum { padding: 0.75rem; border-radius: 0.75rem; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.nt-sum p { margin: 0; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
+.nt-rs { display: grid; gap: 0.5rem; }
+.nt-rs h6 { margin: 0.25rem 0 0; font-size: var(--ty-micro); font-weight: var(--fw-bold); color: var(--ink-primary); }
+.nt-rs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.375rem; }
+.nt-rs li { display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); gap: 0.5rem; font-size: var(--ty-meta); color: var(--ink-primary); }
+.nt-rs li > .nt-ic { color: var(--ok); margin-top: 0.1875rem; }
+.nt-rs li > .nt-i-todo { color: var(--nt-brand-ink); }
+.nt-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.125rem; }
+.nt-btns .btn { display: inline-flex; align-items: center; gap: 0.375rem; }
+
+/* ── Notes ───────────────────────────────────────────────────────────── */
+.nt-np { overflow-y: auto; padding: 0.75rem 0.875rem 0.875rem; display: flex; flex-direction: column; gap: 0.875rem; scrollbar-width: thin; }
+.nt-np section { display: grid; gap: 0.375rem; }
+.nt-np h5 { margin: 0; display: flex; align-items: center; gap: 0.375rem; font-size: var(--ty-micro); font-weight: var(--fw-bold); color: var(--ink-primary); }
+.nt-np h5 > .nt-ic { color: var(--nt-brand-ink); }
+.nt-np h5 .nt-only { margin-left: auto; }
+.nt-np-live, .nt-np-final { display: grid; gap: 0.875rem; }
+.nt-np-final { display: none; }
+.nt-np[data-done="true"] .nt-np-live { display: none; }
+.nt-np[data-done="true"] .nt-np-final { display: grid; }
+.nt-np > section ul, .nt-np-live ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.375rem; }
+.nt-np-live li, .nt-np > section li { position: relative; padding-left: 0.75rem; font-size: var(--ty-meta); color: var(--ink-primary); animation: nt-rise var(--t-slow) var(--ease-out) both; }
+.nt-np-live li::before, .nt-np > section li::before { content: ""; position: absolute; left: 0; top: 0.5625rem; width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--ink-secondary); }
+.nt-np li.is-none { padding-left: 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
+.nt-np li.is-none::before { display: none; }
+.nt-np-state { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); }
+
+/* ── The composer: the AiMY composer ────────────────────────────────────
+   The same bar as the canvas and the command bar (aimy-ds.css draws it):
+   the mark, the field, the round send. One bar under both tabs: on Chat it
+   asks AiMY, on Notes it adds a private note. */
+.nt-cz { display: grid; gap: 0.5rem; padding: 0.5rem 0.625rem 0.75rem; }
+.nt-w[data-tab="notes"] .nt-chips { display: none; }
+.nt-chips { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.nt-chip { height: 1.75rem; padding: 0 0.6875rem; border: 0; border-radius: 999px; background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-primary); white-space: nowrap; cursor: pointer; }
+.nt-chip:hover { box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.45); }
+.nt-ask-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.375rem 0.375rem 0.5rem; }
+/* The mark, drawn like the composer's but not the usage widget: that one
+   lives on the Console's own bars, and this composer is only the meeting's. */
+.nt-ask-mark { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: linear-gradient(135deg, #3d1f6b 0%, #1a3a6e 50%, #163b5e 100%); border: 0.0625rem solid rgba(139,79,244,0.3); box-shadow: 0 0 0.75rem rgba(100,60,200,0.25); }
+:root[data-theme="light"] .nt-ask-mark { background: linear-gradient(135deg, #f2ecff, #e6efff); border-color: rgba(110,70,220,0.28); box-shadow: 0 0 0.75rem rgba(110,70,220,0.15); }
+.nt-ask-mark .nt-mk { width: 1.125rem; height: 1.25rem; }
+.aimy-overlay.is-meeting .overlay-input-bar > .aimy-float-icon.has-use::before { display: none; }
+.aimy-overlay.is-meeting .overlay-input-bar > .aimy-float-icon { cursor: default; }
+.nt-ask-bar .nt-mk { color: var(--brand); }
+.nt-in { flex: 1; min-width: 0; height: 2rem; padding: 0 0.125rem; border: 0; background: transparent; font: inherit; font-size: var(--ty-meta); color: var(--ink-primary); }
+/* The bar draws the focus; the field inside it must not draw a second one. */
+.nt-in, .nt-in:focus, .nt-in:focus-visible { outline: none; box-shadow: none; }
+.nt-in::placeholder { color: var(--ink-quiet); opacity: 1; }
+.nt-ask-bar .overlay-send { flex: none; }
+
+/* ── The canvas, while the meeting is open in it ─────────────────────────
+   The card's two views, at the canvas's own measure: Chat (the stream, with
+   the canvas bar to ask) and Notes (yours now, AiMY's after the meeting) as
+   a page in the middle. No third column: one thing to read at a time. */
+.nt-cv, .nt-cv-chips { display: none; }
+.aimy-overlay.is-meeting .nt-cv { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; }
+.aimy-overlay.is-meeting :is(#overlayThread, .overlay-badge, .overlay-context-bar, .overlay-close) { display: none; }
+.aimy-overlay.is-meeting .overlay-main { justify-content: stretch; align-items: stretch; }
+.aimy-overlay.is-meeting .overlay-input-wrap { align-self: center; width: 100%; }
+.aimy-overlay.is-meeting .nt-cv-chips { display: flex; margin-bottom: 0.5rem; }
+.aimy-overlay.is-meeting[data-nt-tab="notes"] :is(.nt-cv-stream, .nt-cv-chips) { display: none; }
+.aimy-overlay.is-meeting[data-nt-tab="chat"] .nt-cv-np { display: none; }
+/* The bar is the meeting's bar: send is always send, and the microphone is
+   already in the meeting. */
+.aimy-overlay.is-meeting .overlay-input-bar :is(.vx-tools, .vx-att) { display: none !important; }
+.aimy-overlay.is-meeting .overlay-send > .vx-i-voice { display: none !important; }
+.aimy-overlay.is-meeting .overlay-send > .vx-i-send { display: block !important; opacity: 1 !important; transform: none !important; filter: none !important; }
+.nt-cv-h { gap: 0.75rem; padding: 0.75rem 1.25rem; }
+.nt-cv-h .nt-ht { flex: 0 1 auto; }
+.nt-cv-h .nt-ht b { font-size: var(--ty-body); }
+.nt-cv-tabs { padding: 0; margin: 0 auto; }
+.nt-back { display: inline-flex; align-items: center; gap: 0.375rem; }
+.nt-cv-stream { flex: 1; min-height: 0; padding: 1.25rem max(1.25rem, calc((100% - 42rem) / 2)) 0.75rem; }
+.nt-cv-np { flex: 1; min-height: 0; display: flex; }
+.nt-cv-np .nt-np { flex: 1; padding: 1.5rem max(1.25rem, calc((100% - 42rem) / 2)) 2rem; gap: 1.25rem; }
+@media (max-width: 720px) {
+  .nt-back span { display: none; }
+  .nt-cv-h { padding: 0.625rem 0.75rem; flex-wrap: wrap; }
+  .nt-cv-tabs { order: 5; width: 100%; margin: 0; }
+  .nt-cv-stream { padding: 0.875rem 0.75rem 0.5rem; }
+}
+
+/* ── Moving the orb, and closing it after the meeting ────────────────── */
+.nt-fold { cursor: grab; touch-action: none; }
+.nt-w.is-dragging, .nt-w.is-dragging * { transition: none !important; cursor: grabbing; user-select: none; }
+.nt-w.is-dragging .nt-orb { transform: scale(1.04); box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.45), inset 0 0 0 0.0625rem var(--card-border-hover); }
+.nt-w[data-side="l"] .nt-card { right: auto; left: 0; transform-origin: 0 100%; }
+.nt-w[data-vert="t"] .nt-card { bottom: auto; top: 0; transform-origin: 100% 0; }
+.nt-w[data-side="l"][data-vert="t"] .nt-card { transform-origin: 0 0; }
+.nt-card { translate: 0 var(--nt-dy, 0px); }
+.nt-w[data-phase="live"] .nt-after-only { display: none !important; }
+.nt-x { position: absolute; top: -0.25rem; left: -0.25rem; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center;
+  background: var(--card-bg); color: var(--ink-primary); box-shadow: var(--nt-shadow), inset 0 0 0 0.0625rem var(--card-border-hover); cursor: pointer;
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out); }
+.nt-x:hover { color: var(--ink-err); }
+.nt-x:active { transform: scale(0.94); }
+.nt-w:not([data-view="fold"]) .nt-x { opacity: 0; pointer-events: none; }
+
+/* ── Starting from the voice stage ───────────────────────────────────── */
+.vx-stage.nt-asking .vx-state { display: none; }
+/* While it asks, the orb steps back so the question always fits above the
+   dock, however short the window: smaller, and sized to the height as well
+   as the width. The Take meeting notes pill is the button that asked, so it goes
+   until the answer. */
+.vx-stage .vx-orb { transition: width var(--t-slow) var(--ease-out); }
+.vx-stage.nt-asking .vx-orb { width: min(11rem, 22vh, 40vw); }
+.vx-stage.nt-asking .vx-center { gap: 1.25rem; }
+.vx-stage.nt-asking :is(.vx-notes, .vx-dock-br) { display: none; }
+@media (max-height: 640px) {
+  .vx-stage.nt-asking .vx-orb { width: min(7rem, 16vh); }
+  .vx-stage.nt-asking .nt-cons { gap: 0.5rem; }
+  .vx-stage.nt-asking .nt-cons-p { display: none; }
+}
+/* The question takes the place of the line under the orb, centred like it,
+   with no box: the stage is the surface. Each line rises in on a short
+   stagger, so the orb's "Listening" reads as turning into the question. */
+.nt-cons { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: min(28rem, 100%); text-align: center; }
+.nt-cons > * { animation: nt-cons-in var(--t-slow) var(--ease-out) both; }
+/* No blur on these: the orb is resizing under them at the same moment. */
+@keyframes nt-cons-in { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
+.nt-cons > :nth-child(2) { animation-delay: 40ms; }
+.nt-cons > :nth-child(3) { animation-delay: 80ms; }
+.nt-cons > :nth-child(4) { animation-delay: 120ms; }
+.nt-cons > :nth-child(5) { animation-delay: 160ms; }
+.nt-cons-meet { display: inline-flex; align-items: center; gap: 0.5rem; height: 1.875rem; padding: 0 0.875rem; border-radius: 999px;
+  background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.nt-cons-meet .nt-ic { color: var(--brand); }
+.nt-cons-meet span { padding-left: 0.5rem; border-left: 0.0625rem solid var(--card-border-hover); font-weight: var(--fw-regular); color: var(--ink-secondary); }
+.nt-cons p { margin: 0; }
+.nt-cons .nt-cons-h { margin-top: 0.25rem; font-size: var(--ty-title); font-weight: var(--fw-semibold); color: var(--ink-primary); line-height: 1.3; text-wrap: balance; }
+.nt-cons .nt-cons-p { max-width: 25rem; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.55; text-wrap: balance; }
+.nt-cons-go { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.25rem; }
+.nt-cons-go .btn { display: inline-flex; align-items: center; gap: 0.5rem; height: 2.5rem; padding: 0 1.25rem; border-radius: 999px; font-size: var(--ty-meta); }
+.nt-cons-start { box-shadow: 0 0.5rem 1.5rem rgba(var(--brand-rgb), 0.35); }
+.nt-ghost { position: fixed; z-index: 990; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(140,110,255,0.55), rgba(51,105,255,0.5) 45%, rgba(69,211,230,0.18) 70%, transparent 72%); }
+
+/* ── Narrow screens ──────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .nt-w { right: 0.75rem; bottom: 0.75rem; }
+  .nt-w[data-view="card"] { left: 0.5rem; right: 0.5rem; bottom: 0.5rem; }
+  .nt-card { width: auto; left: 0; right: 0; height: min(40rem, calc(100vh - var(--topbar-height, 3.5rem) - 1rem)); }
+  .nt-w[data-view="card"] .nt-fold { position: absolute; right: 0; bottom: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nt-w, .nt-fold, .nt-card, .nt-badge, .nt-tabs button, .nt-wd, .nt-x { transition: none; }
+  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-np li, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
+  .nt-wd.is-pre { opacity: 1; filter: none; }
+}
+
+
+/* ── End notes, in words ─────────────────────────────────────── */
+.nt-tabs { align-items: center; }
+.nt-ctl { display: inline-flex; gap: 0.375rem; margin-left: auto; }
+.nt-pill { display: inline-flex; align-items: center; gap: 0.375rem; height: 1.75rem; padding: 0 0.6875rem; border: 0; border-radius: 999px;
+  background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary);
+  font: inherit; font-size: var(--ty-micro); font-weight: var(--fw-semibold); cursor: pointer;
+  transition: box-shadow var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out); }
+.nt-pill:hover { box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.45); }
+.nt-pill:active { transform: scale(0.97); }
+.nt-pill:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+.nt-end { color: var(--ink-err); }
+.nt-end .nt-ic { fill: currentColor; }
+.nt-end:hover { box-shadow: inset 0 0 0 0.0625rem var(--ink-err); }
+.nt-cv-h .nt-ctl { margin-left: 0; }
+/* While the meeting runs, Notes is yours; AiMY's arrive after it ends. */
+.nt-np-wait { margin: 0; display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: 0.75rem;
+  background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
+.nt-np-wait .nt-mk { margin-top: 0.1875rem; }
+
+/* ── The bell, when a step finishes ──────────────────────────────────────
+   It rocks from its top, the way a bell hangs: three swings that die away,
+   600ms. One line drops from under it, says what finished, and goes after
+   about a second: 250ms in, 150ms out, no blur, nothing to press. */
+#ntfBell.nt-ring svg { transform-origin: 50% 8%; animation: nt-ring 600ms var(--ease-out) both; }
+@keyframes nt-ring {
+  0% { transform: rotate(0); } 15% { transform: rotate(14deg); } 32% { transform: rotate(-11deg); }
+  50% { transform: rotate(7deg); } 68% { transform: rotate(-4deg); } 84% { transform: rotate(2deg); } 100% { transform: rotate(0); }
+}
+.nt-peek { position: fixed; z-index: 965; display: flex; align-items: center; gap: 0.5rem; max-width: min(20rem, calc(100vw - 2rem));
+  height: 2.125rem; padding: 0 0.875rem; border-radius: 999px; background: var(--card-bg); color: var(--ink-primary);
+  box-shadow: var(--nt-shadow); font-size: var(--ty-micro); white-space: nowrap; pointer-events: none;
+  transform-origin: var(--nt-peek-x, 50%) 0; opacity: 0; transform: translateY(-0.375rem) scale(0.96);
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out); }
+.nt-peek.is-on { opacity: 1; transform: none; transition-duration: var(--t-base); }
+.nt-peek::before { content: ""; position: absolute; top: -0.3125rem; left: calc(var(--nt-peek-x, 50%) - 0.3125rem); width: 0.625rem; height: 0.625rem;
+  background: var(--card-bg); transform: rotate(45deg); border-radius: 0.125rem 0 0 0; box-shadow: -0.0625rem -0.0625rem 0 var(--card-border-hover); }
+.nt-peek { box-shadow: var(--nt-shadow), inset 0 0 0 0.0625rem var(--card-border-hover); }
+.nt-peek > span { overflow: hidden; text-overflow: ellipsis; }
+.nt-peek b { font-weight: var(--fw-semibold); }
+.nt-peek.is-fail .nt-ic { color: var(--ink-err); }
+@media (prefers-reduced-motion: reduce) {
+  #ntfBell.nt-ring svg { animation: none; }
+  .nt-peek { transition: opacity var(--t-fast) linear; transform: none; }
+}
+
+/* The quick questions are about a meeting that is running; once it ends,
+   the notes answer them, so they go (the bar still asks). */
+.nt-w:not([data-phase="live"]) .nt-chips,
+.aimy-overlay.is-meeting:not([data-nt-phase="live"]) .nt-cv-chips { display: none !important; }
