@@ -18168,6 +18168,296 @@
     '</div>';
   }
 
+  /* ══ MORE THAN ONE THING TO SAY ════════════════════════════════════════
+     A campaign had one pitch, and a floor working two hundred numbers a day
+     does not meet one kind of person. The one who runs it with their own
+     people, the one who tried a supplier last year and the one who says it
+     can wait each want a different first sentence, and a single field made
+     the caller pick it on the call, alone, every time.
+
+     So a campaign carries a list. Each pitch is a name, the moment to use it
+     and the words, and the first one is the one used when none of the others
+     fits. `pitch` stays on the record as the first pitch's words, because
+     the builders, the fill sweep and the call brief all read it and a
+     second field that can disagree with the first is how a brief ends up
+     quoting a pitch the page no longer shows. Every write goes through
+     `pitchesSet`, which writes both. */
+  const PITCH_ANGLES = [
+    (k) => ({ name: 'What it costs them today', when: 'They run it with their own people.',
+      words: k.pitch || sayPitch(campParts(k)) || '' }),
+    (k) => ({ name: 'Why it cannot wait',
+      when: 'They say it can wait, or that this is not the quarter for it.',
+      words: 'Right now ' + (WHY_NOW[(k.sells || [])[0]] ||
+        'they are running it with people rather than with a system') +
+        '. Ask what it costs them every month it waits, and what would have to ' +
+        'change to start this quarter.' }),
+    (k) => ({ name: 'What went wrong last time',
+      when: 'They have tried a supplier or a tool for this before.',
+      words: 'Ask who they used, what they were promised and what they actually got. ' +
+        'Then say in one sentence how we would do it differently, and stop.' }),
+    /* Two more that only Draft it reaches. The seed deals the first three. */
+    () => ({ name: 'Their busy season', when: 'They mention a launch or a peak coming up.',
+      words: 'Ask when their busiest stretch is. Offer to take the overflow for that stretch ' +
+        'only, and let how it goes make the case for the rest of the year.' }),
+    () => ({ name: 'Somebody they know', when: 'They work with a company we already serve.',
+      words: 'Say who we already work with in their market and what changed for them, in one ' +
+        'sentence. Then ask whether the same is true for them, and listen.' }),
+  ];
+  /* What Draft it writes for a pitch past the first. A pitch somebody has
+     named is drafted from its name, because words from a different angle
+     under a name they chose is AiMY overruling them. An unnamed one takes
+     the first angle the list does not already have. */
+  function pitchAngle(k, list, i) {
+    const p = list[i];
+    const have = new Set(list.filter((x, j) => j !== i).map((x) => (x.name || '').toLowerCase()));
+    const all = PITCH_ANGLES.slice(1).map((f) => f(k));
+    if (p.name) {
+      const same = all.find((a) => a.name.toLowerCase() === p.name.toLowerCase());
+      return same || { name: p.name, when: '',
+        words: 'Open on ' + lowFirst(p.name) + ', in one sentence, then ask what it would ' +
+          'change for them. Do not move on to what we do until they have answered.' };
+    }
+    return all.find((a) => !have.has(a.name.toLowerCase())) || all[(i - 1) % all.length];
+  }
+  const pitchNew = (o) => Object.assign({ id: 'p' + Date.now().toString(36) +
+    Math.floor(Math.random() * 1296).toString(36), at: new Date().toISOString(),
+  name: '', when: '', words: '' }, o || {});
+
+  /* A campaign that predates the list reads as the seed wrote it: the pitch
+     it always had, and for a running one the two angles its offering
+     answers. Dealt off the id, so a reload draws the same set, and never
+     off the seed's cursor, which would move every campaign after it. A
+     draft gets its own pitch and nothing it did not ask for. */
+  function campPitches(k) {
+    if (Array.isArray(k.pitches) && k.pitches.length) return k.pitches;
+    if (!k.pitch) return [];
+    const n = isDraft(k) || Array.isArray(k.pitches) ? 1
+      : [3, 2, 3, 1][Math.abs(hash(k.id + ':pitches')) % 4];
+    return PITCH_ANGLES.slice(0, n).map((f, i) =>
+      Object.assign({ id: 'p' + (i + 1), at: k.from }, f(k)));
+  }
+  const livePitches = (k) => campPitches(k).filter((p) => (p.words || '').trim());
+  function pitchesSet(k, list) {
+    campSet(k, { pitches: list, pitch: list.length ? list[0].words : '' });
+  }
+  /* The list with its first pitch's words replaced, for the writers that
+     only ever knew about one: the fill sweep and Draft it. */
+  function pitchesWithFirst(k, words) {
+    const list = campPitches(k).map((p) => Object.assign({}, p));
+    const a = PITCH_ANGLES[0](k);
+    if (list.length) {
+      list[0] = Object.assign(list[0], { words: words,
+        name: list[0].name || a.name, when: list[0].when || a.when });
+    } else list.push(pitchNew({ id: 'p1', name: a.name, when: a.when, words: words }));
+    return list;
+  }
+
+  /* ══ WHICH PITCH A CALL GETS ════════════════════════════════════════════
+     AiMY picks, so the caller does not. In this build the pick is dealt off
+     the contact rather than read off what they said, because there is no
+     transcript to read before the first call; it is stable per person, so a
+     second call opens on the same pitch the first did. Only pitches that
+     existed when the call was made are in the draw: a pitch added today has
+     no calls behind it, and the page says so rather than inheriting a
+     month of somebody else's. */
+  function pitchOf(con, k, at, list) {
+    list = list || livePitches(k);
+    let best = null;
+    let top = -1;
+    list.forEach((p) => {
+      if (at && p.at && p.at > at) return;
+      const h = Math.abs(hash(con + ':' + p.id));
+      if (h > top) { top = h; best = p; }
+    });
+    return best || list[0] || null;
+  }
+  /* The words a caller opens on, and the pitch they came from. */
+  const pitchNow = (c, k) => pitchOf(c.id, k, new Date().toISOString());
+  const pitchSay = (c, k) => {
+    const p = pitchNow(c, k);
+    return p ? p.words : k.pitch || 'Ask what they are running this with today.';
+  };
+  function pitchNums(k, list) {
+    const out = list.map(() => ({ calls: 0, meets: 0 }));
+    const at = new Map(list.map((p, i) => [p.id, i]));
+    callsIn(DB.touch.filter((t) => t.camp === k.id)).forEach((t) => {
+      const p = pitchOf(t.con, k, t.at, list);
+      if (!p) return;
+      const n = out[at.get(p.id)];
+      n.calls++;
+      if (t.called === 'meeting-set') n.meets++;
+    });
+    return out;
+  }
+  /* The best is named only when it has beaten something on enough calls to
+     mean it. Twenty is the same floor `hourOf` asks of an hour; a pitch
+     with nine calls and one meeting has the best rate on the page and has
+     proved nothing. */
+  function pitchBest(nums) {
+    const fair = nums.map((n, i) => ({ i: i, r: n.calls >= 20 ? n.meets / n.calls : -1 }))
+      .filter((x) => x.r >= 0).sort((a, b) => b.r - a.r);
+    return fair.length > 1 && fair[0].r > fair[1].r ? fair[0].i : -1;
+  }
+  const lowFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+
+  /* ══ A PILE YOU CAN SEE THE DEPTH OF ════════════════════════════════════
+     One pitch on top and the others behind it, so a reader knows there are
+     more before pressing anything; the arrows send the top one to the back.
+     Every card sits in the same grid cell, so the pile is as tall as its
+     longest pitch and turning a card never moves the notes underneath. */
+  let PDECK = { camp: null, at: 0 };
+  function pitchCard(p, i, n, num, best) {
+    return '<h4 class="b-pitch-name">' + esc(p.name || 'Pitch ' + (i + 1)) +
+        (best ? '<span class="s-meta-st tone-ok">Most meetings per call</span>' : '') + '</h4>' +
+      (p.when ? '<p class="b-pitch-when"><b>Use it when</b> ' + esc(lowFirst(p.when)) + '</p>'
+        : i === 0 && n > 1 ? '<p class="b-pitch-when"><b>Use it when</b> none of the others fits.</p>' : '') +
+      '<p class="b-pitch-words">' + esc(p.words) + '</p>' +
+      '<p class="b-pitch-res">' + (num.calls
+        ? 'Used on <b>' + plural(num.calls, 'call') + '</b>, <b>' +
+          plural(num.meets, 'meeting') + '</b> set.'
+        : 'Not used on a call yet.') + '</p>';
+  }
+  function pitchDeck(k, none) {
+    const list = livePitches(k);
+    if (!list.length) {
+      return draftPart('Sales pitch', '',
+        none('Nothing written, so every caller opens on their own words.'));
+    }
+    const n = list.length;
+    const nums = pitchNums(k, list);
+    const best = pitchBest(nums);
+    const top = PDECK.camp === k.id ? PDECK.at % n : 0;
+    const cards = list.map((p, i) => {
+      const pos = (i - top + n) % n;
+      return '<div class="b-pdeck-card" data-pos="' + Math.min(pos, 3) + '"' +
+        (pos ? ' aria-hidden="true" inert' : '') + '>' +
+        pitchCard(p, i, n, nums[i], i === best) + '</div>';
+    }).join('');
+    const pager = n < 2 ? '' : '<span class="b-pdeck-pager">' +
+      '<span class="b-pdeck-dots">' + list.map((p, i) =>
+        '<button class="b-pdeck-dot" type="button" data-pdeck="' + i + '" aria-label="Show ' +
+          esc(p.name || 'pitch ' + (i + 1)) + '" aria-current="' + (i === top) + '"></button>').join('') +
+      '</span>' +
+      '<button class="b-pdeck-btn" type="button" data-pdeck="prev" aria-label="Previous pitch">' +
+        chIcon('back') + '</button>' +
+      '<button class="b-pdeck-btn" type="button" data-pdeck="next" aria-label="Next pitch">' +
+        chIcon('fwd') + '</button></span>';
+    return '<div class="b-cmeta-part">' +
+      '<div class="b-pdeck-head"><span class="b-cmeta-cap">' +
+        (n > 1 ? 'Sales pitches' : 'Sales pitch') + '</span>' + pager + '</div>' +
+      '<div class="b-pdeck' + (n > 1 ? ' is-pile' : '') + '" data-pdeck-camp="' +
+        esc(k.id) + '">' + cards + '</div>' +
+      (n > 1 ? aimyBlock({ text: 'AiMY picks the pitch for each call from who picks up and ' +
+        'what they said last time, and puts it in the call brief.' +
+        (best >= 0 ? ' “' + esc(list[best].name || 'Pitch ' + (best + 1)) +
+          '” gets the most meetings per call so far.' : '') }, true) : '') +
+    '</div>';
+  }
+  /* Turned in place rather than by a repaint: the pile is the only thing on
+     the page that changes, and a repaint would restart every other block's
+     entrance to move one card. */
+  function pitchDeckGo(deck, to, dir) {
+    const cards = [...deck.querySelectorAll('.b-pdeck-card')];
+    const n = cards.length;
+    const from = PDECK.camp === deck.getAttribute('data-pdeck-camp') ? PDECK.at % n : 0;
+    if (to === from) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const was = cards[from];
+    PDECK = { camp: deck.getAttribute('data-pdeck-camp'), at: to };
+    if (!still && dir > 0) {
+      was.classList.add('is-leaving');
+      setTimeout(() => was.classList.remove('is-leaving'), 350);
+    }
+    cards.forEach((c, i) => {
+      const pos = (i - to + n) % n;
+      c.setAttribute('data-pos', String(Math.min(pos, 3)));
+      if (pos) { c.setAttribute('aria-hidden', 'true'); c.setAttribute('inert', ''); }
+      else { c.removeAttribute('aria-hidden'); c.removeAttribute('inert'); }
+    });
+    if (!still && dir < 0) {
+      const now = cards[to];
+      now.classList.add('is-coming');
+      void now.offsetWidth;
+      now.classList.remove('is-coming');
+    }
+    const part = deck.parentElement;
+    part.querySelectorAll('.b-pdeck-dot').forEach((d, i) =>
+      d.setAttribute('aria-current', String(i === to)));
+  }
+
+  /* ══ NAMES ON THE LEFT, THE ONE YOU PICKED ON THE RIGHT ═════════════════
+     The list stays the height of its names however many pitches there are,
+     and the pitch being written gets the width a paragraph needs. Order is
+     the arrows, not a drag: the first pitch is the fallback, so moving one
+     to the top is a decision and it gets a control you can see. Removing
+     one has an Undo rather than a question. */
+  let PED = { camp: null, open: 0 };
+  function pitchEditor(k) {
+    const list = campPitches(k).length ? campPitches(k) : [pitchNew({ id: 'p1' })];
+    const n = list.length;
+    const open = PED.camp === k.id ? Math.min(PED.open, n - 1) : 0;
+    const p = list[open];
+    const ib = (attr, ico, say, off) => '<button class="b-pdeck-btn is-plain" type="button" ' + attr +
+      ' data-pi="' + open + '" aria-label="' + say + '" title="' + say + '"' +
+      (off ? ' disabled' : '') + '>' + chIcon(ico) + '</button>';
+    return '<div class="b-cmeta-part">' +
+      '<span class="b-cmeta-cap">Sales pitches</span>' +
+      '<div class="b-ped">' +
+        '<div class="b-ped-side"><div class="b-ped-list">' + list.map((x, i) =>
+          '<button class="b-ped-row" type="button" data-ped-open="' + i + '" data-pid="' +
+            esc(x.id) + '" aria-current="' + (i === open) + '">' +
+            '<span class="b-ped-num">' + (i + 1) + '</span>' +
+            '<span class="b-ped-label">' + esc(x.name || 'Unnamed pitch') + '</span></button>').join('') +
+          '</div>' +
+          '<button class="b-ghost b-ped-add" type="button" data-ped-add>' + chIcon('plus') +
+            'Add a pitch</button>' +
+          (n > 1 ? '<p class="b-ped-note">Pitch 1 is used when none of the others fits.</p>' : '') +
+        '</div>' +
+        '<div class="b-ped-pane" data-pid="' + esc(p.id) + '">' +
+          '<div class="b-ped-head"><span class="b-ped-num">' + (open + 1) + '</span>' +
+            '<input class="b-draft-in b-ped-name" type="text" data-pitchf="name" data-pi="' + open +
+              '" value="' + esc(p.name) + '" placeholder="Name this pitch" spellcheck="false" />' +
+            '<span class="b-ped-acts">' +
+              ib('data-ped-mv="-1"', 'arrow-up', 'Move up', open === 0) +
+              ib('data-ped-mv="1"', 'arrow-down', 'Move down', open === n - 1) +
+              ib('data-ped-rm', 'trash', 'Remove this pitch', n === 1) +
+            '</span></div>' +
+          '<span class="b-cmeta-cap">Use it when</span>' +
+          /* A box that wraps, like the persona: an input cuts a long moment
+             off at the edge of a narrow pane. */
+          draftArea('when', p.when, open === 0 && n > 1 ? 'None of the others fits'
+            : 'Who it is for, or what they said, that makes this the one to use', 1,
+            'data-pi="' + open + '" data-pitchf') +
+          '<div class="b-draft-caprow"><span class="b-cmeta-cap">What to say</span>' +
+            '<button class="b-draft-ai" type="button" data-ped-ai="' + open + '">' + AIMY_SPARK +
+              'Draft it</button></div>' +
+          draftArea('words', p.words,
+            'What we give them, why it is worth having now, and what to open on', 3,
+            'data-pi="' + open + '" data-pitchf') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  /* Rows that moved slide from where they were, so a move reads as a move
+     and not as two names swapping places in one frame. */
+  function pitchFlip(before) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.querySelectorAll('.b-ped-row[data-pid]').forEach((el) => {
+      const was = before.get(el.getAttribute('data-pid'));
+      if (was == null) return;
+      const dy = was - el.getBoundingClientRect().top;
+      if (!dy) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translateY(' + dy + 'px)';
+      void el.offsetWidth;
+      el.style.transition = 'transform 250ms var(--ease-out)';
+      el.style.transform = '';
+      setTimeout(() => { el.style.transition = ''; }, 260);
+    });
+  }
+  const pitchRows = () => new Map([...document.querySelectorAll('.b-ped-row[data-pid]')]
+    .map((el) => [el.getAttribute('data-pid'), el.getBoundingClientRect().top]));
+
   /* ══ WHO WE CALL, AND WHAT WE SAY ══════════════════════════════════════
      Three things a campaign carries that no figure on the page can stand
      for: the titles to ask reception for, the angle to open on, and
@@ -18226,12 +18516,8 @@
        clause of a seeded string today and a free text box the moment
        somebody edits it, and a rule that trims a sentence off the end
        would eat a real one the first time nobody wrote a closer. */
-    if ((edit || k.pitch || empty) && !isBuyer()) {
-      out.push(draftPart('Sales pitch', edit ? aiDraft('pitch') : '',
-        edit ? draftArea('pitch', k.pitch,
-          'What we give them, why it is worth having now, and what to open on')
-          : k.pitch ? '<p class="b-cmeta-p">' + esc(k.pitch) + '</p>'
-            : none('Nothing written, so every caller opens on their own words.')));
+    if ((edit || livePitches(k).length || empty) && !isBuyer()) {
+      out.push(edit ? pitchEditor(k) : pitchDeck(k, none));
     }
     if ((edit || k.notes || empty) && !isBuyer()) {
       out.push(draftPart('Notes', '',
@@ -18730,7 +19016,7 @@
         backBtn('data-home', 'Back to the briefing') +
         (campMine(k)
           ? '<button class="b-ghost b-rec-edit" type="button" data-cedit="' + esc(k.id) +
-            '">Edit the campaign</button>'
+            '">Edit</button>'
           : '') +
       '</div>' +
 
@@ -25342,6 +25628,8 @@
        this one a half-pixel off theirs. */
     'chev-down': '<path d="m6 9 6 6 6-6"/>',
     'chev-up': '<path d="m18 15-6-6-6 6"/>',
+    'arrow-up': '<path d="m5 12 7-7 7 7"/> <path d="M12 19V5"/>',
+    'arrow-down': '<path d="M12 5v14"/> <path d="m19 12-7 7-7-7"/>',
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     minus: '<path d="M5 12h14"/>',
     lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/> <path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
@@ -31864,7 +32152,7 @@
     const said = last && last.note ? last.note.replace(/[.\s]+$/, '') : null;
     switch (c.checkpoint) {
       case 'not-called':
-        return camp ? camp.pitch : 'Ask what they are running this with today.';
+        return camp ? pitchSay(c, camp) : 'Ask what they are running this with today.';
       case 'no-answer':
         return 'They have never picked up — ' + plural(c.attempts, 'attempt') +
           ' so far. Say why you keep calling rather than that you have been.';
@@ -31917,7 +32205,7 @@
       case 'do-not-call':
         return 'They opted out. Do not call this one.';
       default:
-        return camp ? camp.pitch : 'Ask what they are running this with today.';
+        return camp ? pitchSay(c, camp) : 'Ask what they are running this with today.';
     }
   }
 
@@ -32374,8 +32662,14 @@
         calls.length ? plural(calls.length, 'call') + ' on the record' : 'nothing on the record yet'));
       return;
     }
+    /* Which pitch, when there was a choice. The caller reads the words
+       either way; the name is what they say back to a manager asking how
+       the call went. */
+    const used = camp && c.checkpoint === 'not-called' && livePitches(camp).length > 1
+      ? pitchNow(c, camp) : null;
     body += '<blockquote class="b-open">' +
-      '<span class="b-open-cap">Open with</span>' +
+      '<span class="b-open-cap">Open with' + (used && used.name
+        ? ' \u201c' + esc(used.name) + '\u201d' : '') + '</span>' +
       '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
     '</blockquote>';
 
@@ -33444,7 +33738,7 @@
          somebody says out loud, `notes` whatever the manager knows that no
          derivation can reach. All three start empty and all three stay
          empty until somebody \u2014 him or AiMY \u2014 writes them. */
-      goal: '', pitch: '', notes: '',
+      goal: '', pitch: '', pitches: [], notes: '',
       sells: [], objections: [], resources: [],
       /* Empty means unsaid, not "any size". A campaign that asserts a size
          nobody chose aims the whole floor at the wrong switchboard. */
@@ -33558,7 +33852,7 @@
      and not only what `campFill` writes, because the same map now answers two
      questions \u2014 what AiMY filled in, and what moved while the page was open. */
   const FIELD_SAY = { name: 'the name', aim: 'the goal', persona: 'the persona',
-    size: 'the company size', pitch: 'the pitch', goal: 'the ask',
+    size: 'the company size', pitch: 'the pitches', goal: 'the ask',
     objections: 'the objections', resources: 'the one-pagers', target: 'the quota',
     sells: 'what we sell them', client: 'the client', industry: 'the industry',
     region: 'the region', crew: 'the team', lists: 'its lists',
@@ -33637,7 +33931,7 @@
     if (!k.size && SIZE_OF[p.sell]) patch.size = SIZE_OF[p.sell];
     if (!k.pitch) {
       const said = sayPitch(p);
-      if (said) patch.pitch = said;
+      if (said) { patch.pitch = said; patch.pitches = pitchesWithFirst(k, said); }
     }
     if (!k.goal) {
       patch.goal = k.target.noun === 'meeting'
@@ -33795,6 +34089,8 @@
          One writer, so the sentence on the card and the sentence on the
          record cannot be two different sentences. */
       pitch: b.pitch || sayPitch(parts) || '',
+      pitches: [pitchNew({ id: 'p1', name: b.pitch ? '' : 'What it costs them today',
+        words: b.pitch || sayPitch(parts) || '' })],
       /* Empty, and it stays empty until somebody who knows something writes
          it down. Five answers do not include anything only he knows. */
       notes: '',
@@ -35714,6 +36010,104 @@
        and not a flag, so a line typed by hand and redrawn by accident is
        not lost. No confirm \u2014 doctrine, and a confirm before a write you
        can undo is a question asked to no purpose. */
+    /* ══ THE PILE OF PITCHES TURNS WHERE IT IS ════════════════════════════ */
+    const pdeck = t.closest('[data-pdeck]');
+    if (pdeck) {
+      const part = pdeck.closest('.b-cmeta-part');
+      const deck = part && part.querySelector('.b-pdeck');
+      if (!deck) return;
+      const n = deck.querySelectorAll('.b-pdeck-card').length;
+      const from = PDECK.camp === deck.getAttribute('data-pdeck-camp') ? PDECK.at % n : 0;
+      const v = pdeck.getAttribute('data-pdeck');
+      const to = v === 'next' ? (from + 1) % n : v === 'prev' ? (from - 1 + n) % n : +v;
+      pitchDeckGo(deck, to, v === 'prev' || (v !== 'next' && to < from) ? -1 : 1);
+      return;
+    }
+
+    /* ══ THE PITCH LIST IN EDIT ══════════════════════════════════════════
+       Every verb on it writes the whole list through `pitchesSet`, so the
+       first pitch's words and the record's `pitch` cannot part. */
+    const ped = t.closest('[data-ped-open]') || t.closest('[data-ped-mv]') ||
+      t.closest('[data-ped-rm]') || t.closest('[data-ped-add]') || t.closest('[data-ped-ai]');
+    if (ped) {
+      const k = DB.byCamp[S.camp];
+      if (!k) return;
+      const list = campPitches(k).map((p) => Object.assign({}, p));
+      if (!list.length) list.push(pitchNew({ id: 'p1' }));
+      const open = PED.camp === k.id ? Math.min(PED.open, list.length - 1) : 0;
+      const label = (p, i) => (p.name ? '“' + p.name + '”' : 'pitch ' + (i + 1));
+      const focus = (el) => { if (el) try { el.focus({ preventScroll: true }); } catch (x) { el.focus(); } };
+      if (ped.hasAttribute('data-ped-open')) {
+        PED = { camp: k.id, open: +ped.getAttribute('data-ped-open') };
+        paint();
+        focus(document.querySelector('.b-ped-row[aria-current="true"]'));
+        return;
+      }
+      if (ped.hasAttribute('data-ped-mv')) {
+        const d = ped.getAttribute('data-ped-mv');
+        const j = open + +d;
+        if (j < 0 || j >= list.length) return;
+        const was = list[open];
+        list[open] = list[j];
+        list[j] = was;
+        const before = pitchRows();
+        PED = { camp: k.id, open: j };
+        pitchesSet(k, list);
+        paint();
+        pitchFlip(before);
+        focus(document.querySelector('[data-ped-mv="' + d + '"]:not([disabled])') ||
+          document.querySelector('[data-ped-mv]:not([disabled])'));
+        return;
+      }
+      if (ped.hasAttribute('data-ped-rm')) {
+        if (list.length < 2) return;
+        const gone = list.splice(open, 1)[0];
+        PED = { camp: k.id, open: Math.min(open, list.length - 1) };
+        pitchesSet(k, list);
+        paint();
+        toast('Removed ' + label(gone, open) + '.', () => {
+          const back = campPitches(k).map((p) => Object.assign({}, p));
+          back.splice(open, 0, gone);
+          PED = { camp: k.id, open: open };
+          pitchesSet(k, back);
+          paint();
+        });
+        return;
+      }
+      if (ped.hasAttribute('data-ped-add')) {
+        list.push(pitchNew());
+        PED = { camp: k.id, open: list.length - 1 };
+        pitchesSet(k, list);
+        paint();
+        const pane = document.querySelector('.b-ped-pane');
+        if (pane) pane.classList.add('is-new');
+        focus(document.querySelector('.b-ped-name'));
+        return;
+      }
+      /* Draft it. The first pitch is the one AiMY has always written; the
+         others take the next angle the offering answers, so a second press
+         on a second pitch does not hand back the first pitch's words. */
+      const i = +ped.getAttribute('data-ped-ai');
+      if (!SELL[campParts(k).sell]) {
+        toast('Say what we are selling first — every word of this comes out of that.');
+        return;
+      }
+      const a = i === 0 ? Object.assign(PITCH_ANGLES[0](k), { words: sayPitch(campParts(k)) })
+        : pitchAngle(k, list, i);
+      const prev = Object.assign({}, list[i]);
+      list[i] = Object.assign(list[i], { words: a.words,
+        name: list[i].name || a.name, when: list[i].when || a.when });
+      pitchesSet(k, list);
+      paint();
+      toast('AiMY wrote ' + label(list[i], i) + ' — it is yours to edit', () => {
+        const back = campPitches(k).map((p) => Object.assign({}, p));
+        back[i] = prev;
+        pitchesSet(k, back);
+        paint();
+      });
+      return;
+    }
+
     const cdraft = t.closest('[data-cdraft]');
     if (cdraft) {
       const k = DB.byCamp[S.camp];
@@ -35732,17 +36126,17 @@
         toast('Say what we are selling first \u2014 every word of this comes out of that.');
         return;
       }
-      const was = { persona: k.persona, pitch: k.pitch, aim: k.aim };
+      const was = { persona: k.persona, pitch: k.pitch, pitches: k.pitches, aim: k.aim };
       if (f === 'persona') {
         campSet(k, { persona: { who: made, at: (was.persona && was.persona.at) || '',
           why: (was.persona && was.persona.why) || WHY_NOW[p.sell] || '' } });
-      } else if (f === 'pitch') campSet(k, { pitch: made });
+      } else if (f === 'pitch') pitchesSet(k, pitchesWithFirst(k, made));
       else campSet(k, { aim: made });
       paint();
       const named = f === 'persona' ? 'Persona' : f === 'pitch' ? 'Pitch' : 'Goal';
       toast(named + ' drafted \u2014 it is yours to edit', () => {
         campSet(k, f === 'persona' ? { persona: was.persona }
-          : f === 'pitch' ? { pitch: was.pitch } : { aim: was.aim });
+          : f === 'pitch' ? { pitch: was.pitch, pitches: was.pitches } : { aim: was.aim });
         paint();
       });
       return;
@@ -36662,6 +37056,31 @@
           af.style.height = af.scrollHeight + 'px';
         }
         patchAcc(a, { notes: af.value });
+      }
+      return;
+    }
+    /* A pitch's name, moment or words. The list is written whole, and the
+       row on the left follows the name as it is typed rather than a
+       repaint behind it. */
+    const pfd = e.target.closest && e.target.closest('[data-pitchf]');
+    if (pfd) {
+      if (!FITS && pfd.tagName === 'TEXTAREA') {
+        pfd.style.height = 'auto';
+        pfd.style.height = pfd.scrollHeight + 'px';
+      }
+      const k = DB.byCamp[S.camp];
+      if (k) {
+        const list = campPitches(k).map((p) => Object.assign({}, p));
+        const i = +pfd.getAttribute('data-pi');
+        if (!list[i]) list[i] = list.length ? pitchNew() : pitchNew({ id: 'p1' });
+        const f = pfd.getAttribute('data-pitchf');
+        list[i][f] = pfd.value;
+        pitchesSet(k, list);
+        if (f === 'name') {
+          const row = document.querySelector('.b-ped-row[data-ped-open="' + i + '"] .b-ped-label');
+          if (row) row.textContent = pfd.value || 'Unnamed pitch';
+        }
+        draftMissSync(k);
       }
       return;
     }

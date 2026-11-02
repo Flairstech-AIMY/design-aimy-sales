@@ -5127,7 +5127,16 @@ textarea::placeholder,
    this build uses wherever a section has exactly one thing you can do to it.
    `.b-cmeta-cap` keeps its own 8px underneath, so the field below sits where
    it sits on every other part whether or not the verb is drawn. */
-.b-draft-caprow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.b-draft-caprow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
+/* Centred, not on the baseline: an icon-first button takes its baseline from
+   the bottom of the icon, which lifted "Draft it" above its caption. The
+   caption gives its 8px to the row so the field under it does not move. */
+.b-draft-caprow .b-cmeta-cap { margin: 0; }
+/* The same lift wherever an icon-first button sits in a row aligned on the
+   baseline. Rather than move the row, the button takes its baseline from its
+   words: the icon is centred on its own and stops standing in for the text. */
+.s-sec-ask, .s-odds-cap { align-items: baseline; }
+.s-sec-ask > svg, .s-odds-cap > svg { align-self: center; }
 
 /* ══ ASKING AiMY IS NOT A PEER OF ANSWERING ═════════════════════════
    A filled button beside a field would make writing the field yourself the
@@ -7979,4 +7988,122 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   --ink-ok: #0a6d41;
   --ink-err: #b81f14;
   --surface-sunken: #f2f5fa;
+}
+
+/* ══ SALES PITCHES: A PILE ON THE RECORD, A LIST IN EDIT ══════════════════
+   A campaign carries more than one pitch. On the record they are a pile:
+   the top card is read, the edges of the ones behind it say there are more,
+   and the arrows send the top card to the back. In Edit they are names on
+   the left and the pitch being written on the right, so the list keeps the
+   height of its names however many there are. */
+.b-pdeck-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  max-width: 760px; margin: 0 0 8px;
+}
+.b-pdeck-head .b-cmeta-cap { margin: 0; }
+.b-pdeck-pager { display: inline-flex; align-items: center; gap: 6px; }
+.b-pdeck-dots { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; }
+.b-pdeck-dot {
+  width: 8px; height: 8px; padding: 0; border: 0; border-radius: 9999px;
+  background: var(--d200); cursor: pointer;
+  transition: width 250ms var(--ease-out), background-color 150ms;
+}
+.b-pdeck-dot[aria-current="true"] { width: 20px; background: var(--d50); }
+.b-pdeck-btn {
+  display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0;
+  border-radius: 9999px; border: 1px solid var(--card-border); background: transparent;
+  color: var(--d100); cursor: pointer;
+  transition: color 150ms, border-color 150ms, background-color 150ms, transform 160ms var(--ease-out);
+}
+.b-pdeck-btn svg { width: 16px; height: 16px; }
+.b-pdeck-btn:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.b-pdeck-btn:active { transform: scale(0.96); }
+.b-pdeck-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+.b-pdeck-btn.is-plain { border-color: transparent; }
+.b-pdeck-btn.is-plain:hover:not(:disabled) { background: color-mix(in srgb, var(--d50) 8%, transparent); }
+.b-pdeck-btn:focus-visible, .b-pdeck-dot:focus-visible, .b-ped-row:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 2px;
+}
+
+/* Every card in one grid cell, so the pile is as tall as its longest pitch
+   and turning a card never moves what is under it. */
+.b-pdeck { display: grid; max-width: 760px; }
+.b-pdeck.is-pile { padding-bottom: 20px; }
+.b-pdeck-card {
+  grid-area: 1 / 1; min-width: 0; padding: 24px; border-radius: 12px;
+  border: 1px solid var(--card-border); background: var(--surface-sunken);
+  transform-origin: 50% 100%;
+  transition: transform 350ms var(--ease-out), opacity 350ms var(--ease-out), filter 350ms var(--ease-out);
+}
+.b-pdeck-card[data-pos="0"] { z-index: 4; }
+.b-pdeck-card[data-pos="1"] { z-index: 3; transform: translateY(10px) scale(0.97); }
+.b-pdeck-card[data-pos="2"] { z-index: 2; transform: translateY(20px) scale(0.94); }
+.b-pdeck-card[data-pos="3"] { z-index: 1; transform: translateY(20px) scale(0.94); opacity: 0; }
+.b-pdeck-card:not([data-pos="0"]) > * { opacity: 0; transition: opacity 150ms; }
+.b-pdeck-card[data-pos="0"] > * { opacity: 1; transition: opacity 250ms 80ms; }
+.b-pdeck-card.is-leaving {
+  z-index: 5; transform: translateX(-48px) rotate(-2deg); opacity: 0; filter: blur(2px);
+}
+.b-pdeck-card.is-coming {
+  z-index: 5; transform: translateX(48px) rotate(2deg); opacity: 0; transition: none;
+}
+.b-pdeck + .b-aimy { max-width: 760px; margin-top: 12px; }
+
+.b-pitch-name {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 8px;
+  font-size: 18px; font-weight: var(--fw-semibold); color: var(--d50);
+}
+.b-pitch-when { margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: var(--d100); }
+.b-pitch-when b, .b-pitch-res b { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pitch-words {
+  margin: 0 0 14px; max-width: 68ch; font-size: var(--t-body); line-height: var(--lh-base);
+  color: var(--d100); text-wrap: pretty;
+}
+.b-pitch-res { margin: 0; font-size: 14px; color: var(--d100); }
+
+.b-ped {
+  display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: start;
+  max-width: 1000px;
+}
+.b-ped > * { min-width: 0; }
+.b-ped-side { min-width: 0; }
+.b-ped-list { display: grid; gap: 4px; }
+.b-ped-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+  border-radius: 10px; border: 1px solid transparent; background: none; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: var(--fw-medium); color: var(--d100); text-align: left;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+.b-ped-row:hover { background: color-mix(in srgb, var(--d50) 5%, transparent); }
+.b-ped-row[aria-current="true"] {
+  color: var(--d50); font-weight: var(--fw-semibold);
+  background: var(--surface-sunken); border-color: var(--card-border);
+}
+.b-ped-num {
+  flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 9999px;
+  font-size: 12px; font-weight: var(--fw-semibold); color: var(--d50);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-ped-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-ped-add { margin-top: 8px; }
+.b-ped-note { margin: 12px 0 0; font-size: 14px; line-height: 1.5; color: var(--d100); }
+.b-ped-pane {
+  display: grid; gap: 6px; padding: 20px; border-radius: 12px;
+  border: 1px solid var(--card-border); background: var(--surface-sunken);
+}
+.b-ped-pane > .b-cmeta-cap { margin: 12px 0 0; }
+.b-ped-pane > .b-draft-caprow { margin: 12px 0 0; }
+.b-ped-pane .b-draft-in { max-width: none; }
+.b-ped-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.b-ped-name { flex: 1 1 180px; min-width: 0; font-size: 16px; font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ped-acts { display: inline-flex; gap: 2px; flex: none; margin-left: auto; }
+.b-ped-pane.is-new { animation: b-ped-rise 400ms var(--ease-out); }
+@keyframes b-ped-rise { from { opacity: 0; transform: translateY(12px); filter: blur(3px); } }
+@media (max-width: 800px) {
+  .b-ped { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .b-pdeck-card { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-pdeck-card, .b-pdeck-card > *, .b-pdeck-dot, .b-pdeck-btn, .b-ped-row { transition: none !important; }
+  .b-ped-pane.is-new { animation: none; }
 }

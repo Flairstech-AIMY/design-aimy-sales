@@ -66,6 +66,10 @@ const MARKERS = {
   'done': 'the pipeline footer remembers whether it has flipped to its finished verbs',
   'chat-rename-in': 'which conversation the rename box is renaming, read by the keydown and focusout listeners that commit it',
   'load': 'whether the surface is still standing behind its skeleton, read by bdr.css rather than by a click; arrive() writes it and the next prePaint takes it off',
+  'pos': 'where a pitch card sits in the pile, read by bdr.css to stack it; the arrows rewrite it',
+  'pdeck-camp': 'which campaign a pile of pitches belongs to, read by the data-pdeck handler on the same block',
+  'pi': 'which pitch a field or verb in the pitch editor is about, read by its handler off the same element',
+  'pid': 'a pitch row’s identity across a repaint, so a move can slide the row from where it was',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */
