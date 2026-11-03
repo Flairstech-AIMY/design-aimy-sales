@@ -8293,3 +8293,87 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-ac-more-body, .b-ac-more-btn svg, .b-ac-pill svg, .b-ac-bar-fill,
   .drop-layer, .drop-layer .drop-card { transition: none !important; }
 }
+
+/* ══ 111. THE TABS, IN THE RAIL ═════════════════════════════════════════════
+   Today, Contacts, Campaigns and Lists left the row over the page and stand
+   in the rail's first card, one pill a row (`railNav` in bdr.js). The one
+   you are on is the tinted block, QA's current section, and it opens to
+   hold AiMY's reading of that state, which is the "Awaiting you" card that
+   used to stand here alone. Changing tab closes the old reading while the
+   new one opens: the accordion from transitions-dev, grid rows 0fr to 1fr,
+   250ms, the tint crossfading with it. The Diary and Financials keep their
+   own cards under it and light the same way when you are on them. */
+.rail-nav {
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  border: 1px solid var(--card-border); border-radius: var(--r-2xl);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+.rail-tab { position: relative; isolation: isolate; border-radius: 12px; }
+.rail-tab::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(var(--accent-rgb), 0.24), transparent 70%),
+    linear-gradient(120deg, rgba(var(--accent-rgb), 0.13), rgba(0, 102, 255, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.42);
+  opacity: 0; transition: opacity 250ms var(--ease-out);
+  pointer-events: none;
+}
+.rail-tab.is-on::before, .rail-tab.is-out::before { opacity: 1; }
+.rail-tab.is-on.is-in::before, .rail-tab.is-out.is-gone::before { opacity: 0; }
+.rail-tab-btn {
+  appearance: none; border: 0; background: transparent; width: 100%;
+  display: flex; align-items: center; gap: 10px; min-height: 40px;
+  padding: 8px 12px; border-radius: 999px; cursor: pointer; text-align: left;
+  font-family: var(--font-display); font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold); color: var(--d100);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.rail-tab-btn svg { width: 16px; height: 16px; flex: none; color: var(--d200); }
+.rail-tab-name { flex: 1; min-width: 0; }
+.rail-tab-n {
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums; color: var(--d200);
+}
+.rail-tab:not(.is-on) .rail-tab-btn:hover {
+  background: color-mix(in srgb, var(--d50) 6%, transparent); color: var(--d50);
+}
+.rail-tab.is-on .rail-tab-btn { color: var(--d50); font-weight: var(--fw-bold); }
+.rail-tab.is-on .rail-tab-btn svg,
+.rail-tab.is-on .rail-tab-n { color: var(--accent-text); }
+.rail-tab-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* Padding on the body, never on the track, or the shut row keeps a strip. */
+.rail-tab-read {
+  display: grid; grid-template-rows: 1fr; opacity: 1;
+  transition: grid-template-rows 250ms var(--ease-out), opacity 250ms var(--ease-out);
+}
+.rail-tab.is-in .rail-tab-read,
+.rail-tab.is-gone .rail-tab-read { grid-template-rows: 0fr; opacity: 0; }
+.rail-tab-read-in { min-height: 0; overflow: hidden; }
+.rail-tab-body { padding: 2px 12px 12px; }
+.rail-tab-body .rail-conclusion { margin-bottom: 10px; }
+.rail-tab-body .rail-evidence:last-child { margin-bottom: 0; }
+.rail-nav + .rail-doors { margin-top: 12px; }
+.b-door.is-here {
+  border-color: rgba(var(--accent-rgb), 0.42);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(var(--accent-rgb), 0.20), transparent 70%),
+    var(--card-bg);
+}
+:root[data-theme="light"] .rail-tab::before {
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.12), rgba(0, 102, 255, 0.05));
+}
+:root[data-theme="light"] .b-door.is-here {
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04)), var(--card-bg);
+}
+/* The row of tabs over the page is the drawer's form: shown only where the
+   rail is a drawer (sales.css, under 1080 layout px).
+   Beside the rail the page keeps the state's name. */
+.s-camp-list-head > .b-here-h { display: none; margin: 0 auto 0 0; }
+@media (min-width: 1080px) {
+  .s-camp-list-head > .b-switch { display: none; }
+  .s-camp-list-head > .b-here-h { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-tab::before, .rail-tab-read, .rail-tab-btn { transition: none !important; }
+}

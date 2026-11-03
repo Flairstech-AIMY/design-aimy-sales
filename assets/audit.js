@@ -70,6 +70,7 @@ const MARKERS = {
   'pdeck-camp': 'which campaign a pile of pitches belongs to, read by the data-pdeck handler on the same block',
   'pi': 'which pitch a field or verb in the pitch editor is about, read by its handler off the same element',
   'pid': 'a pitch row’s identity across a repaint, so a move can slide the row from where it was',
+  'rtab': 'which state of the page a rail tab row stands for, so a check can find a tab by name rather than by position',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */

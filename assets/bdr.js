@@ -4457,6 +4457,7 @@
       : S.on === 'camps' ? campsPage()
       : homePage();
     paintRail();
+    railNavMove();
     refreshTasks();
     paintProto();
     guardBack();
@@ -5928,8 +5929,9 @@
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
               ' something today, out of the <b>' + commas(live.length) + '</b> ' + bookWhose() + '.'
             : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
-          evidence: [{ val: commas(week), cap: 'in the diary this week' },
-            { val: camps.length, cap: 'campaigns' }],
+          /* The campaigns' count went: it is on the Campaigns tab, one row
+             under this sentence, since the tabs moved into the rail. */
+          evidence: [{ val: commas(week), cap: 'in the diary this week' }],
           act: null, q: null,
         },
       };
@@ -5943,7 +5945,8 @@
             plural(camps.length, 'campaign') + '.'
           : '<b>' + commas(q.length) + '</b> people are waiting to be called across your ' +
             plural(camps.length, 'campaign') + '.',
-        evidence: [{ val: commas(q.length), cap: 'to call' }, { val: camps.length, cap: 'campaigns' }],
+        /* "109 to call" was the Contacts tab's own count, one line up. */
+        evidence: [],
         act: back ? 'Show the ' + back : null,
         q: back ? 'callback' : null,
       },
@@ -6899,9 +6902,13 @@
        Above the row rather than beside it. They are not a fifth tab — they
        change what every tab in the row COUNTS — and a control that changes
        the meaning of the things under it goes above them. */
+    /* Where the rail stands beside the page, the tabs are in it (§111 in
+       bdr.css), so the page keeps only the name of the state it is in. */
+    const name = ({ today: 'Your day', deals: 'Contacts', calls: 'Contacts', cal: 'Diary',
+      camps: 'Campaigns', lists: 'Lists' })[here] || '';
     return engChips() + '<h2 class="b-switch">' + row +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
-    '</h2>';
+    '</h2>' + (name ? '<h2 class="s-block-h b-here-h">' + esc(name) + '</h2>' : '');
   }
 
   /* The three books' worth of row, unchanged: what a desk with a pipeline
@@ -7006,39 +7013,166 @@
     }
   }
 
-  function paintRail() {
-    const r = railReading();
-    const c = r.card;
-    byId('appRail').innerHTML =
-      '<div class="rail-read">' +
-        /* ══ THE RAIL SAID WHERE YOU WERE STANDING, TWICE ═════════════════
-           A scope block stood here: an eyebrow naming the KIND of thing, and
-           under it the thing's name. The eyebrow went first — "THIS COMPANY"
-           over the company's name is a label for what the next line already
-           is — and the name has followed it, for the reason that was true of
-           both. The page has a masthead four hundred pixels to the right
-           carrying that name at three times the size, and on the surfaces
-           with no subject the block read "YOUR BOOK" over a card that opens
-           "10 deals want something today".
+  /* ══ THE TABS MOVED INTO THE RAIL ═════════════════════════════════════
+     Nour: the row of tabs over the page goes, like QA. Today, Contacts,
+     Campaigns and Lists are not four pages, they are four states of the one
+     page, so they do not need a navigation bar of their own: they stand in
+     the rail's first card, and the one you are on opens to say what AiMY
+     reads in it. That reading is the card that used to stand here alone
+     ("Awaiting you"), so nothing it said is lost; it now sits under the
+     tab it is about. The Diary and Financials already have their own cards
+     below, so they are not tabs here; their card lights up instead.
+     The tab row is still drawn over the page, and shown only where the rail
+     is a drawer (bdr.css §111), because a drawer is not where you look to
+     find out where you are. */
+  const navTabs = () => {
+    const out = [];
+    bookTabs((k, label, n, over) => { out.push({ k: k, label: label, n: n, over: over }); return ''; }, '');
+    return out;
+  };
+  /* Which state of the page you are in, read off where you stand. A record
+     is under the tab whose list it came from; the diary, its notes and the
+     call log are the diary card's; the report is the Financials card's. */
+  function hereTab() {
+    if (S.on === 'cal' || S.on === 'notes' || S.on === 'missed') return 'cal';
+    if (S.on === 'money') return 'money';
+    if (S.list || S.on === 'lists' || S.build) return 'lists';
+    if (S.camp || S.on === 'camps') return 'camps';
+    if (S.con || S.acc || S.on === 'deals' || S.on === 'history') return onBook() ? 'deals' : 'calls';
+    return onBook() ? 'today' : 'calls';
+  }
+  const TAB_ICON = { today: 'sun', deals: 'staff', calls: 'staff', camps: 'campaign', lists: 'list' };
+  /* What AiMY reads on each tab. On a record, and on the desk's own first
+     tab, it is the reading the rail always gave; on the other three it is
+     one sentence about that set, so each tab has its own. */
+  function tabRead(k) {
+    if (S.con || S.acc || S.camp || S.list || k === 'today' || k === 'calls') return railReading().card;
+    if (k === 'deals') {
+      const q = queue();
+      const late = q.filter((c) => c.next && c.next.due < TODAY_ISO);
+      const week = q.filter((c) => c.next && c.next.due >= TODAY_ISO && c.next.due <= dayAdd(7)).length;
+      return {
+        state: late.length && works() ? 'staged' : 'detected',
+        text: late.length
+          ? '<b>' + plural(late.length, 'contact') + '</b> ' + (late.length === 1 ? 'has a next step' : 'have a next step') +
+            ' past its date, out of the <b>' + commas(q.length) + '</b> here.'
+          : 'Every next step on the <b>' + commas(q.length) + '</b> contacts here is on time.',
+        evidence: [{ val: commas(week), cap: 'steps due this week' }],
+      };
+    }
+    if (k === 'camps') {
+      const camps = myCampaigns();
+      const open = camps.filter(campOpen);
+      const soon = open.filter((x) => x.to <= dayAdd(14));
+      const asks = camps.filter((x) => isAsked(x) && x.by !== me().id).length;
+      const drafts = camps.filter((x) => isDraft(x) && !isAsked(x)).length;
+      return {
+        state: asks && works() ? 'staged' : 'detected',
+        text: soon.length
+          ? '<b>' + plural(soon.length, 'campaign') + '</b> ' + (soon.length === 1 ? 'closes' : 'close') +
+            ' in the next two weeks, out of the <b>' + commas(open.length) + '</b> running.'
+          : 'None of the <b>' + commas(open.length) + '</b> running campaigns closes in the next two weeks.',
+        evidence: [{ val: asks, cap: asks === 1 ? 'request waiting' : 'requests waiting' },
+          { val: drafts, cap: drafts === 1 ? 'draft' : 'drafts' }].filter((e) => e.val),
+      };
+    }
+    const ls = myLists();
+    const loose = ls.filter((l) => !campsOn(l).length).length;
+    const ids = new Set();
+    ls.forEach((l) => l.has.forEach((id) => ids.add(id)));
+    let noNum = 0;
+    ids.forEach((id) => { const c = DB.byCon[id]; if (c && !c.phone) noNum++; });
+    return {
+      state: loose ? 'staged' : 'detected',
+      text: loose
+        ? '<b>' + plural(loose, 'list') + '</b> ' + (loose === 1 ? 'is' : 'are') +
+          ' on no campaign, so nobody on ' + (loose === 1 ? 'it' : 'them') + ' is called yet.'
+        : 'Every one of the <b>' + commas(ls.length) + '</b> lists is on a campaign.',
+      evidence: [{ val: commas(noNum), cap: noNum === 1 ? 'person with no number' : 'people with no number' }]
+        .filter((e) => noNum),
+    };
+  }
+  function railReadHtml(c) {
+    return '<div class="bcard-meta"><span class="type-label rail-state p2">' +
+        esc(c.label || WS_LABEL[c.state] || 'Reading') + '</span></div>' +
+      '<p class="bcard-conclusion rail-conclusion">' + c.text + '</p>' +
+      (c.evidence && c.evidence.length
+        ? '<div class="bcard-evidence rail-evidence">' + c.evidence.map((e) =>
+            '<span class="evidence-pill"><span class="val">' + esc(String(e.val)) + '</span>' +
+            esc(e.cap) + '</span>').join('') + '</div>'
+        : '') +
+      (c.act
+        ? '<button class="s-insight-lnk rail-act" type="button"' +
+          (c.q ? ' data-q="' + esc(c.q) + '"' : ' data-home') + '>' + esc(c.act) + '</button>'
+        : '');
+  }
+  /* The tab you were on, and what it said, so a change of tab can close
+     the old reading while the new one opens (the accordion in §111)
+     instead of the card jumping to its new height. Keyed by desk, so
+     switching desks starts still. */
+  let RAIL_ON = '';
+  let RAIL_SAID = '';
+  function railNav() {
+    const here = hereTab();
+    const tabs = navTabs().filter((t) => t.k !== 'cal');
+    const key = me().id + ':' + here;
+    const prev = RAIL_ON.split(':');
+    /* Moved: same desk, another state. Coming from the diary or the report
+       there is no tab to close, only one to open, and the other way round. */
+    const moved = prev[0] === me().id && prev[1] !== here;
+    const was = moved && tabs.some((t) => t.k === prev[1]) ? prev[1] : '';
+    const on = tabs.some((t) => t.k === here);
+    const read = on ? railReadHtml(tabRead(here)) : '';
+    const said = RAIL_SAID;
+    RAIL_ON = key;
+    RAIL_SAID = read;
+    return '<div class="rail-nav' + (moved && (was || on) ? ' is-moving' : '') + '">' + tabs.map((t) => {
+      const lit = t.k === here;
+      return '<div class="rail-tab' + (lit ? ' is-on' : '') + (lit && moved ? ' is-in' : '') +
+          (t.k === was ? ' is-out' : '') + '" data-rtab="' + esc(t.k) + '">' +
+        '<button class="rail-tab-btn" type="button" data-go="' + esc(JSON.stringify(t.over)) + '"' +
+          (lit ? ' aria-current="page"' : '') + '>' +
+          chIcon(TAB_ICON[t.k] || 'list') +
+          '<span class="rail-tab-name">' + esc(t.label) + '</span>' +
+          (t.n === null ? '' : '<span class="rail-tab-n" data-fig="rt:' + esc(t.k) + '">' + commas(t.n) + '</span>') +
+        '</button>' +
+        (lit || t.k === was
+          ? '<div class="rail-tab-read"' + (lit ? '' : ' aria-hidden="true" inert') + '>' +
+              '<div class="rail-tab-read-in"><div class="rail-tab-body">' + (lit ? read : said) +
+              '</div></div></div>'
+          : '') +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  /* Run after the rail is in the page: let the browser see the old tab
+     open and the new one shut, then swap them, so CSS does the rest. */
+  function railNavMove() {
+    const nav = document.querySelector('.rail-nav.is-moving');
+    if (!nav) return;
+    void nav.offsetHeight;
+    const inTab = nav.querySelector('.rail-tab.is-in');
+    const outTab = nav.querySelector('.rail-tab.is-out');
+    if (inTab) inTab.classList.remove('is-in');
+    if (outTab) outTab.classList.add('is-gone');
+    setTimeout(() => {
+      nav.classList.remove('is-moving');
+      if (outTab && outTab.isConnected) {
+        const r = outTab.querySelector('.rail-tab-read');
+        if (r) r.remove();
+        outTab.classList.remove('is-out', 'is-gone');
+      }
+    }, 420);
+  }
 
-           A rail is a short, complete thing to READ. Repeating the page's
-           title into it is the one job it does not have, and every reading
-           in it already speaks about whatever the page is showing. */
-        '<div class="bcard rail-card">' +
-          '<div class="bcard-meta"><span class="type-label rail-state p2">' +
-            esc(c.label || WS_LABEL[c.state] || 'Reading') + '</span></div>' +
-          '<p class="bcard-conclusion rail-conclusion">' + c.text + '</p>' +
-          (c.evidence && c.evidence.length
-            ? '<div class="bcard-evidence rail-evidence">' + c.evidence.map((e) =>
-                '<span class="evidence-pill"><span class="val">' + esc(String(e.val)) + '</span>' +
-                esc(e.cap) + '</span>').join('') + '</div>'
-            : '') +
-          (c.act
-            ? '<button class="s-insight-lnk rail-act" type="button"' +
-              (c.q ? ' data-q="' + esc(c.q) + '"' : ' data-home') + '>' + esc(c.act) + '</button>'
-            : '') +
-        '</div>' +
-      '</div>' +
+  function paintRail() {
+    byId('appRail').innerHTML =
+      /* ══ THE RAIL SAID WHERE YOU WERE STANDING, TWICE ═════════════════
+         A scope block stood here: an eyebrow naming the KIND of thing, and
+         under it the thing's name. The page has a masthead four hundred
+         pixels to the right carrying that name at three times the size.
+         A rail is a short, complete thing to READ, and every reading in it
+         already speaks about whatever the page is showing. */
+      railNav() +
       /* Only this desk has a day and a book to stand here. */
       /* Both doors open a pipeline surface — the diary and the report.
          A floor is already standing on the report and has no diary. */
@@ -10318,8 +10452,11 @@
      rail card it would open from the far left across the page, which is an
      overlay with another name and the one thing this build refuses. The
      diary is a page now, so the gate is a gate. */
+  /* The card you are standing on is lit the way the tab you are on is, now
+     that these two cards are the only way to the diary and the report. */
+  const doorHere = (k) => (hereTab() === k ? ' is-here" aria-current="page' : '');
   function diaryDoor() {
-    return '<button class="b-door" type="button" data-go="' +
+    return '<button class="b-door' + doorHere('cal') + '" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
         '<span class="b-door-cap">Today</span>' + dayHead() +
         doorGo('Open the diary') +
@@ -10339,7 +10476,7 @@
         .reduce((n, c) => n + acvOf(c).value, 0)
       : bookAttain().booked;
     return '<div class="rail-doors">' + diaryDoor() +
-      '<button class="b-door" type="button" data-go="' +
+      '<button class="b-door' + doorHere('money') + '" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         /* Financials is our word for it and the page it opens is titled
            "Your journey with AiMY" on this desk. A door that names the page
@@ -10377,7 +10514,7 @@
     const y = myYear();
     if (y.left == null) return '';
     return '' +
-      '<button class="b-door" type="button" data-go="' +
+      '<button class="b-door' + doorHere('money') + '" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Your journey</span>' +
         '<span class="b-door-fig">' + esc(y.left === 0 ? 'Last' : commas(y.left)) +
@@ -25593,6 +25730,7 @@
     upload: '<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
     'file-spreadsheet': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/>',
     'circle-alert': '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
     list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
     'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <line x1="19" x2="19" y1="8" y2="14"/> <line x1="22" x2="16" y1="11" y2="11"/>',
     'file-pen-line': '<path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"/> <path d="M14.487 7.858A1 1 0 0 1 14 7V2"/> <path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"/> <path d="M8 18h1"/>',
