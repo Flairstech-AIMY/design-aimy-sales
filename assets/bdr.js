@@ -10603,9 +10603,11 @@
        Nour: make sure you can leave the diary for the other places. It has
        no briefing over it, and with the tab row gone nothing on the page
        led anywhere: back goes to wherever you came from (the trail), or to
-       your first tab with none. The rail's tabs do the rest. */
+       your first tab with none. The rail's tabs do the rest. Nour: not on
+       desktop, where the rail stands beside the page; only where the rail
+       is a drawer (bdr.css §111). */
     return '<div class="s-home">' +
-      '<div class="b-topbar s-block-wide">' +
+      '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', onBook() ? 'Back to Today' : 'Back to your contacts') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="The diary">' +
         '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +

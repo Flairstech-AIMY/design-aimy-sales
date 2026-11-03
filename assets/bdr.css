@@ -8256,6 +8256,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    px the rail is a drawer and the tabs are in it. The page keeps the
    state's name. */
 .s-camp-list-head > .b-here-h { margin: 0 auto 0 0; }
+/* The diary's back link is for the drawer widths. Beside the rail the tabs
+   and the lit diary card are already the way out. */
+@media (min-width: 1080px) { .b-diary-back { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .rail-tab::before, .rail-tab-read, .rail-tab-btn { transition: none !important; }
 }
