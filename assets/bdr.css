@@ -8144,9 +8144,14 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-ac-dest-row .b-ac-cap { margin: 0; }
 .b-ac-list { display: inline-flex; align-items: center; gap: 6px; color: var(--d100); }
 .b-ac-list svg { color: var(--accent); }
-.b-ac-dest-row .s-inline-btn { margin-left: auto; }
 .b-ac-say { margin: 8px 0 0; font-size: var(--fs-sm); color: var(--d100); line-height: var(--lh-base); max-width: 60ch; }
 .b-ac-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+/* The list menu opens upward from Find another list: the row is the foot
+   of the newest turn, and a menu below it would hang off the bottom of the
+   chat. */
+.b-ac-chips .b-menu-wrap { align-self: center; margin-left: 4px; }
+.b-ac-menu { top: auto; bottom: calc(100% + 8px); left: 0; width: 320px; max-width: calc(100vw - 48px); transform-origin: bottom left; }
+.b-ac-menu .b-menu-item.b-ac-newlist { color: var(--accent); }
 
 /* One person: the fields, two to a row where there is room. */
 .b-ac-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px 24px; }

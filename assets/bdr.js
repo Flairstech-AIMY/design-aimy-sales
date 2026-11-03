@@ -31388,14 +31388,84 @@
   const acDestList = (d) => (d && d !== 'ext' && d.indexOf('new:') !== 0 ? DB.byList[d] || null : null);
   const acDestName = (d) => (d === 'ext' ? EXT_NAME
     : d && d.indexOf('new:') === 0 ? d.slice(4) : (acDestList(d) || {}).name || EXT_NAME);
-  /* The lists offered when you change it: yours first, newest first, four. */
+  /* ══ WHICH LIST, OUT OF HOWEVER MANY ═══════════════════════════════════
+     A row of pills held five and there can be fifty. It is the menu the
+     rest of the product already uses to find a campaign: a box that
+     narrows as you type, every list under it (External contacts first,
+     then newest), each saying how many are on it and where it works. What
+     you type is also the name of a new list, in the row at the foot. */
   function acDestOpts(cur) {
     const x = extList();
     const out = [x ? x.id : 'ext'];
-    myLists().filter((l) => !l.ext && works())
-      .sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 4).forEach((l) => out.push(l.id));
+    myLists().filter((l) => !l.ext)
+      .sort((a, b) => (a.at < b.at ? 1 : -1)).forEach((l) => out.push(l.id));
     if (cur && out.indexOf(cur) < 0) out.unshift(cur);
     return out;
+  }
+  /* Up to three lists worth a press (Nour: suggestions, not every list):
+     where they are going now, External contacts, a list that already has
+     somebody from their company, the list you are standing on, your
+     newest. Everything else is behind Find another list. */
+  const acNewest = (p, q) => (p.at < q.at ? 1 : -1);
+  function acSuggest(a) {
+    const out = [];
+    const add = (d) => { if (d && out.indexOf(d) < 0) out.push(d); };
+    add(a.dest);
+    const x = extList();
+    add(x ? x.id : 'ext');
+    const co = a.kind === 'one' ? String(a.f.co || '').trim().toLowerCase() : '';
+    if (co) {
+      const at = Object.create(null);
+      DB.con.forEach((c) => { const ac = accOf(c); if (ac && ac.name.toLowerCase() === co) at[c.id] = 1; });
+      const l = myLists().filter((y) => !y.ext && y.has.some((id) => at[id]))[0];
+      if (l) add(l.id);
+    }
+    const open = S.list && DB.byList[S.list];
+    if (open && listSeen(open)) add(open.id);
+    myLists().filter((y) => !y.ext).sort(acNewest).forEach((y) => { if (out.length < 3) add(y.id); });
+    return out.slice(0, 3);
+  }
+  function acDestPick(a) {
+    return '<div class="b-ac-chips" role="group" aria-label="Suggested lists">' +
+      acSuggest(a).map((d) => '<button class="filter-chip' + (d === a.dest ? ' active' : '') +
+        '" type="button" data-acdest="' + esc(d) + '" aria-pressed="' + (d === a.dest) + '">' +
+        esc(acDestName(d)) + '</button>').join('') +
+      acListMenu(a) +
+    '</div>';
+  }
+  function acListMenu(a) {
+    const id = 'acList-' + a.id;
+    return '<span class="b-menu-wrap">' +
+      '<button class="s-inline-btn b-menu-open" type="button" data-pickopen="' + id + '" ' +
+        'aria-haspopup="menu">Find another list</button>' +
+      '<div class="b-menu b-ac-menu" id="' + id + '" role="menu" hidden>' +
+        '<span class="b-menu-cap">Put them on</span>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+          'placeholder="Find a list, or name a new one" aria-label="Find a list, or name a new one" spellcheck="false" />' +
+        acDestOpts(a.dest).map((d) => {
+          const l = acDestList(d);
+          const on = l ? campsOnSay(l) : null;
+          return '<button class="b-menu-item" type="button" role="menuitem" data-acdest="' + esc(d) + '"' +
+            (d === a.dest ? ' aria-current="true"' : '') + '>' +
+            '<span class="b-menu-line"><span class="b-menu-name">' + esc(acDestName(d)) + '</span>' +
+            '<span class="b-menu-sub">' + esc(l ? plural(l.has.length, 'person') + ', ' +
+              (on ? on.charAt(0).toLowerCase() + on.slice(1) : 'not on a campaign') : 'a new list') +
+            '</span></span></button>';
+        }).join('') +
+        '<button class="b-menu-item is-foot b-ac-newlist" type="button" role="menuitem" data-acdest="typed">' +
+          'Start a new list</button>' +
+      '</div>' +
+    '</span>';
+  }
+  /* The foot row names the list you are typing, and never hides. */
+  function acMenuTyped(box) {
+    const host = box.closest('.b-ac-menu');
+    if (!host) return;
+    const q = box.value.trim();
+    const foot = host.querySelector('.b-ac-newlist');
+    if (!foot) return;
+    foot.hidden = false;
+    foot.textContent = q ? 'Start a new list called “' + q.slice(0, 60) + '”' : 'Start a new list';
   }
 
   /* ══ THE WRITE ══════════════════════════════════════════════════════════
@@ -31511,17 +31581,8 @@
     return '<div class="b-ac-dest">' +
       '<div class="b-ac-dest-row">' + acCap('Goes on') +
         '<span class="b-ac-list">' + chIcon('list', 15) + '<b>' + esc(acDestName(a.dest)) + '</b></span>' + tag +
-        (a.phase === 'run' || a.phase === 'done' ? ''
-          : '<button class="s-inline-btn" type="button" data-acgo="pick" aria-expanded="' + !!a.pick + '">' +
-            (a.pick ? 'Keep it' : 'Change') + '</button>') +
       '</div>' +
-      (a.pick
-        ? '<div class="b-ac-chips" role="group" aria-label="Which list">' +
-          acDestOpts(a.dest).map((d) => '<button class="filter-chip' + (d === a.dest ? ' active' : '') +
-            '" type="button" data-acdest="' + esc(d) + '" aria-pressed="' + (d === a.dest) + '">' +
-            esc(acDestName(d)) + '</button>').join('') +
-          '<p class="b-ac-hint">Or type a name, like <b>on GITEX leads</b>, to start a new list.</p></div>'
-        : '') +
+      (a.phase === 'run' || a.phase === 'done' ? '' : acDestPick(a)) +
       '<p class="b-ac-say">' + say + '</p>' +
     '</div>';
   }
@@ -31970,7 +32031,6 @@
         const nm = dest[2].trim();
         const hit = !dest[1] && myLists().filter((l) => l.name.toLowerCase() === nm.toLowerCase())[0];
         a.dest = hit ? hit.id : nm.toLowerCase() === EXT_NAME.toLowerCase() ? (extList() ? extList().id : 'ext') : 'new:' + nm.slice(0, 60);
-        a.pick = false;
         TURNS.push({ who: 'you', html: esc(s) });
         paintThread();
         return true;
@@ -32024,7 +32084,6 @@
     if (k === 'sample') { acSampleSave(); return; }
     if (!a) return;
     if (k === 'file') { const el = byId('acFile'); if (el) { el.value = ''; el.click(); } return; }
-    if (k === 'pick') { a.pick = !a.pick; acRepaint(); return; }
     if (k === 'more') {
       a.more = !a.more;
       const box = byId('ac-' + a.id).querySelector('.b-ac-more');
@@ -32100,7 +32159,6 @@
     a.phase = 'run';
     a.total = ev.ready.length;
     a.done = 0;
-    a.pick = false;
     a.open = -1;
     acRepaint();
     const step = Math.max(1, Math.ceil(a.total / 32));
@@ -36749,7 +36807,21 @@
     const acB = t.closest('[data-acgo]');
     if (acB) { acGo(acB.getAttribute('data-acgo')); return; }
     const acD = t.closest('[data-acdest]');
-    if (acD) { if (ADDC) { ADDC.dest = acD.getAttribute('data-acdest'); ADDC.pick = false; acRepaint(); } return; }
+    if (acD) {
+      if (!ADDC) return;
+      let d = acD.getAttribute('data-acdest');
+      if (d === 'typed') {
+        const box = acD.closest('.b-menu').querySelector('[data-picksearch]');
+        const nm = box ? box.value.trim().slice(0, 60) : '';
+        if (!nm) { toast('Type the new list’s name in the box above it.'); if (box) box.focus(); return; }
+        const hit = myLists().filter((l) => l.name.toLowerCase() === nm.toLowerCase())[0];
+        d = hit ? hit.id : 'new:' + nm;
+      }
+      ADDC.dest = d;
+      shutMenus(null);
+      acRepaint();
+      return;
+    }
     const acC = t.closest('[data-accol]');
     if (acC) {
       const i = Number(acC.getAttribute('data-accol'));
@@ -38147,7 +38219,7 @@
     /* The chooser filters its own list where it stands. A repaint would
        take the focus out of the box being typed in. */
     const ps = e.target.closest && e.target.closest('[data-picksearch]');
-    if (ps) { pickFilter(ps); return; }
+    if (ps) { pickFilter(ps); acMenuTyped(ps); return; }
     const acf = e.target.closest && e.target.closest('[data-acf]');
     if (acf) { acInput(acf); return; }
     /* The conversation search repaints its own column and nothing else, so
