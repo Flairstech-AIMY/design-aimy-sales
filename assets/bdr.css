@@ -8107,3 +8107,181 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-pdeck-card, .b-pdeck-card > *, .b-pdeck-dot, .b-pdeck-btn, .b-ped-row { transition: none !important; }
   .b-ped-pane.is-new { animation: none; }
 }
+
+/* ══ 110. ADDING CONTACTS (AIMY-2990, AIMY-2992) ════════════════════════════
+   One AiMY turn that takes one person or a CSV. The fields are underlined
+   inputs like the draft page, the columns and rows are rows (no tables), and
+   every state is said in words and colour: an error is red text with its
+   mark, never a field made fainter. Motion from transitions.dev: the more
+   details fold (accordion), the error shake, the bar, the success check,
+   and the drop layer (modal open and close). */
+.b-ac-msg .msg-bubble { width: 100%; max-width: 680px; }
+.b-ac > p { margin: 0 0 12px; line-height: var(--lh-base); }
+.b-ac b { color: var(--d50); font-weight: var(--fw-semibold); }
+.b-ac-cap {
+  display: block; margin: 16px 0 8px;
+  font-size: var(--t-micro); font-weight: var(--fw-medium); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d200);
+}
+.b-ac-hint { margin: 10px 0 0; font-size: var(--fs-sm); color: var(--d200); line-height: var(--lh-base); }
+.b-ac-hint b { font-weight: var(--fw-medium); color: var(--d100); }
+
+/* The drop target in the turn. A solid edge: dashed ones are banned here. */
+.b-ac-zone {
+  display: grid; justify-items: center; gap: 6px; text-align: center;
+  padding: 22px 18px 18px; border-radius: var(--r-lg);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.06);
+}
+.b-ac-zone-ic { color: var(--accent); display: inline-flex; margin-bottom: 2px; }
+.b-ac-zone-t { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ac-zone-s { font-size: var(--fs-sm); color: var(--d200); }
+.b-ac-zone-acts { display: inline-flex; align-items: center; gap: 14px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* Where they go: the list, its state, and one sentence about what it means. */
+.b-ac-dest { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--card-border); }
+.b-ac-dest-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.b-ac-dest-row .b-ac-cap { margin: 0; }
+.b-ac-list { display: inline-flex; align-items: center; gap: 6px; color: var(--d100); }
+.b-ac-list svg { color: var(--accent); }
+.b-ac-dest-row .s-inline-btn { margin-left: auto; }
+.b-ac-say { margin: 8px 0 0; font-size: var(--fs-sm); color: var(--d100); line-height: var(--lh-base); max-width: 60ch; }
+.b-ac-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* One person: the fields, two to a row where there is room. */
+.b-ac-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px 24px; }
+.b-ac-f { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.b-ac-f-cap { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200); }
+.b-ac-in {
+  font-family: inherit; font-size: var(--fs-base); color: var(--d50);
+  background: none; border: 0; border-bottom: 1px solid var(--card-border-hover);
+  padding: 4px 0 5px; min-width: 0; width: 100%;
+  transition: border-color 150ms ease-out;
+}
+.b-ac-in::placeholder { color: var(--ink-placeholder); }
+.b-ac-in:focus { outline: none; border-bottom-color: var(--accent); }
+.b-ac-f.is-bad .b-ac-in { border-bottom-color: var(--err); }
+.b-ac-err { display: flex; align-items: flex-start; gap: 6px; font-size: var(--fs-sm); color: var(--err); line-height: 1.4; }
+.b-ac-err:empty { display: none; }
+.b-ac-err svg { flex: none; margin-top: 2px; }
+.b-ac-f.is-shaking { animation: b-ac-shake 320ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes b-ac-shake {
+  20% { transform: translateX(-8px); } 40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); } 80% { transform: translateX(2px); }
+}
+
+/* More details: an accordion, rows 0fr to 1fr, and the chevron flips. */
+.b-ac-more { margin-top: 12px; }
+.b-ac-more-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
+  font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--accent);
+  background: none; border: 0; cursor: pointer;
+}
+.b-ac-more-btn svg { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
+.b-ac-more.is-open .b-ac-more-btn svg { transform: scaleY(-1); }
+.b-ac-more-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 250ms cubic-bezier(0.22, 1, 0.36, 1); }
+.b-ac-more.is-open .b-ac-more-body { grid-template-rows: 1fr; }
+.b-ac-more-in { overflow: hidden; min-height: 0; }
+.b-ac-more-in .b-ac-form { padding: 10px 0 2px; }
+
+.b-ac-dup {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; padding: 10px 12px;
+  border-radius: var(--r-md); background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn);
+}
+.b-ac-dup svg { flex: none; margin-top: 3px; }
+.b-ac-dup p { margin: 0; color: var(--d100); line-height: var(--lh-base); }
+
+/* A file. */
+.b-ac-file { display: inline-flex; align-items: center; gap: 8px; color: var(--d100); }
+.b-ac-file svg { color: var(--ok); flex: none; }
+.b-ac-file span { color: var(--d200); font-size: var(--fs-sm); }
+.b-ac-file.is-said { color: inherit; }
+.b-ac-cols, .b-ac-prev, .b-ac-probs { list-style: none; margin: 0; padding: 0; }
+.b-ac-col {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  padding: 7px 0; border-top: 1px solid var(--card-border);
+}
+.b-ac-col:first-child { border-top: 0; }
+.b-ac-col-name { display: flex; flex-direction: column; min-width: 0; }
+.b-ac-col-name b { font-weight: var(--fw-medium); }
+.b-ac-col-eg { font-size: var(--fs-sm); color: var(--d200); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-ac-col-to { color: var(--d200); display: inline-flex; }
+.b-ac-pill {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 124px; justify-content: space-between;
+  padding: 5px 10px 5px 12px; border-radius: var(--r-pill);
+  font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d50);
+  background: rgba(var(--accent-rgb), 0.10); border: 1px solid rgba(var(--accent-rgb), 0.35); cursor: pointer;
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+.b-ac-pill:hover { border-color: var(--accent); }
+.b-ac-pill.is-skip { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn); }
+.b-ac-pill svg { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
+.b-ac-col.is-open .b-ac-pill svg { transform: scaleY(-1); }
+.b-ac-colpick { grid-column: 1 / -1; margin: 2px 0 4px; }
+/* A phone: the arrow goes and the pill takes only what it needs, so the
+   column's own name keeps the room to be read. */
+@media (max-width: 619.98px) { /* 620 layout px */
+  .b-ac-col { grid-template-columns: minmax(0, 1fr) auto; }
+  .b-ac-col-to { display: none; }
+  .b-ac-pill { min-width: 0; }
+  .b-ac-prow { grid-template-columns: 26px minmax(0, 1fr); }
+  .b-ac-prow > .tag { grid-column: 2; justify-self: start; }
+}
+.b-ac-gate {
+  display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0;
+  color: var(--err); font-size: var(--fs-sm); line-height: var(--lh-base);
+}
+.b-ac-gate svg { flex: none; margin-top: 2px; }
+.b-ac-prow {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+  padding: 8px 0; border-top: 1px solid var(--card-border);
+}
+.b-ac-prow:first-child { border-top: 0; }
+.b-ac-prow-n { font-size: var(--fs-sm); color: var(--d200); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.b-ac-prow-who { display: flex; flex-direction: column; min-width: 0; font-size: var(--fs-sm); color: var(--d100); }
+.b-ac-prow-who b { font-size: var(--fs-base); font-weight: var(--fw-medium); }
+.b-ac-prow-who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-ac-prow-who .b-ac-prow-why { color: var(--err); white-space: normal; }
+.b-ac-tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 14px 0 0; font-size: var(--fs-sm); color: var(--d100); }
+.b-ac-tally .is-bad, .b-ac-tally .is-bad b { color: var(--err); }
+.b-ac-probs { margin-top: 8px; font-size: var(--fs-sm); color: var(--d100); }
+.b-ac-probs li { padding: 3px 0; line-height: var(--lh-base); }
+
+/* The run: the bar and the count beside it. */
+.b-ac-run { display: flex; align-items: center; gap: 14px; }
+.b-ac-bar { flex: 1; height: 6px; border-radius: 999px; background: rgba(var(--accent-rgb), 0.14); overflow: hidden; }
+.b-ac-bar-fill {
+  display: block; height: 100%; background: var(--accent); border-radius: inherit;
+  transform-origin: left center; transition: transform 120ms linear;
+}
+.b-ac-count { font-size: var(--fs-sm); color: var(--d100); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Done. */
+.b-ac-done { display: flex; align-items: center; gap: 10px; }
+.b-ac-done p { margin: 0; line-height: var(--lh-base); }
+.b-ac-check { color: var(--ok); flex: none; }
+.b-ac-line { margin: 8px 0 0; font-size: var(--fs-sm); color: var(--d100); line-height: var(--lh-base); }
+@media (prefers-reduced-motion: no-preference) {
+  .b-ac-done.is-new .b-ac-check { animation: b-ac-check-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .b-ac-done.is-new .b-ac-check path { stroke-dasharray: 22; animation: b-ac-check-draw 400ms 120ms ease-out both; }
+}
+@keyframes b-ac-check-in { from { opacity: 0; transform: rotate(-30deg) scale(0.6); filter: blur(8px); } }
+@keyframes b-ac-check-draw { from { stroke-dashoffset: 22; } to { stroke-dashoffset: 0; } }
+
+/* The drop layer: no dashed edge, and it opens like a modal and closes
+   faster than it opened. */
+.drop-layer { opacity: 0; transition: opacity 150ms ease-out; }
+.drop-layer.open { opacity: 1; transition-duration: 250ms; }
+.drop-layer .drop-card {
+  border: 1px solid rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 0 6px rgba(var(--accent-rgb), 0.10), 0 24px 60px rgba(0, 0, 0, 0.35);
+  transform: scale(0.96); transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drop-layer.open .drop-card { transform: none; transition-duration: 250ms; }
+.drop-layer .drop-sub { color: var(--d100); }
+
+@media (prefers-reduced-motion: reduce) {
+  .b-ac-f.is-shaking { animation: none; }
+  .b-ac-more-body, .b-ac-more-btn svg, .b-ac-pill svg, .b-ac-bar-fill,
+  .drop-layer, .drop-layer .drop-card { transition: none !important; }
+}

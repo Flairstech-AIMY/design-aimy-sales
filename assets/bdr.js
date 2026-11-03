@@ -3584,6 +3584,14 @@
           });
           DELTA.touch.forEach((t) => DB.touch.push(t));
           DB.list = s.list.concat(DELTA.list);
+          /* People added to a list that is not this browser's own (8e): the
+             seed rebuilds it every load, so they are put back on it here. */
+          (DELTA.made || []).forEach((m) => {
+            const L = m.into && DB.list.filter((x) => x.id === m.into)[0];
+            if (!L) return;
+            const add = m.con.map((c) => c.id).filter((id) => L.has.indexOf(id) < 0);
+            if (add.length) L.has = L.has.concat(add);
+          });
           DB.session = DELTA.session.slice();
         }
       } catch (e) { /* a delta we cannot read is a delta we do not apply. */ }
@@ -16039,7 +16047,7 @@
            the cards; a third way in is not a way in. This slot goes to the
            thing the desk could not do at all. */
         { k: 'lead', label: 'Add a lead',
-          why: isMgr() ? 'somebody you met, straight into your contacts'
+          why: isMgr() ? 'somebody you met, or a whole CSV, into your contacts'
             : 'somebody you met, to the sales manager who fits them' },
         findLeads,
       ];
@@ -16065,8 +16073,8 @@
         findLeads,
         parked ? { k: 'list:' + parked.id, label: 'Put a list to work', n: parked.has.length,
           why: esc(parked.name) + ' is on no campaign yet' } : null,
-        { k: 'callnext', label: 'Call the next one', n: all.length,
-          why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+        /* The same door the manager has, where a caller keeps lists. */
+        { k: 'lead', label: 'Add a lead', why: 'somebody you met, or a whole CSV, onto a list' },
         { k: 'camps', label: 'Pick a campaign', n: camps.length,
           why: camps.length ? 'yours to work' : 'you are on none yet' },
       ].filter(Boolean);
@@ -25277,6 +25285,11 @@
     const p = byId('protoPanel');
     if (p.hidden) return;
     p.innerHTML =
+      /* AIMY-2992: a drop cannot be made from every screen this is shown on. */
+      (addsCon() ? '<div class="proto-sec">' +
+        '<div class="proto-h">Adding contacts</div>' +
+        '<button class="proto-link" type="button" data-acsample>Drop a sample CSV, as if dragged in</button>' +
+      '</div>' : '') +
       '<div class="proto-sec">' +
         '<div class="proto-h">Incoming calls</div>' +
         '<button class="proto-link" type="button" data-inbound="known">' +
@@ -25576,6 +25589,11 @@
   const ICONS = {
     dot: '<circle cx="12" cy="12" r="10"/>',
     'banknote': '<rect width="20" height="12" x="2" y="6" rx="2"/> <circle cx="12" cy="12" r="2"/> <path d="M6 12h.01M18 12h.01"/>',
+    /* Lucide upload, file-spreadsheet, circle-alert and list, verbatim (8e). */
+    upload: '<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
+    'file-spreadsheet': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/>',
+    'circle-alert': '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
     'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <line x1="19" x2="19" y1="8" y2="14"/> <line x1="22" x2="16" y1="11" y2="11"/>',
     'file-pen-line': '<path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"/> <path d="M14.487 7.858A1 1 0 0 1 14 7V2"/> <path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"/> <path d="M8 18h1"/>',
     'rocket': '<path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/> <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/> <path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/> <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/>',
@@ -29482,6 +29500,11 @@
     /* A curation is AiMY working, not AiMY saying something: her mark and
        the line of steps beside it, with no bubble around them. Drawn from
        the run's own record, because it changes after the turn is written. */
+    /* AIMY-2990/2992: adding contacts is one turn, redrawn in place (8e). */
+    if (t.addc) {
+      return '<div class="chat-msg aimy b-ac-msg">' + msgAvatar('aimy') +
+        '<div class="msg-bubble">' + acTurn(t) + '</div></div>';
+    }
     if (t.cur) {
       return '<div class="chat-msg aimy b-cur-msg">' + msgAvatar('aimy') +
         '<div class="b-cur-wrap">' + curStepper(t.cur) + '</div></div>';
@@ -31189,6 +31212,984 @@
     return c;
   }
 
+
+  /* ══ 8e. ADDING CONTACTS (AIMY-2990, AIMY-2992) ═════════════════════════
+     One person typed into the chat, or a CSV dropped anywhere on the page.
+     Both end the same way: every contact lands on a LIST, because a list is
+     what goes on a campaign and a person on no list is a person nobody will
+     call. The first time somebody adds people who belong to no campaign,
+     AiMY starts a list for them, "External contacts", once.
+
+     The door is the one the start row already had, "Add a lead". It opens
+     the canvas on a turn that takes either: type one person, or drop a file.
+     Nothing is written until the card is confirmed, every write is one toast
+     with Undo, and the card keeps its answer in the thread afterwards.
+
+     A manager's single add keeps what the door always meant on that desk:
+     somebody they met lands on their own desk, handed over, AND on the list.
+     A file is prospects for callers, so on every desk it lands not-called. */
+  const addsCon = () => works() && (!onBook() || isMgr());
+  const EXT_NAME = 'External contacts';
+  const AC_MAX = 5000;
+  let ADDC = null;
+
+  /* The fields a person can carry, in the order the card shows them. `more`
+     are behind "More details": the ticket asks for the minimum by default. */
+  const AC_FIELDS = [
+    { k: 'name', label: 'Name', ph: 'Lena Vogel' },
+    { k: 'title', label: 'Job title', ph: 'Head of Quality' },
+    { k: 'co', label: 'Company', ph: 'Brightwave' },
+    { k: 'email', label: 'Email', ph: 'lena.vogel@brightwave.de' },
+    { k: 'phone', label: 'Phone', ph: '+49 151 2345 6789' },
+    { k: 'country', label: 'Country', more: true, ph: 'Germany' },
+    { k: 'city', label: 'City', more: true, ph: 'Berlin' },
+    { k: 'linkedin', label: 'LinkedIn', more: true, ph: 'linkedin.com/in/lenavogel' },
+    { k: 'met', label: 'Where you met them', more: true, ph: 'GITEX, Dubai' },
+  ];
+  /* What a file's column can be. First and last name are a file's way of
+     saying name, and they are joined into one. */
+  const AC_COLS = [
+    { k: 'name', label: 'Name' }, { k: 'first', label: 'First name' },
+    { k: 'last', label: 'Last name' }, { k: 'title', label: 'Job title' },
+    { k: 'co', label: 'Company' }, { k: 'email', label: 'Email' },
+    { k: 'phone', label: 'Phone' }, { k: 'country', label: 'Country' },
+    { k: 'city', label: 'City' }, { k: 'linkedin', label: 'LinkedIn' },
+  ];
+  const AC_COL_LABEL = Object.create(null);
+  AC_COLS.forEach((x) => (AC_COL_LABEL[x.k] = x.label));
+  /* The names a column goes by in the exports people actually have: a CRM,
+     an event badge scan, a bought list. Tested in this order, so "First
+     name" is not read as a name before it is read as a first name. */
+  const AC_HEAD = [
+    ['first', /^(first|given)[\s_-]*name$|^first$|^forename$/],
+    ['last', /^(last|family|sur)[\s_-]*name$|^surname$|^last$/],
+    ['email', /e-?mail/],
+    ['linkedin', /linkedin/],
+    ['phone', /phone|mobile|^tel|^cell|^number$/],
+    ['name', /^(full[\s_-]*)?name$|^contact([\s_-]*name)?$|^person$|^attendee$/],
+    ['title', /^(job[\s_-]*)?title$|^role$|^position$|^job$|^designation$/],
+    ['co', /^company([\s_-]*name)?$|^organi[sz]ation$|^org$|^account([\s_-]*name)?$|^employer$/],
+    ['country', /^country$/],
+    ['city', /^city$|^town$|^location$/],
+  ];
+  function acGuess(head) {
+    const used = Object.create(null);
+    return head.map((h) => {
+      const s = String(h || '').toLowerCase().trim();
+      const hit = AC_HEAD.filter((p) => !used[p[0]] && p[1].test(s))[0];
+      if (!hit) return null;
+      used[hit[0]] = 1;
+      return hit[0];
+    });
+  }
+
+  /* A CSV as people write them: quoted cells with commas and line breaks in
+     them, doubled quotes, a byte-order mark from Excel, and semicolons where
+     the machine's locale uses a decimal comma. */
+  function acParse(text) {
+    text = String(text || '').replace(/^﻿/, '');
+    const first = text.split(/\r?\n/)[0] || '';
+    const n = (re) => (first.match(re) || []).length;
+    const sep = n(/;/g) > n(/,/g) ? ';' : (n(/\t/g) > n(/,/g) ? '\t' : ',');
+    const rows = [];
+    let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === sep) { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); cell = ''; rows.push(row); row = [];
+      } else cell += ch;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    const clean = rows.map((r) => r.map((x) => String(x).trim())).filter((r) => r.some(Boolean));
+    return { head: clean[0] || [], rows: clean.slice(1) };
+  }
+
+  /* ══ WHAT IS WRONG WITH A PERSON, IN WORDS ══════════════════════════════
+     Name and company are needed, and a way to reach them: an email or a
+     phone. A field that is there and malformed is wrong whether or not the
+     other one is filled. Each message says what a right one looks like. */
+  const AC_MAIL = /^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i;
+  const acDigits = (p) => String(p || '').replace(/\D/g, '').length;
+  function acCheck(f) {
+    const e = Object.create(null);
+    if (!f.name || !/[a-z]/i.test(f.name)) e.name = 'Add a name.';
+    if (!f.co) e.co = 'Add the company they work at.';
+    if (f.email && !AC_MAIL.test(f.email)) {
+      e.email = '“' + f.email + '” is not a full address, like name@company.com.';
+    }
+    if (f.phone && (/[^\d+()\-.\s]/.test(f.phone) || acDigits(f.phone) < 7 || acDigits(f.phone) > 15)) {
+      e.phone = 'A phone number has 7 to 15 digits.';
+    }
+    if (!f.email && !f.phone) e.email = 'Add an email or a phone, or nobody can reach them.';
+    if (f.linkedin && !/linkedin\.com\/in\//i.test(f.linkedin)) {
+      e.linkedin = 'A profile address has linkedin.com/in/ in it.';
+    }
+    return e;
+  }
+
+  /* Somebody we already hold: the same email, the same number, or the same
+     name at the same company, in that order of certainty. */
+  function acIndex() {
+    const mail = Object.create(null), who = Object.create(null);
+    DB.con.forEach((c) => {
+      if (c.email) mail[c.email.toLowerCase()] = c;
+      const a = accOf(c);
+      if (a) who[c.name.toLowerCase() + '|' + a.name.toLowerCase()] = c;
+    });
+    return { mail: mail, who: who };
+  }
+  function acDup(f, ix) {
+    ix = ix || acIndex();
+    if (f.email && ix.mail[f.email.toLowerCase()]) return { c: ix.mail[f.email.toLowerCase()], by: 'email' };
+    if (f.phone && acDigits(f.phone) >= 7) {
+      const id = DB.byPhone[phoneKey(f.phone)];
+      if (id && DB.byCon[id]) return { c: DB.byCon[id], by: 'phone' };
+    }
+    if (f.name && f.co) {
+      const c = ix.who[f.name.toLowerCase() + '|' + f.co.toLowerCase()];
+      if (c) return { c: c, by: 'name' };
+    }
+    return null;
+  }
+
+  /* A country typed as a word becomes the code the book keeps. */
+  function acCC(s) {
+    const t = String(s || '').trim();
+    if (!t) return null;
+    if (/^[a-z]{2}$/i.test(t) && CC_REGION[t.toUpperCase()]) return t.toUpperCase();
+    const hit = Object.keys(COUNTRY_NAME).filter((k) => COUNTRY_NAME[k].toLowerCase() === t.toLowerCase())[0];
+    return hit || null;
+  }
+
+  /* ══ WHERE THEY GO ══════════════════════════════════════════════════════
+     A list you are standing on, else your External contacts, else a new
+     External contacts. `dest` is a list id, 'ext' (to be started), or
+     'new:<name>' (a list somebody named in the chat). */
+  /* One per team, not per desk: a list on no campaign is on every desk's
+     Lists already, so a second desk starting its own would put two lists
+     with one name side by side. Yours first, then any you can see. */
+  const extList = () => DB.list.filter((l) => l.ext && l.by === me().id)[0] ||
+    DB.list.filter((l) => l.ext && listSeen(l))[0] || null;
+  function acDestDefault() {
+    const open = S.list && DB.byList[S.list];
+    if (open && listSeen(open)) return open.id;
+    const x = extList();
+    return x ? x.id : 'ext';
+  }
+  const acDestList = (d) => (d && d !== 'ext' && d.indexOf('new:') !== 0 ? DB.byList[d] || null : null);
+  const acDestName = (d) => (d === 'ext' ? EXT_NAME
+    : d && d.indexOf('new:') === 0 ? d.slice(4) : (acDestList(d) || {}).name || EXT_NAME);
+  /* The lists offered when you change it: yours first, newest first, four. */
+  function acDestOpts(cur) {
+    const x = extList();
+    const out = [x ? x.id : 'ext'];
+    myLists().filter((l) => !l.ext && works())
+      .sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 4).forEach((l) => out.push(l.id));
+    if (cur && out.indexOf(cur) < 0) out.unshift(cur);
+    return out;
+  }
+
+  /* ══ THE WRITE ══════════════════════════════════════════════════════════
+     One write for both ways in. Accounts are looked up by name before they
+     are minted, the way `addLead` does it. The batch is one `DELTA.made`
+     record with `into`, so a seeded list keeps its new people after a
+     reload (`load` puts them back on it), and one undo takes it all back. */
+  function acWrite(people, dest, how) {
+    const key = Date.now().toString(36);
+    const now = new Date().toISOString();
+    let l = acDestList(dest);
+    let madeList = null;
+    if (!l) {
+      const ext = dest === 'ext';
+      l = { id: 'lx' + key, name: acDestName(dest), kind: 'con', terms: null,
+        crit: ext ? 'People added by hand or from a file, on no campaign yet'
+          : how.file ? 'People imported from ' + how.file : 'People you added by hand',
+        has: [], by: me().id, at: now, for: null, via: null, found: 0 };
+      if (ext) l.ext = true;
+      DB.list.push(l);
+      DELTA.list.push(l);
+      madeList = l;
+    }
+    const camps = campsOn(l).map((k) => k.id);
+    const accBy = Object.create(null);
+    DB.acc.forEach((a) => (accBy[a.name.toLowerCase()] = a));
+    const madeAcc = [], madeCon = [], touches = [];
+    const met = !how.file && isMgr();
+    people.forEach((f, i) => {
+      const lower = f.co.toLowerCase();
+      let a = accBy[lower];
+      if (!a) {
+        const cc = acCC(f.country);
+        a = { id: 'x' + key + '_' + i, name: f.co,
+          domain: (f.email && AC_MAIL.test(f.email) ? f.email.split('@')[1].toLowerCase()
+            : f.co.toLowerCase().replace(/[^a-z0-9]+/g, '') + '.com'),
+          industry: null, city: f.city || null, country: cc, region: cc ? CC_REGION[cc] || null : null, size: null };
+        accBy[lower] = a;
+        madeAcc.push(a);
+      }
+      const c = {
+        id: 'y' + key + '_' + i, acc: a.id, name: f.name, title: f.title || 'Title not known',
+        phone: f.phone || null, email: f.email ? f.email.toLowerCase() : null,
+        camps: camps.slice(), owner: onBook() ? null : me().id,
+        checkpoint: met ? 'handed-over' : 'not-called', checkpointAt: met ? now : null,
+        attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
+        fate: SCENARIOS[Math.abs(hash(key + ':' + i)) % SCENARIOS.length].k,
+        enrichedAt: null, manager: met ? me().id : null,
+        added: { by: me().id, at: TODAY_ISO, file: how.file || null },
+      };
+      if (f.linkedin) c.linkedin = f.linkedin;
+      if (f.met) c.notes = 'Met at ' + f.met + '.';
+      madeCon.push(c);
+      touches.push({
+        id: 'a' + key + '_' + i, con: c.id, camp: null, by: me().id, at: now, secs: 0,
+        outcome: 'added', proposals: [], objections: [], openings: [],
+        note: how.file ? 'Imported from ' + how.file + ', onto ' + l.name + '.'
+          : 'Added by hand' + (f.met ? ', met at ' + f.met : '') + ', onto ' + l.name + '.',
+        lines: [], next: null, moved: null, called: c.checkpoint,
+      });
+    });
+    const ids = madeCon.map((c) => c.id);
+    l.has = l.has.concat(ids);
+    if (madeList) madeList.found = ids.length;
+    DB.acc = DB.acc.concat(madeAcc);
+    DB.con = DB.con.concat(madeCon);
+    DELTA.made = (DELTA.made || []).concat([{ list: l.id, into: l.id, batch: key, acc: madeAcc, con: madeCon }]);
+    reindex();
+    touches.forEach(addTouch);
+    save();
+    const undo = () => {
+      touches.forEach((t) => dropTouch(t.id));
+      const gone = Object.create(null);
+      ids.forEach((id) => (gone[id] = 1));
+      DB.con = DB.con.filter((c) => !gone[c.id]);
+      DB.acc = DB.acc.filter((a) => madeAcc.indexOf(a) < 0);
+      DELTA.made = (DELTA.made || []).filter((m) => m.batch !== key);
+      l.has = l.has.filter((id) => !gone[id]);
+      if (madeList) {
+        DB.list = DB.list.filter((x) => x !== madeList);
+        DELTA.list = DELTA.list.filter((x) => x !== madeList);
+      }
+      reindex();
+      save();
+    };
+    return { l: l, cons: madeCon, made: !!madeList, undo: undo };
+  }
+
+  /* ══ THE CARD, BY STATE ═════════════════════════════════════════════════
+     One AiMY turn carries the whole thing and is redrawn in place, so the
+     thread does not grow a turn per keystroke. A turn whose add is over
+     keeps a still copy of how it ended (`t.card`). */
+  /* "Add J." is not a name: an initial falls back to the whole name. */
+  const acFirst = (n) => {
+    const w = String(n || '').trim().split(/\s+/)[0] || '';
+    return w.replace(/\.$/, '').length > 1 ? w : String(n || '').trim();
+  };
+  const acCap = (s) => '<span class="b-ac-cap">' + esc(s) + '</span>';
+  function acDestRow(a) {
+    const l = acDestList(a.dest);
+    const on = l ? campsOn(l) : [];
+    const tag = !l ? '<span class="tag tag-info">New list</span>'
+      : on.length ? '<span class="tag tag-ok">' + esc(campsOnSay(l)) + '</span>'
+      : '<span class="tag tag-warn">Not on a campaign</span>';
+    const many = a.kind === 'csv';
+    const say = a.dest === 'ext'
+      ? 'You have no list yet for people who are on no campaign, so I will start one called ' +
+        '<b>' + EXT_NAME + '</b>. Put it on a campaign whenever you are ready.'
+      : !l ? 'I will start this list for ' + (many ? 'them' : 'this person') + '.'
+      : on.length ? (many ? 'They join ' : 'They join ') + esc(listSay(on.map(campName))) +
+        (onBook() ? ', for the callers on it to work.' : ' and reach your Contacts straight away.')
+      : (many ? 'They wait' : 'They wait') + ' on this list until it goes on a campaign.';
+    return '<div class="b-ac-dest">' +
+      '<div class="b-ac-dest-row">' + acCap('Goes on') +
+        '<span class="b-ac-list">' + chIcon('list', 15) + '<b>' + esc(acDestName(a.dest)) + '</b></span>' + tag +
+        (a.phase === 'run' || a.phase === 'done' ? ''
+          : '<button class="s-inline-btn" type="button" data-acgo="pick" aria-expanded="' + !!a.pick + '">' +
+            (a.pick ? 'Keep it' : 'Change') + '</button>') +
+      '</div>' +
+      (a.pick
+        ? '<div class="b-ac-chips" role="group" aria-label="Which list">' +
+          acDestOpts(a.dest).map((d) => '<button class="filter-chip' + (d === a.dest ? ' active' : '') +
+            '" type="button" data-acdest="' + esc(d) + '" aria-pressed="' + (d === a.dest) + '">' +
+            esc(acDestName(d)) + '</button>').join('') +
+          '<p class="b-ac-hint">Or type a name, like <b>on GITEX leads</b>, to start a new list.</p></div>'
+        : '') +
+      '<p class="b-ac-say">' + say + '</p>' +
+    '</div>';
+  }
+
+  function acStartBody(a) {
+    return '<p>Type one person in the box below, or bring a whole list in a CSV file.</p>' +
+      '<div class="b-ac-zone">' +
+        '<span class="b-ac-zone-ic">' + chIcon('upload', 22) + '</span>' +
+        '<span class="b-ac-zone-t">Drop a CSV file anywhere on the page</span>' +
+        '<span class="b-ac-zone-s">One person a row, with the column names in the first row.</span>' +
+        '<span class="b-ac-zone-acts">' +
+          '<button class="b-ghost" type="button" data-acgo="file">Choose a file</button>' +
+          '<button class="s-inline-btn" type="button" data-acgo="sample">Get a sample file</button>' +
+          '<input type="file" id="acFile" accept=".csv,text/csv,text/plain" hidden>' +
+        '</span>' +
+      '</div>' +
+      '<p class="b-ac-hint">Or type it like this: <b>Add a contact: Lena Vogel, Head of Quality at ' +
+        'Brightwave, lena.vogel@brightwave.de, +49 151 2345 6789</b></p>' +
+      acDestRow(a);
+  }
+
+  /* One person. Errors show for a field once you have left it, and for all
+     of them once you press Add; the field keeps what you typed. */
+  function acFieldHtml(a, x, errs) {
+    const v = a.f[x.k] || '';
+    const bad = (a.tried || a.touched[x.k]) && errs[x.k];
+    return '<label class="b-ac-f' + (bad ? ' is-bad' : '') + '">' +
+      '<span class="b-ac-f-cap">' + esc(x.label) + '</span>' +
+      '<input class="b-ac-in" type="' + (x.k === 'email' ? 'email' : x.k === 'phone' ? 'tel' : 'text') + '" ' +
+        'data-acf="' + x.k + '" value="' + esc(v) + '" placeholder="' + esc(x.ph) + '" ' +
+        'spellcheck="false" autocomplete="off"' + (bad ? ' aria-invalid="true"' : '') + '>' +
+      '<span class="b-ac-err" role="alert">' + (bad ? chIcon('circle-alert', 14) + esc(errs[x.k]) : '') + '</span>' +
+    '</label>';
+  }
+  function acDupHtml(a) {
+    const d = acDup(a.f);
+    if (!d) return '';
+    const co = accOf(d.c);
+    const where = campsOf(d.c).map(campName);
+    return '<div class="b-ac-dup" role="status">' + chIcon('triangle-alert', 16) +
+      '<p><b>' + esc(d.c.name) + '</b> is already in contacts' +
+        (d.by === 'email' ? ' with this email' : d.by === 'phone' ? ' with this number' : '') +
+        ': ' + esc(d.c.title) + (co ? ' at ' + esc(co.name) : '') +
+        (where.length ? ', on ' + esc(listSay(where.slice(0, 2))) : '') + '. ' +
+        '<button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { con: d.c.id }))) + '">Open ' +
+          esc(firstOf(d.c)) + '</button></p>' +
+    '</div>';
+  }
+  function acOneBody(a) {
+    const errs = acCheck(a.f);
+    const dup = acDup(a.f);
+    const first = acFirst(a.f.name) || 'them';
+    return '<p>' + (a.f.name ? 'Here is <b>' + esc(a.f.name) + '</b> as I read it.' : 'Who is it?') +
+        ' Fix anything below, then add ' + (a.f.name ? esc(first) : 'them') + '.</p>' +
+      '<div class="b-ac-form">' +
+        AC_FIELDS.filter((x) => !x.more).map((x) => acFieldHtml(a, x, errs)).join('') +
+      '</div>' +
+      '<div class="b-ac-more' + (a.more ? ' is-open' : '') + '">' +
+        '<button class="b-ac-more-btn" type="button" data-acgo="more" aria-expanded="' + !!a.more + '">' +
+          chIcon('chev-down', 14) + (a.more ? 'Fewer details' : 'More details') + '</button>' +
+        '<div class="b-ac-more-body"' + (a.more ? '' : ' inert') + '><div class="b-ac-more-in"><div class="b-ac-form">' +
+          AC_FIELDS.filter((x) => x.more).map((x) => acFieldHtml(a, x, errs)).join('') +
+        '</div></div></div>' +
+      '</div>' +
+      '<div id="acdup-' + a.id + '">' + acDupHtml(a) + '</div>' +
+      acDestRow(a) +
+      '<div class="s-cb-opts">' +
+        (dup && !a.dupOk
+          ? '<button class="s-cb-opt is-primary" type="button" data-acgo="anyway">Add anyway</button>'
+          : '<button class="s-cb-opt is-primary" type="button" data-acgo="save">Add ' + esc(first) + '</button>') +
+        '<button class="s-cb-opt is-quiet" type="button" data-acgo="cancel">Don’t add</button>' +
+      '</div>';
+  }
+
+  /* ══ A FILE ═════════════════════════════════════════════════════════════ */
+  function acRowOf(a, r) {
+    const f = { name: '', title: '', co: '', email: '', phone: '', country: '', city: '', linkedin: '' };
+    let fst = '', lst = '';
+    a.map.forEach((k, i) => {
+      const v = String(r[i] || '').trim();
+      if (!k || !v) return;
+      if (k === 'first') fst = v; else if (k === 'last') lst = v; else f[k] = v;
+    });
+    if (!f.name) f.name = (fst + ' ' + lst).trim();
+    return f;
+  }
+  /* Every row sorted three ways: ready, already held (skipped), or with a
+     problem (left out). A row the file repeats is skipped as well. */
+  function acEval(a) {
+    const ix = acIndex();
+    const seen = Object.create(null);
+    const out = { ready: [], dups: [], bad: [] };
+    a.rows.forEach((r, i) => {
+      const f = acRowOf(a, r);
+      const e = acCheck(f);
+      /* A row is described, not instructed: it cannot be fixed from here. */
+      const why = e.name ? 'No name.' : e.co ? 'No company.'
+        : !f.email && !f.phone ? 'No email or phone, so nobody can reach them.'
+        : e.email || e.phone || e.linkedin;
+      if (why) { out.bad.push({ i: i, f: f, why: why }); return; }
+      const d = acDup(f, ix);
+      const k = (f.email || '').toLowerCase() || f.name.toLowerCase() + '|' + f.co.toLowerCase();
+      if (d) { out.dups.push({ i: i, f: f, c: d.c }); return; }
+      if (seen[k]) { out.dups.push({ i: i, f: f, twice: true }); return; }
+      seen[k] = 1;
+      out.ready.push({ i: i, f: f });
+    });
+    return out;
+  }
+  const acHas = (a, k) => a.map.indexOf(k) >= 0;
+  function acGate(a) {
+    if (!acHas(a, 'name') && !acHas(a, 'first')) return 'No column holds the name. Pick one above, or type “Contact is the name”.';
+    if (!acHas(a, 'co')) return 'No column holds the company. Pick one above, or type “Organisation is the company”.';
+    return '';
+  }
+  function acColHtml(a, h, i) {
+    const k = a.map[i];
+    const eg = a.rows.map((r) => r[i]).filter(Boolean)[0] || '';
+    const open = a.open === i;
+    const taken = Object.create(null);
+    a.map.forEach((x, j) => { if (x && j !== i) taken[x] = 1; });
+    return '<li class="b-ac-col' + (open ? ' is-open' : '') + '">' +
+      '<span class="b-ac-col-name"><b>' + esc(h || 'Column ' + (i + 1)) + '</b>' +
+        (eg ? '<span class="b-ac-col-eg">' + esc(eg) + '</span>' : '') + '</span>' +
+      '<span class="b-ac-col-to" aria-hidden="true">' + chIcon('fwd', 14) + '</span>' +
+      '<button class="b-ac-pill' + (k ? '' : ' is-skip') + '" type="button" data-accol="' + i + '" ' +
+        'aria-expanded="' + open + '">' + esc(k ? AC_COL_LABEL[k] : 'Left out') + chIcon('chev-down', 13) + '</button>' +
+      (open
+        ? '<div class="b-ac-chips b-ac-colpick" role="group" aria-label="' + esc('What ' + (h || 'this column') + ' holds') + '">' +
+          AC_COLS.filter((x) => !taken[x.k]).map((x) => '<button class="filter-chip' + (x.k === k ? ' active' : '') +
+            '" type="button" data-acmap="' + i + ':' + x.k + '">' + esc(x.label) + '</button>').join('') +
+          '<button class="filter-chip' + (k ? '' : ' active') + '" type="button" data-acmap="' + i + ':">Leave it out</button>' +
+          '</div>'
+        : '') +
+    '</li>';
+  }
+  function acPrevRow(a, ev, i) {
+    const r = a.rows[i];
+    const f = acRowOf(a, r);
+    const bad = ev.bad.filter((x) => x.i === i)[0];
+    const dup = ev.dups.filter((x) => x.i === i)[0];
+    const tag = bad ? '<span class="tag tag-err">Left out</span>'
+      : dup ? '<span class="tag tag-neutral">' + (dup.twice ? 'Twice in the file' : 'Already in contacts') + '</span>'
+      : '<span class="tag tag-ok">Ready</span>';
+    const reach = [f.email, f.phone].filter(Boolean).join(' · ');
+    return '<li class="b-ac-prow">' +
+      '<span class="b-ac-prow-n">' + (i + 2) + '</span>' +
+      '<span class="b-ac-prow-who"><b>' + esc(f.name || 'No name') + '</b>' +
+        '<span>' + esc([f.title, f.co].filter(Boolean).join(' at ') || '—') + '</span>' +
+        (bad ? '<span class="b-ac-prow-why">' + esc(bad.why) + '</span>'
+          : reach ? '<span>' + esc(reach) + '</span>' : '') + '</span>' +
+      tag + '</li>';
+  }
+  function acCsvBody(a) {
+    const gate = acGate(a);
+    const ev = gate ? null : acEval(a);
+    const set = a.map.filter(Boolean).length;
+    const nPrev = Math.min(5, a.rows.length);
+    return '<p><b>“' + esc(a.file.name) + '”</b> has ' + esc(plural(a.rows.length, 'row')) +
+        '. I matched ' + set + ' of its ' + plural(a.head.length, 'column') +
+        '; check them, then import.</p>' +
+      '<div class="b-ac-file">' + chIcon('file-spreadsheet', 16) + '<b>' + esc(a.file.name) + '</b>' +
+        '<span>' + esc(acSize(a.file.size)) + '</span></div>' +
+      acCap('Columns') +
+      '<ul class="b-ac-cols">' + a.head.map((h, i) => acColHtml(a, h, i)).join('') + '</ul>' +
+      (gate
+        ? '<p class="b-ac-gate" role="alert">' + chIcon('circle-alert', 15) + esc(gate) + '</p>'
+        : acCap('The first ' + plural(nPrev, 'row')) +
+          '<ul class="b-ac-prev">' + a.rows.slice(0, nPrev).map((r, i) => acPrevRow(a, ev, i)).join('') + '</ul>' +
+          '<p class="b-ac-tally"><span><b>' + commas(ev.ready.length) + '</b> ready to add</span>' +
+            (ev.dups.length ? '<span><b>' + commas(ev.dups.length) + '</b> already in contacts, skipped</span>' : '') +
+            (ev.bad.length ? '<span class="is-bad"><b>' + commas(ev.bad.length) + '</b> with problems, left out</span>' +
+              '<button class="s-inline-btn" type="button" data-acgo="probs" aria-expanded="' + !!a.probs + '">' +
+                (a.probs ? 'Hide them' : 'Show ' + (ev.bad.length === 1 ? 'it' : 'them')) + '</button>' : '') +
+          '</p>' +
+          (a.probs && ev.bad.length
+            ? '<ul class="b-ac-probs">' + ev.bad.slice(0, 30).map((x) => '<li><b>Row ' + (x.i + 2) + '</b>' +
+                (x.f.name ? ', ' + esc(x.f.name) : '') + ': ' + esc(x.why) + '</li>').join('') +
+              (ev.bad.length > 30 ? '<li>and ' + commas(ev.bad.length - 30) + ' more</li>' : '') + '</ul>'
+            : '')) +
+      acDestRow(a) +
+      '<div class="s-cb-opts">' +
+        '<button class="s-cb-opt is-primary" type="button" data-acgo="import"' +
+          (gate || !ev.ready.length ? ' aria-disabled="true"' : '') + '>' +
+          (ev && ev.ready.length ? 'Import ' + esc(plural(ev.ready.length, 'contact')) : 'Import') + '</button>' +
+        '<button class="s-cb-opt is-quiet" type="button" data-acgo="cancel">Don’t import</button>' +
+      '</div>';
+  }
+  const acSize = (b) => (b < 1024 ? b + ' bytes' : b < 1048576 ? Math.round(b / 1024) + ' KB'
+    : (b / 1048576).toFixed(1) + ' MB');
+
+  /* The run: a bar that fills and the count beside it. */
+  function acRunBody(a) {
+    const n = a.total || 1;
+    return '<p>Adding them to <b>' + esc(acDestName(a.dest)) + '</b>…</p>' +
+      '<div class="b-ac-run" role="progressbar" aria-valuemin="0" aria-valuemax="' + n + '" aria-valuenow="' + a.done + '">' +
+        '<div class="b-ac-bar"><span class="b-ac-bar-fill" style="transform:scaleX(' + (a.done / n).toFixed(3) + ')"></span></div>' +
+        '<span class="b-ac-count"><b id="account-' + a.id + '">' + commas(a.done) + '</b> of ' + commas(n) + '</span>' +
+      '</div>';
+  }
+
+  /* How it ended. Kept on the turn as it is, so it carries no live control
+     but the ones that still mean something later: open, add more. */
+  function acDoneBody(r) {
+    const l = r.l;
+    const on = DB.byList[l.id] ? campsOn(l) : [];
+    const go = (o) => esc(JSON.stringify(Object.assign(cleared(), o)));
+    const one = r.cons.length === 1 ? r.cons[0] : null;
+    const names = (xs) => listSay(xs.slice(0, 3).map((x) => x.f.name).concat(
+      xs.length > 3 ? [plural(xs.length - 3, 'other')] : []));
+    return '<div class="b-ac-done">' +
+        '<svg class="b-ac-check" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" ' +
+          'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M20 6 9 17l-5-5"/></svg>' +
+        '<p>' + (one ? '<b>' + esc(one.name) + '</b> is' : '<b>' + esc(plural(r.cons.length, 'contact')) + '</b> are') +
+          ' on <b>' + esc(l.name) + '</b>' + (r.made ? ', a new list' : '') + '.</p>' +
+      '</div>' +
+      (r.dups && r.dups.length ? '<p class="b-ac-line">' + esc(plural(r.dups.length, 'row')) +
+        ' skipped, already in contacts: ' + esc(names(r.dups)) + '.</p>' : '') +
+      (r.bad && r.bad.length ? '<p class="b-ac-line">' + esc(plural(r.bad.length, 'row')) + ' left out: ' +
+        esc(r.bad.slice(0, 3).map((x) => 'row ' + (x.i + 2) + ', ' + x.why.replace(/\.$/, '').replace(/^./, (s) => s.toLowerCase())).join('; ')) +
+        (r.bad.length > 3 ? '; and ' + plural(r.bad.length - 3, 'more') : '') + '.</p>' : '') +
+      '<p class="b-ac-line">' + (one && one.checkpoint === 'handed-over'
+        ? 'On your desk now, as somebody you met.'
+        : on.length ? 'In ' + esc(listSay(on.map(campName))) + ' now' + (onBook() ? ', for the callers on it.' : ', in your Contacts.')
+        : 'Ready to go on a campaign: open the list and put it on one.') + '</p>' +
+      '<div class="s-cb-opts">' +
+        (one ? '<button class="s-cb-opt is-primary" type="button" data-go="' + go({ con: one.id }) + '">Open ' +
+          esc(firstOf(one)) + '</button>' : '') +
+        '<button class="s-cb-opt' + (one ? '' : ' is-primary') + '" type="button" data-go="' + go({ list: l.id }) +
+          '">Open the list</button>' +
+        '<button class="s-cb-opt is-quiet" type="button" data-acgo="again">Add more</button>' +
+      '</div>';
+  }
+
+  function acBody(a) {
+    return a.kind === 'start' ? acStartBody(a)
+      : a.kind === 'one' ? acOneBody(a)
+      : a.phase === 'run' ? acRunBody(a)
+      : acCsvBody(a);
+  }
+  function acTurn(t) {
+    if (ADDC && ADDC.id === t.addc) return '<div class="b-ac" id="ac-' + ADDC.id + '">' + acBody(ADDC) + '</div>';
+    return '<div class="b-ac">' + (t.card || '<p>Left unfinished. Nothing was added.</p>') + '</div>';
+  }
+  function acRepaint() {
+    const el = ADDC && byId('ac-' + ADDC.id);
+    if (el) el.innerHTML = acBody(ADDC); else paintThread();
+  }
+  /* The card it ended on, written onto its turn and out of `ADDC`. */
+  function acSettle(html) {
+    if (!ADDC) return;
+    const id = ADDC.id;
+    TURNS.forEach((t) => { if (t.addc === id) t.card = html; });
+    ADDC = null;
+    paintThread();
+    /* The check draws once, on the paint that ended it, not on every
+       repaint of the thread afterwards. */
+    const done = byId('overlayThread').querySelectorAll('.b-ac-done');
+    if (done.length) done[done.length - 1].classList.add('is-new');
+  }
+
+  /* ══ THE WAYS IN ════════════════════════════════════════════════════════ */
+  function acPush(a, said) {
+    if (ADDC && ADDC !== a) acSettle('<p>Put aside. Nothing was added.</p>');
+    ADDC = a;
+    openCanvas();
+    if (said) say('you', said);
+    TURNS.push({ who: 'aimy', html: '', addc: a.id });
+    paintThread();
+  }
+  const acId = () => 'ac' + Date.now().toString(36);
+  /* The door: a fresh conversation, opened on the turn that takes either. */
+  function acStart() {
+    if (!addsCon()) { toast('Adding contacts is the sales team’s to do.'); return; }
+    if (ADDC) acSettle('<p>Put aside. Nothing was added.</p>');
+    LBUILD = null; CBUILD = null;
+    newChat();
+    acPush({ id: acId(), kind: 'start', dest: acDestDefault() });
+    fillBar('Add a contact: ');
+  }
+  /* One person, out of a sentence. The email, the number and a profile link
+     are lifted out first, so what is left reads the way "Add a lead" always
+     has: name, title at company, met at somewhere. */
+  function acOne(rest, said) {
+    let t = String(rest || '');
+    const take = (re) => {
+      const m = t.match(re);
+      if (!m) return '';
+      t = t.replace(m[0], ' ');
+      return m[0].trim();
+    };
+    const linkedin = take(/\S*linkedin\.com\/\S+/i);
+    const email = take(/[^\s,;<>()]+@[^\s,;<>()]*/);
+    const phone = take(/\+?\d[\d\s().-]{5,}\d/);
+    t = t.replace(/\s*,\s*(,\s*)+/g, ', ').replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s{2,}/g, ' ');
+    const r = readLead(t) || { name: t.split(',')[0] || '', title: null, co: null };
+    const prev = ADDC && ADDC.kind === 'start' ? ADDC.dest : null;
+    acPush({ id: acId(), kind: 'one', dest: prev || acDestDefault(), more: !!(r.met || linkedin),
+      tried: false, touched: Object.create(null), dupOk: false,
+      f: { name: r.name || '', title: r.title || '', co: r.co || '', email: email, phone: phone,
+        country: '', city: '', linkedin: linkedin, met: r.met || '' } }, esc(said));
+  }
+  /* A file, dropped or chosen. Read in the browser and nowhere else. */
+  function acFile(file) {
+    if (!file) return;
+    if (!addsCon()) { toast('Adding contacts is the sales team’s to do.'); return; }
+    const prev = ADDC && ADDC.kind === 'start' ? ADDC.dest : null;
+    if (ADDC) acSettle(ADDC.kind === 'start' ? '<p>Reading “' + esc(file.name) + '”.</p>'
+      : '<p>Put aside. Nothing was added.</p>');
+    openCanvas();
+    say('you', '<span class="b-ac-file is-said">' + chIcon('file-spreadsheet', 16) + '<b>' + esc(file.name) +
+      '</b> <span>' + esc(acSize(file.size)) + '</span></span>');
+    if (!/\.(csv|txt)$/i.test(file.name) && !/csv/i.test(file.type || '')) {
+      say('aimy', 'I can read CSV files. Save “' + esc(file.name) + '” as CSV (comma-separated) and drop it again.');
+      return;
+    }
+    TURNS.push({ who: 'aimy', html: thinkRow().replace('Reading the record…', 'Reading “' + esc(file.name) + '”…'), thinking: true });
+    paintThread();
+    startThinking($('.chat-msg.is-thinking .think-mark'));
+    const t0 = Date.now();
+    const reader = new FileReader();
+    reader.onerror = () => { thinkDrop(); say('aimy', 'I could not open that file. Try saving it again.'); };
+    reader.onload = () => {
+      const p = acParse(reader.result);
+      setTimeout(() => {
+        thinkDrop();
+        if (!p.rows.length) {
+          say('aimy', '“' + esc(file.name) + '” has no rows under its column names, so there is nobody to add.');
+          return;
+        }
+        if (p.rows.length > AC_MAX) {
+          say('aimy', 'That is ' + commas(p.rows.length) + ' rows, and I take up to ' + commas(AC_MAX) +
+            ' at a time. Split the file and drop each part.');
+          return;
+        }
+        const w = Math.max.apply(null, p.rows.map((r) => r.length).concat([p.head.length]));
+        while (p.head.length < w) p.head.push('');
+        acPush({ id: acId(), kind: 'csv', phase: 'map', dest: prev || acDestDefault(),
+          file: { name: file.name, size: file.size }, head: p.head, rows: p.rows,
+          map: acGuess(p.head), open: -1, probs: false });
+      }, Math.max(0, 900 - (Date.now() - t0)));
+    };
+    reader.readAsText(file);
+  }
+
+  /* ══ WHAT YOU TYPE WHILE A CARD IS OPEN ═════════════════════════════════
+     The card owns the sentence, the way a draft does: a field set by name,
+     a column given its meaning, a list to put them on. Anything else is
+     said back with what can be typed. */
+  const AC_SAID = { name: 'name', 'full name': 'name', 'first name': 'first', 'last name': 'last',
+    surname: 'last', title: 'title', 'job title': 'title', role: 'title', job: 'title',
+    company: 'co', organisation: 'co', organization: 'co', email: 'email', 'email address': 'email',
+    phone: 'phone', number: 'phone', mobile: 'phone', country: 'country', city: 'city', linkedin: 'linkedin' };
+  function acSay(t) {
+    const a = ADDC;
+    if (!a || a.phase === 'run') return false;
+    const s = t.trim();
+    if (/^(cancel|leave it|stop|don.?t add( (it|them))?|never ?mind)\.?$/i.test(s)) {
+      say('you', esc(s)); acGo('cancel'); return true;
+    }
+    const dest = s.match(/^(?:put (?:them|it|him|her|this|these) )?(?:on|onto|into) (?:the |a )?(new list (?:called |named )?)?["“]?(.+?)["”]?(?: list)?\.?$/i);
+    {
+      if (dest) {
+        const nm = dest[2].trim();
+        const hit = !dest[1] && myLists().filter((l) => l.name.toLowerCase() === nm.toLowerCase())[0];
+        a.dest = hit ? hit.id : nm.toLowerCase() === EXT_NAME.toLowerCase() ? (extList() ? extList().id : 'ext') : 'new:' + nm.slice(0, 60);
+        a.pick = false;
+        TURNS.push({ who: 'you', html: esc(s) });
+        paintThread();
+        return true;
+      }
+    }
+    if (a.kind === 'csv') {
+      const m = s.match(/^["“]?(.+?)["”]? (?:is|=|holds|means) (?:the |a |their )?(.+?)\.?$/i);
+      const k = m && AC_SAID[m[2].toLowerCase()];
+      const i = m ? a.head.map((h) => h.toLowerCase()).indexOf(m[1].toLowerCase()) : -1;
+      if (k && i >= 0) {
+        a.map = a.map.map((x, j) => (j === i ? k : x === k ? null : x));
+        TURNS.push({ who: 'you', html: esc(s) });
+        paintThread();
+        return true;
+      }
+      say('you', esc(s));
+      say('aimy', 'I am holding “' + esc(a.file.name) + '”. Say what a column holds, like ' +
+        '<b>Organisation is the company</b>, or which list, like <b>on GITEX leads</b>.');
+      return true;
+    }
+    if (a.kind === 'one') {
+      const m = s.match(/^(?:(?:his|her|their|the) )?([a-z ]+?)\s*(?:is|:|=)\s*(.+)$/i);
+      const k = m && AC_SAID[m[1].toLowerCase().trim()];
+      if (k && k !== 'first' && k !== 'last') {
+        a.f[k] = m[2].trim().replace(/\.$/, '');
+        a.touched[k] = true;
+        a.dupOk = false;
+        TURNS.push({ who: 'you', html: esc(s) });
+        paintThread();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* ══ THE CARD'S OWN PRESSES ═════════════════════════════════════════════ */
+  function acGo(k) {
+    const a = ADDC;
+    if (k === 'again') { acStart(); return; }
+    if (k === 'sample') { acSampleSave(); return; }
+    if (!a) return;
+    if (k === 'file') { const el = byId('acFile'); if (el) { el.value = ''; el.click(); } return; }
+    if (k === 'pick') { a.pick = !a.pick; acRepaint(); return; }
+    if (k === 'more') {
+      a.more = !a.more;
+      const box = byId('ac-' + a.id).querySelector('.b-ac-more');
+      if (!box) { acRepaint(); return; }
+      box.classList.toggle('is-open', a.more);
+      const btn = box.querySelector('.b-ac-more-btn');
+      btn.setAttribute('aria-expanded', String(a.more));
+      btn.lastChild.textContent = a.more ? 'Fewer details' : 'More details';
+      box.querySelector('.b-ac-more-body').inert = !a.more;
+      return;
+    }
+    if (k === 'probs') { a.probs = !a.probs; acRepaint(); return; }
+    if (k === 'cancel') {
+      acSettle(a.kind === 'csv' ? '<p>“' + esc(a.file.name) + '” was not imported. Nothing was added.</p>'
+        : a.kind === 'one' ? '<p>' + (a.f.name ? esc(a.f.name) + ' was not added.' : 'Nothing was added.') + '</p>'
+        : '<p>Nothing was added.</p>');
+      return;
+    }
+    if (k === 'save' || k === 'anyway') { acSave(k === 'anyway'); return; }
+    if (k === 'import') { acImport(); return; }
+  }
+
+  /* One person. Pressing Add with something wrong shows every error, shakes
+     the fields that have one and puts you in the first. */
+  function acSave(anyway) {
+    const a = ADDC;
+    if (!a || a.kind !== 'one') return;
+    if (anyway) a.dupOk = true;
+    const e = acCheck(a.f);
+    const bad = AC_FIELDS.filter((x) => e[x.k]);
+    if (bad.length) {
+      a.tried = true;
+      if (bad.some((x) => x.more)) a.more = true;
+      acRepaint();
+      const host = byId('ac-' + a.id);
+      bad.forEach((x) => {
+        const lab = host && host.querySelector('[data-acf="' + x.k + '"]');
+        const f = lab && lab.closest('.b-ac-f');
+        if (!f) return;
+        f.classList.remove('is-shaking'); void f.offsetWidth; f.classList.add('is-shaking');
+      });
+      const first = host && host.querySelector('[data-acf="' + bad[0].k + '"]');
+      if (first) first.focus();
+      return;
+    }
+    if (acDup(a.f) && !a.dupOk) { acRepaint(); return; }
+    const f = {};
+    Object.keys(a.f).forEach((k) => (f[k] = String(a.f[k] || '').trim()));
+    const r = acWrite([f], a.dest, {});
+    const res = { l: r.l, cons: r.cons, made: r.made };
+    const turnId = a.id;
+    acSettle(acDoneBody(res));
+    paint();
+    const c = r.cons[0];
+    toast(c.name + ' is on ' + r.l.name, () => {
+      r.undo();
+      TURNS.forEach((t) => { if (t.addc === turnId) t.card = '<p>Taken back. ' + esc(c.name) + ' was not added.</p>'; });
+      paintThread();
+      paint();
+    }, r.made ? 'A new list, on no campaign yet.' : null);
+  }
+
+  /* A file: the rows that are ready go in, with the bar filling as they do.
+     The write happens once, at the end, so stopping halfway is not a state. */
+  function acImport() {
+    const a = ADDC;
+    if (!a || a.kind !== 'csv' || a.phase === 'run') return;
+    const gate = acGate(a);
+    if (gate) { toast(gate); return; }
+    const ev = acEval(a);
+    if (!ev.ready.length) { toast('No row is ready to add. Fix the columns, or the file.'); return; }
+    a.phase = 'run';
+    a.total = ev.ready.length;
+    a.done = 0;
+    a.pick = false;
+    a.open = -1;
+    acRepaint();
+    const step = Math.max(1, Math.ceil(a.total / 32));
+    const timer = setInterval(() => {
+      if (ADDC !== a) { clearInterval(timer); return; }
+      a.done = Math.min(a.total, a.done + step);
+      const host = byId('ac-' + a.id);
+      const fill = host && host.querySelector('.b-ac-bar-fill');
+      if (fill) fill.style.transform = 'scaleX(' + (a.done / a.total).toFixed(3) + ')';
+      const n = byId('account-' + a.id);
+      if (n) n.textContent = commas(a.done);
+      const pb = host && host.querySelector('.b-ac-run');
+      if (pb) pb.setAttribute('aria-valuenow', String(a.done));
+      if (a.done < a.total) return;
+      clearInterval(timer);
+      setTimeout(() => {
+        const r = acWrite(ev.ready.map((x) => x.f), a.dest, { file: a.file.name });
+        const turnId = a.id;
+        acSettle(acDoneBody({ l: r.l, cons: r.cons, made: r.made, dups: ev.dups, bad: ev.bad }));
+        paint();
+        toast(plural(r.cons.length, 'contact') + ' added to ' + r.l.name, () => {
+          r.undo();
+          TURNS.forEach((t) => { if (t.addc === turnId) t.card = '<p>Taken back. Nothing from “' + esc(a.file.name) + '” was added.</p>'; });
+          paintThread();
+          paint();
+        }, ev.dups.length || ev.bad.length
+          ? [ev.dups.length ? ev.dups.length + ' skipped, already in contacts' : '', ev.bad.length ? ev.bad.length + ' left out' : '']
+            .filter(Boolean).join(', ') + '.' : null);
+      }, 260);
+    }, 70);
+  }
+
+  /* As you type into the card: the value is kept, and a field that was
+     wrong stops saying so the moment it is right. Nothing is redrawn but the
+     message and the duplicate warning, so the caret stays where it is. */
+  function acInput(el) {
+    const a = ADDC;
+    if (!a || a.kind !== 'one') return;
+    const k = el.getAttribute('data-acf');
+    a.f[k] = el.value;
+    if (k === 'email' || k === 'phone' || k === 'name' || k === 'co') a.dupOk = false;
+    acSync(a);
+  }
+  function acSync(a) {
+    const host = byId('ac-' + a.id);
+    if (!host) return;
+    const e = acCheck(a.f);
+    host.querySelectorAll('[data-acf]').forEach((inp) => {
+      const k = inp.getAttribute('data-acf');
+      const lab = inp.closest('.b-ac-f');
+      const bad = (a.tried || a.touched[k]) && e[k];
+      lab.classList.toggle('is-bad', !!bad);
+      if (bad) inp.setAttribute('aria-invalid', 'true'); else inp.removeAttribute('aria-invalid');
+      const msg = lab.querySelector('.b-ac-err');
+      const now = bad ? e[k] : '';
+      if (msg._said !== now) {
+        msg._said = now;
+        msg.innerHTML = bad ? chIcon('circle-alert', 14) + esc(e[k]) : '';
+      }
+    });
+    const dupEl = byId('acdup-' + a.id);
+    if (dupEl) dupEl.innerHTML = acDupHtml(a);
+    const btn = host.querySelector('[data-acgo="save"], [data-acgo="anyway"]');
+    const dup = acDup(a.f) && !a.dupOk;
+    const first = acFirst(a.f.name) || 'them';
+    if (btn) {
+      btn.setAttribute('data-acgo', dup ? 'anyway' : 'save');
+      btn.textContent = dup ? 'Add anyway' : 'Add ' + first;
+    }
+  }
+
+  /* ══ A FILE TO TRY IT WITH ══════════════════════════════════════════════
+     Forty people out of the index a search runs against, four we already
+     hold (to be skipped), and three rows with the problems files have: no
+     name, half an address, no way to reach them. Built off the book, so the
+     duplicates are real ones on every machine. */
+  function acSampleText() {
+    const cell = (v) => (/[",\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v || ''));
+    const rows = [['First name', 'Last name', 'Job title', 'Organisation', 'Email', 'Mobile', 'Country', 'Badge type']];
+    const split = (n) => { const p = n.split(' '); return [p[0], p.slice(1).join(' ')]; };
+    const known = DB.con.filter((c) => c.email && /^p\d+$/.test(c.id) && accOf(c)).filter((c, i) => i % 211 === 7).slice(0, 4);
+    /* Never somebody an earlier try already brought in, so the file has
+       forty new people however many times it is dropped. */
+    const ix = acIndex();
+    const mailOf = (n) => {
+      const nm = split(n.name);
+      return nm[0].toLowerCase() + '.' + nm[1].toLowerCase().replace(/[^a-z]/g, '') + '@' +
+        n.co.toLowerCase().replace(/[^a-z0-9]+/g, '') + '.com';
+    };
+    const fresh = (DB.net || []).filter((n) => !n.known && !ix.mail[mailOf(n)])
+      .filter((n, i) => i % 37 === 3).slice(0, 40);
+    fresh.forEach((n, i) => {
+      const nm = split(n.name);
+      rows.push([nm[0], nm[1], n.title, n.co, mailOf(n),
+        i % 3 === 1 ? '' : '+' + ['31 6 ', '49 151 ', '44 7700 ', '971 50 '][i % 4] + String(1000000 + (Math.abs(hash(n.id + ':acph')) % 8999999)),
+        COUNTRY_NAME[n.country] || '', i % 5 ? 'Visitor' : 'Speaker']);
+      if (i === 11) {
+        const k = known[0];
+        if (k) { const s = split(k.name); rows.push([s[0], s[1], k.title, accOf(k).name, k.email, k.phone || '', COUNTRY_NAME[accOf(k).country] || '', 'Visitor']); }
+      }
+      if (i === 17) rows.push(['', '', 'Procurement lead', 'Halvorsen Freight', 'procurement@halvorsenfreight.com', '', 'Norway', 'Visitor']);
+      if (i === 26) rows.push(['Anna', 'Petrova', 'QA engineer', 'Kestrel Robotics', 'anna@', '', 'Bulgaria', 'Visitor']);
+      if (i === 33) rows.push(['Tomas', 'Lindqvist', 'Head of Support', 'Nordhavn Systems', '', '', 'Sweden', 'Visitor']);
+    });
+    known.slice(1).forEach((k) => {
+      const s = split(k.name);
+      rows.push([s[0], s[1], k.title, accOf(k).name, k.email, k.phone || '', COUNTRY_NAME[accOf(k).country] || '', 'Visitor']);
+    });
+    return rows.map((r) => r.map(cell).join(',')).join('\r\n');
+  }
+  const AC_SAMPLE = 'gitex-global-2026-badge-scans.csv';
+  function acSampleSave() {
+    const url = URL.createObjectURL(new Blob([acSampleText()], { type: 'text/csv' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = AC_SAMPLE;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast('Saved ' + AC_SAMPLE, null, 'Drop it anywhere on the page to try the import.');
+  }
+  const acSampleFile = () => new File([acSampleText()], AC_SAMPLE, { type: 'text/csv' });
+
+  /* ══ DROP ANYWHERE ══════════════════════════════════════════════════════
+     Knowledge's drop layer, with its depth counter: dragenter and dragleave
+     fire on every child, and counting them is what stops the layer
+     flickering as the pointer crosses a card. Only on a desk that adds
+     contacts, and only for files. */
+  (function acWireDrop() {
+    const layer = byId('dropLayer');
+    if (!layer) return;
+    let depth = 0;
+    const hasFiles = (e) => addsCon() && e.dataTransfer &&
+      Array.from(e.dataTransfer.types || []).indexOf('Files') > -1;
+    const shut = () => {
+      depth = 0;
+      layer.classList.remove('open');
+      setTimeout(() => { if (!layer.classList.contains('open')) layer.hidden = true; }, 160);
+    };
+    document.addEventListener('dragenter', (e) => {
+      if (!hasFiles(e)) return;
+      depth++;
+      const t = layer.querySelector('.drop-title');
+      const s = layer.querySelector('.drop-sub');
+      if (t) t.textContent = 'Drop a CSV to add contacts';
+      if (s) s.textContent = 'They go on ' + acDestName((ADDC && ADDC.dest) || acDestDefault()) +
+        '. AiMY matches the columns and shows you every row before anything is added.';
+      layer.hidden = false;
+      void layer.offsetWidth;
+      layer.classList.add('open');
+    });
+    document.addEventListener('dragleave', (e) => {
+      if (!hasFiles(e)) return;
+      if (--depth > 0) return;
+      shut();
+    });
+    document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+    document.addEventListener('drop', (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      shut();
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) acFile(f);
+    });
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'acFile' && e.target.files && e.target.files[0]) acFile(e.target.files[0]);
+    });
+  })();
+  /* Leaving a field is when it may say it is wrong; Enter in one is Add. */
+  document.addEventListener('focusout', (e) => {
+    const el = e.target.closest && e.target.closest('[data-acf]');
+    if (!el || !ADDC || ADDC.kind !== 'one') return;
+    ADDC.touched[el.getAttribute('data-acf')] = true;
+    acSync(ADDC);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const el = e.target.closest && e.target.closest('[data-acf]');
+    if (!el || !ADDC || ADDC.kind !== 'one') return;
+    e.preventDefault();
+    acSave(acDup(ADDC.f) && ADDC.dupOk);
+  });
+
   /* Who the sentence is about: a name in it on one of your campaigns, else
      whoever is open. Nobody: ask, and keep the sentence in the thread. */
   function logBySentence(text, read) {
@@ -31386,11 +32387,14 @@
       return;
     }
 
+    if (ADDC && acSay(t)) return;
     if (draftChat(t)) return;
     if (mailAsk(t)) return;
 
     const addM = t.match(ADD_RE);
     if (addM) {
+      /* A desk that adds contacts reads it onto a card first (8e). */
+      if (addsCon()) { acOne(addM[1], t); return; }
       const f = readLead(addM[1]);
       if (!f) {
         openCanvas();
@@ -35646,6 +36650,30 @@
     const home = t.closest('[data-home]');
     if (home) { go(cleared()); return; }
 
+    /* AIMY-2990/2992: the add-contacts card's own controls (8e). */
+    const acB = t.closest('[data-acgo]');
+    if (acB) { acGo(acB.getAttribute('data-acgo')); return; }
+    const acD = t.closest('[data-acdest]');
+    if (acD) { if (ADDC) { ADDC.dest = acD.getAttribute('data-acdest'); ADDC.pick = false; acRepaint(); } return; }
+    const acC = t.closest('[data-accol]');
+    if (acC) {
+      const i = Number(acC.getAttribute('data-accol'));
+      if (ADDC) { ADDC.open = ADDC.open === i ? -1 : i; acRepaint(); }
+      return;
+    }
+    const acM = t.closest('[data-acmap]');
+    if (acM) {
+      const v = acM.getAttribute('data-acmap').split(':');
+      const i = Number(v[0]), k = v[1] || null;
+      if (ADDC) {
+        ADDC.map = ADDC.map.map((x, j) => (j === i ? k : (k && x === k ? null : x)));
+        ADDC.open = -1;
+        acRepaint();
+      }
+      return;
+    }
+    if (t.closest('[data-acsample]')) { acFile(acSampleFile()); return; }
+
     /* AIMY-2668: an email is started, answered and sent in the chat. */
     const mailB = t.closest('[data-mail]');
     if (mailB) {
@@ -35895,7 +36923,7 @@
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
       if (k === 'money') { go(Object.assign(cleared(), { on: 'money' })); return; }
-      if (k === 'lead') { fillBar('Add a lead: '); return; }
+      if (k === 'lead') { if (addsCon()) acStart(); else fillBar('Add a lead: '); return; }
       if (k === 'newcamp') { cbuildStart(); return; }
       if (k === 'callnext') {
         /* A manager's next call is the deal at the top of his own ranking —
@@ -37025,6 +38053,8 @@
        take the focus out of the box being typed in. */
     const ps = e.target.closest && e.target.closest('[data-picksearch]');
     if (ps) { pickFilter(ps); return; }
+    const acf = e.target.closest && e.target.closest('[data-acf]');
+    if (acf) { acInput(acf); return; }
     /* The conversation search repaints its own column and nothing else, so
        it is safe on every keystroke — the caret is put back by `paintChats`
        for exactly that reason. */
