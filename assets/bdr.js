@@ -31316,17 +31316,20 @@
      other one is filled. Each message says what a right one looks like. */
   const AC_MAIL = /^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i;
   const acDigits = (p) => String(p || '').replace(/\D/g, '').length;
-  function acCheck(f) {
+  /* `strict` for a file's rows: a row nobody can reach is left out. One
+     person typed in needs only a name, and what was not said is not asked
+     for (Nour, 3 Nov): what is there is checked, what is missing is fine. */
+  function acCheck(f, strict) {
     const e = Object.create(null);
-    if (!f.name || !/[a-z]/i.test(f.name)) e.name = 'Add a name.';
-    if (!f.co) e.co = 'Add the company they work at.';
+    if (!f.name || !/[a-z]/i.test(f.name)) e.name = 'A name is the one thing I need.';
+    if (strict && !f.co) e.co = 'Add the company they work at.';
     if (f.email && !AC_MAIL.test(f.email)) {
       e.email = '“' + f.email + '” is not a full address, like name@company.com.';
     }
     if (f.phone && (/[^\d+()\-.\s]/.test(f.phone) || acDigits(f.phone) < 7 || acDigits(f.phone) > 15)) {
       e.phone = 'A phone number has 7 to 15 digits.';
     }
-    if (!f.email && !f.phone) e.email = 'Add an email or a phone, or nobody can reach them.';
+    if (strict && !f.email && !f.phone) e.email = 'Add an email or a phone, or nobody can reach them.';
     if (f.linkedin && !/linkedin\.com\/in\//i.test(f.linkedin)) {
       e.linkedin = 'A profile address has linkedin.com/in/ in it.';
     }
@@ -31422,9 +31425,9 @@
     const madeAcc = [], madeCon = [], touches = [];
     const met = !how.file && isMgr();
     people.forEach((f, i) => {
-      const lower = f.co.toLowerCase();
-      let a = accBy[lower];
-      if (!a) {
+      const lower = (f.co || '').toLowerCase();
+      let a = f.co ? accBy[lower] : null;
+      if (f.co && !a) {
         const cc = acCC(f.country);
         a = { id: 'x' + key + '_' + i, name: f.co,
           domain: (f.email && AC_MAIL.test(f.email) ? f.email.split('@')[1].toLowerCase()
@@ -31434,7 +31437,7 @@
         madeAcc.push(a);
       }
       const c = {
-        id: 'y' + key + '_' + i, acc: a.id, name: f.name, title: f.title || 'Title not known',
+        id: 'y' + key + '_' + i, acc: a ? a.id : null, name: f.name, title: f.title || 'Title not known',
         phone: f.phone || null, email: f.email ? f.email.toLowerCase() : null,
         camps: camps.slice(), owner: onBook() ? null : me().id,
         checkpoint: met ? 'handed-over' : 'not-called', checkpointAt: met ? now : null,
@@ -31523,22 +31526,56 @@
     '</div>';
   }
 
+  /* ══ THREE QUESTIONS, ONE AT A TIME ════════════════════════════════════
+     The door opens the chat on one question: one person, or many from a
+     file. The answer is said back as your turn, and AiMY asks for exactly
+     that: who they are, or the file. Only then does a card appear to check.
+     Each step stays in the thread as it was answered. */
+  const AC_ASK = 'Who are you adding? One person, or many contacts from a file?';
+  function acChoices(a, still) {
+    const one = [['one', 'One person'], ['many', 'Many, from a CSV file']];
+    return '<div class="s-cb-opts">' + one.map((o) => still
+      ? '<button class="s-cb-opt is-spent' + (a.chose === o[0] ? ' is-primary' : '') + '" type="button" disabled>' +
+        esc(o[1]) + '</button>'
+      : '<button class="s-cb-opt' + (o[0] === 'one' ? ' is-primary' : '') + '" type="button" data-acgo="' + o[0] + '">' +
+        esc(o[1]) + '</button>').join('') + '</div>';
+  }
   function acStartBody(a) {
-    return '<p>Type one person in the box below, or bring a whole list in a CSV file.</p>' +
+    return '<p>' + esc(AC_ASK) + '</p>' + acChoices(a, false) +
+      '<p class="b-ac-hint">Or drop a CSV file anywhere on the page.</p>';
+  }
+  const AC_ASK_ONE = 'Send me everything you know about them in one message: name, job title, company, ' +
+    'email, phone, city, country, LinkedIn and where you met. Leave out whatever you don\u2019t have.';
+  function acAskOneBody(a, still) {
+    return '<p>' + esc(AC_ASK_ONE) + '</p>' +
+      '<p class="b-ac-hint">Like this: <b>Lena Vogel, Head of Quality at Brightwave, ' +
+        'lena.vogel@brightwave.de, +49 151 2345 6789, Berlin, Germany, met at GITEX</b></p>' +
+      (still ? '' : '<div class="s-cb-opts">' +
+        '<button class="s-cb-opt is-quiet" type="button" data-acgo="form">I’ll fill in a form instead</button></div>');
+  }
+  const AC_ASK_FILE = 'Send me the file. One person a row, with the column names in the first row.';
+  function acAskFileBody(a) {
+    return '<p>' + esc(AC_ASK_FILE) + '</p>' +
       '<div class="b-ac-zone">' +
         '<span class="b-ac-zone-ic">' + chIcon('upload', 22) + '</span>' +
-        '<span class="b-ac-zone-t">Drop a CSV file anywhere on the page</span>' +
-        '<span class="b-ac-zone-s">One person a row, with the column names in the first row.</span>' +
+        '<span class="b-ac-zone-t">Drop a CSV file here, or anywhere on the page</span>' +
+        '<span class="b-ac-zone-s">Name, job title, company, email and phone. I match the columns ' +
+          'and show you every row before anything is added.</span>' +
         '<span class="b-ac-zone-acts">' +
           '<button class="b-ghost" type="button" data-acgo="file">Choose a file</button>' +
           '<button class="s-inline-btn" type="button" data-acgo="sample">Get a sample file</button>' +
           '<input type="file" id="acFile" accept=".csv,text/csv,text/plain" hidden>' +
         '</span>' +
-      '</div>' +
-      '<p class="b-ac-hint">Or type it like this: <b>Add a contact: Lena Vogel, Head of Quality at ' +
-        'Brightwave, lena.vogel@brightwave.de, +49 151 2345 6789</b></p>' +
-      acDestRow(a);
+      '</div>';
   }
+  /* What an asking turn reads as once it has been answered. */
+  function acStill(a) {
+    if (a.kind === 'start') return '<p>' + esc(AC_ASK) + '</p>' + acChoices(a, true);
+    if (a.kind === 'askone') return acAskOneBody(a, true);
+    if (a.kind === 'askfile') return '<p>' + esc(AC_ASK_FILE) + '</p>';
+    return '<p>Put aside. Nothing was added.</p>';
+  }
+  const acAsking = () => ADDC && (ADDC.kind === 'start' || ADDC.kind === 'askone' || ADDC.kind === 'askfile');
 
   /* One person. Errors show for a field once you have left it, and for all
      of them once you press Add; the field keeps what you typed. */
@@ -31568,22 +31605,28 @@
           esc(firstOf(d.c)) + '</button></p>' +
     '</div>';
   }
+  /* What was sent is on the card, each piece in its field. What was not
+     sent is folded under "Add what was left out" and asks for nothing. */
+  const AC_BASIC = ['name', 'title', 'co', 'email', 'phone'];
   function acOneBody(a) {
     const errs = acCheck(a.f);
     const dup = acDup(a.f);
     const first = acFirst(a.f.name) || 'them';
-    return '<p>' + (a.f.name ? 'Here is <b>' + esc(a.f.name) + '</b> as I read it.' : 'Who is it?') +
-        ' Fix anything below, then add ' + (a.f.name ? esc(first) : 'them') + '.</p>' +
-      '<div class="b-ac-form">' +
-        AC_FIELDS.filter((x) => !x.more).map((x) => acFieldHtml(a, x, errs)).join('') +
-      '</div>' +
-      '<div class="b-ac-more' + (a.more ? ' is-open' : '') + '">' +
-        '<button class="b-ac-more-btn" type="button" data-acgo="more" aria-expanded="' + !!a.more + '">' +
-          chIcon('chev-down', 14) + (a.more ? 'Fewer details' : 'More details') + '</button>' +
-        '<div class="b-ac-more-body"' + (a.more ? '' : ' inert') + '><div class="b-ac-more-in"><div class="b-ac-form">' +
-          AC_FIELDS.filter((x) => x.more).map((x) => acFieldHtml(a, x, errs)).join('') +
-        '</div></div></div>' +
-      '</div>' +
+    const main = AC_FIELDS.filter((x) => a.main.indexOf(x.k) >= 0);
+    const rest = AC_FIELDS.filter((x) => a.main.indexOf(x.k) < 0);
+    return '<p>' + (a.f.name
+        ? 'I put each piece in its place. Check <b>' + esc(a.f.name) + '</b>, then add ' + esc(first) + '.'
+        : 'Fill in what you know. Only a name is needed.') + '</p>' +
+      '<div class="b-ac-form">' + main.map((x) => acFieldHtml(a, x, errs)).join('') + '</div>' +
+      (rest.length
+        ? '<div class="b-ac-more' + (a.more ? ' is-open' : '') + '">' +
+          '<button class="b-ac-more-btn" type="button" data-acgo="more" aria-expanded="' + !!a.more + '">' +
+            chIcon('chev-down', 14) + (a.more ? 'Hide what was left out' : 'Add what was left out') + '</button>' +
+          '<div class="b-ac-more-body"' + (a.more ? '' : ' inert') + '><div class="b-ac-more-in"><div class="b-ac-form">' +
+            rest.map((x) => acFieldHtml(a, x, errs)).join('') +
+          '</div></div></div>' +
+        '</div>'
+        : '') +
       '<div id="acdup-' + a.id + '">' + acDupHtml(a) + '</div>' +
       acDestRow(a) +
       '<div class="s-cb-opts">' +
@@ -31614,7 +31657,7 @@
     const out = { ready: [], dups: [], bad: [] };
     a.rows.forEach((r, i) => {
       const f = acRowOf(a, r);
-      const e = acCheck(f);
+      const e = acCheck(f, true);
       /* A row is described, not instructed: it cannot be fixed from here. */
       const why = e.name ? 'No name.' : e.co ? 'No company.'
         : !f.email && !f.phone ? 'No email or phone, so nobody can reach them.'
@@ -31757,6 +31800,8 @@
 
   function acBody(a) {
     return a.kind === 'start' ? acStartBody(a)
+      : a.kind === 'askone' ? acAskOneBody(a, false)
+      : a.kind === 'askfile' ? acAskFileBody(a)
       : a.kind === 'one' ? acOneBody(a)
       : a.phase === 'run' ? acRunBody(a)
       : acCsvBody(a);
@@ -31784,7 +31829,7 @@
 
   /* ══ THE WAYS IN ════════════════════════════════════════════════════════ */
   function acPush(a, said) {
-    if (ADDC && ADDC !== a) acSettle('<p>Put aside. Nothing was added.</p>');
+    if (ADDC && ADDC !== a) acSettle(acStill(ADDC));
     ADDC = a;
     openCanvas();
     if (said) say('you', said);
@@ -31795,11 +31840,16 @@
   /* The door: a fresh conversation, opened on the turn that takes either. */
   function acStart() {
     if (!addsCon()) { toast('Adding contacts is the sales team’s to do.'); return; }
-    if (ADDC) acSettle('<p>Put aside. Nothing was added.</p>');
+    if (ADDC) acSettle(acStill(ADDC));
     LBUILD = null; CBUILD = null;
     newChat();
     acPush({ id: acId(), kind: 'start', dest: acDestDefault() });
-    fillBar('Add a contact: ');
+  }
+  /* The answer to a question, said back as your turn, and the next ask. */
+  function acNext(kind, said) {
+    const dest = ADDC ? ADDC.dest : acDestDefault();
+    acPush({ id: acId(), kind: kind, dest: dest }, esc(said));
+    if (kind === 'askone') fillBar('');
   }
   /* One person, out of a sentence. The email, the number and a profile link
      are lifted out first, so what is left reads the way "Add a lead" always
@@ -31815,21 +31865,43 @@
     const linkedin = take(/\S*linkedin\.com\/\S+/i);
     const email = take(/[^\s,;<>()]+@[^\s,;<>()]*/);
     const phone = take(/\+?\d[\d\s().-]{5,}\d/);
-    t = t.replace(/\s*,\s*(,\s*)+/g, ', ').replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s{2,}/g, ' ');
-    const r = readLead(t) || { name: t.split(',')[0] || '', title: null, co: null };
-    const prev = ADDC && ADDC.kind === 'start' ? ADDC.dest : null;
-    acPush({ id: acId(), kind: 'one', dest: prev || acDestDefault(), more: !!(r.met || linkedin),
-      tried: false, touched: Object.create(null), dupOk: false,
-      f: { name: r.name || '', title: r.title || '', co: r.co || '', email: email, phone: phone,
-        country: '', city: '', linkedin: linkedin, met: r.met || '' } }, esc(said));
+    /* The rest, piece by piece: a piece that is a city or a country by
+       name, or says where you met, is taken out whole; what is left is
+       name, title and company in the order people write them. */
+    let city = '', country = '', met = '';
+    const keep = [];
+    t.split(/\s*[,;\n]\s*/).map((x) => x.trim()).filter(Boolean).forEach((x) => {
+      const m = x.match(/^(?:(?:we|I)\s+)?met(?:\s+(?:them|him|her))?\s+(?:at|in|during)\s+(.+)$/i);
+      if (m && !met) { met = m[1]; return; }
+      const where = x.replace(/^(?:based\s+)?in\s+/i, '');
+      const cc = acCC(where);
+      if (cc && !country) { country = COUNTRY_NAME[cc] || where; return; }
+      const ci = CITIES.filter((c) => c[0].toLowerCase() === where.toLowerCase())[0];
+      if (ci && !city) { city = ci[0]; if (!country) country = COUNTRY_NAME[ci[1]] || ''; return; }
+      keep.push(x);
+    });
+    const atAt = keep.findIndex((x) => /\s(?:at|@)\s/i.test(x));
+    let line = keep.slice(0, atAt >= 0 ? atAt + 1 : 3);
+    if (atAt < 0 && line.length === 3) line = [line[0], line[1] + ' at ' + line[2]];
+    const r = readLead(line.join(', ')) || { name: line[0] || '', title: null, co: null };
+    const f = { name: r.name || '', title: r.title && r.title !== 'Title not known' ? r.title : '',
+      co: r.co || '', email: email, phone: phone, country: country, city: city,
+      linkedin: linkedin, met: met || r.met || '' };
+    const sent = AC_FIELDS.filter((x) => f[x.k]).map((x) => x.k);
+    const prev = acAsking() ? ADDC.dest : null;
+    acPush({ id: acId(), kind: 'one', dest: prev || acDestDefault(), more: false,
+      main: sent.length > 1 ? ['name'].concat(sent.filter((k) => k !== 'name')) : AC_BASIC.slice(),
+      tried: false, touched: Object.create(null), dupOk: false, f: f }, esc(said));
   }
   /* A file, dropped or chosen. Read in the browser and nowhere else. */
   function acFile(file) {
     if (!file) return;
     if (!addsCon()) { toast('Adding contacts is the sales team’s to do.'); return; }
-    const prev = ADDC && ADDC.kind === 'start' ? ADDC.dest : null;
-    if (ADDC) acSettle(ADDC.kind === 'start' ? '<p>Reading “' + esc(file.name) + '”.</p>'
-      : '<p>Put aside. Nothing was added.</p>');
+    const prev = acAsking() ? ADDC.dest : null;
+    if (ADDC) {
+      if (ADDC.kind === 'start') ADDC.chose = 'many';
+      acSettle(acStill(ADDC));
+    }
     openCanvas();
     say('you', '<span class="b-ac-file is-said">' + chIcon('file-spreadsheet', 16) + '<b>' + esc(file.name) +
       '</b> <span>' + esc(acSize(file.size)) + '</span></span>');
@@ -31878,6 +31950,17 @@
     const a = ADDC;
     if (!a || a.phase === 'run') return false;
     const s = t.trim();
+    /* The first question, answered in words rather than a press. */
+    if (a.kind === 'start') {
+      if (/^(one|1|one person|a person|just one|single)\b/i.test(s)) { acGo('one', s); return true; }
+      if (/\b(many|file|csv|bulk|import|upload|spreadsheet|several)\b/i.test(s)) { acGo('many', s); return true; }
+    }
+    /* Asked who they are: whatever comes back is the person. */
+    if (a.kind === 'askone' && !/^(cancel|stop|never ?mind)\.?$/i.test(s)) {
+      const m = s.match(ADD_RE);
+      acOne(m ? m[1] : s, s);
+      return true;
+    }
     if (/^(cancel|leave it|stop|don.?t add( (it|them))?|never ?mind)\.?$/i.test(s)) {
       say('you', esc(s)); acGo('cancel'); return true;
     }
@@ -31924,9 +32007,20 @@
   }
 
   /* ══ THE CARD'S OWN PRESSES ═════════════════════════════════════════════ */
-  function acGo(k) {
+  function acGo(k, said) {
     const a = ADDC;
     if (k === 'again') { acStart(); return; }
+    if (k === 'one' || k === 'many') {
+      if (!a || a.kind !== 'start') return;
+      a.chose = k;
+      acNext(k === 'one' ? 'askone' : 'askfile', said || (k === 'one' ? 'Add one person' : 'Add many contacts from a CSV file'));
+      return;
+    }
+    if (k === 'form') {
+      if (!a || a.kind !== 'askone') return;
+      acOne('', 'I’ll fill in a form');
+      return;
+    }
     if (k === 'sample') { acSampleSave(); return; }
     if (!a) return;
     if (k === 'file') { const el = byId('acFile'); if (el) { el.value = ''; el.click(); } return; }
@@ -31938,7 +32032,7 @@
       box.classList.toggle('is-open', a.more);
       const btn = box.querySelector('.b-ac-more-btn');
       btn.setAttribute('aria-expanded', String(a.more));
-      btn.lastChild.textContent = a.more ? 'Fewer details' : 'More details';
+      btn.lastChild.textContent = a.more ? 'Hide what was left out' : 'Add what was left out';
       box.querySelector('.b-ac-more-body').inert = !a.more;
       return;
     }
@@ -31946,6 +32040,7 @@
     if (k === 'cancel') {
       acSettle(a.kind === 'csv' ? '<p>“' + esc(a.file.name) + '” was not imported. Nothing was added.</p>'
         : a.kind === 'one' ? '<p>' + (a.f.name ? esc(a.f.name) + ' was not added.' : 'Nothing was added.') + '</p>'
+        : acAsking() ? acStill(a) + '<p class="b-ac-line">Stopped. Nothing was added.</p>'
         : '<p>Nothing was added.</p>');
       return;
     }
@@ -31963,7 +32058,7 @@
     const bad = AC_FIELDS.filter((x) => e[x.k]);
     if (bad.length) {
       a.tried = true;
-      if (bad.some((x) => x.more)) a.more = true;
+      if (bad.some((x) => a.main.indexOf(x.k) < 0)) a.more = true;
       acRepaint();
       const host = byId('ac-' + a.id);
       bad.forEach((x) => {
