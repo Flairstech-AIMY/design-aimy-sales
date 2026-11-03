@@ -7144,9 +7144,8 @@
          are looking as, and the way back to the seed.
 
          `margin-top: auto` on the foot, so on a short rail it sits at the
-         bottom and on a long one it follows the last card. A gate pinned to
-         the viewport over content that scrolls under it is a second thing to
-         read past. */
+         bottom; on a long one it is pinned and the cards scroll behind it
+         (Nour, 3 Nov 2026; bdr.css THE FOOT). */
       '<div class="rail-foot">' +
         /* ══ THE CONSOLE IS A PLACE, NOT A PANEL ═══════════════════════
            This opened the local proto panel — the build stamp, the corpus

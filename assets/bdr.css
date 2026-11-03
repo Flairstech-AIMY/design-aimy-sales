@@ -5100,14 +5100,31 @@ textarea::placeholder,
 /* ══ THE FOOT, AND THE QUIETER WAY INTO THE CONSOLE ════════════════════════
    Knowledge's shape, in this build's units: a hairline, an icon, a name and
    a line saying what is behind it. `margin-top: auto` sits it at the bottom
-   of a short rail and after the last card on a long one — a gate pinned over
-   content that scrolls under it is a second thing to read past. */
+   of a short rail; on a long one it is pinned (below). */
 /* No rule above it. Knowledge's gate sits under a list of chats that runs to
    the foot of its rail, where a hairline is what stops the last row and the
    door reading as one thing. This rail ends in a card with its own border and
    then eighty pixels of ground, so the rule was drawing a line across empty
    space to separate two things already separated. */
-.rail-foot { margin-top: auto; padding-top: 10px; flex-shrink: 0; }
+/* ══ PINNED, 3 NOV 2026 ══════════════════════════════════════════════
+   Nour: pin it, and let the cards scroll behind it. With the tabs in the
+   rail the column runs past the fold, and the console fell off the bottom
+   with it. The foot sticks to the rail's bottom edge, out over the rail's
+   16px padding, on the ground the rail stands on (`--body-bg` beside the
+   page, `--panel-bg` in the drawer), with a 24px fade above it so a card
+   passing under reads as going behind rather than being cut. */
+.rail-foot {
+  --foot-bg: var(--body-bg);
+  position: sticky; bottom: -16px; z-index: 1;
+  margin: auto -16px -16px; padding: 10px 16px 16px; flex-shrink: 0;
+  background: var(--foot-bg);
+}
+.rail-foot::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 24px;
+  background: linear-gradient(to bottom, transparent, var(--foot-bg));
+  pointer-events: none;
+}
+@media (max-width: 1079.98px) { .rail-foot { --foot-bg: var(--panel-bg); } }
 .rail-console {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 10px; border: 0; border-radius: var(--r-md);
