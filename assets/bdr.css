@@ -8157,15 +8157,19 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-ac-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px 24px; }
 .b-ac-f { display: grid; gap: 4px; min-width: 0; align-content: start; }
 .b-ac-f-cap { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200); }
+/* The product's boxed field, the one the find boxes use: a whole edge, and
+   focus is the accent edge with a soft ring around it, never an underline. */
 .b-ac-in {
   font-family: inherit; font-size: var(--fs-base); color: var(--d50);
-  background: none; border: 0; border-bottom: 1px solid var(--card-border-hover);
-  padding: 4px 0 5px; min-width: 0; width: 100%;
-  transition: border-color 150ms ease-out;
+  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
+  padding: 8px 12px; min-width: 0; width: 100%;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 .b-ac-in::placeholder { color: var(--ink-placeholder); }
-.b-ac-in:focus { outline: none; border-bottom-color: var(--accent); }
-.b-ac-f.is-bad .b-ac-in { border-bottom-color: var(--err); }
+.b-ac-in:hover { border-color: var(--card-border-hover); }
+.b-ac-in:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18); }
+.b-ac-f.is-bad .b-ac-in { border-color: var(--err); }
+.b-ac-f.is-bad .b-ac-in:focus { box-shadow: 0 0 0 3px var(--err-bg); }
 .b-ac-err { display: flex; align-items: flex-start; gap: 6px; font-size: var(--fs-sm); color: var(--err); line-height: 1.4; }
 .b-ac-err:empty { display: none; }
 .b-ac-err svg { flex: none; margin-top: 2px; }
