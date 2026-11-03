@@ -167,71 +167,9 @@
    "the strongest text on this surface" and it flips with the theme. */
 .evidence-pill .val { color: var(--text-strong); }
 
-/* ══ 10. THE HEADING IS THE SWITCHER ═══════════════════════════════════════
-   Not a control above the heading and not a column beside it: the title of
-   the block IS the choice. The one you are on reads as the heading it would
-   have been anyway; the other two sit beside it, quiet, and press to become
-   it. A product with three surfaces does not need a row of chrome to say so.
-
-   An h2 with buttons inside, so the page keeps a real heading in its outline
-   whichever surface is showing. The type is `.s-block-h`'s, because the one
-   you are on IS that heading and must not be a different size from the one
-   it replaces. */
-/* An <h2> with no font-size takes the user agent's 1.5em, which is a size
-   derived from the body rather than chosen — 21px against a 14px body, 24
-   against 16. Every child sets its own size, so the h2's is only ever
-   inherited by accident. Named, so it stops moving when the body does. */
-.b-switch {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px;
-  margin: 0; font-size: var(--t-body);
-}
-/* == THE ONE YOU ARE ON IS THE HEADING; THE REST ARE NOT ==================
-   The README has described this block since it was built -- "the one you are
-   on at heading weight, the other two quiet beside it and pressable" -- and
-   the CSS gave all five extrabold and separated the current one by ink
-   alone. Four tabs at 800 read as four headings, and the strip stopped
-   looking like a heading with alternatives and started looking like a menu
-   bar shouting.
-
-   Ink alone is also one axis, which is the thing this build stopped
-   accepting everywhere else: a rank differs from its neighbour in at least
-   two of {size, weight, ink}. Now it differs in two. */
-.b-switch-btn {
-  appearance: none; border: 0; background: transparent; padding: 0;
-  cursor: pointer; font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: var(--fw-semibold);
-  letter-spacing: var(--ls-tight); color: var(--ink-muted);
-  transition: color var(--t-fast), font-weight var(--t-fast);
-}
-.b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
-/* ══ ONE STEP IS ENOUGH, AND THE COUNT COMES WITH IT ═════════════
-   The note above says a rank differs from its neighbour in at least two of
-   {size, weight, ink}, and reads the on-state as differing in two. It
-   differs in three: the ink moves --ink-muted to --d50, the weight moves,
-   and .b-switch-bar slides under it. Two of those were already enough, so
-   the weight did not need to jump 500 to 700 — two whole steps, landing on
-   --fw-extrabold, which is the top of the ladder.
-
-   That register should be rare or it stops meaning anything, and a tab is
-   not the loudest thing on a page that also has a page title. One step to
-   --fw-bold keeps the rank and gives the top back to what it is for.
-
-   THE COUNT. There was a rule here whose whole job was to hold the count at
-   --ink-muted while its tab lit up, so the one number on the active tab was
-   the one part of it that did not respond. The intent was right — the count
-   must not compete with the name — but muted is not the only way to be
-   subordinate: it is already four points smaller and a weight lighter.
-
-   So it takes the accent instead, which is the same language the filter
-   chips underneath already use for "this is the one selected". --accent-text
-   rather than --accent, because the raw hue is 3.26:1 against this ground
-   and the text-safe one is documented at 5.04. */
-.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-bold); }
-.b-switch-n {
-  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums; color: var(--ink-muted);
-}
-.b-switch-btn.is-on .b-switch-n { color: var(--accent-text); }
+/* ══ 10. THE HEADING IS THE SWITCHER (gone) ════════════════════════════════
+   The row of tabs over the page moved into the rail on 3 Nov 2026 (§111).
+   What stood here styled it, and went with it. */
 /* ══ WHICH BOOK THE ROW IS COUNTING, ABOVE THE ROW ═════════════════
    A client's desk carries one more control than anybody else's: which of the
    things they bought every tab in the row is about. It is not a fifth tab,
@@ -288,7 +226,6 @@
 .s-camp-list-head:has(.b-find) > .s-engpick {
   order: 0; flex-basis: 100%; justify-content: flex-end; margin-left: 0;
 }
-.s-camp-list-head > .s-engpick + .b-switch { margin-right: auto; }
 /* And the same end of the report's header. `.s-exec-top` is
    `space-between` and its own margin says the control that changes what is
    read sits opposite the title — but the title block takes the full
@@ -1053,14 +990,14 @@
    the colour properties the shell already animates on these, because a
    later `transition` replaces the earlier one rather than adding to it. */
 .s-insight-lnk, .s-inline-btn, .s-cb-opt, .call-end, .call-tool,
-.b-switch-btn, .ntf-row-cta, .s-back, .b-find-x, .filter-chip,
+.ntf-row-cta, .s-back, .b-find-x, .filter-chip,
 .overlay-sugg-chip, .b-pager-go button, .ntf-clear, .ntf-foot-btn {
   transition:
     transform 160ms var(--ease-out),
     color var(--t-fast), background-color var(--t-fast), border-color var(--t-fast);
 }
 .s-insight-lnk:active, .s-inline-btn:active, .s-cb-opt:active, .call-end:active,
-.call-tool:active, .b-switch-btn:active, .ntf-row-cta:active, .s-back:active,
+.call-tool:active, .ntf-row-cta:active, .s-back:active,
 .b-find-x:active, .filter-chip:active, .overlay-sugg-chip:active,
 .b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active {
   transform: scale(0.97);
@@ -1120,7 +1057,6 @@
    leaves it lit until the next tap somewhere else — a switcher tab that
    stays half-highlighted after you leave it. */
 @media (hover: hover) and (pointer: fine) {
-  .b-switch-btn:hover { color: var(--d200); }
   .b-find-x:hover { color: var(--d100); }
 }
 
@@ -1162,7 +1098,7 @@
 /* [5] COUNTS DO NOT JITTER. Proportional digits change width as the value
    changes, so the switcher shifted sideways every time a search narrowed it.
    Set once on the containers, so every count inside inherits it. */
-.b-switch-n, .b-vfoot, .b-pager, .b-tally-out, .b-qcard, .s-block-say {
+.b-vfoot, .b-pager, .b-tally-out, .b-qcard, .s-block-say {
   font-variant-numeric: tabular-nums;
 }
 
@@ -1180,13 +1116,6 @@
 .s-block-h, .s-rec-name, .s-rec-cap { text-wrap: balance; }
 .s-block-sub, .b-aimy-say, .s-lead-say, .b-back-v, .s-callsum-val, .ntf-row-body { text-wrap: pretty; }
 
-/* T5 — THE CURRENT SURFACE IS UNDERLINED. Colour alone marked which of
-   Calls / Campaigns / Lists you were on, and on the calls surface all three
-   sat at nearly the same ink. A two-pixel rule under the current one, in ink
-   rather than accent, because it is a position and not an action. The rule
-   is one element that slides between positions (§32); the page itself
-   never waits for it. */
-.b-switch-btn { padding-bottom: 4px; }
 
 /* T6 — THE SEARCH BOX SAYS IT HAS FOCUS. The border already turns accent;
    a 3px call at 18% is the standard input focus and reads at a glance from
@@ -1200,7 +1129,7 @@
    stay because they aid comprehension; the transforms go. */
 @media (prefers-reduced-motion: reduce) {
   .s-insight-lnk:active, .s-inline-btn:active, .s-cb-opt:active, .call-end:active,
-  .call-tool:active, .b-switch-btn:active, .ntf-row-cta:active, .s-back:active,
+  .call-tool:active, .ntf-row-cta:active, .s-back:active,
   .b-find-x:active, .filter-chip:active, .overlay-sugg-chip:active,
   .b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active,
   .b-qcard[data-open]:active { transform: none; }
@@ -1488,19 +1417,6 @@
 .b-acts { margin: 0 0 12px; }
 .b-cuts + .b-grid { margin-top: 4px; }
 
-/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not — this lifted
-   the count UP onto the --d200 floor rather than flattening it, which is why
-   it lives here and not beside the component.
-
-   It used to name `.b-switch-btn.is-on .b-switch-n` in the same group, at
-   the same specificity as the on-state rule beside the component and later
-   in the file — so it won every time and the active tab’s count could never
-   respond to being active. A floor belongs on the base selector. The
-   on-state sets its own ink and is allowed to.
-
-   It also carried the weight, which is why the count computed 500 while the
-   rule beside the component declared 600. Same value now, stated once. */
-.b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 .s-starts-cap { color: var(--ink-muted); }
 
 /* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
@@ -1915,32 +1831,10 @@ textarea::placeholder,
 
 /* ══ 32. THE RULE SLIDES, AND A CHANGED FIGURE TICKS ═══════════════════════
    The page is rebuilt from a string, so nothing on it knows where it was a
-   frame ago. Two things want to. The rule under Calls · Campaigns · Lists is
-   one bar placed by transform; before a repaint its place is read, after it
-   the bar is put back there and let go — 160ms, ease-in-out, because it is
-   movement on screen and not an entrance. And a figure a write just changed
-   — a chip's count, the roster figures on a campaign, the three counts in the
-   switcher — ticks once, the new number rising through 4px of blur. Never on
+   frame ago. (The sliding rule under the tab row went with the row, 3 Nov
+   2026.) A figure a write just changed — a chip's count, the roster figures
+   on a campaign, a tab's count in the rail — ticks once, the new number rising through 4px of blur. Never on
    load, never on scroll, never for navigating: only for what you just did. */
-.b-switch { position: relative; }
-/* ══ TOP, NOT BOTTOM, BECAUSE THE STRIP WRAPS ════════════════════════
-   `.b-switch` is `flex-wrap: wrap`, and the manager's desk has five entries:
-   at a 459px layout they take two rows. `bottom: 0` is the bottom of the
-   whole wrapped block, so with Diary lit on the first row the bar drew 34px
-   BELOW the second one — a rule floating under Lists, marking nothing.
-   Anchored to the top, the bar's place is a function of the button alone and
-   placeSwitchBar() carries the y it was already computing the x for. */
-.b-switch-bar {
-  position: absolute; left: 0; top: 0; width: 1px; height: 2px; background: var(--d50);
-  /* SURFACE MOTION TAKES THE SURFACE CURVE. This was
-     `cubic-bezier(0.77, 0, 0.175, 1)` — a symmetrical ease-IN-out, which on
-     a bar that slides between tabs means it spends its first frames barely
-     moving. A thing changing position should leave at once and arrive
-     gently, which is what --ease-out is and why every other moving surface
-     in this build already uses it. */
-  transform-origin: left center; transition: transform 160ms var(--ease-out);
-  pointer-events: none;
-}
 /* The blur is split off and given no fill, for the reason §67 sets out: a
    `forwards` fill holds the INTERPOLATED end of a filter, and interpolating
    toward `none` means interpolating toward blur(0px) — which is a composited
@@ -1954,7 +1848,7 @@ textarea::placeholder,
    step of both scales. */
 @keyframes b-tick { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes b-tick-blur { from { filter: blur(2px); } }
-@media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .b-tick { animation: none; } }
 
 /* ══ 33. A NEW TURN ARRIVES ════════════════════════════════════════════════
    The thread is rebuilt when it grows, and the turn that grew it appeared
@@ -4765,16 +4659,8 @@ textarea::placeholder,
 
    `:has(.b-find)` rather than a blanket change, because every other head is
    the heading-and-caption case and baseline is right there.
-
-   The negative margin is the tab strip's underline gutter. `.b-switch-btn`
-   carries `padding-bottom: 4px` to reserve room for `.b-switch-bar`, so the
-   strip's box is 4px taller than its type and centring the box would centre
-   the type 2px high. Discounting the gutter says what is meant: line up the
-   writing, not the runway under it. 4.5px to 0.6px on the queue, 5.1px to
-   nothing on the campaign, and the sliding bar lands level with the bottom of
-   the pill. */
+ */
 .s-camp-list-head:has(.b-find) { align-items: center; }
-.s-camp-list-head:has(.b-find) > .b-switch { margin-bottom: -4px; }
 /* And the heading's own bottom margin, which centring would otherwise centre
    along with it: flex aligns the MARGIN box, so `.s-block-h`'s 12px underneath
    pushed the type 5px up inside a row that was now correctly centred. The
@@ -8366,14 +8252,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 :root[data-theme="light"] .b-door.is-here {
   background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04)), var(--card-bg);
 }
-/* The row of tabs over the page is the drawer's form: shown only where the
-   rail is a drawer (sales.css, under 1080 layout px).
-   Beside the rail the page keeps the state's name. */
-.s-camp-list-head > .b-here-h { display: none; margin: 0 auto 0 0; }
-@media (min-width: 1080px) {
-  .s-camp-list-head > .b-switch { display: none; }
-  .s-camp-list-head > .b-here-h { display: block; }
-}
+/* The row of tabs over the page is gone at every width: under 1080 layout
+   px the rail is a drawer and the tabs are in it. The page keeps the
+   state's name. */
+.s-camp-list-head > .b-here-h { margin: 0 auto 0 0; }
 @media (prefers-reduced-motion: reduce) {
   .rail-tab::before, .rail-tab-read, .rail-tab-btn { transition: none !important; }
 }

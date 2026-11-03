@@ -4305,8 +4305,6 @@
     clearTimeout(SKEL_T);
     SKEL_T = null;
     if (stage) stage.removeAttribute('data-load');
-    const on = document.querySelector('.b-switch-btn.is-on');
-    if (on) out.bar = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
     if (FIG_TICK) {
       out.figs = Object.create(null);
       document.querySelectorAll('[data-fig]').forEach((el) => { out.figs[el.getAttribute('data-fig')] = el.textContent; });
@@ -4333,34 +4331,7 @@
     FIG_TICK = false;
     return out;
   }
-  /* THE BAR IS PLACED ON BOTH AXES, BECAUSE THE STRIP WRAPS. `.b-switch` is
-     `flex-wrap: wrap` and the manager's desk carries five entries, which at a
-     459px layout take two rows. Moving the bar in x alone left it wherever
-     `bottom: 0` put it — the foot of the whole wrapped block — so with Diary
-     lit on the first row the bar sat 34px below the second, under Lists,
-     marking nothing. It is anchored to the TOP of the strip now (bdr.css §31)
-     and told where to go. 2 is its own height: the y is the button's bottom
-     edge, so the bar sits in the last two pixels of the button's box, which
-     is what `bottom: 0` gave it on a single row and is now true on any. */
-  function barY(on) { return on.offsetTop + on.offsetHeight - 2; }
-  /* FLIP: put the bar where it was, let the browser see it there, then
-     send it where it goes. No previous place, no motion. */
-  function placeSwitchBar(from) {
-    const bar = document.querySelector('.b-switch-bar');
-    const on = document.querySelector('.b-switch-btn.is-on');
-    if (!bar || !on) return;
-    const to = { x: on.offsetLeft, y: barY(on), w: on.offsetWidth };
-    const at = (p) => 'translate(' + p.x + 'px, ' + p.y + 'px) scaleX(' + p.w + ')';
-    if (from && (from.x !== to.x || from.y !== to.y || from.w !== to.w)) {
-      bar.style.transition = 'none';
-      bar.style.transform = at(from);
-      void bar.offsetWidth;
-      bar.style.transition = '';
-    }
-    bar.style.transform = at(to);
-  }
   function postPaint(pre) {
-    placeSwitchBar(pre.bar);
     if (!pre.figs) return;
     document.querySelectorAll('[data-fig]').forEach((el) => {
       const was = pre.figs[el.getAttribute('data-fig')];
@@ -6875,24 +6846,11 @@
   };
 
   function switcher(here) {
-    /* Every tab but one counts a set. Today is not a set — it is a moment —
-       so it carries no figure rather than borrowing one that means something
-       else two tabs along. */
-    const one = (k, label, n, over) =>
-      '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
-      'data-go="' + esc(JSON.stringify(over)) + '"' +
-      (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
-      (n === null ? '' :
-        '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
-    /* ══════════════ AND A FLOOR ADDS NO TAB AT ALL ══════════════
-       People stood here, with two margins over it arguing about whether a
-       floor book takes the other three away. It does not — `bookIds` is
-       keyed by the CLIENT, so there is one pipeline, one diary and one set
-       of campaigns however many things were bought — and it does not add
-       one either. A roster of named agents with an average each is the QA
-       product; this desk is the money and the promises. The floor still
-       answers those, four metrics deep, on the report. */
-    const row = bookTabs(one, here);
+    /* ══ THE ROW OF TABS IS GONE, AT EVERY WIDTH ══════════════════════
+       Nour: rely on the rail. The tabs are its first card (`railNav`), and
+       under 1080px the rail is a drawer behind the button in the top bar,
+       so the page keeps only the name of the state it is in. `bookTabs`
+       still decides which tabs a desk has; the rail reads it. */
     /* ══ AND WHICH BOOK THE ROW IS ABOUT ═══════════════════════
        The chips lived on the report, which was the whole desk and so also
        the only place the desk could be re-scoped. With a Today under them
@@ -6902,13 +6860,9 @@
        Above the row rather than beside it. They are not a fifth tab — they
        change what every tab in the row COUNTS — and a control that changes
        the meaning of the things under it goes above them. */
-    /* Where the rail stands beside the page, the tabs are in it (§111 in
-       bdr.css), so the page keeps only the name of the state it is in. */
     const name = ({ today: 'Your day', deals: 'Contacts', calls: 'Contacts', cal: 'Diary',
       camps: 'Campaigns', lists: 'Lists' })[here] || '';
-    return engChips() + '<h2 class="b-switch">' + row +
-      '<span class="b-switch-bar" aria-hidden="true"></span>' +
-    '</h2>' + (name ? '<h2 class="s-block-h b-here-h">' + esc(name) + '</h2>' : '');
+    return engChips() + (name ? '<h2 class="s-block-h b-here-h">' + esc(name) + '</h2>' : '');
   }
 
   /* The three books' worth of row, unchanged: what a desk with a pipeline
@@ -10645,7 +10599,14 @@
   }
 
   function diaryPage() {
+    /* ══ A WAY OUT OF THE DIARY ════════════════════════════════════════
+       Nour: make sure you can leave the diary for the other places. It has
+       no briefing over it, and with the tab row gone nothing on the page
+       led anywhere: back goes to wherever you came from (the trail), or to
+       your first tab with none. The rail's tabs do the rest. */
     return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' +
+        backBtn('data-back', onBook() ? 'Back to Today' : 'Back to your contacts') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="The diary">' +
         '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
         diaryLead() +
@@ -38878,17 +38839,6 @@
     sync();
   })();
 
-  window.addEventListener('resize', () => placeSwitchBar(null));
-  /* AND ON THE VIEWPORT CHANGES `resize` DOES NOT ANNOUNCE. Changing the
-     browser's zoom level moves the viewport with no resize event at all —
-     assets/aimy-viewport.js measured it and publishes `aimy:viewport` for
-     precisely this, so a consumer does not have to grow its own poll. It
-     matters here because the strip wraps: five entries are one row at a 776px
-     layout and two at 459, and the bar's y is which row the lit one is on. */
-  window.addEventListener('aimy:viewport', () => placeSwitchBar(null));
-  /* The webfont lands after the first paint and the buttons narrow under
-     the bar; it is placed again when the fonts are in. */
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSwitchBar(null));
   window.addEventListener('popstate', (e) => {
     if (BACK_GUARD && !(e.state && e.state.aimyGuard) && S.build === 'done' && DRAFT && (DRAFT.rows || []).length) {
       history.pushState({ aimyGuard: 1 }, '', location.href);
