@@ -6787,7 +6787,10 @@
   /* What a view is called, in the words its own tab or masthead uses. */
   function trailLabel(u) {
     const st = trailState(u);
-    if (st.ag && REP[st.ag]) return REP[st.ag].name;
+    /* On a person's own profile, the view behind it is their team with them
+       open in the rail: "Back to Salma Nabil" read as going nowhere (Nour).
+       It is named by the team. */
+    if (st.ag && REP[st.ag] && !(S.on === 'person' && S.ag === st.ag)) return REP[st.ag].name;
     const tm = st.team && TEAMS.filter((x) => x.id === st.team)[0];
     if (tm) return tm.name;
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
