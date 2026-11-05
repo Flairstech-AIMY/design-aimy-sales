@@ -8480,3 +8480,114 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-pr-row { grid-template-columns: 40px minmax(0, 1fr); }
   .b-pr-figs, .b-pr-go { grid-column: 2; }
 }
+
+/* ══ 115. THE SIDE RAIL (5 Nov 2026) ═══════════════════════════════════════
+   bdr.js, THE SIDE RAIL. 420px beside the page, which narrows and reflows;
+   the call column takes the right edge while a call is live. */
+:root { --side-w: 420px; }
+.app-side {
+  width: var(--side-w); flex-shrink: 0; display: flex; flex-direction: column; min-height: 0;
+  /* The panel's tint over the page's own ground: `--panel-bg` alone is
+     translucent in light, and the page showed through it where it stands over. */
+  background: linear-gradient(var(--panel-bg), var(--panel-bg)), var(--body-bg);
+  border-left: 1px solid var(--hairline);
+}
+.app-side[hidden] { display: none; }
+/* The composer and the canvas keep clear of it, as they do of a call. */
+body.has-side:not(.is-calling) { --fb-reserve: var(--side-w); }
+body.has-side:not(.is-calling) .aimy-overlay { right: var(--side-w); }
+body.is-calling .app-side { display: none; }
+/* Opening: in from the right through a blur (transitions-dev panel reveal). */
+.app-side.is-opening { animation: b-side-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes b-side-in { from { opacity: 0; transform: translateX(24px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+.b-side-head {
+  display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 8px 12px 8px 12px; flex: none;
+  border-bottom: 1px solid var(--card-border);
+}
+.b-side-back {
+  display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px 6px 6px; font: inherit;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
+  background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.b-side-back:hover { background: rgba(var(--accent-rgb), 0.08); }
+.b-side-x {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; margin-left: auto;
+  color: var(--d100); background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.b-side-x:hover { color: var(--d50); background: color-mix(in srgb, var(--d50) 8%, transparent); }
+.b-side-back:focus-visible, .b-side-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-side-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.b-side-view { padding: 20px 20px 120px; }
+/* One step in, back, and a swap (transitions-dev page side by side). */
+.b-side-view.is-fwd { animation: b-side-fwd 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.b-side-view.is-back { animation: b-side-bk 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.b-side-view.is-swap { animation: b-side-swap 250ms ease-in-out both; }
+@keyframes b-side-fwd { from { opacity: 0; transform: translateX(16px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes b-side-bk { from { opacity: 0; transform: translateX(-16px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes b-side-swap { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-side.is-opening, .b-side-view.is-fwd, .b-side-view.is-back, .b-side-view.is-swap { animation: none; }
+}
+.b-side-sec { margin-top: 26px; }
+.b-side-sec .s-camp-list-head { margin-bottom: 10px; }
+.b-side-sec .s-block-h { font-size: var(--fs-md); }
+.b-tp-meta .b-team-stack .b-stack-face { box-shadow: 0 0 0 2px var(--panel-bg); }
+.app-side .b-tp-name { font-size: 22px; }
+/* At the rail's width the rows stack: the actions and figures go under the name. */
+.app-side .b-wt-row { grid-template-columns: 36px minmax(0, 1fr); padding: 14px; }
+.app-side .b-wt-acts { grid-column: 2; justify-content: flex-start; margin-top: 8px; }
+.app-side .b-pr-row { grid-template-columns: 36px minmax(0, 1fr) auto; padding: 12px 14px; gap: 4px 12px; }
+.app-side .b-pr-figs { grid-column: 2; grid-row: 2; gap: 2px 14px; font-size: var(--fs-xs); }
+.app-side .b-pr-go { grid-column: 3; grid-row: 1 / span 2; color: var(--d200); }
+.app-side .b-face[style*="40px"] { width: 36px !important; height: 36px !important; }
+/* The open team's card is lit, the way the rail lights the card you are on. */
+.b-team-card.is-open { border-color: rgba(var(--accent-rgb), 0.7); box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), var(--shadow-sm); }
+
+/* A person, one step in. */
+.b-ps-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 4px 14px; align-items: center; }
+.b-ps-name { margin: 0; font-size: 20px; font-weight: var(--fw-bold); color: var(--d50); }
+.b-ps-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.b-ps-figs {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none;
+  border: 1px solid var(--card-border); border-radius: var(--r-lg); overflow: hidden;
+}
+.b-ps-fig { padding: 12px 14px; background: var(--card-bg); }
+.b-ps-fig:nth-child(odd) { border-right: 1px solid var(--card-border); }
+.b-ps-fig:nth-child(n+3) { border-top: 1px solid var(--card-border); }
+.b-ps-n { display: block; font-size: 22px; font-weight: var(--fw-extrabold); line-height: 1.15; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-ps-w { display: block; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ps-u { display: block; margin-top: 2px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-ps-u b { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ps-fig.is-short .b-ps-n, .b-ps-fig.is-short .b-ps-u b { color: var(--warn-text); }
+.b-ps-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.b-side-sec > .b-aimy { margin: 0 0 12px; }
+.b-ps-more {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 26px;
+  padding: 14px 16px; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
+  text-align: left; cursor: pointer; background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: var(--r-lg);
+  transition: background-color var(--t-fast);
+}
+.b-ps-more:hover { background: rgba(var(--accent-rgb), 0.12); }
+.b-ps-more:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-ps-more small { display: block; margin-top: 2px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+
+/* Between 900 and 1280 the page cannot spare 420px beside a 280px rail
+   (measured: 360px of page at 1100), so the rail changes form instead of
+   squeezing it: it stands over the page's right edge with a shadow, and
+   the page keeps its width. */
+@media (max-width: 1279.98px) {
+  .app-body { position: relative; }
+  .app-side { position: absolute; top: 0; right: 0; bottom: 0; z-index: 30;
+    box-shadow: -24px 0 48px -24px rgba(0, 0, 0, 0.55); }
+}
+/* Where the page cannot spare 420px, the rail is a sheet over the page (the top bar stays),
+   with its own way out, and the composer steps aside while it is open. */
+@media (max-width: 899.98px) {
+  .app-side { position: absolute; inset: 0; width: 100%; z-index: 80; border-left: 0; box-shadow: none; }
+  body.has-side:not(.is-calling) { --fb-reserve: 0px; }
+  body.has-side:not(.is-calling) .aimy-overlay { right: 0; }
+  body.has-side .aimy-float-wrap { display: none; }
+}

@@ -3971,7 +3971,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team', 'ag'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -4086,6 +4086,8 @@
     /* `team` is one of this manager's teams, read on the teams surface, or
        nothing: a team that is not theirs is refused like any other key. */
     if (S.team && !(S.on === 'teams' && teamsOf().some((t) => t.id === S.team))) S.team = '';
+    /* `ag` is a person on the open team, one step into the side rail. */
+    if (S.ag && !(S.team && TEAMS.filter((t) => t.id === S.team)[0].members.indexOf(S.ag) > -1)) S.ag = '';
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -4430,11 +4432,12 @@
       : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
-      : S.on === 'teams' && isMgr() ? (S.team ? teamPage() : teamsPage())
+      : S.on === 'teams' && isMgr() ? teamsPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
     paintRail();
+    paintSide();
     railNavMove();
     refreshTasks();
     paintProto();
@@ -6781,6 +6784,7 @@
   /* What a view is called, in the words its own tab or masthead uses. */
   function trailLabel(u) {
     const st = trailState(u);
+    if (st.ag && REP[st.ag]) return REP[st.ag].name;
     const tm = st.team && TEAMS.filter((x) => x.id === st.team)[0];
     if (tm) return tm.name;
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
@@ -11027,7 +11031,8 @@
   function teamCard(r, i, live) {
     const d = dayRead(r.t.members);
     const on = r.t.members.filter((id) => live.indexOf(id) > -1).length;
-    return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
+    return '<article class="type-card s-card b-qcard b-team-card' + (S.team === r.t.id ? ' is-open' : '') +
+      '" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
         /* The score tag is the card's state (Nour, 5 Nov): its colour says
            what "Ahead" or "Needs you" said, so the word tag went. How it
@@ -11050,11 +11055,15 @@
     '</article>';
   }
 
-  /* ══ ONE TEAM'S PAGE (step 3, 5 Nov 2026) ══════════════════════════════
-     What a team card opens (`?on=teams&team=<id>`), variant C of
-     docs/team-variants-3-team.html with Today moved up (Nour): the team's
-     name and facts, then its day, then who in it is worth the manager's
-     time with the thing to do beside each, then every person as a row.
+  /* ══ ONE TEAM, IN THE SIDE RAIL (step 3, 5 Nov 2026) ═══════════════════
+     What a team card opens (`?on=teams&team=<id>`): first built as a page
+     (variant C of docs/team-variants-3-team.html, Today first), then moved
+     into a rail on the right beside Your teams at Nour's suggestion, so the
+     cards stay in reach (variant A of docs/team-variants-4-rail.html, the
+     rail pushing the page, 420px). The team's name and facts, its day, who
+     in it is worth the manager's time with the thing to do beside each,
+     then every person as a row; a person opens one step deeper in the same
+     rail (`ag`), as a short summary. See THE SIDE RAIL below.
 
      The actions are the prototype's: pressing one marks the row done for
      the session and says what happened in a toast with Undo. Nothing is
@@ -11079,31 +11088,6 @@
     toast(TEAM_ACT[k].say(firstName(id), t.name), () => { delete TACTS[key]; paint(); });
   }
   const headH = (h) => '<div class="s-camp-list-head"><h2 class="s-block-h">' + esc(h) + '</h2></div>';
-  function teamPage() {
-    const t = teamsOf().filter((x) => x.id === S.team)[0];
-    if (!t) return teamsPage();
-    const r = teamRead(t);
-    const on = onCallNow(t.members).length;
-    const move = r.was == null || r.move === 0 ? ''
-      : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' +
-        (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
-    return '<div class="s-home">' +
-      '<section class="s-block s-block-wide b-tp" aria-label="' + esc(t.name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams' }))) + '"', 'Back to your teams') +
-        '<div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
-        '<div class="b-tp-meta">' + faceRow(t.members) +
-          '<span>' + esc(plural(t.members.length, 'person')) + ', managed by you</span>' +
-          '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
-            '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>' +
-        '</div>' +
-      '</section>' +
-      '<section class="s-block s-block-wide" aria-label="Today">' + headH('Today') +
-        teamDayBlock(t.members, 'the ' + esc(t.name), 'has') + '</section>' +
-      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>' +
-      '<section class="s-block s-block-wide" aria-label="The people">' + headH('The people') +
-        '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></section>' +
-    '</div>';
-  }
   /* Who in this team needs the manager today: the one furthest short of a
      usual day on calls, and the one who booked the most meetings, each with
      the two things worth doing about it. Nobody is named for the sake of it. */
@@ -11142,22 +11126,145 @@
       }).join('') + '</div>';
   }
   /* A person as a row: never a table, every figure with its word, the ones
-     short of their usual in the warning ink. Until the person's own page
-     exists (the next step), a row asks AiMY about them. */
+     short of their usual in the warning ink. It opens them one step
+     deeper in the side rail. */
   function personRow(id) {
     const x = dayRead([id]).by[0];
     const sh = dayShort(x.d, x.u).map((s) => s.s.k);
     const fig = (k, one, many) => '<span' + (sh.indexOf(k) > -1 ? ' class="is-short"' : '') + '><b>' + esc(commas(x.d[k])) +
       '</b> ' + (x.d[k] === 1 ? one : many) + '</span>';
     const on = onCallNow([id]).length;
-    return '<button class="b-pr-row" type="button" data-ask="' + esc('How is ' + firstName(id) + ' doing today?') + '">' +
+    return '<button class="b-pr-row" type="button" data-go="' + esc(JSON.stringify({ ag: id })) + '">' +
       faceOf(id, 40) +
       '<span class="b-pr-who"><span class="b-pr-name">' + esc(REP[id].name) + '</span><span class="b-pr-sub">' +
         scoreTag(weekScores(id).now) + (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</span></span>' +
       '<span class="b-pr-figs">' + fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
         fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</span>' +
-      '<span class="b-pr-go">' + aiMark() + 'Ask AiMY</span>' +
+      '<span class="b-pr-go" aria-hidden="true">' + SIDE_CHEV + '</span>' +
     '</button>';
+  }
+
+  /* ══ THE SIDE RAIL ═════════════════════════════════════════════════════
+     A shell region like the call column (`#sidePanel`, beside `.app-main`),
+     not an overlay: it takes its width from the page, which narrows and
+     reflows beside it, so nothing is covered. It is drawn from the URL on
+     every paint, so a link reopens it at the same step, the browser's back
+     steps out of it, and leaving Your teams closes it.
+
+     A LIVE CALL TAKES THE RIGHT EDGE. The call column is the one thing on
+     this screen with a person on the other end of it, so while one is live
+     the rail stands aside (bdr.css) and comes back at the same step when
+     the call ends; nothing about it is forgotten, because it is the URL. */
+  const SIDE_CHEV = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+  const SIDE_BACK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+  const SIDE_X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  const sideOn = () => isMgr() && S.on === 'teams' && !!S.team;
+  let SIDE_AT = '';
+  function paintSide() {
+    const el = byId('sidePanel');
+    if (!el) return;
+    const at = sideOn() ? S.team + '|' + S.ag : '';
+    document.body.classList.toggle('has-side', !!at);
+    if (!at) {
+      if (!el.hidden) { el.hidden = true; el.innerHTML = ''; }
+      SIDE_AT = '';
+      return;
+    }
+    const t = TEAMS.filter((x) => x.id === S.team)[0];
+    const was = SIDE_AT.split('|');
+    const opening = el.hidden;
+    SIDE_AT = at;
+    /* How the view arrives: one step in slides from the right, back from the
+       left, another team or person swaps in place, and a repaint (an action,
+       the live count) does not move at all and keeps its scroll. */
+    const how = opening ? '' : was[0] !== S.team ? 'is-swap' : !was[1] && S.ag ? 'is-fwd'
+      : was[1] && !S.ag ? 'is-back' : was[1] !== S.ag ? 'is-swap' : '';
+    const body = el.querySelector('.b-side-body');
+    const y = body && !how ? body.scrollTop : 0;
+    el.innerHTML = '<div class="b-side-head">' +
+        (S.ag ? '<button class="b-side-back" type="button" data-go="' + esc(JSON.stringify({ ag: '' })) + '">' +
+          SIDE_BACK + esc(t.name) + '</button>' : '') +
+        '<button class="b-side-x" type="button" data-go="' + esc(JSON.stringify({ team: '', ag: '' })) + '" ' +
+          'aria-label="Close">' + SIDE_X + '</button>' +
+      '</div>' +
+      '<div class="b-side-body"><div class="b-side-view ' + how + '">' +
+        (S.ag ? personSide(t, S.ag) : teamSide(t)) +
+      '</div></div>';
+    if (y) el.querySelector('.b-side-body').scrollTop = y;
+    if (opening) {
+      el.hidden = false;
+      el.classList.remove('is-opening');
+      void el.offsetWidth;
+      el.classList.add('is-opening');
+    }
+  }
+  /* Escape steps out: from a person to the team, from the team to closed.
+     Only when nothing else on the screen is open to take it first. */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !sideOn()) return;
+    if (document.querySelector('.b-menu-wrap.is-open, .peek:not([hidden])')) return;
+    if (byId('aimyOverlay') && byId('aimyOverlay').classList.contains('open')) return;
+    e.preventDefault();
+    go(S.ag ? { ag: '' } : { team: '', ag: '' });
+  });
+  function teamSide(t) {
+    const r = teamRead(t);
+    const on = onCallNow(t.members).length;
+    const move = r.was == null || r.move === 0 ? ''
+      : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' +
+        (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
+    return '<div class="b-tp">' +
+        '<div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
+        '<div class="b-tp-meta">' + faceRow(t.members) +
+          '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
+          '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
+            '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="b-side-sec">' + headH('Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has') + '</div>' +
+      '<div class="b-side-sec b-worth">' + teamWorth(t) + '</div>' +
+      '<div class="b-side-sec">' + headH('The people') +
+        '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></div>';
+  }
+  /* One step in: who, today's four figures against their usual, AiMY's
+     line, the two things worth doing, and the chat for the rest. The full
+     profile, with every call and the coaching history, is the next step of
+     the plan and will be a page. */
+  function personSide(t, id) {
+    const r = dayRead([id]);
+    const x = r.by[0];
+    const w = weekScores(id);
+    const on = onCallNow([id]).length;
+    const sh = dayShort(x.d, x.u).map((s) => s.s.k);
+    const by = r.day === TODAY_ISO && r.p < 1 ? 'by now' : 'on a usual day';
+    const fig = (k, one, many) => '<li class="b-ps-fig' + (sh.indexOf(k) > -1 ? ' is-short' : '') + '">' +
+      '<span class="b-ps-n">' + esc(commas(x.d[k])) + '</span>' +
+      '<span class="b-ps-w">' + (x.d[k] === 1 ? one : many) + '</span>' +
+      '<span class="b-ps-u">usually <b>' + esc(commas(x.u[k])) + '</b> ' + by + '</span></li>';
+    const done = ['msg', 'book'].filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+    const move = w.was == null || w.now === w.was ? ''
+      : '<span class="b-tp-move ' + (w.now < w.was ? 'is-down' : 'is-up') + '">' +
+        (w.now < w.was ? 'Down ' : 'Up ') + commas(Math.abs(w.now - w.was)) + ' since last week</span>';
+    return '<div class="b-ps-head">' + faceOf(id, 56) +
+        '<div><h2 class="b-ps-name">' + esc(REP[id].name) + '</h2>' +
+          '<div class="b-ps-sub">' + scoreTag(w.now) + move +
+            (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div></div>' +
+      '</div>' +
+      '<div class="b-side-sec">' + headH('Today') + '<ul class="b-ps-figs">' +
+        fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
+        fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul></div>' +
+      '<div class="b-side-sec">' + aimyBlock({ text: daySay(r, esc(firstName(id)), 'has'), from: 'today against a usual day' }) +
+        '<div class="b-ps-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
+          : ['msg', 'book'].map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+            esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) +
+        '</div></div>' +
+      '<button class="b-ps-more" type="button" data-ask="' + esc('How is ' + firstName(id) + ' doing today?') + '">' +
+        '<span>Ask AiMY about ' + esc(firstName(id)) +
+          '<small>Their day, their calls this month and this week\u2019s score, in the chat</small></span>' + aiMark() +
+      '</button>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
