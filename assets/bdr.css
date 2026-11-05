@@ -8724,67 +8724,88 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 
 /* The plan: a board with a figure per step, the story and one chart. */
 .b-pl { margin-top: 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); overflow: hidden; }
-.b-pl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; padding: 16px 20px 0; }
+.b-pl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 16px 20px; }
+.b-pl-hl { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
 .b-pl-h { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
 .b-pl-sub { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
-.b-pl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 14px;
-  border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
-.b-pl-tab {
-  position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 20px 16px;
-  text-align: left; font: inherit; color: inherit; cursor: pointer; background: none; border: 0; border-right: 1px solid var(--card-border);
+/* The two views as quiet text tabs. */
+.b-pl-seg { display: inline-flex; gap: 18px; }
+.b-pl-seg button {
+  padding: 4px 0; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
+  background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer;
 }
-.b-pl-tab:last-child { border-right: 0; }
-.b-pl-tab:hover { background: rgba(var(--accent-rgb), 0.04); }
-.b-pl-tab.is-on { background: rgba(var(--accent-rgb), 0.08); }
-.b-pl-tab.is-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); }
+.b-pl-seg button[aria-pressed="true"] { color: var(--d50); border-bottom-color: var(--accent); }
+.b-pl-seg button:hover { color: var(--d50); }
+.b-pl-seg button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+/* The steps: the strip's hairline cells; the one on the chart is underlined. */
+.b-pl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+.b-pl-tab {
+  position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 20px 18px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer; background: none; border: 0;
+}
+.b-pl-tab + .b-pl-tab { border-left: 1px solid var(--card-border); }
+.b-pl-tab:hover { background: color-mix(in srgb, var(--d50) 3%, transparent); }
+.b-pl-tab.is-on { box-shadow: inset 0 -2px 0 var(--accent); }
+.b-pl-tab.is-on .b-pl-tcap { color: var(--d50); }
 .b-pl-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-pl-tcap { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
-.b-pl-tval { font-size: 26px; font-weight: var(--fw-bold); line-height: 1.1; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-tval { font-size: 26px; font-weight: var(--fw-semibold); line-height: 1.1; color: var(--d50); font-variant-numeric: tabular-nums; }
 .b-pl-tval small { margin-left: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
 @media (max-width: 760px) {
   .b-pl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .b-pl-tab:nth-child(2) { border-right: 0; }
+  .b-pl-tab:nth-child(3) { border-left: 0; }
   .b-pl-tab:nth-child(-n+2) { border-bottom: 1px solid var(--card-border); }
 }
-.b-pl-body { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 32px; padding: 20px; }
-@media (max-width: 1100px) { .b-pl-body { grid-template-columns: minmax(0, 1fr); } }
-.b-pl-lead { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 20px; font-weight: var(--fw-bold); color: var(--d50); }
+.b-pl-body { padding: 20px 20px 18px; }
+/* The story: a few words in the pace's colour, then why, as plain text. */
+.b-pl-say { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; }
+.b-pl-lead { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: var(--fw-semibold); color: var(--d50); white-space: nowrap; }
 .b-pl-lead.is-up { color: var(--ok-text); }
 .b-pl-lead.is-dn { color: var(--warn-text); }
 .b-pl-lead.is-err { color: var(--err-text); }
-.b-pl-lead svg { flex: none; }
-.b-pl-story .b-aimy { margin: 0; }
-.b-pl-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--card-border); }
+.b-pl-lead svg { flex: none; width: 18px; height: 18px; }
+.b-pl-why { display: flex; gap: 8px; flex: 1 1 420px; min-width: 0; margin: 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--d100); }
+.b-pl-why .b-aimy-mark { flex: none; margin-top: 3px; }
+.b-pl-why b { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pl-chart { min-width: 0; margin-top: 22px; }
+.b-pl-ctitle { margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pl-ctop { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+/* The key: what each line is, in the lines' own marks. */
+.b-pl-key { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-key span { display: inline-flex; align-items: center; gap: 6px; }
+.b-pl-key i { display: inline-block; width: 16px; }
+.b-pl-key .k-done { border-top: 2.5px solid var(--accent); }
+.b-pl-key .k-plan { border-top: 1.5px dashed color-mix(in srgb, var(--d50) 45%, transparent); }
+.b-pl-key .k-pace { border-top: 3px dotted var(--d100); }
+.b-pl-key .k-pace.is-up { border-top-color: var(--ok); }
+.b-pl-key .k-pace.is-dn { border-top-color: var(--warn); }
+.b-pl-key .k-pace.is-err { border-top-color: var(--err); }
+.b-pl-key .k-bar { width: 8px; height: 10px; border-radius: 1px; background: rgba(var(--accent-rgb), 0.75); }
+/* The foot: the four figures, then the action and the question. */
+.b-pl-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--card-border); }
+.b-pl-facts { display: flex; gap: 12px 32px; flex-wrap: wrap; margin: 0; }
 .b-pl-facts div { min-width: 0; }
 .b-pl-facts dt { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
-.b-pl-facts dd { margin: 2px 0 0; font-size: 18px; font-weight: var(--fw-bold); color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-pl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
-.b-pl-chart { min-width: 0; }
-.b-pl-ctitle { margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
-.b-pl-ctop { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
-.b-pl-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--d50) 7%, transparent); }
-.b-pl-seg button {
-  padding: 5px 12px; font: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100);
-  background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
-}
-.b-pl-seg button[aria-pressed="true"] { color: var(--d50); background: var(--card-bg-raised); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
-.b-pl-seg button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.b-pl-facts dd { margin: 2px 0 0; font-size: 18px; font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.b-pl-ask { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  color: var(--accent-text); background: none; border: 0; cursor: pointer; }
+.b-pl-ask:hover span { text-decoration: underline; }
+.b-pl-ask:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 .pl-bar { fill: rgba(var(--accent-rgb), 0.75); }
 .pl-bar.is-dn { fill: var(--warn); }
 .pl-bar.is-err { fill: var(--err); }
 .pl-bar.is-today { opacity: 0.55; }
-.pl-note.is-plan.is-left { transform: translate(0, calc(-100% - 6px)); }
 /* The plot: the lines in a stretched SVG, every word in HTML over it. No
    grid, no axis: the base line, the plan, what is left, the pace, today. */
-.b-pl-plot { position: relative; height: 240px; margin-top: 12px; padding: 20px 8px 30px; }
+.b-pl-plot { position: relative; height: 230px; margin-top: 8px; padding: 34px 8px 30px; }
 @media (max-width: 760px) { .b-pl-plot { height: 200px; } }
 .b-pl-area { position: relative; width: 100%; height: 100%; }
 .b-pl-area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .pl-base { stroke: var(--card-border); stroke-width: 1; }
-.pl-ideal { fill: none; stroke: color-mix(in srgb, var(--d50) 35%, transparent); stroke-width: 1.5; stroke-dasharray: 5 6; }
-.pl-act { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
-.pl-area { fill: rgba(var(--accent-rgb), 0.1); }
-.pl-proj { fill: none; stroke: var(--d100); stroke-width: 3; stroke-dasharray: 1 7; stroke-linecap: round; }
+.pl-ideal { fill: none; stroke: color-mix(in srgb, var(--d50) 30%, transparent); stroke-width: 1.5; stroke-dasharray: 5 6; }
+.pl-act { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.pl-proj { fill: none; stroke: var(--d100); stroke-width: 2.5; stroke-dasharray: 1 6; stroke-linecap: round; }
 .pl-proj.is-up { stroke: var(--ok); }
 .pl-proj.is-dn { stroke: var(--warn); }
 .pl-proj.is-err { stroke: var(--err); }
@@ -8796,11 +8817,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .pl-xlab.is-last { transform: translateX(-100%); }
 .pl-xlab.is-today { transform: translateX(-50%); font-weight: var(--fw-semibold); color: var(--d50); }
 /* A note sits on a chip of the card's ground, so no line runs through it. */
-.pl-note { padding: 3px 6px; border-radius: var(--r-md); background: var(--card-bg-raised); font-weight: var(--fw-semibold); color: var(--d50); }
-.pl-note.is-act { transform: translate(calc(-100% - 10px), 35%); font-size: var(--fs-sm); }
-.pl-note.is-end { transform: translate(-100%, calc(-100% - 10px)); font-size: var(--fs-sm); }
-.pl-note.is-plan { transform: translate(-4px, calc(-100% - 10px)); font-weight: var(--fw-medium); color: var(--d100); }
-.pl-note.is-plan.is-under { transform: translate(-50%, 14px); }
+.pl-note { font-weight: var(--fw-semibold); color: var(--d50); text-shadow: 0 0 4px var(--card-bg), 0 0 8px var(--card-bg); }
+.pl-note.is-act { transform: translate(-50%, calc(-100% - 12px)); font-size: var(--fs-sm); }
+.pl-note.is-end { transform: translate(-100%, calc(-100% - 12px)); font-size: var(--fs-sm); }
+.pl-note.is-plan { transform: translate(0, calc(-100% - 6px)); font-weight: var(--fw-medium); color: var(--d100); }
 .pl-note.is-up { color: var(--ok-text); }
 .pl-note.is-dn { color: var(--warn-text); }
 .pl-note.is-err { color: var(--err-text); }

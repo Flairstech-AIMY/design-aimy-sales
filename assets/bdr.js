@@ -11566,10 +11566,12 @@
         : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
           esc(t.id + ':' + pick.id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(pick.id))) + '</button>').join('');
     }
-    return out + '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>';
+    return out + '<button class="b-pl-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + '<span>Ask AiMY why</span></button>';
   }
-  /* The story beside the chart: where it stands in one line, what AiMY makes
-     of it, the four figures it rests on, and what to do. */
+  /* The story (redesigned with the board, Nour 5 Nov): where it stands in
+     a few words in its colour, then AiMY's why, who and where the pace
+     lands, as one line of plain text under the steps; the four figures it
+     rests on and the thing to do sit in a row at the board's foot. */
   function planStory(ctx, R, k) {
     const r = R[k], p = pace(r), P = R.P;
     const say = [];
@@ -11580,9 +11582,6 @@
     } else {
       const gap = Math.round(r.byNow - r.cum);
       head = p.short ? commas(gap) + ' ' + r.s.noun + ' behind' : r.ratio >= 1.03 ? commas(-gap) + ' ' + r.s.noun + ' ahead' : 'On pace';
-      /* Where it stands is the line above and the figures below, so the
-         story starts at why (Nour judges at a glance: no paragraph that
-         restates the numbers beside it). */
       if (p.short) {
         const why = planWhy(R, k);
         if (why) say.push(why);
@@ -11597,14 +11596,16 @@
       }
     }
     const fact = (dt, dd) => '<div><dt>' + esc(dt) + '</dt><dd>' + esc(dd) + '</dd></div>';
-    return '<div class="b-pl-story">' +
-      '<p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
-      aimyBlock({ text: say.join(' ') }, true) +
-      (r.el ? '<dl class="b-pl-facts">' + fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
-        fact('A day so far', commas(Math.round(r.vel))) +
-        fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target)) + '</dl>' : '') +
-      '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div>' +
-    '</div>';
+    return {
+      line: '<div class="b-pl-say"><p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
+        '<p class="b-pl-why"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          '<span>' + say.join(' ') + '</span></p></div>',
+      foot: '<div class="b-pl-foot">' +
+        (r.el ? '<dl class="b-pl-facts">' + fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
+          fact('A day so far', commas(Math.round(r.vel))) +
+          fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target)) + '</dl>' : '<span></span>') +
+        '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div></div>',
+    };
   }
   /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
      left of the plan, the straight line the plan takes, today, and where the
@@ -11641,12 +11642,12 @@
       }
     });
     svg += '<line class="pl-ideal" x1="0" x2="1000" y1="' + plVb(Y(r.day)) + '" y2="' + plVb(Y(r.day)) + '" vector-effect="non-scaling-stroke"/>';
-    labs += plLab('pl-note is-plan is-left', 0, Y(r.day), 'The plan, ' + esc(commas(Math.round(r.day))) + ' a day');
+    labs += plLab('pl-note is-plan', 0, Y(r.day), esc(commas(Math.round(r.day))) + ' a day');
     if (live) {
       svg += '<line class="pl-proj is-' + tone + '" x1="' + plVb(X(r.el)) + '" x2="1000" y1="' + plVb(Y(r.need)) + '" y2="' + plVb(Y(r.need)) +
         '" vector-effect="non-scaling-stroke"/>' +
         '<line class="pl-today" x1="' + plVb(X(r.el)) + '" x2="' + plVb(X(r.el)) + '" y1="0" y2="1000" vector-effect="non-scaling-stroke"/>';
-      labs += plLab('pl-note is-end is-' + tone, 100, Y(r.need), 'Needs ' + esc(commas(Math.ceil(r.need))) + ' a day') +
+      labs += plLab('pl-note is-end is-' + tone, 100, Y(r.need), esc(commas(Math.ceil(r.need))) + ' a day') +
         plLab('pl-xlab is-today', X(r.el), 100, 'Today');
     }
     if (r.days.length) {
@@ -11675,26 +11676,23 @@
     const ends = r.pts.map((p) => (acc += p.part));
     let svg = '<line class="pl-base" x1="0" x2="1000" y1="1000" y2="1000" vector-effect="non-scaling-stroke"/>' +
       '<path class="pl-ideal" d="M0 0 L1000 1000" vector-effect="non-scaling-stroke"/>';
-    /* "The plan" sits on the side of its line the pace leaves clear: under
-       it when behind (the pace runs above), over it when ahead. */
-    let labs = plLab('pl-note is-plan' + (pace(r).short ? ' is-under' : ''), 42, 42, 'The plan');
+    let labs = '';
     const pts = [[0, Y(top)]];
     r.pts.forEach((p, i) => { if (p.part) pts.push([X(ends[i]), Y(r.target - p.cum)]); });
     if (pts.length > 1) {
       const d = pts.map((q, i) => (i ? 'L' : 'M') + plVb(q[0]) + ' ' + plVb(q[1])).join(' ');
       const last = pts[pts.length - 1];
-      svg += '<path class="pl-area" d="' + d + ' L' + plVb(last[0]) + ' 1000 L0 1000 Z"/>' +
-        '<path class="pl-act" d="' + d + '" vector-effect="non-scaling-stroke"/>';
+      svg += '<path class="pl-act" d="' + d + '" vector-effect="non-scaling-stroke"/>';
       const left = r.target - r.cum;
       if (live && left > 0) {
         let ex = 100, ey, note;
         if (r.proj >= r.target && r.vel > 0) {
           const at = r.el + left / r.vel;
           ex = X(at); ey = Y(0);
-          note = 'Meets it by ' + dateSay(r.days[Math.min(N - 1, Math.max(0, Math.ceil(at) - 1))]);
+          note = 'Done by ' + dateSay(r.days[Math.min(N - 1, Math.max(0, Math.ceil(at) - 1))]);
         } else {
           ey = Y(left - r.vel * r.daysLeft);
-          note = 'At this pace, ' + commas(r.target - r.proj) + ' short';
+          note = commas(r.target - r.proj) + ' short';
         }
         svg += '<path class="pl-proj is-' + tone + '" d="M' + plVb(last[0]) + ' ' + plVb(last[1]) + ' L' + plVb(ex) + ' ' + plVb(ey) +
           '" vector-effect="non-scaling-stroke"/>';
@@ -11720,30 +11718,38 @@
       '<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + svg + hits + '</svg>' + labs +
       '<span class="b-pl-tip" hidden></span></div></div>';
   }
-  /* The whole board: one widget per step across the top (pressing one puts
-     it on the chart), then the story and the chart side by side. */
+  /* The board, redesigned (Nour, 5 Nov) in the strip's language: a head
+     with the month and the two views; the four steps as hairline cells
+     (pressing one puts it on the chart); one line of story; the chart the
+     full width with a key; the figures and the action in a row at the foot. */
   function planBoard(ctx) {
     const R = planRead(ctx.ids, planSpan());
     const k = R[PLAN_STEP] ? PLAN_STEP : 'calls';
     const r = R[k], P = R.P;
     const started = r.pts.filter((p) => p.part > 0).length;
-    const sub = P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', working day ' + commas(started) + ' of ' + commas(r.N));
+    const sub = P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N));
+    const vel = PLAN_VIEW === 'vel';
+    const st = planStory(ctx, R, k);
+    const tone = pace(r).tone;
     return '<div class="b-pl">' +
-      '<div class="b-pl-head"><h3 class="b-pl-h">Against the plan</h3><span class="b-pl-sub">' + esc(sub) + '</span></div>' +
+      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against the plan</h3><span class="b-pl-sub">' + esc(sub) + '</span></div>' +
+        '<span class="b-pl-seg" role="group" aria-label="Chart">' +
+          '<button type="button" data-bview="burn" aria-pressed="' + !vel + '">Burn-down</button>' +
+          '<button type="button" data-bview="vel" aria-pressed="' + vel + '">Velocity</button></span></div>' +
       '<div class="b-pl-tabs">' + DAY_STEPS.map((s) => {
         const x = R[s.k], pc = pace(x);
         return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
-          '<span class="b-pl-tcap">' + esc(cap1(s.name)) + '</span>' +
+          '<span class="b-pl-tcap">' + esc(cap1(s.noun)) + '</span>' +
           '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>of ' + esc(commas(x.target)) + '</small></span>' +
           '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span></button>';
       }).join('') + '</div>' +
-      '<div class="b-pl-body">' + planStory(ctx, R, k) +
-        '<div class="b-pl-chart"><div class="b-pl-ctop"><p class="b-pl-ctitle">' + esc(cap1(r.s.noun)) +
-            (PLAN_VIEW === 'vel' ? ' each day' : ' left to do') + '</p>' +
-          '<span class="b-pl-seg" role="group" aria-label="Chart">' +
-            '<button type="button" data-bview="burn" aria-pressed="' + (PLAN_VIEW !== 'vel') + '">Burn-down</button>' +
-            '<button type="button" data-bview="vel" aria-pressed="' + (PLAN_VIEW === 'vel') + '">Velocity</button></span></div>' +
-          planChart(r) + '</div>' +
+      '<div class="b-pl-body">' + st.line +
+        '<div class="b-pl-chart"><div class="b-pl-ctop"><p class="b-pl-ctitle">' + esc(cap1(r.s.noun)) + (vel ? ' each day' : ' left to do') + '</p>' +
+          '<span class="b-pl-key">' + (vel
+            ? '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>The plan a day</span><span><i class="k-pace is-' + tone + '"></i>Needed from today</span>'
+            : '<span><i class="k-done"></i>Left to do</span><span><i class="k-plan"></i>The plan</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>') +
+          '</span></div>' + planChart(r) + '</div>' +
+        st.foot +
       '</div>' +
     '</div>';
   }
