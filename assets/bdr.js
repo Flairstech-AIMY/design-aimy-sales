@@ -11342,14 +11342,16 @@
       : was[1] && !S.ag ? 'is-back' : was[1] !== S.ag ? 'is-swap' : '';
     const body = el.querySelector('.b-side-body');
     const y = body && !how ? body.scrollTop : 0;
-    el.innerHTML = '<div class="b-side-head">' +
-        (S.ag ? '<button class="b-side-back" type="button" data-go="' + esc(JSON.stringify({ ag: '' })) + '">' +
-          SIDE_BACK + esc(t.name) + '</button>' : '') +
-        '<button class="b-side-x" type="button" data-go="' + esc(JSON.stringify({ team: '', ag: '' })) + '" ' +
-          'aria-label="Close">' + SIDE_X + '</button>' +
-      '</div>' +
+    /* The team view has nothing to go back to, so its close button sits on
+       the team name's row instead of taking a row of its own (Nour). */
+    const close = '<button class="b-side-x" type="button" data-go="' + esc(JSON.stringify({ team: '', ag: '' })) + '" ' +
+      'aria-label="Close">' + SIDE_X + '</button>';
+    el.innerHTML = (S.ag ? '<div class="b-side-head">' +
+        '<button class="b-side-back" type="button" data-go="' + esc(JSON.stringify({ ag: '' })) + '">' +
+          SIDE_BACK + esc(t.name) + '</button>' + close +
+      '</div>' : '') +
       '<div class="b-side-body"><div class="b-side-view ' + how + '">' +
-        (S.ag ? personSide(t, S.ag) : teamSide(t)) +
+        (S.ag ? personSide(t, S.ag) : teamSide(t, close)) +
       '</div></div>';
     if (y) el.querySelector('.b-side-body').scrollTop = y;
     if (opening) {
@@ -11368,14 +11370,15 @@
     e.preventDefault();
     go(S.ag ? { ag: '' } : { team: '', ag: '' });
   });
-  function teamSide(t) {
+  function teamSide(t, close) {
     const r = teamRead(t);
     const on = onCallNow(t.members).length;
     const move = r.was == null || r.move === 0 ? ''
       : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' +
         (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
     return '<div class="b-tp">' +
-        '<div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
+        '<div class="b-tp-top"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
+          (close || '') + '</div>' +
         '<div class="b-tp-meta">' + faceRow(t.members) +
           '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
           '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +

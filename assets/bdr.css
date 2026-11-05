@@ -8523,6 +8523,10 @@ body.is-calling .app-side { display: none; }
   transition: background-color var(--t-fast), color var(--t-fast);
 }
 .b-side-x:hover { color: var(--d50); background: color-mix(in srgb, var(--d50) 8%, transparent); }
+/* On the team view the close button shares the name's row, top right. */
+.b-tp-top { display: flex; align-items: flex-start; gap: 12px; }
+.b-tp-top .b-tp-title { flex: 1; min-width: 0; }
+.b-tp-top .b-side-x { flex: none; margin: -2px -8px 0 0; }
 .b-side-back:focus-visible, .b-side-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .b-side-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .b-side-view { padding: 20px 20px 120px; }
