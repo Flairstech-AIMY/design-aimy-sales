@@ -10853,49 +10853,62 @@
      words and colour, and the rate behind it where there is one. The whole
      widget still asks the chat its question; the question slides up over
      its foot on hover and focus, and is part of its name for a reader. */
-  const wid = (o) => '<button class="b-wd' + (o.big ? ' is-big' : '') + '" type="button" data-ask="' + esc(o.q) + '">' +
+  /* Redesigned (Nour, 5 Nov: hierarchy, urgency, better visualisation).
+     Then cleaner (Nour): one strip with hairlines between the figures, no
+     cards. The chain's four steps are large, the call figures compact; each
+     says where it stands in one line of words in its colour ("149 short",
+     "On track", "12 ahead") over a thin bar, and the most behind of the
+     steps comes first. Colour is the only urgency. */
+  /* The classes spelled out, so the audit can see each one is drawn. */
+  const W_ST = { short: 'is-short', low: 'is-low', ok: 'is-ok', ahead: 'is-ahead', live: 'is-live', eq: 'is-eq' };
+  const wid = (o) => '<button class="b-wd ' + (o.size === 'big' ? 'is-big' : 'is-small') + (o.st ? ' ' + W_ST[o.st] : '') + '" type="button" data-ask="' + esc(o.q) + '">' +
       '<span class="b-wd-cap">' + (o.live != null ? '<span class="b-live-dot" aria-hidden="true"></span>' : '') + esc(o.cap) + '</span>' +
-      '<span class="b-wd-val"' + (o.live != null ? ' data-live="' + esc(o.live) + '"' : '') + '>' + esc(o.val) + '</span>' +
-      (o.d ? '<span class="b-wd-d is-' + (o.tone || 'eq') + '">' + o.d + '</span>' : '') +
+      '<span class="b-wd-val"><span' + (o.live != null ? ' data-live="' + esc(o.live) + '"' : '') + '>' + esc(o.val) + '</span>' +
+        (o.unit ? '<small>' + esc(o.unit) + '</small>' : '') + '</span>' +
+      (o.chip ? '<span class="b-wd-st">' + esc(o.chip) + '</span>' : '') +
       (o.sub ? '<span class="b-wd-sub">' + o.sub + '</span>' : '') +
       (o.chart ? '<span class="b-wd-ch">' + o.chart + '</span>' : '') +
       '<span class="b-wd-q">' + aiMark() + '<span>' + esc(o.q) + '</span></span>' +
     '</button>';
-  /* ══ EACH WIDGET'S CHART (5 Nov 2026) ═══════════════════════════════════
-     Nour: every widget carries a minimal chart of its state. Three kinds,
-     all bare (no axis, no grid, no legend inside the widget): bars of the
-     recent working days with the day being read last and a mark at a usual
-     day; a line with the goal or the plan as a dash; and a dot per person
-     for who is on a call. The widget's own words say what the numbers are;
-     one note over the row says what the bars are. */
-  const wSvg = (inner) => '<svg viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
-  const wY = (v, max) => (32 - (30 * v) / max).toFixed(2);
-  function wBars(vals, o) {
-    o = o || {};
-    const max = Math.max(o.line || 0, o.mark ? o.mark.v : 0, ...vals.map((x) => x.v), 1) * 1.08;
-    const n = vals.length || 1, slot = 100 / n, bw = slot * 0.58;
-    let out = vals.map((x, i) => '<rect class="w-bar' + (x.cls ? ' ' + x.cls : '') + '" x="' + (i * slot + (slot - bw) / 2).toFixed(2) +
-      '" y="' + wY(x.v, max) + '" width="' + bw.toFixed(2) + '" height="' + (32 - wY(x.v, max)).toFixed(2) + '"/>').join('');
-    if (o.line) out += '<line class="w-goal" x1="0" x2="100" y1="' + wY(o.line, max) + '" y2="' + wY(o.line, max) + '" vector-effect="non-scaling-stroke"/>';
-    if (o.mark) {
-      const x0 = o.mark.i * slot + slot * 0.1;
-      out += '<line class="w-mark" x1="' + x0.toFixed(2) + '" x2="' + (x0 + slot * 0.8).toFixed(2) + '" y1="' + wY(o.mark.v, max) + '" y2="' +
-        wY(o.mark.v, max) + '" vector-effect="non-scaling-stroke"/>';
-    }
-    return wSvg(out);
+  /* Where a figure stands against what it is measured by: short by a tenth
+     and two is short, a quarter is low (the error ink), a twentieth and two
+     over is ahead. `sev` orders the steps, the most behind first. */
+  function wState(n, u) {
+    if (!u) return { st: 'eq', chip: '', sev: 0 };
+    const r = n / u;
+    if (u - n >= 2 && r < 0.9) return { st: r < 0.75 ? 'low' : 'short', chip: commas(Math.round(u - n)) + ' short', sev: 1 - r };
+    if (n - u >= 2 && r > 1.05) return { st: 'ahead', chip: commas(Math.round(n - u)) + ' ahead', sev: 0 };
+    return { st: 'ok', chip: 'On track', sev: 0 };
   }
+  /* ══ EACH WIDGET'S CHART (5 Nov 2026) ═══════════════════════════════════
+     A step's chart is a track: what is done, filled; the gap to a usual day
+     by now hatched in the state's colour, or what is over it in green; the
+     usual as a mark with its figure under it. A trend is a line over the
+     last working days ending in a dot, the goal or usual as a dash. Nothing
+     else: no axes, no grid. */
+  function wTrack(n, u, label, st) {
+    const max = Math.max(n, u, 1) * 1.06;
+    const f = (100 * Math.min(n, u)) / max, mk = (100 * u) / max;
+    const over = n > u ? (100 * (n - u)) / max : 0;
+    return '<span class="w-track ' + W_ST[st || 'eq'] + '"><i class="w-fill" style="width:' + f.toFixed(1) + '%"></i>' +
+      (over ? '<i class="w-over" style="left:' + mk.toFixed(1) + '%;width:' + over.toFixed(1) + '%"></i>' : '') +
+      (u ? '<b class="w-mk" style="left:' + mk.toFixed(1) + '%"></b>' : '') + '</span>' +
+      '<span class="w-tl">' + label + '</span>';
+  }
+  const wSvg = (inner) => '<svg viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
   function wLine(vals, o) {
     o = o || {};
-    const all = vals.concat(o.ref || []).concat(o.line != null ? [o.line] : []);
-    const max = Math.max(...all, 1) * 1.08;
-    const min = o.zero ? 0 : Math.min(...all) * 0.9;
-    const Y = (v) => (31 - (29 * (v - min)) / ((max - min) || 1)).toFixed(2);
-    const path = (vs) => vs.map((v, i) => (i ? 'L' : 'M') + (vs.length > 1 ? (100 * i) / (vs.length - 1) : 50).toFixed(2) + ' ' + Y(v)).join(' ');
+    const all = vals.concat(o.line != null ? [o.line] : []);
+    const max = Math.max(...all, 1) * 1.1;
+    const min = Math.min(...all) * 0.85;
+    const Y = (v) => 30 - (28 * (v - min)) / ((max - min) || 1);
+    const X = (i) => (vals.length > 1 ? (100 * i) / (vals.length - 1) : 50);
     let out = '';
-    if (o.ref && o.ref.length) out += '<path class="w-goal" d="' + path(o.ref) + '" vector-effect="non-scaling-stroke"/>';
-    if (o.line != null) out += '<line class="w-goal" x1="0" x2="100" y1="' + Y(o.line) + '" y2="' + Y(o.line) + '" vector-effect="non-scaling-stroke"/>';
-    out += '<path class="w-line' + (o.cls ? ' ' + o.cls : '') + '" d="' + path(vals) + '" vector-effect="non-scaling-stroke"/>';
-    return wSvg(out);
+    if (o.line != null) out += '<line class="w-goal" x1="0" x2="100" y1="' + Y(o.line).toFixed(2) + '" y2="' + Y(o.line).toFixed(2) + '" vector-effect="non-scaling-stroke"/>';
+    out += '<path class="w-line' + (o.cls ? ' ' + o.cls : '') + '" d="' + vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(2) + ' ' + Y(v).toFixed(2)).join(' ') +
+      '" vector-effect="non-scaling-stroke"/>';
+    return '<span class="w-spark">' + wSvg(out) + '<i class="w-end' + (o.cls ? ' ' + o.cls : '') + '" style="top:' +
+      ((100 * Y(vals[vals.length - 1] || 0)) / 32).toFixed(1) + '%"></i></span>' + (o.label ? '<span class="w-tl">' + o.label + '</span>' : '');
   }
   /* A dot per person, lit while they are on a call; the live timer relights them. */
   const wDots = (ids, on) => '<span class="w-dots">' + ids.map((id) => '<i data-live-who="' + esc(id) + '"' +
@@ -10929,12 +10942,6 @@
       if (!WIDE_ALL) row.querySelector('.b-wscroll').scrollLeft = 0;
     });
   });
-  /* A figure against a usual one: the signed difference in words, and the
-     tone, short in the warning ink when it is a tenth and two under. */
-  const vsUsual = (n, u, tail) => {
-    const short = u - n >= 2 && n < u * 0.9, ahead = n - u >= 2 && n > u * 1.05;
-    return { d: short || ahead ? esc(SIGNED(n - u)) + ' ' + tail : 'As usual', tone: short ? 'dn' : ahead ? 'up' : 'eq' };
-  };
   function teamDayBlock(ids, who, has, fold, R) {
     if (R) return periodDayBlock(ids, who, has, fold, R);
     const r = dayRead(ids);
@@ -10959,36 +10966,35 @@
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / r.n);
     /* Each figure as a widget with its chart. */
     const dayWidgets = () => {
-      const prev = workDaysBefore(r.day, 7);
-      const month = [];
-      for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) if (dayPart(iso)) month.push(iso);
-      const steps = DAY_STEPS.map((s) => {
-        const v = vsUsual(r.t[s.k], r.u[s.k], today ? 'vs usual by now' : 'vs a usual day');
+      const by = today ? 'Usual by now ' : 'A usual day ';
+      const steps = DAY_STEPS.map((s, i) => {
+        const w = wState(r.t[s.k], r.u[s.k]);
         const sub = s.k === 'reached' || s.k === 'talks'
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
           : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
-        const bars = prev.map((d) => ({ v: sumDay(ids, d, s.k) })).concat({ v: r.t[s.k], cls: 'is-now' + (v.tone === 'dn' ? ' is-dn' : '') });
-        return wid({ big: true, cap: cap1(s.name), val: commas(r.t[s.k]), d: v.d, tone: v.tone, sub, q: ask(s.k),
-          chart: wBars(bars, { mark: { i: prev.length, v: r.u[s.k] } }) });
-      }).join('');
-      const yv = vsUsual(r.yest, usualCalls, 'vs usual');
-      const av = vsUsual(r.avg, GOAL.calls, 'vs the goal of ' + GOAL.calls);
-      let cum = 0, plan = 0;
-      const cums = month.map((d) => (cum += sumDay(ids, d, 'calls') / r.n));
-      const plans = month.map((d) => (plan += GOAL.calls * dayPart(d)));
+        return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
+          chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st) }) };
+      }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
+      let planM = 0;
+      for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) planM += GOAL.calls * dayPart(iso);
+      const ys = wState(r.yest, usualCalls), ms = wState(r.month, Math.round(planM)), as = wState(r.avg, GOAL.calls);
+      const on = onCallNow(ids).length;
+      const sd = r.secs - usualSecs;
+      const ss = Math.abs(sd) < 5 ? { st: 'ok', chip: 'As usual' } : sd < 0 && r.secs < usualSecs * 0.85 ? { st: 'short', chip: SIGNED(sd) + 's' }
+        : { st: sd > 0 ? 'ahead' : 'ok', chip: SIGNED(sd) + 's' };
       return steps +
-        (today ? wid({ cap: 'On a call now', val: commas(onCallNow(ids).length), live: one ? ids[0] : only ? only.id : 'all',
-          d: 'Of ' + esc(plural(r.n, 'person')), q: ask('live'), chart: wDots(ids, onCallNow(ids)) }) : '') +
-        wid({ cap: 'Calls' + each + ' the day before', val: commas(r.yest), d: yv.d, tone: yv.tone, q: ask('yest'),
-          chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n), { line: GOAL.calls, cls: yv.tone === 'dn' ? 'is-dn' : '' }) }) +
-        wid({ cap: 'Calls' + each + ' this month', val: commas(r.month), d: 'Since 1 ' + esc(MONTHS[new Date(r.day + 'T00:00:00').getMonth()]), q: ask('month'),
-          chart: wLine(cums.length > 1 ? cums : [0].concat(cums), { ref: plans.length > 1 ? plans : [0].concat(plans), zero: true }) }) +
-        wid({ cap: 'Calls' + each + ' a working day', val: commas(r.avg), d: av.d, tone: av.tone, q: ask('avg'),
-          chart: wBars(month.map((d) => ({ v: sumDay(ids, d, 'calls') / r.n, cls: d === TODAY_ISO && today ? 'is-now' : '' })), { line: GOAL.calls }) }) +
-        wid({ cap: 'An average call', val: callLen(r.secs), q: ask('secs'),
-          d: Math.abs(r.secs - usualSecs) >= 5 ? esc(SIGNED(r.secs - usualSecs)) + 's vs usual' : 'As usual',
-          tone: r.secs < usualSecs * 0.85 ? 'dn' : r.secs > usualSecs * 1.1 ? 'up' : 'eq',
-          chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)), { line: usualSecs }) });
+        (today ? wid({ cap: 'On a call now', val: commas(on), unit: 'of ' + commas(r.n), live: one ? ids[0] : only ? only.id : 'all',
+          st: on ? 'live' : 'eq', chip: on ? 'Live' : 'Nobody', q: ask('live'), chart: wDots(ids, onCallNow(ids)) }) : '') +
+        wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
+          chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
+            { line: GOAL.calls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, goal ' + GOAL.calls }) }) +
+        wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
+          chart: wTrack(r.month, Math.round(planM), '<span>The plan by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st) }) +
+        wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
+          chart: wTrack(r.avg, GOAL.calls, '<span>The goal <b>' + GOAL.calls + '</b></span>', as.st) }) +
+        wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
+          chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
+            { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }) });
     };
     /* The questions the sentence leaves open, each one a turn in the chat. */
     const asks = [];
@@ -11009,8 +11015,7 @@
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'calls so far against a usual day by this hour' }) +
       wRow(dayWidgets(), today ? 5 + DAY_STEPS.length : 4 + DAY_STEPS.length,
-        today ? 'Bars: the last seven working days, then today; the mark is a usual day by now'
-          : 'Bars: the seven working days before, then that day; the mark is a usual day') +
+        today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
            and the quarter are one question in the chat, not three buttons. */
@@ -11047,29 +11052,32 @@
         : '<b>' + esc(commas(Math.abs(dc))) + (dc < 0 ? ' fewer' : ' more') + '</b> than a usual run of those days') +
       ', and booked <b>' + esc(plural(s.t.meets, 'meeting')) + '</b> (usually ' + esc(commas(s.u.meets)) + ').';
     const perDay = days ? Math.round(s.t.calls / n / days) : 0;
-    const av = vsUsual(perDay, GOAL.calls, 'vs the goal of ' + GOAL.calls);
     const pdays = [];
     for (let iso = R.from; iso <= R.to; iso = isoAdd(iso, 1)) if (dayPart(iso)) pdays.push(iso);
     const cut = pdays.slice(-22);
-    const steps = DAY_STEPS.map((st) => {
-      const v = vsUsual(s.t[st.k], s.u[st.k], 'vs a usual run');
+    const steps = DAY_STEPS.map((st, i) => {
+      const w = wState(s.t[st.k], s.u[st.k]);
       const sub = st.k === 'reached' || st.k === 'talks'
         ? '<b>' + per100(s.t[st.k], s.t.calls) + ' in 100</b> calls, usually ' + per100(s.u[st.k], s.u.calls)
         : st.k === 'meets' ? 'From <b>' + esc(plural(s.t.talks, 'conversation')) + '</b>' : '';
-      return wid({ big: true, cap: cap1(st.name), val: commas(s.t[st.k]), d: v.d, tone: v.tone, sub, q: one ? overview : scope(ASKS[st.k] + R.words + '?'),
-        chart: wBars(cut.map((d) => ({ v: sumDay(ids, d, st.k) })), { line: days ? s.u[st.k] / days : 0 }) });
-    }).join('');
+      return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(st.noun), val: commas(s.t[st.k]), sub,
+        q: one ? overview : scope(ASKS[st.k] + R.words + '?'),
+        chart: wTrack(s.t[st.k], s.u[st.k], '<span>A usual run <b>' + esc(commas(s.u[st.k])) + '</b></span>', w.st) }) };
+    }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / n);
+    const as = wState(perDay, GOAL.calls);
+    const avgSecs = calls ? Math.round(secs / calls) : 0;
     const more =
-      wid({ cap: 'Calls' + each + ' a working day', val: commas(perDay), d: av.d, tone: av.tone, q: overview,
-        chart: wBars(cut.map((d) => ({ v: sumDay(ids, d, 'calls') / n })), { line: GOAL.calls }) }) +
-      wid({ cap: days === 1 ? 'Working day' : 'Working days', val: commas(Math.round(days)), d: esc(dateRange(R.from, R.to)), q: overview,
-        chart: wTicks(pdays.length) }) +
-      wid({ cap: 'An average call', val: callLen(calls ? Math.round(secs / calls) : 0), q: overview,
-        chart: wLine(cut.map((d) => secsDay(ids, d)), { line: usualSecs }) });
+      wid({ cap: 'A working day', val: commas(perDay), unit: 'calls' + each, st: as.st, chip: as.chip, q: overview,
+        chart: wTrack(perDay, GOAL.calls, '<span>The goal <b>' + GOAL.calls + '</b></span>', as.st) }) +
+      wid({ cap: days === 1 ? 'Working day' : 'Working days', val: commas(Math.round(days)), q: overview,
+        chart: wTicks(pdays.length) + '<span class="w-tl">' + esc(dateRange(R.from, R.to)) + '</span>' }) +
+      wid({ cap: 'An average call', val: callLen(avgSecs), st: avgSecs < usualSecs * 0.85 ? 'short' : 'ok',
+        chip: Math.abs(avgSecs - usualSecs) < 5 ? 'As usual' : SIGNED(avgSecs - usualSecs) + 's', q: overview,
+        chart: wLine(cut.map((d) => secsDay(ids, d)), { line: usualSecs, label: 'Each working day, usual ' + callLen(usualSecs) }) });
     return '<div class="b-day">' +
       aimyBlock({ text: said, from: 'calls against a usual run of the same days' }) +
-      wRow(steps + more, DAY_STEPS.length + 3, 'Bars: each working day in the period; the dash is a usual day') +
+      wRow(steps + more, DAY_STEPS.length + 3, 'Most behind first, against a usual run of the same days') +
       '<div class="b-day-asks">' +
         '<button class="s-sec-ask" type="button" data-ask="' + esc(overview) + '">' + aiMark() + esc(overview) + '</button>' +
         (one ? '' : '<button class="s-sec-ask" type="button" data-ask="' + esc(scope('Who was short on calls ' + R.words + '?')) + '">' +
