@@ -11015,13 +11015,12 @@
   function teamCard(r, i, live) {
     const d = dayRead(r.t.members);
     const on = r.t.members.filter((id) => live.indexOf(id) > -1).length;
-    const move = r.move === 0 ? 'the same as last week'
-      : (r.move > 0 ? 'up ' : 'down ') + commas(Math.abs(r.move)) + ' since last week';
     return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
         /* The score tag is the card's state (Nour, 5 Nov): its colour says
-           what "Ahead" or "Needs you" said, so the word tag went. */
-        scoreTag(r.now) + '<span class="b-kind">' + esc(move) + '</span>' +
+           what "Ahead" or "Needs you" said, so the word tag went. How it
+           moved since last week is the team page's, not the card's. */
+        scoreTag(r.now) +
         '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
           commas(on) + '</span> on a call</span></span>' +
       '</div>' +
@@ -11029,8 +11028,7 @@
       '<div class="b-qcard-why"><b>' + commas(d.t.calls) + '</b> calls ' + (d.day === TODAY_ISO ? 'today' : 'that day') +
         ', <b>' + commas(d.t.reached) + '</b> reached the decision maker, <b>' + commas(d.t.meets) + '</b> ' +
         verbFor(d.t.meets, 'meeting') + ' booked</div>' +
-      /* AiMY's reading of the team's day lives on the team page (step 4),
-         not on the card (Nour, 5 Nov); until then Ask AiMY gives it. */
+      aimyBlock({ text: daySay(d, 'the ' + esc(r.t.name), 'has'), from: 'today against a usual day' }) +
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-ask="' +
