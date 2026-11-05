@@ -8415,3 +8415,68 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-tm-cap { font-weight: var(--fw-semibold); color: var(--d50); }
 .b-tm-say { min-width: 0; color: var(--d100); }
 @media (max-width: 639.98px) { .b-tm-row { grid-template-columns: minmax(0, 1fr); } }
+
+/* ══ 114. ONE TEAM'S PAGE (5 Nov 2026) ═════════════════════════════════════
+   bdr.js, ONE TEAM'S PAGE. The masthead (name, score tag, how it moved,
+   faces, who is on a call), then Today, then who is worth the manager's
+   time, then every person as a row. Rows, never a table. */
+.b-tp .s-back { margin: 0 0 16px; }
+.b-tp-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.b-tp-name { margin: 0; font-size: 26px; font-weight: var(--fw-bold); color: var(--d50); letter-spacing: -0.01em; }
+.b-tp-move { font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
+.b-tp-move.is-down { color: var(--warn-text); }
+.b-tp-move.is-up { color: var(--ok-text); }
+.b-tp-meta {
+  display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin: 12px 0 0;
+  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
+}
+.b-tp-meta .b-team-stack .b-stack-face { box-shadow: 0 0 0 2px var(--body-bg); }
+/* The team card's name is now a door. */
+.b-team-card .tc-title { cursor: pointer; text-align: left; }
+
+/* Who is worth the manager's time: a person, why, and the thing to do. */
+/* AiMY's line over the rows sits on the section's edge, like the day block's. */
+.b-worth > .b-aimy { margin: 0; }
+.b-wt-rows { display: grid; gap: 6px; margin-top: 12px; }
+.b-wt-row {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center;
+  padding: 14px 16px; border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast);
+}
+.b-wt-row > .b-face { align-self: start; }
+.b-wt-main { min-width: 0; }
+.b-wt-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-wt-why { margin: 3px 0 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--d100); }
+.b-wt-why b { color: var(--d50); font-weight: var(--fw-semibold); }
+.b-wt-acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.b-wt-row.is-done { border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+.b-wt-done { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--ok-text); }
+@media (max-width: 759.98px) {
+  .b-wt-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .b-wt-acts { grid-column: 2; justify-content: flex-start; margin-top: 8px; }
+}
+
+/* A person as a row: face, name with score and call state, today's four
+   figures each with its word, and the way in. */
+.b-pr-rows { display: grid; gap: 6px; }
+.b-pr-row {
+  display: grid; grid-template-columns: 40px minmax(170px, 1.1fr) minmax(0, 2fr) auto; gap: 6px 18px; align-items: center;
+  width: 100%; padding: 14px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast);
+}
+.b-pr-row:hover { border-color: rgba(var(--accent-rgb), 0.4); }
+.b-pr-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-pr-who { min-width: 0; }
+.b-pr-name { display: block; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pr-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.b-pr-oncall { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok-text); }
+.b-pr-oncall i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok-text); }
+.b-pr-figs { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-sm); color: var(--d100); }
+.b-pr-figs b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.b-pr-figs .is-short, .b-pr-figs .is-short b { color: var(--warn-text); }
+.b-pr-go { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text); white-space: nowrap; }
+@media (max-width: 899.98px) {
+  .b-pr-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .b-pr-figs, .b-pr-go { grid-column: 2; }
+}

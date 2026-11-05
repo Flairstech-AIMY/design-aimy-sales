@@ -3971,7 +3971,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -4083,6 +4083,9 @@
     /* The teams pages are a manager's: only a desk with teams can stand
        on them, and a link opened anywhere else lands on Today. */
     if (S.on === 'teams' && !isMgr()) S.on = '';
+    /* `team` is one of this manager's teams, read on the teams surface, or
+       nothing: a team that is not theirs is refused like any other key. */
+    if (S.team && !(S.on === 'teams' && teamsOf().some((t) => t.id === S.team))) S.team = '';
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -4427,7 +4430,7 @@
       : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
-      : S.on === 'teams' && isMgr() ? teamsPage()
+      : S.on === 'teams' && isMgr() ? (S.team ? teamPage() : teamsPage())
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -6778,6 +6781,8 @@
   /* What a view is called, in the words its own tab or masthead uses. */
   function trailLabel(u) {
     const st = trailState(u);
+    const tm = st.team && TEAMS.filter((x) => x.id === st.team)[0];
+    if (tm) return tm.name;
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
     if (st.on === 'history' && st.con && DB.byCon[st.con]) return cap(DB.byCon[st.con].name) + '’s history';
     if (st.on === 'history' && st.acc && DB.byAcc[st.acc]) return cap(DB.byAcc[st.acc].name) + '’s history';
@@ -10823,8 +10828,13 @@
        knows what pressing it will do before they press (Nour, 5 Nov). The
        question is part of the button's name, so a screen reader hears it
        without hovering. */
+    /* On one team's page every question names the team, so the chat
+       answers for that team and not for all of them. */
+    const only = TEAMS.filter((t) => t.members.length === ids.length && t.members.every((id) => ids.indexOf(id) > -1))
+      .filter(() => TEAMS.filter((t) => t.mgr === me().id).length > 1)[0];
+    const inTeam = (q) => (only ? q.replace(/( today)?\?$/, ' in the ' + only.name + '$1?') : q);
     const pill = (v, cap, k, live) => {
-      const q = one ? 'How is ' + firstName(ids[0]) + ' doing today?' : DAY_METRIC[k].ask;
+      const q = one ? 'How is ' + firstName(ids[0]) + ' doing today?' : inTeam(DAY_METRIC[k].ask);
       return '<button class="evidence-pill b-day-pill" type="button" data-ask="' + esc(q) + '">' +
         '<span class="val"' + (live ? ' data-live="' + esc(live) + '"' : '') + '>' + esc(v) + '</span>' + esc(cap) +
         /* A word at a time, so each can arrive on its own beat (bdr.css,
@@ -10837,7 +10847,7 @@
     const asks = [];
     const worst = r.by.map((x) => ({ id: x.id, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0 }))
       .sort((a, b) => b.gap - a.gap)[0];
-    if (!one) asks.push('Who is short on calls ' + (today ? 'today' : 'that day') + '?');
+    if (!one) asks.push(only ? 'How is the ' + only.name + ' doing today?' : 'Who is short on calls ' + (today ? 'today' : 'that day') + '?');
     if (!one) {
       const teams = TEAMS.filter((t) => t.members.every((id) => ids.indexOf(id) > -1));
       if (teams.length > 1) {
@@ -10904,32 +10914,16 @@
         '</div>' +
         next(['Who is short on calls today?'].concat(team ? ['How is the ' + team.name + ' doing today?'] : []));
     }
-    const team = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
-    if (team) {
-      const r = dayRead(team.members);
-      const rows = r.by.slice().sort((a, b) => (b.u.calls - b.d.calls) - (a.u.calls - a.d.calls));
-      return daySay(r, 'the ' + team.name, 'has') +
-        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, stepLine(x))).join('') + '</div>' +
-        next(['How is ' + firstName(rows[0].id) + ' doing today?'].concat(teams.length > 1 ? ['How do my teams compare today?'] : []));
-    }
-    if (/\bshort\b|\bbehind\b|\bslow\b/.test(q) && /\bcalls?\b/.test(q)) {
-      const r = dayRead(ppl);
-      const rows = r.by.map((x) => Object.assign(x, { gap: x.u.calls - x.d.calls }))
-        .filter((x) => x.gap >= 2 && x.d.calls < x.u.calls * 0.9).sort((a, b) => b.gap - a.gap);
-      if (!rows.length) return dayWhen(r) + ' nobody on your teams is short on calls against a usual day.';
-      return dayWhen(r) + ' <b>' + esc(plural(rows.length, 'person')) + '</b> ' + (rows.length === 1 ? 'is' : 'are') +
-        ' short on calls against a usual day.' +
-        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b class="b-door-warn">' + esc(commas(x.d.calls) +
-          ' calls') + '</b>, usually ' + esc(commas(x.u.calls)) + ' by now')).join('') + '</div>' +
-        next(['How is ' + firstName(rows[0].id) + ' doing today?']);
-    }
-    /* A pill's question: everybody, ranked by that figure. */
+    const named = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
+    const scope = named ? named.members : ppl;
+    /* A pill's question: everybody, ranked by that figure, or everybody in
+       the team the question names (a team page asks it that way). */
     const mk = Object.keys(DAY_METRIC).filter((k) => DAY_METRIC[k].re.test(q))[0];
     if (mk === 'live') {
       if (!dayPart(TODAY_ISO) || dayPart(TODAY_ISO) >= 1) return 'Nobody is calling now. The day runs 9:00 to 17:00.';
-      const on = onCallNow(ppl);
+      const on = onCallNow(scope);
       if (!on.length) return 'Nobody on your teams is on a call right now.' + next(['Who made the most calls today?']);
-      return '<b>' + esc(commas(on.length) + ' of ' + commas(ppl.length)) + '</b> ' + (on.length === 1 ? 'is' : 'are') +
+      return '<b>' + esc(commas(on.length) + ' of ' + commas(scope.length)) + '</b> ' + (on.length === 1 ? 'is' : 'are') +
           ' on a call right now.' +
         '<div class="b-tm-rows">' + on.map((id) => nameRow(id, esc('On a call, ' +
           teams.filter((t) => t.members.indexOf(id) > -1)[0].name))).join('') + '</div>' +
@@ -10938,7 +10932,7 @@
     if (mk) {
       const m = DAY_METRIC[mk];
       const fmt = (v) => esc(mk === 'secs' ? callLen(v) : commas(v));
-      const rows = ppl.map((id) => dayRead([id])).sort((a, b) => m.val(b) - m.val(a));
+      const rows = scope.map((id) => dayRead([id])).sort((a, b) => m.val(b) - m.val(a));
       const top = rows[0], low = rows[rows.length - 1];
       const shortN = rows.filter(m.short).length;
       return '<b>' + esc(firstName(top.ids[0])) + '</b> ' + m.lead + ', ' + fmt(m.val(top)) +
@@ -10947,6 +10941,25 @@
         '<div class="b-tm-rows">' + rows.map((r) => nameRow(r.ids[0], m.short(r)
           ? '<b class="b-door-warn">' + esc(m.row(r)) + '</b>' : esc(m.row(r)))).join('') + '</div>' +
         next(['How is ' + firstName(low.ids[0]) + ' doing today?']);
+    }
+    const team = named;
+    if (team) {
+      const r = dayRead(team.members);
+      const rows = r.by.slice().sort((a, b) => (b.u.calls - b.d.calls) - (a.u.calls - a.d.calls));
+      return daySay(r, 'the ' + team.name, 'has') +
+        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, stepLine(x))).join('') + '</div>' +
+        next(['How is ' + firstName(rows[0].id) + ' doing today?'].concat(teams.length > 1 ? ['How do my teams compare today?'] : []));
+    }
+    if (/\bshort\b|\bbehind\b|\bslow\b/.test(q) && /\bcalls?\b/.test(q)) {
+      const r = dayRead(scope);
+      const rows = r.by.map((x) => Object.assign(x, { gap: x.u.calls - x.d.calls }))
+        .filter((x) => x.gap >= 2 && x.d.calls < x.u.calls * 0.9).sort((a, b) => b.gap - a.gap);
+      if (!rows.length) return dayWhen(r) + ' nobody on your teams is short on calls against a usual day.';
+      return dayWhen(r) + ' <b>' + esc(plural(rows.length, 'person')) + '</b> ' + (rows.length === 1 ? 'is' : 'are') +
+        ' short on calls against a usual day.' +
+        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b class="b-door-warn">' + esc(commas(x.d.calls) +
+          ' calls') + '</b>, usually ' + esc(commas(x.u.calls)) + ' by now')).join('') + '</div>' +
+        next(['How is ' + firstName(rows[0].id) + ' doing today?']);
     }
     if (/\b(compare|my teams|both teams|the teams)\b/.test(q) && /\b(today|doing|compare|day)\b/.test(q)) {
       return teams.map((t) => daySay(dayRead(t.members), 'the ' + t.name, 'has')).join(' ') +
@@ -10990,8 +11003,7 @@
      across the top (the score's word as the tag, how many people, how many
      on a call now), the name, the week's score and how it moved, today's
      figures, AiMY's reading of today, and at the foot who is on it and the
-     way into the chat. Not a door yet: the team page is step 4, so the
-     card's one control asks AiMY about the team instead. */
+     way into the chat. The name and Open both go to the team's page. */
   /* The library's Score (aimy ui lib, score.tsx: Knowledge's .conf-badge,
      high from 75, medium from 50): a three-bar meter, what is scored, and
      the number. */
@@ -11024,17 +11036,128 @@
         '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
           commas(on) + '</span> on a call</span></span>' +
       '</div>' +
-      '<span class="tc-title s-card-title">' + esc(r.t.name) + '</span>' +
+      '<button class="tc-title s-card-title" type="button" data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id }))) + '">' +
+        esc(r.t.name) + '</button>' +
       '<div class="b-qcard-why"><b>' + commas(d.t.calls) + '</b> calls ' + (d.day === TODAY_ISO ? 'today' : 'that day') +
         ', <b>' + commas(d.t.reached) + '</b> reached the decision maker, <b>' + commas(d.t.meets) + '</b> ' +
         verbFor(d.t.meets, 'meeting') + ' booked</div>' +
       aimyBlock({ text: daySay(d, 'the ' + esc(r.t.name), 'has'), from: 'today against a usual day' }) +
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
-        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-ask="' +
-          esc('How is the ' + r.t.name + ' doing today?') + '">Ask AiMY</button>' +
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id }))) + '">Open</button>' +
       '</div>' +
     '</article>';
+  }
+
+  /* ══ ONE TEAM'S PAGE (step 3, 5 Nov 2026) ══════════════════════════════
+     What a team card opens (`?on=teams&team=<id>`), variant C of
+     docs/team-variants-3-team.html with Today moved up (Nour): the team's
+     name and facts, then its day, then who in it is worth the manager's
+     time with the thing to do beside each, then every person as a row.
+
+     The actions are the prototype's: pressing one marks the row done for
+     the session and says what happened in a toast with Undo. Nothing is
+     sent anywhere, the way the rest of this build's telephony is a fixture. */
+  const TACTS = Object.create(null);
+  const TEAM_ACT = {
+    msg: { label: (n) => 'Message ' + n, done: 'Message sent',
+      say: (n) => n + ' gets: “How is today going? Anything in the way?”' },
+    book: { label: () => 'Book 15 minutes', done: 'Asked for 15 minutes',
+      say: (n) => n + ' is asked for 15 minutes with you today' },
+    share: { label: () => 'Share the best call', done: 'Shared with the team',
+      say: (n, team) => n + '’s best call today is shared with the ' + team },
+    thanks: { label: () => 'Say well done', done: 'Well done sent',
+      say: (n) => '“Well done today” sent to ' + n },
+  };
+  function teamAct(key) {
+    const [tid, id, k] = key.split(':');
+    const t = TEAMS.filter((x) => x.id === tid)[0];
+    if (!t || !TEAM_ACT[k] || !REP[id]) return;
+    TACTS[key] = true;
+    paint();
+    toast(TEAM_ACT[k].say(firstName(id), t.name), () => { delete TACTS[key]; paint(); });
+  }
+  const headH = (h) => '<div class="s-camp-list-head"><h2 class="s-block-h">' + esc(h) + '</h2></div>';
+  function teamPage() {
+    const t = teamsOf().filter((x) => x.id === S.team)[0];
+    if (!t) return teamsPage();
+    const r = teamRead(t);
+    const on = onCallNow(t.members).length;
+    const move = r.was == null || r.move === 0 ? ''
+      : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' +
+        (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide b-tp" aria-label="' + esc(t.name) + '">' +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams' }))) + '"', 'Back to your teams') +
+        '<div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
+        '<div class="b-tp-meta">' + faceRow(t.members) +
+          '<span>' + esc(plural(t.members.length, 'person')) + ', managed by you</span>' +
+          '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
+            '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>' +
+        '</div>' +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Today">' + headH('Today') +
+        teamDayBlock(t.members, 'the ' + esc(t.name), 'has') + '</section>' +
+      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="The people">' + headH('The people') +
+        '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></section>' +
+    '</div>';
+  }
+  /* Who in this team needs the manager today: the one furthest short of a
+     usual day on calls, and the one who booked the most meetings, each with
+     the two things worth doing about it. Nobody is named for the sake of it. */
+  function teamWorth(t) {
+    const r = dayRead(t.members);
+    const when = dayWhen(r).replace(/^B/, 'b').replace(/^O/, 'o');
+    const rows = r.by.map((x) => ({ id: x.id, x, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0, w: weekScores(x.id) }));
+    const picks = [];
+    const behind = rows.filter((p) => p.gap > 0.1 && p.x.u.calls - p.x.d.calls >= 2).sort((a, b) => b.gap - a.gap)[0];
+    if (behind) {
+      picks.push({ p: behind, acts: ['msg', 'book'],
+        why: '<b>' + esc(commas(behind.x.d.calls)) + ' calls</b> ' + when + ', usually ' + esc(commas(behind.x.u.calls)) + '.' +
+          (behind.w.was != null && behind.w.now < behind.w.was ? ' This week ' + commas(behind.w.now) + ', down ' +
+            commas(behind.w.was - behind.w.now) + ' since last week.' : '') });
+    }
+    const best = rows.filter((p) => p !== behind && p.x.d.meets > 0)
+      .sort((a, b) => (b.x.d.meets - a.x.d.meets) || (b.x.d.meets / (b.x.d.talks || 1) - a.x.d.meets / (a.x.d.talks || 1)))[0];
+    if (best) {
+      picks.push({ p: best, acts: ['share', 'thanks'],
+        why: '<b>' + esc(plural(best.x.d.meets, 'meeting')) + '</b> from ' + esc(plural(best.x.d.talks, 'conversation')) + ' ' +
+          (r.day === TODAY_ISO ? 'today' : 'that day') + ', the most in the team. Worth the others hearing how.' });
+    }
+    if (!picks.length) return aimyBlock({ text: 'Nobody in this team needs you today: everyone is near a usual day.' });
+    return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> in this team ' + (picks.length === 1 ? 'is' : 'are') +
+        ' worth your time today.' }, true) +
+      '<div class="b-wt-rows">' + picks.map((k) => {
+        const id = k.p.id;
+        const done = k.acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+        return '<div class="b-wt-row' + (done ? ' is-done' : '') + '">' + faceOf(id, 40) +
+          '<div class="b-wt-main"><span class="b-wt-name">' + esc(REP[id].name) + scoreTag(k.p.w.now) + '</span>' +
+            '<p class="b-wt-why">' + k.why + '</p></div>' +
+          '<div class="b-wt-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
+            : k.acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+              esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+  /* A person as a row: never a table, every figure with its word, the ones
+     short of their usual in the warning ink. Until the person's own page
+     exists (the next step), a row asks AiMY about them. */
+  function personRow(id) {
+    const x = dayRead([id]).by[0];
+    const sh = dayShort(x.d, x.u).map((s) => s.s.k);
+    const fig = (k, one, many) => '<span' + (sh.indexOf(k) > -1 ? ' class="is-short"' : '') + '><b>' + esc(commas(x.d[k])) +
+      '</b> ' + (x.d[k] === 1 ? one : many) + '</span>';
+    const on = onCallNow([id]).length;
+    return '<button class="b-pr-row" type="button" data-ask="' + esc('How is ' + firstName(id) + ' doing today?') + '">' +
+      faceOf(id, 40) +
+      '<span class="b-pr-who"><span class="b-pr-name">' + esc(REP[id].name) + '</span><span class="b-pr-sub">' +
+        scoreTag(weekScores(id).now) + (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</span></span>' +
+      '<span class="b-pr-figs">' + fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
+        fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</span>' +
+      '<span class="b-pr-go">' + aiMark() + 'Ask AiMY</span>' +
+    '</button>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
@@ -37533,6 +37656,10 @@
     if (scr) { callScript(scr.getAttribute('data-script')); return; }
     const mailF = t.closest('[data-mailfind]');
     if (mailF) { mailFind(mailF.getAttribute('data-mailfind')); return; }
+
+    /* A team page's action on a person (bdr.js, ONE TEAM'S PAGE). */
+    const tact = t.closest('[data-tact]');
+    if (tact) { teamAct(tact.getAttribute('data-tact')); return; }
 
     const goEl = t.closest('[data-go]');
     if (goEl) {
