@@ -10957,32 +10957,38 @@
       const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
       const ids = who1 ? [who1] : tm ? tm.members : ppl;
       const name = who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team';
+      /* Each span on its own, always, even when the week and the month are
+         the same days early in a month (Nour, 5 Nov: clearer than one merged
+         row of prose). A span is a heading with its dates, and the four steps
+         as figures, each with its signed difference from a usual run. */
       const spans = [
         { cap: 'This week', from: weekStart(TODAY_ISO) },
         { cap: 'This month', from: TODAY_ISO.slice(0, 8) + '01' },
         { cap: 'This quarter', from: quarterStart(TODAY_ISO) },
-      ].reduce((out, s) => {
-        /* Early in a month the week and the month can be the same days; they
-           are one row then, named for both, rather than the same row twice. */
-        const same = out.filter((o) => o.from === s.from)[0];
-        if (same) same.cap += ' and ' + s.cap.toLowerCase().replace(/^this /, '');
-        else out.push(s);
-        return out;
-      }, []).map((s) => Object.assign(s, spanRead(ids, s.from, TODAY_ISO)));
-      const line = (s) => DAY_STEPS.map((st) => {
-        const n = s.t[st.k], u = s.u[st.k];
-        const v = esc(commas(n) + ' ' + (n === 1 ? st.noun.replace(/s$/, '') : st.noun));
-        return u && n < u * 0.9 && u - n >= 2 ? '<b class="b-door-warn">' + v + '</b> (usually ' + esc(commas(u)) + ')' : v;
-      }).join(', ');
+      ].map((s) => Object.assign(s, spanRead(ids, s.from, TODAY_ISO)));
+      const dd = (iso) => { const x = new Date(iso + 'T00:00:00'); return x.getDate() + ' ' + MONTHS[x.getMonth()]; };
+      const range = (s) => (s.from === TODAY_ISO ? 'today' : s.from.slice(0, 7) === TODAY_ISO.slice(0, 7)
+        ? new Date(s.from + 'T00:00:00').getDate() + ' to ' + dd(TODAY_ISO) : dd(s.from) + ' to ' + dd(TODAY_ISO));
+      const fig = (s, st) => {
+        const n = s.t[st.k], u = s.u[st.k], d = n - u;
+        const short = u - n >= 2 && n < u * 0.9;
+        const ahead = d >= 2 && n > u * 1.05;
+        return '<li class="b-span-fig"><span class="b-span-n' + (short ? ' is-dn' : '') + '">' + esc(commas(n)) + '</span>' +
+          '<span class="b-span-w">' + (n === 1 ? st.noun.replace(/s$/, '') : st.noun) + '</span>' +
+          '<span class="b-span-d ' + (short ? 'is-dn' : ahead ? 'is-up' : 'is-eq') + '">' +
+            (short || ahead ? SIGNED(d) + ' vs usual' : 'as usual') + '</span></li>';
+      };
       const ratio = (s) => (s.u.calls ? s.t.calls / s.u.calls : 1);
       const worst = spans.slice().sort((a, b) => ratio(a) - ratio(b))[0];
+      const Name = esc(name.charAt(0).toUpperCase() + name.slice(1));
       const said = ratio(worst) < 0.9
-        ? esc(name.charAt(0).toUpperCase() + name.slice(1)) + ' made the fewest calls against a usual run ' +
-          worst.cap.toLowerCase() + ': <b>' + esc(commas(worst.t.calls)) + '</b> against ' + esc(commas(worst.u.calls)) + '.'
-        : esc(name.charAt(0).toUpperCase() + name.slice(1)) + ' kept to a usual run of calls over the week, the month and the quarter.';
+        ? Name + ' is furthest from a usual run of calls <b>' + esc(worst.cap.toLowerCase()) + '</b>: ' +
+          esc(commas(worst.t.calls)) + ' against ' + esc(commas(worst.u.calls)) + '.'
+        : Name + ' is on a usual run of calls this week, this month and this quarter.';
       return said +
-        '<div class="b-tm-rows">' + spans.map((s) => '<div class="b-tm-row"><span class="b-tm-cap">' + esc(s.cap) +
-          '</span><span class="b-tm-say">' + line(s) + '</span></div>').join('') + '</div>' +
+        '<div class="b-spans">' + spans.map((s) => '<div class="b-span">' +
+          '<div class="b-span-h"><span>' + esc(s.cap) + '</span><span>' + esc(range(s)) + '</span></div>' +
+          '<ul class="b-span-figs">' + DAY_STEPS.map((st) => fig(s, st)).join('') + '</ul></div>').join('') + '</div>' +
         next([who1 ? 'How is ' + firstName(who1) + ' doing today?' : tm ? 'How is the ' + tm.name + ' doing today?' : 'Who is short on calls today?']);
     }
     const person = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];

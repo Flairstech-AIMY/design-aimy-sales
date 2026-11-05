@@ -8639,3 +8639,28 @@ body.is-calling .app-side { display: none; }
    THE LONGER VIEW): a question like its neighbours, one weight up, because
    it is the way out of today rather than another question about it. */
 .b-day-span { font-weight: var(--fw-semibold); }
+
+/* ══ 117. THE WEEK, THE MONTH AND THE QUARTER, IN THE CHAT (5 Nov 2026) ═════
+   bdr.js, the span answer in `teamAnswer`. Each span on its own: its name
+   and dates, then the four steps as figures with their signed difference
+   from a usual run, on hairlines. Rows, never a table. */
+.b-spans { display: grid; gap: 10px; margin: 12px 0 6px; }
+.b-span { padding: 12px 14px; border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border); }
+.b-span-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 10px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-span-h span + span { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-span-figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 0; margin: 0; padding: 0; list-style: none; }
+.b-span-fig { min-width: 0; padding: 0 10px; }
+.b-span-fig:first-child { padding-left: 0; }
+.b-span-fig + .b-span-fig { border-left: 1px solid var(--card-border); }
+.b-span-n { display: block; font-size: 18px; font-weight: var(--fw-extrabold); line-height: 1.15; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-span-n.is-dn { color: var(--warn-text); }
+.b-span-w { display: block; margin-top: 2px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); line-height: 1.3; color: var(--d50); }
+.b-span-d { display: block; margin-top: 3px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.b-span-d.is-dn { color: var(--warn-text); }
+.b-span-d.is-up { color: var(--ok-text); }
+.b-span-d.is-eq { font-weight: var(--fw-medium); color: var(--d100); }
+@media (max-width: 559.98px) {
+  .b-span-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .b-span-fig:nth-child(3) { padding-left: 0; border-left: 0; }
+}
