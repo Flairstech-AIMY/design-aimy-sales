@@ -8677,6 +8677,7 @@ body.is-calling .app-side { display: none; }
 .b-pf-mh { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 20px; align-items: center; }
 @media (max-width: 759.98px) { .b-pf-mh { grid-template-columns: auto minmax(0, 1fr); } .b-pf-acts { grid-column: 1 / -1; justify-content: flex-start !important; } }
 .b-pf-name { margin: 0; font-size: 28px; font-weight: var(--fw-bold); letter-spacing: -0.01em; line-height: 1.15; color: var(--d50); }
+.b-pf-nrow { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
 .b-pf-role { margin: 4px 0 0; font-size: 15px; font-weight: var(--fw-medium); line-height: 1.4; color: var(--d100); }
 .b-pf-sub { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; margin-top: 12px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
 .b-pf-acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
