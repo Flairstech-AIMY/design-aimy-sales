@@ -45,6 +45,22 @@ const fails = [];
 const notes = [];
 const fail = (check, msg) => fails.push(check + ': ' + msg);
 
+/* 8  The same function declared twice. A later declaration silently replaces
+      the earlier one everywhere in the file, so the first caller gets the
+      wrong function and the page it draws throws. On 5 Nov 2026 a second
+      `dayBlock` blanked the manager's Today page. Only the IIFE's own
+      level (two spaces in) is counted: a helper nested inside another
+      function has its own scope and may share a name. */
+(() => {
+  const seen = Object.create(null);
+  (JS.match(/^  function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).forEach((m) => {
+    const name = m.replace(/^\s*function\s+/, '').replace(/\s*\($/, '');
+    seen[name] = (seen[name] || 0) + 1;
+  });
+  Object.keys(seen).filter((k) => seen[k] > 1).forEach((k) =>
+    fail('8 declared-twice', 'function ' + k + ' is declared ' + seen[k] + ' times in bdr.js'));
+})();
+
 /* Attributes that are markers rather than verbs — read by something other
    than the click router, or by the browser itself. Each one needs a reason. */
 const MARKERS = {

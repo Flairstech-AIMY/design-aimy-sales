@@ -10776,7 +10776,7 @@
   const firstName = (id) => REP[id].name.split(' ')[0];
   /* The block. `who` is how the sentence names the set: "your two teams",
      "the Gulf Team", "Karim". */
-  function dayBlock(ids, who, has) {
+  function teamDayBlock(ids, who, has) {
     const r = dayRead(ids);
     const one = ids.length === 1;
     const each = one ? '' : ' each';
@@ -10898,7 +10898,7 @@
         backBtn('data-back', 'Back to Today') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Your teams</h2></div>' +
-        dayBlock(ppl, reads.length > 1 ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
+        teamDayBlock(ppl, reads.length > 1 ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
           reads.length > 1 ? 'have' : 'has') +
       '</section>' +
       '<section class="s-block s-block-wide" aria-label="This week">' +
