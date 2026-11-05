@@ -74,6 +74,7 @@ const MARKERS = {
   'i': 'the row index a windowed list writes for its own bookkeeping',
   'fig': 'the key a figure is known by between two paints, so the one that changed can tick',
   'live': 'a count of people on a call, rewritten every five seconds by a timer, not a click',
+  'live-who': 'a person\u2019s dot in the on-a-call widget, relit by the same five-second timer',
   'for': 'the person a decision on a card is about; the verb beside it is data-decide',
   'picksearch': 'the chooser\u2019s filter box, read by an input listener rather than a click',
   'one': 'the chooser holds one answer, not several; read when an option is pressed',
