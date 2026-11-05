@@ -10628,11 +10628,14 @@
   setInterval(() => {
     const els = document.querySelectorAll('[data-live]');
     if (!els.length) return;
-    /* An empty `data-live` counts every team; one naming a team counts it. */
+    /* An empty `data-live` (or "all") counts every team; one naming a team
+       counts it, and one naming a person says whether they are. */
     const on = onCallNow(peopleOf(teamsOf()));
     els.forEach((el) => {
-      const t = TEAMS.filter((x) => x.id === el.getAttribute('data-live'))[0];
-      const n = String(t ? t.members.filter((id) => on.indexOf(id) > -1).length : on.length);
+      const k = el.getAttribute('data-live');
+      const t = TEAMS.filter((x) => x.id === k)[0];
+      const n = String(t ? t.members.filter((id) => on.indexOf(id) > -1).length
+        : FORM[k] ? (on.indexOf(k) > -1 ? 1 : 0) : on.length);
       if (el.textContent === n) return;
       const pill = el.closest('.b-live');
       if (pill) pill.classList.toggle('is-none', n === '0');
@@ -10676,6 +10679,207 @@
     return head + (reads.length === 1 ? 'Where it was' : 'Where they were') + ' last week.';
   }
 
+  /* ══ THE DAY'S NUMBERS: AiMY READS THEM, THE CHAT GOES DEEPER ═══════════
+     Step 2 of the plan, variant C of docs/team-variants-2-numbers.html
+     (Nour's pick, with the drill-down through the chat). No charts and no
+     big visuals (Nour, 5 Nov): AiMY's sentence names the steps that are
+     short of a usual day by now, the figures follow as evidence pills, and
+     the questions under them open the chat for the detail, person by
+     person. One block for any set of people, so the team and person pages
+     (steps 4 and 5) draw the same thing.
+
+     The chain is the one in Nour's screenshot, in plain words: calls made,
+     reached the decision maker (ticked after the call), conversations (any
+     call past 60 seconds counts on its own), meetings booked (confirmed by
+     AiMY). "Usual" is each person's FORM at the same share of the day,
+     without this week's drift, so a bad week reads as short. */
+  const lastWorkDay = (iso) => {
+    let d = isoAdd(iso, -1);
+    while (!isWorkDay(d)) d = isoAdd(d, -1);
+    return d;
+  };
+  const DAY_STEPS = [
+    { k: 'calls', verb: 'made', noun: 'calls', name: 'calls made' },
+    { k: 'reached', verb: 'reached', noun: 'decision makers', name: 'reached the decision maker' },
+    { k: 'talks', verb: 'had', noun: 'conversations', name: 'conversations' },
+    { k: 'meets', verb: 'booked', noun: 'meetings', name: 'meetings booked' },
+  ];
+  const callLen = (s) => Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2, '0') + 's';
+  /* Off a working day, or before nine, the day being read is the last one
+     that had calls in it, and the block says so. */
+  function dayRead(ids) {
+    const day = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
+    const p = dayPart(day);
+    const n = ids.length;
+    const t = { calls: 0, reached: 0, talks: 0, meets: 0 };
+    const u = { calls: 0, reached: 0, talks: 0, meets: 0 };
+    const by = ids.map((id) => {
+      const d = repDay(id, day);
+      const f = FORM[id];
+      const c = f.calls * p;
+      const us = { calls: Math.round(c), reached: Math.round(c * f.reach), talks: Math.round(c * f.talk),
+        meets: Math.round(c * f.talk * f.meet) };
+      Object.keys(t).forEach((k) => { t[k] += d[k]; u[k] += c * ({ calls: 1, reached: f.reach, talks: f.talk, meets: f.talk * f.meet })[k]; });
+      return { id, d, u: us };
+    });
+    Object.keys(u).forEach((k) => (u[k] = Math.round(u[k])));
+    const prev = lastWorkDay(day);
+    let month = 0, days = 0;
+    for (let iso = day.slice(0, 8) + '01'; iso <= day; iso = isoAdd(iso, 1)) {
+      days += dayPart(iso);
+      ids.forEach((id) => (month += repDay(id, iso).calls));
+    }
+    return {
+      ids, n, day, p, t, u, by,
+      yest: Math.round(ids.reduce((s, id) => s + repDay(id, prev).calls, 0) / n),
+      month: Math.round(month / n),
+      avg: days ? Math.round(month / n / days) : 0,
+      secs: Math.round(by.reduce((s, x) => s + x.d.secs, 0) / n),
+    };
+  }
+  /* The steps furthest short of a usual day: more than a tenth AND at least
+     two, so a team one meeting light at noon is not a warning. */
+  function dayShort(t, u) {
+    return DAY_STEPS.map((s, i) => ({ s, i, n: t[s.k], u: u[s.k], gap: u[s.k] ? (u[s.k] - t[s.k]) / u[s.k] : 0 }))
+      .filter((x) => x.gap > 0.1 && x.u - x.n >= 2).sort((a, b) => b.gap - a.gap);
+  }
+  /* When the reading is: "By 13:20", "By the end of the day", or the day. */
+  function dayWhen(r) {
+    if (r.day !== TODAY_ISO) return 'On ' + DAY_FULL[new Date(r.day + 'T00:00:00').getDay()];
+    if (r.p >= 1) return 'By the end of the day';
+    const n = new Date();
+    return 'By ' + n.getHours() + ':' + String(n.getMinutes()).padStart(2, '0');
+  }
+  /* What was done against a usual day, for the steps that are short: calls
+     first when they are, because every step after them falls with them,
+     then the worst of the rest. Empty when nothing is short. */
+  function shortClause(r) {
+    const all = dayShort(r.t, r.u);
+    const short = all.filter((x) => x.i === 0).concat(all.filter((x) => x.i > 0)).slice(0, 2)
+      .sort((a, b) => a.i - b.i);
+    return short.map((x, j) => x.s.verb + ' <b>' + esc(commas(x.n) + ' ' + x.s.noun) + '</b> against ' +
+      esc(commas(x.u)) + (j ? '' : ' on a usual day')).join(', and ');
+  }
+  /* `parts` are the teams inside a set of several, so a team that is short
+     is named even when the whole set, averaged, is not. */
+  function daySay(r, who, has, parts) {
+    const said = shortClause(r);
+    if (said) return dayWhen(r) + ' ' + who + ' ' + has + ' ' + said + '.';
+    const inner = (parts || []).map((t) => ({ t, c: shortClause(dayRead(t.members)) })).filter((x) => x.c)[0];
+    if (inner) {
+      return dayWhen(r) + ' ' + who + ' ' + has + ' kept to a usual day overall, but the <b>' +
+        esc(inner.t.name) + '</b> has ' + inner.c + '.';
+    }
+    return dayWhen(r) + ' ' + who + ' ' + has + ' kept to a usual day on every step, with <b>' +
+      esc(plural(r.t.meets, 'meeting')) + '</b> booked.';
+  }
+  const firstName = (id) => REP[id].name.split(' ')[0];
+  /* The block. `who` is how the sentence names the set: "your two teams",
+     "the Gulf Team", "Karim". */
+  function dayBlock(ids, who, has) {
+    const r = dayRead(ids);
+    const one = ids.length === 1;
+    const each = one ? '' : ' each';
+    const pill = (v, cap, live) => '<span class="evidence-pill"><span class="val"' + (live ? ' data-live="' + esc(live) + '"' : '') +
+      '>' + esc(v) + '</span>' + esc(cap) + '</span>';
+    const today = r.day === TODAY_ISO && r.p < 1;
+    /* The questions the sentence leaves open, each one a turn in the chat. */
+    const asks = [];
+    const worst = r.by.map((x) => ({ id: x.id, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0 }))
+      .sort((a, b) => b.gap - a.gap)[0];
+    if (!one) asks.push('Who is short on calls ' + (today ? 'today' : 'that day') + '?');
+    if (!one) {
+      const teams = TEAMS.filter((t) => t.members.every((id) => ids.indexOf(id) > -1));
+      if (teams.length > 1) {
+        const tr = teams.map((t) => ({ t, s: dayShort(dayRead(t.members).t, dayRead(t.members).u).length }))
+          .sort((a, b) => b.s - a.s)[0];
+        asks.push('How is the ' + tr.t.name + ' doing today?');
+      }
+    }
+    if (worst && worst.gap > 0.1) asks.push('How is ' + firstName(worst.id) + ' doing today?');
+    if (one) asks.push('Who is short on calls today?');
+    return '<div class="b-day">' +
+      aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
+        t.members.every((id) => ids.indexOf(id) > -1))), from: 'calls so far against a usual day by this hour' }) +
+      '<div class="b-day-pills">' + DAY_STEPS.map((s) => pill(commas(r.t[s.k]), s.name)).join('') + '</div>' +
+      '<div class="b-day-pills">' +
+        (today ? pill(commas(onCallNow(ids).length), 'of ' + commas(r.n) + ' on a call now', one ? ids[0] : 'all') : '') +
+        pill(commas(r.yest), 'calls' + each + ' the day before') +
+        pill(commas(r.month), 'calls' + each + ' this month') +
+        pill(commas(r.avg), 'calls' + each + ' a working day') +
+        pill(callLen(r.secs), 'an average call') +
+      '</div>' +
+      '<div class="b-day-asks">' + asks.slice(0, 3).map((q) =>
+        '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ══ AND WHAT THE CHAT ANSWERS ═════════════════════════════════════════
+     The drill-down. Four questions, each read off the same `dayRead` as the
+     block so the chat and the page never disagree: who is short on calls,
+     how one team is doing, how one person is doing, and how the teams
+     compare. Each answer ends in the next question worth asking. */
+  function teamAnswer(q) {
+    const teams = teamsOf();
+    if (!teams.length) return null;
+    const ppl = peopleOf(teams);
+    const nameRow = (id, say) => '<div class="b-tm-row"><span class="b-tm-who">' + faceOf(id, 20) +
+      esc(REP[id].name) + '</span><span class="b-tm-say">' + say + '</span></div>';
+    const next = (qs) => '<div class="b-cuts">' + qs.map((x) =>
+      '<button class="s-insight-lnk" type="button" data-ask="' + esc(x) + '">' + esc(x) + '</button>').join('') + '</div>';
+    const stepLine = (x) => {
+      const sh = dayShort(x.d, x.u).map((s) => s.s.k);
+      return DAY_STEPS.map((s) => {
+        const v = esc(commas(x.d[s.k]) + ' ' + s.noun);
+        return sh.indexOf(s.k) > -1 ? '<b class="b-door-warn">' + v + '</b> (usually ' + esc(commas(x.u[s.k])) + ')' : v;
+      }).join(', ');
+    };
+    const person = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
+    if (person && /\b(doing|day|today|calls?|how)\b/.test(q)) {
+      const r = dayRead([person]);
+      const x = r.by[0];
+      const w = weekScores(person);
+      const team = teams.filter((t) => t.members.indexOf(person) > -1)[0];
+      return daySay(r, firstName(person), 'has') +
+        '<div class="b-tm-rows">' +
+          '<div class="b-tm-row"><span class="b-tm-cap">Today</span><span class="b-tm-say">' + stepLine(x) + '</span></div>' +
+          '<div class="b-tm-row"><span class="b-tm-cap">Calls</span><span class="b-tm-say">' +
+            esc(commas(r.yest) + ' the day before, ' + commas(r.month) + ' this month, ' + commas(r.avg) +
+              ' a working day against the goal of ' + GOAL.calls + '. An average call is ' + callLen(r.secs) +
+              ', usually ' + callLen(FORM[person].secs) + '.') + '</span></div>' +
+          '<div class="b-tm-row"><span class="b-tm-cap">This week</span><span class="b-tm-say">' +
+            esc(commas(w.now) + ' of 100, ' + (w.was == null ? '' : (w.now === w.was ? 'the same as' : (w.now > w.was ? 'up ' : 'down ') +
+              commas(Math.abs(w.now - w.was)) + ' since') + ' last week') + (team ? ', on the ' + team.name : '') + '.') + '</span></div>' +
+        '</div>' +
+        next(['Who is short on calls today?'].concat(team ? ['How is the ' + team.name + ' doing today?'] : []));
+    }
+    const team = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
+    if (team) {
+      const r = dayRead(team.members);
+      const rows = r.by.slice().sort((a, b) => (b.u.calls - b.d.calls) - (a.u.calls - a.d.calls));
+      return daySay(r, 'the ' + team.name, 'has') +
+        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, stepLine(x))).join('') + '</div>' +
+        next(['How is ' + firstName(rows[0].id) + ' doing today?'].concat(teams.length > 1 ? ['How do my teams compare today?'] : []));
+    }
+    if (/\bshort\b|\bbehind\b|\bslow\b/.test(q) && /\bcalls?\b/.test(q)) {
+      const r = dayRead(ppl);
+      const rows = r.by.map((x) => Object.assign(x, { gap: x.u.calls - x.d.calls }))
+        .filter((x) => x.gap >= 2 && x.d.calls < x.u.calls * 0.9).sort((a, b) => b.gap - a.gap);
+      if (!rows.length) return dayWhen(r) + ' nobody on your teams is short on calls against a usual day.';
+      return dayWhen(r) + ' <b>' + esc(plural(rows.length, 'person')) + '</b> ' + (rows.length === 1 ? 'is' : 'are') +
+        ' short on calls against a usual day.' +
+        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b class="b-door-warn">' + esc(commas(x.d.calls) +
+          ' calls') + '</b>, usually ' + esc(commas(x.u.calls)) + ' by now')).join('') + '</div>' +
+        next(['How is ' + firstName(rows[0].id) + ' doing today?']);
+    }
+    if (/\b(compare|my teams|both teams|the teams)\b/.test(q) && /\b(today|doing|compare|day)\b/.test(q)) {
+      return teams.map((t) => daySay(dayRead(t.members), 'the ' + t.name, 'has')).join(' ') +
+        next(teams.map((t) => 'How is the ' + t.name + ' doing today?'));
+    }
+    return null;
+  }
+
   /* ══ AND THE PAGE IT OPENS ═══════════════════════════════════════════
      A holding page until step 3 of the plan gives it its design: each team
      with its score, its word, who is in it and how it moved. The rows are
@@ -10694,6 +10898,11 @@
         backBtn('data-back', 'Back to Today') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Your teams</h2></div>' +
+        dayBlock(ppl, reads.length > 1 ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
+          reads.length > 1 ? 'have' : 'has') +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="This week">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">This week</h2></div>' +
         aimyBlock({ text: said, from: 'this week against last' }) +
         '<div class="b-owed">' + reads.map((r, i) =>
           '<div class="b-owed-row b-team-row" style="--i:' + i + '">' +
@@ -33156,6 +33365,12 @@
        still be caught" as one about how many are left to call. */
     if (isWhole()) {
       const said = ceoAnswer(q);
+      if (said) return said;
+    }
+    /* The manager's questions about their teams and the people on them:
+       the drill-down under the day's numbers (TEAMS, AND THE PEOPLE IN THEM). */
+    if (isMgr()) {
+      const said = teamAnswer(q);
       if (said) return said;
     }
     /* The stakeholder's own question, read off the same count as his block. */

@@ -8319,3 +8319,22 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   display: inline-flex; align-items: center; gap: 8px;
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
 }
+
+/* ══ 113. THE DAY'S NUMBERS, AND THE CHAT UNDER THEM (5 Nov 2026) ══════════
+   bdr.js, THE DAY'S NUMBERS. No charts: AiMY's sentence, the figures as
+   the build's evidence pills, and the questions that open the chat. */
+.b-day .b-aimy { margin: 0 0 14px; }
+.b-day-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.b-day-pills + .b-day-pills { margin-top: 8px; }
+.b-day-asks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
+/* A live count in a pill keeps the pill's ink; only its number ticks. */
+.b-day-pills .evidence-pill .val { font-variant-numeric: tabular-nums; }
+/* The chat's answers: one row per person, or one per part of a person's
+   day, in the answer's own type. Rows, never a table (AIMY-2737). */
+.b-tm-rows { display: grid; gap: 8px; margin: 10px 0 4px; }
+.b-tm-row { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+.b-tm-who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: var(--fw-semibold); color: var(--d50); }
+.b-tm-who .b-face { align-self: center; }
+.b-tm-cap { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-tm-say { min-width: 0; color: var(--d100); }
+@media (max-width: 639.98px) { .b-tm-row { grid-template-columns: minmax(0, 1fr); } }
