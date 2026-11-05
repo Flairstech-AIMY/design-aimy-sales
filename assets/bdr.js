@@ -10949,14 +10949,87 @@
         return sh.indexOf(s.k) > -1 ? '<b class="b-door-warn">' + v + '</b> (usually ' + esc(commas(x.u[s.k])) + ')' : v;
       }).join(', ');
     };
+    /* ══ SPANS: the week, the month and the quarter; every week; every month ══
+       Who a span question is about, read once: a person named in it, else a
+       team named in it, else all of the manager's teams. `ask` is how the
+       next question names them back. */
+    const spanWho = () => {
+      const who1 = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
+      const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
+      return {
+        who1, tm, ids: who1 ? [who1] : tm ? tm.members : ppl,
+        name: who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team',
+        ask: who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'my teams' : 'my team',
+      };
+    };
+    const spanDay = (iso) => { const x = new Date(iso + 'T00:00:00'); return x.getDate() + ' ' + MONTHS[x.getMonth()]; };
+    const spanRange = (from, to) => (from === to ? spanDay(from) : from.slice(0, 7) === to.slice(0, 7)
+      ? new Date(from + 'T00:00:00').getDate() + ' to ' + spanDay(to) : spanDay(from) + ' to ' + spanDay(to));
+    /* One span as a block: its name and dates, then the four steps as
+       figures with their signed difference from a usual run. */
+    const spanBlock = (cap, range, s) => '<div class="b-span">' +
+      '<div class="b-span-h"><span>' + esc(cap) + '</span><span>' + esc(range) + '</span></div>' +
+      '<ul class="b-span-figs">' + DAY_STEPS.map((st) => {
+        const n = s.t[st.k], u = s.u[st.k], dd = n - u;
+        const short = u - n >= 2 && n < u * 0.9;
+        const ahead = dd >= 2 && n > u * 1.05;
+        return '<li class="b-span-fig"><span class="b-span-n' + (short ? ' is-dn' : '') + '">' + esc(commas(n)) + '</span>' +
+          '<span class="b-span-w">' + (n === 1 ? st.noun.replace(/s$/, '') : st.noun) + '</span>' +
+          '<span class="b-span-d ' + (short ? 'is-dn' : ahead ? 'is-up' : 'is-eq') + '">' +
+            (short || ahead ? SIGNED(dd) + ' vs usual' : 'as usual') + '</span></li>';
+      }).join('') + '</ul></div>';
+    const callShort = (s) => s.u.calls - s.t.calls >= 2 && s.t.calls < s.u.calls * 0.9;
+    const upper = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    /* Every week, or every month: newest first, the one in progress marked
+       "so far", and one sentence saying how many fell short and which most. */
+    const spanEvery = (w, list, unit, scope, nameOf) => {
+      const shorts = list.filter(callShort);
+      const most = shorts.slice().sort((a, b) => a.t.calls / a.u.calls - b.t.calls / b.u.calls)[0];
+      const said = !shorts.length
+        ? esc(upper(w.name)) + ' kept to a usual run of calls every ' + unit + ' ' + scope + '.'
+        : esc(upper(w.name)) + ' ' + (w.who1 ? 'was' : 'were') + ' short on calls in <b>' + shorts.length + ' of ' +
+          list.length + ' ' + unit + 's</b> ' + scope + (shorts.length === 1 ? ': ' : ', most in ') + esc(nameOf(most)) +
+          (shorts.length === 1 ? ', with ' : ': ') +
+          esc(commas(most.t.calls)) + ' against ' + esc(commas(most.u.calls)) + '.';
+      return said + '<div class="b-spans">' + list.slice().reverse().map((s) =>
+        spanBlock(s.cap, spanRange(s.from, s.to) + (s.to === TODAY_ISO ? ', so far' : ''), s)).join('') + '</div>';
+    };
+    const ASK_SPAN = (w) => 'How did ' + w.ask + ' do over the week, month and quarter?';
+    const ASK_WEEKS = (w) => 'How did ' + w.ask + ' do week by week this quarter?';
+    const ASK_MONTHS = (w) => 'How did ' + w.ask + ' do month by month this year?';
+    /* Every week of this quarter. */
+    if (/\bweek by week\b|\bevery week\b|\ball (the )?weeks\b/.test(q)) {
+      const w = spanWho();
+      const q0 = quarterStart(TODAY_ISO);
+      const list = [];
+      for (let ws = weekStart(q0); ws <= TODAY_ISO; ws = isoAdd(ws, 7)) {
+        const from = ws < q0 ? q0 : ws;
+        const to = isoAdd(ws, 6) > TODAY_ISO ? TODAY_ISO : isoAdd(ws, 6);
+        list.push(Object.assign({ cap: 'Week of ' + spanDay(from), from, to }, spanRead(w.ids, from, to)));
+      }
+      return spanEvery(w, list, 'week', 'this quarter', (s) => 'the week of ' + spanDay(s.from)) +
+        next([ASK_MONTHS(w), ASK_SPAN(w)]);
+    }
+    /* Every month of this year. */
+    if (/\bmonth by month\b|\bevery month\b|\ball (the )?months\b/.test(q)) {
+      const w = spanWho();
+      const y = +TODAY_ISO.slice(0, 4);
+      const list = [];
+      for (let m = 1; m <= +TODAY_ISO.slice(5, 7); m++) {
+        const from = y + '-' + String(m).padStart(2, '0') + '-01';
+        const last = isoAdd(m === 12 ? (y + 1) + '-01-01' : y + '-' + String(m + 1).padStart(2, '0') + '-01', -1);
+        const to = last > TODAY_ISO ? TODAY_ISO : last;
+        const cap = new Date(from + 'T00:00:00').toLocaleString('en-GB', { month: 'long' });
+        list.push(Object.assign({ cap, from, to }, spanRead(w.ids, from, to)));
+      }
+      return spanEvery(w, list, 'month', 'this year', (s) => s.cap) + next([ASK_WEEKS(w), ASK_SPAN(w)]);
+    }
     /* The week, the month and the quarter, for a person, a team or all of
        them: one row each, every step against a usual run of the same days,
        the short ones in the warning ink. */
     if (/\bweek\b/.test(q) && /\bmonth\b/.test(q) && /\bquarter\b/.test(q)) {
-      const who1 = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
-      const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
-      const ids = who1 ? [who1] : tm ? tm.members : ppl;
-      const name = who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team';
+      const sw = spanWho();
+      const who1 = sw.who1, tm = sw.tm, ids = sw.ids, name = sw.name;
       /* Each span on its own, always, even when the week and the month are
          the same days early in a month (Nour, 5 Nov: clearer than one merged
          row of prose). A span is a heading with its dates, and the four steps
@@ -10966,18 +11039,6 @@
         { cap: 'This month', from: TODAY_ISO.slice(0, 8) + '01' },
         { cap: 'This quarter', from: quarterStart(TODAY_ISO) },
       ].map((s) => Object.assign(s, spanRead(ids, s.from, TODAY_ISO)));
-      const dd = (iso) => { const x = new Date(iso + 'T00:00:00'); return x.getDate() + ' ' + MONTHS[x.getMonth()]; };
-      const range = (s) => (s.from === TODAY_ISO ? 'today' : s.from.slice(0, 7) === TODAY_ISO.slice(0, 7)
-        ? new Date(s.from + 'T00:00:00').getDate() + ' to ' + dd(TODAY_ISO) : dd(s.from) + ' to ' + dd(TODAY_ISO));
-      const fig = (s, st) => {
-        const n = s.t[st.k], u = s.u[st.k], d = n - u;
-        const short = u - n >= 2 && n < u * 0.9;
-        const ahead = d >= 2 && n > u * 1.05;
-        return '<li class="b-span-fig"><span class="b-span-n' + (short ? ' is-dn' : '') + '">' + esc(commas(n)) + '</span>' +
-          '<span class="b-span-w">' + (n === 1 ? st.noun.replace(/s$/, '') : st.noun) + '</span>' +
-          '<span class="b-span-d ' + (short ? 'is-dn' : ahead ? 'is-up' : 'is-eq') + '">' +
-            (short || ahead ? SIGNED(d) + ' vs usual' : 'as usual') + '</span></li>';
-      };
       const ratio = (s) => (s.u.calls ? s.t.calls / s.u.calls : 1);
       const worst = spans.slice().sort((a, b) => ratio(a) - ratio(b))[0];
       const Name = esc(name.charAt(0).toUpperCase() + name.slice(1));
@@ -10986,10 +11047,9 @@
           esc(commas(worst.t.calls)) + ' against ' + esc(commas(worst.u.calls)) + '.'
         : Name + ' is on a usual run of calls this week, this month and this quarter.';
       return said +
-        '<div class="b-spans">' + spans.map((s) => '<div class="b-span">' +
-          '<div class="b-span-h"><span>' + esc(s.cap) + '</span><span>' + esc(range(s)) + '</span></div>' +
-          '<ul class="b-span-figs">' + DAY_STEPS.map((st) => fig(s, st)).join('') + '</ul></div>').join('') + '</div>' +
-        next([who1 ? 'How is ' + firstName(who1) + ' doing today?' : tm ? 'How is the ' + tm.name + ' doing today?' : 'Who is short on calls today?']);
+        '<div class="b-spans">' + spans.map((s) => spanBlock(s.cap, spanRange(s.from, TODAY_ISO), s)).join('') + '</div>' +
+        next([ASK_WEEKS(sw), ASK_MONTHS(sw), who1 ? 'How is ' + firstName(who1) + ' doing today?'
+          : tm ? 'How is the ' + tm.name + ' doing today?' : 'Who is short on calls today?']);
     }
     const person = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
     if (person && /\b(doing|day|today|calls?|how)\b/.test(q)) {
