@@ -8281,3 +8281,41 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 @media (prefers-reduced-motion: reduce) {
   .rail-tab::before, .rail-tab-read, .rail-tab-btn { transition: none !important; }
 }
+
+/* ══ 112. YOUR TEAMS: THE RAIL CARD AND ITS PAGE (5 Nov 2026) ══════════════
+   bdr.js, TEAMS, AND THE PEOPLE IN THEM. The card is a door like the two
+   beside it, with two additions: the live count on the caption's row, and
+   the score's word beside the figure. */
+.b-door-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.b-door-figrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+/* The one clause of the sentence that is a warning, in the warning's ink
+   and two weights up, like the diary's missed calls. */
+.b-door-warn { color: var(--warn-text); font-weight: var(--fw-bold); }
+/* On a call right now. The dot is live state, the one thing on the card
+   that changes while you look at it, so it is the one thing that pulses. */
+.b-live {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok-text);
+  font-variant-numeric: tabular-nums;
+}
+.b-live-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--ok-text); }
+@media (prefers-reduced-motion: no-preference) {
+  .b-live-dot::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--ok-text);
+    animation: b-live-ping 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
+/* Nobody on a call is a fact, not live state: no green, no pulse. */
+.b-live.is-none { color: var(--d100); }
+.b-live.is-none .b-live-dot { background: var(--d300); }
+.b-live.is-none .b-live-dot::after { display: none; }
+@keyframes b-live-ping { from { transform: scale(1); opacity: 0.6; } to { transform: scale(2.6); opacity: 0; } }
+/* The holding page's rows are not doors yet (the team page is step 4), so
+   they give up the row's pointer and hover. */
+.b-team-row { cursor: default; }
+.b-team-row:hover { background: none; }
+.b-team-faces { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
+.b-team-who {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
+}

@@ -4080,6 +4080,9 @@
        roster lands on Today, which is where being refused has landed on
        this desk since it got a shell. */
     if (S.on === 'floor') S.on = '';
+    /* The teams pages are a manager's: only a desk with teams can stand
+       on them, and a link opened anywhere else lands on Today. */
+    if (S.on === 'teams' && !isMgr()) S.on = '';
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -4424,6 +4427,7 @@
       : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
+      : S.on === 'teams' && isMgr() ? teamsPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -6782,7 +6786,7 @@
     if (st.camp && DB.byCamp[st.camp]) return cap(DB.byCamp[st.camp].name);
     if (st.list && DB.byList[st.list]) return cap(DB.byList[st.list].name);
     if (st.on === 'deals') return st.q === 'won' ? 'Accounts' : 'Contacts';
-    return ({ cal: 'the diary', camps: 'Campaigns', lists: 'Lists', money: 'Financials',
+    return ({ cal: 'the diary', camps: 'Campaigns', lists: 'Lists', money: 'Financials', teams: 'your teams',
       notes: 'the notes', missed: 'the call log', floor: 'the floor' })[st.on] ||
       (onBook() ? 'Today' : 'Contacts');
   }
@@ -6990,6 +6994,7 @@
   function hereTab() {
     if (S.on === 'cal' || S.on === 'notes' || S.on === 'missed') return 'cal';
     if (S.on === 'money') return 'money';
+    if (S.on === 'teams') return 'teams';
     if (S.list || S.on === 'lists' || S.build) return 'lists';
     if (S.camp || S.on === 'camps') return 'camps';
     if (S.con || S.acc || S.on === 'deals' || S.on === 'history') return onBook() ? 'deals' : 'calls';
@@ -10430,7 +10435,7 @@
       ? dealBook().filter((c) => { const w = wonAt(c); return w && inPeriod(w, periodOf('deal')); })
         .reduce((n, c) => n + acvOf(c).value, 0)
       : bookAttain().booked;
-    return '<div class="rail-doors">' + diaryDoor() +
+    return '<div class="rail-doors">' + diaryDoor() + teamsDoor() +
       '<button class="b-door' + doorHere('money') + '" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         /* Financials is our word for it and the page it opens is titled
@@ -10483,6 +10488,232 @@
           : 'Ends ' + sayDay(y.p.end)) + '</span>' +
         doorGo('Open the report') +
       '</button>';
+  }
+
+  /* ══ TEAMS, AND THE PEOPLE IN THEM (5 Nov 2026) ═══════════════════════════
+     A manager runs one or more teams of callers, and until now nothing on
+     the desk said how those people were doing. The plan is
+     docs/team-monitoring-plan.md; this is step 1, the card in the rail
+     (variant A of docs/team-variants-1-rail.html, Nour's pick), and the
+     page it opens, which step 3 redesigns.
+
+     TEAMS ARE A FIXTURE, NOT A SEED DRAW. Nothing in the roster says who
+     is on whose team, and the seed's touchpoints are the calls worth a
+     record, not every dial: Engy has under a thousand in a quarter against
+     two hundred dials a day. So membership is a fixed list, and a day's
+     dials come from each person's FORM with a jitter off their id and the
+     date. No generator call is made here, so no count in the corpus moves,
+     and a figure holds still between reloads. */
+  const TEAMS = [
+    { id: 'ent', name: 'Enterprise Team', mgr: 'lina', members: ['engy', 'omar', 'mariam', 'youssef'] },
+    { id: 'gulf', name: 'Gulf Team', mgr: 'lina', members: ['salma', 'karim', 'rana', 'tarek'] },
+  ];
+  const teamsOf = () => (isMgr() ? TEAMS.filter((t) => t.mgr === me().id) : []);
+  /* How each person usually works: dials a day, then what share reach the
+     decision maker, become a conversation (over 60 seconds), and book a
+     meeting out of the conversations. `secs` is their average call, `qa`
+     their AiMY QA review average. `wk` is this week against their usual,
+     which is the story the prototype tells: the Gulf Team has had a worse
+     week than the last. */
+  const FORM = {
+    engy:    { calls: 214, reach: 0.27, talk: 0.11, meet: 0.14, secs: 122, qa: 0.88, wk: 1.02 },
+    omar:    { calls: 196, reach: 0.23, talk: 0.10, meet: 0.12, secs: 108, qa: 0.80, wk: 1.04 },
+    mariam:  { calls: 205, reach: 0.25, talk: 0.10, meet: 0.11, secs: 112, qa: 0.84, wk: 1.03 },
+    youssef: { calls: 188, reach: 0.24, talk: 0.11, meet: 0.13, secs: 117, qa: 0.82, wk: 1.05 },
+    salma:   { calls: 192, reach: 0.22, talk: 0.10, meet: 0.11, secs: 99,  qa: 0.78, wk: 0.86 },
+    karim:   { calls: 190, reach: 0.21, talk: 0.10, meet: 0.10, secs: 95,  qa: 0.74, wk: 0.62 },
+    rana:    { calls: 201, reach: 0.26, talk: 0.12, meet: 0.17, secs: 131, qa: 0.90, wk: 1.0 },
+    tarek:   { calls: 178, reach: 0.21, talk: 0.09, meet: 0.10, secs: 96,  qa: 0.75, wk: 0.88 },
+  };
+  /* What the score is measured against. A person who meets every one of
+     these scores 100. The weights are the plan's proposal, for Nour to set. */
+  const GOAL = { calls: 200, reach: 0.28, talk: 0.12, meet: 0.15 };
+  const WEIGHT = { calls: 0.25, reach: 0.2, talk: 0.2, meet: 0.25, qa: 0.1 };
+  /* Egypt works Sunday to Thursday, and its public holidays are days off.
+     A fixture: the real list comes from the console's calendar settings. */
+  const EG_HOLIDAYS = ['2026-01-07', '2026-01-25', '2026-03-20', '2026-03-21', '2026-03-22',
+    '2026-04-12', '2026-04-13', '2026-04-25', '2026-05-01', '2026-05-26', '2026-05-27',
+    '2026-05-28', '2026-06-16', '2026-06-30', '2026-07-23', '2026-08-25', '2026-10-06'];
+  const isWorkDay = (iso) => {
+    const d = new Date(iso + 'T00:00:00').getDay();
+    return d !== 5 && d !== 6 && EG_HOLIDAYS.indexOf(iso) < 0;
+  };
+  /* The working day runs 9:00 to 17:00, and today counts for as much of it
+     as has gone. */
+  function dayPart(iso) {
+    if (!isWorkDay(iso) || iso > TODAY_ISO) return 0;
+    if (iso < TODAY_ISO) return 1;
+    const n = new Date();
+    return Math.max(0, Math.min(1, (n.getHours() * 60 + n.getMinutes() - 540) / 480));
+  }
+  const jit = (k) => 0.9 + (Math.abs(hash(k)) % 21) / 100;
+  /* One person's day: what they dialled and what came of it. */
+  function repDay(id, iso) {
+    const f = FORM[id];
+    const part = f ? dayPart(iso) : 0;
+    if (!part) return { calls: 0, reached: 0, talks: 0, meets: 0, secs: 0, part: 0 };
+    const wk = iso >= weekStart(TODAY_ISO) ? f.wk : 1;
+    const calls = Math.round(f.calls * jit(id + iso + ':c') * wk * part);
+    const reached = Math.round(calls * f.reach * jit(id + iso + ':r') * wk);
+    const talks = Math.round(calls * f.talk * jit(id + iso + ':t') * wk);
+    const meets = Math.round(talks * f.meet * jit(id + iso + ':m') * wk);
+    return { calls, reached, talks, meets, secs: Math.round(f.secs * jit(id + iso + ':s')), part };
+  }
+  /* The week starts on Sunday, the first working day in Egypt. */
+  function weekStart(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return isoAdd(iso, -d.getDay());
+  }
+  /* The score over a run of days: each part is how close they came to the
+     goal, capped at the goal, then weighted. Out of 100. */
+  function repScore(id, from, to) {
+    const f = FORM[id];
+    if (!f) return null;
+    const t = { calls: 0, reached: 0, talks: 0, meets: 0, part: 0 };
+    for (let iso = from; iso <= to; iso = isoAdd(iso, 1)) {
+      const d = repDay(id, iso);
+      t.calls += d.calls; t.reached += d.reached; t.talks += d.talks; t.meets += d.meets; t.part += d.part;
+    }
+    if (!t.part) return null;
+    const cap = (x) => Math.max(0, Math.min(1, x));
+    const parts = {
+      calls: cap(t.calls / (GOAL.calls * t.part)),
+      reach: cap(t.calls ? t.reached / t.calls / GOAL.reach : 0),
+      talk: cap(t.calls ? t.talks / t.calls / GOAL.talk : 0),
+      meet: cap(t.talks ? t.meets / t.talks / GOAL.meet : 0),
+      qa: cap(f.qa),
+    };
+    return Math.round(100 * Object.keys(WEIGHT).reduce((n, k) => n + WEIGHT[k] * parts[k], 0));
+  }
+  /* This week so far, and the whole of the week before, so a Sunday
+     morning still has a week to read. */
+  function weekScores(id) {
+    const w0 = weekStart(TODAY_ISO);
+    const now = repScore(id, w0, TODAY_ISO);
+    const was = repScore(id, isoAdd(w0, -7), isoAdd(w0, -1));
+    return { now: now == null ? was : now, was };
+  }
+  const mean = (xs) => (xs.length ? Math.round(xs.reduce((n, x) => n + x, 0) / xs.length) : 0);
+  function teamRead(t) {
+    const s = t.members.map(weekScores);
+    const now = mean(s.map((x) => x.now).filter((x) => x != null));
+    const was = mean(s.map((x) => x.was).filter((x) => x != null));
+    return { t, now, was, move: now - was, word: scoreWord(now) };
+  }
+  /* The word is what a reader acts on, so it is never left to the number
+     alone. Ranked so the card can say the worst of several. */
+  const SCORE_WORDS = [
+    { at: 88, say: 'Ahead', tone: 'ok', rank: 0 },
+    { at: 75, say: 'On track', tone: 'info', rank: 1 },
+    { at: 60, say: 'Needs you', tone: 'warn', rank: 2 },
+    { at: -1, say: 'Falling behind', tone: 'err', rank: 3 },
+  ];
+  const scoreWord = (n) => SCORE_WORDS.filter((w) => n >= w.at)[0];
+  /* ON A CALL RIGHT NOW. There is no switchboard behind the prototype, so
+     who is on a call is drawn off their id and the five-second window,
+     during working hours only, and redrawn every five seconds. */
+  const LIVE_MS = 5000;
+  function onCallNow(ids) {
+    if (!dayPart(TODAY_ISO) || dayPart(TODAY_ISO) >= 1) return [];
+    const tick = Math.floor(Date.now() / LIVE_MS);
+    return ids.filter((id) => FORM[id] && Math.abs(hash(id + ':live:' + tick)) % 100 < 34 * FORM[id].wk);
+  }
+  const peopleOf = (teams) => teams.reduce((a, t) => a.concat(t.members), []);
+  function liveSay(n) {
+    return '<span class="b-live' + (n ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
+      '<span data-live>' + commas(n) + '</span> on a call</span>';
+  }
+  /* The count changes without a paint: only the number is rewritten, and
+     only when it changed, with the build's own figure tick. */
+  setInterval(() => {
+    const els = document.querySelectorAll('[data-live]');
+    if (!els.length) return;
+    /* An empty `data-live` counts every team; one naming a team counts it. */
+    const on = onCallNow(peopleOf(teamsOf()));
+    els.forEach((el) => {
+      const t = TEAMS.filter((x) => x.id === el.getAttribute('data-live'))[0];
+      const n = String(t ? t.members.filter((id) => on.indexOf(id) > -1).length : on.length);
+      if (el.textContent === n) return;
+      const pill = el.closest('.b-live');
+      if (pill) pill.classList.toggle('is-none', n === '0');
+      el.innerHTML = '<span class="b-tick">' + esc(n) + '</span>';
+    });
+  }, LIVE_MS);
+
+  /* ══ THE CARD: ONE SCORE AND ONE SENTENCE ═════════════════════════════
+     Every team's people in one number, out of 100. The word beside it is
+     the WORST of the teams, so a team that needs the manager is never
+     averaged away by one that is doing well; the sentence then names the
+     team that moved most since last week. The whole card is one door. */
+  function teamsDoor() {
+    const teams = teamsOf();
+    if (!teams.length) return '';
+    const reads = teams.map(teamRead);
+    const ppl = peopleOf(teams);
+    const all = mean(ppl.map((id) => weekScores(id).now).filter((x) => x != null));
+    const word = reads.map((r) => r.word).concat(scoreWord(all)).sort((a, b) => b.rank - a.rank)[0];
+    const live = dayPart(TODAY_ISO) > 0 && dayPart(TODAY_ISO) < 1;
+    return '<button class="b-door' + doorHere('teams') + '" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'teams' }))) + '">' +
+        '<span class="b-door-head"><span class="b-door-cap">Your teams</span>' +
+          (live ? liveSay(onCallNow(ppl).length) : '') + '</span>' +
+        '<span class="b-door-figrow"><span class="b-door-fig">' + commas(all) +
+          '<span class="b-door-of">of 100</span></span>' +
+          '<span class="s-meta-st tone-' + word.tone + '">' + esc(word.say) + '</span></span>' +
+        '<span class="b-door-say">' + teamsSay(reads, ppl.length) + '</span>' +
+        doorGo('Open') +
+      '</button>';
+  }
+  function teamsSay(reads, n) {
+    const head = esc(plural(reads.length, 'team')) + ', ' + esc(plural(n, 'person')) + '. ';
+    const worst = reads.slice().sort((a, b) => a.move - b.move)[0];
+    const best = reads.slice().sort((a, b) => b.move - a.move)[0];
+    if (worst.move <= -3) {
+      return head + '<b class="b-door-warn">' + esc(worst.t.name) + '</b> is down ' +
+        commas(-worst.move) + ' since last week.';
+    }
+    if (best.move >= 3) return head + '<b>' + esc(best.t.name) + '</b> is up ' + commas(best.move) + ' since last week.';
+    return head + (reads.length === 1 ? 'Where it was' : 'Where they were') + ' last week.';
+  }
+
+  /* ══ AND THE PAGE IT OPENS ═══════════════════════════════════════════
+     A holding page until step 3 of the plan gives it its design: each team
+     with its score, its word, who is in it and how it moved. The rows are
+     not doors yet, because the team page (step 4) does not exist. */
+  function teamsPage() {
+    const reads = teamsOf().map(teamRead);
+    const ppl = peopleOf(teamsOf());
+    const live = onCallNow(ppl);
+    const worst = reads.slice().sort((a, b) => a.now - b.now)[0];
+    const said = worst && worst.word.rank >= 2
+      ? '<b>' + esc(worst.t.name) + '</b> is at ' + commas(worst.now) + ' this week, ' +
+        (worst.move < 0 ? 'down ' + commas(-worst.move) : 'up ' + commas(worst.move)) + ' since last week.'
+      : 'Every team is on track this week.';
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide b-diary-back">' +
+        backBtn('data-back', 'Back to Today') + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="Your teams">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Your teams</h2></div>' +
+        aimyBlock({ text: said, from: 'this week against last' }) +
+        '<div class="b-owed">' + reads.map((r, i) =>
+          '<div class="b-owed-row b-team-row" style="--i:' + i + '">' +
+            '<span class="b-owed-main">' +
+              '<span class="b-owed-head">' +
+                '<span class="b-owed-type">' + esc(r.t.name) + '</span>' +
+                '<span class="s-meta-st tone-' + r.word.tone + '">' + esc(r.word.say) + '</span>' +
+              '</span>' +
+              '<span class="b-owed-body">' + esc([
+                commas(r.now) + ' of 100 this week',
+                (r.move === 0 ? 'same as' : (r.move > 0 ? 'up ' : 'down ') + commas(Math.abs(r.move)) + ' since') + ' last week',
+                plural(r.t.members.length, 'person'),
+              ].join(' · ')) + ' · <span data-live="' + esc(r.t.id) + '">' +
+                commas(r.t.members.filter((id) => live.indexOf(id) > -1).length) + '</span> on a call</span>' +
+              '<span class="b-team-faces">' + r.t.members.map((id) =>
+                '<span class="b-team-who">' + faceOf(id, 24) + esc(REP[id].name) + '</span>').join('') + '</span>' +
+            '</span>' +
+          '</div>').join('') + '</div>' +
+      '</section>' +
+    '</div>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
