@@ -8621,3 +8621,8 @@ body.is-calling .app-side { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .b-day-fold-chev, .b-day-fold-panel { transition: none; }
 }
+
+/* The one door to the week, the month and the quarter (bdr.js, ONE DOOR TO
+   THE LONGER VIEW): a question like its neighbours, one weight up, because
+   it is the way out of today rather than another question about it. */
+.b-day-span { font-weight: var(--fw-semibold); }

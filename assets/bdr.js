@@ -10890,11 +10890,44 @@
       (fold ? '</div></div>' +
         '<button class="b-day-fold-btn" type="button" data-dayfold aria-controls="dayFoldPanel" aria-expanded="' + DAY_OPEN + '">' +
           '<span>' + dayFoldSay(today) + '</span>' + DAY_FOLD_CHEV + '</button></div>' : '') +
-      '<div class="b-day-asks">' + asks.slice(0, 3).map((q) =>
+      '<div class="b-day-asks">' +
+        /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
+           and the quarter are one question in the chat, not three buttons. */
+        '<button class="s-sec-ask b-day-span" type="button" data-ask="' + esc(spanAsk(ids)) + '">' +
+          aiMark() + 'Week, month and quarter</button>' +
+        asks.slice(0, 3).map((q) =>
         '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') +
       '</div>' +
     '</div>';
   }
+  /* The question that button asks, naming whoever the block is about. */
+  function spanAsk(ids) {
+    const team = TEAMS.filter((t) => t.members.length === ids.length && t.members.every((id) => ids.indexOf(id) > -1))[0];
+    const who = ids.length === 1 ? firstName(ids[0]) : team && teamsOf().length > 1 ? 'the ' + team.name
+      : teamsOf().length > 1 ? 'my teams' : 'my team';
+    return 'How did ' + who + ' do over the week, month and quarter?';
+  }
+  /* A run of days, and a usual run of the same days: what each step came to
+     against what these people's usual form would have made of the same
+     working time. Today counts for as much of it as has gone. */
+  function spanRead(ids, from, to) {
+    const t = { calls: 0, reached: 0, talks: 0, meets: 0 };
+    const u = { calls: 0, reached: 0, talks: 0, meets: 0 };
+    for (let iso = from; iso <= to; iso = isoAdd(iso, 1)) {
+      const part = dayPart(iso);
+      if (!part) continue;
+      ids.forEach((id) => {
+        const d = repDay(id, iso);
+        const f = FORM[id];
+        const c = f.calls * part;
+        t.calls += d.calls; t.reached += d.reached; t.talks += d.talks; t.meets += d.meets;
+        u.calls += c; u.reached += c * f.reach; u.talks += c * f.talk; u.meets += c * f.talk * f.meet;
+      });
+    }
+    Object.keys(u).forEach((k) => (u[k] = Math.round(u[k])));
+    return { t, u };
+  }
+  const quarterStart = (iso) => iso.slice(0, 5) + String(Math.floor((+iso.slice(5, 7) - 1) / 3) * 3 + 1).padStart(2, '0') + '-01';
 
   /* ══ AND WHAT THE CHAT ANSWERS ═════════════════════════════════════════
      The drill-down, read off the same `dayRead` as the block so the chat
@@ -10916,6 +10949,42 @@
         return sh.indexOf(s.k) > -1 ? '<b class="b-door-warn">' + v + '</b> (usually ' + esc(commas(x.u[s.k])) + ')' : v;
       }).join(', ');
     };
+    /* The week, the month and the quarter, for a person, a team or all of
+       them: one row each, every step against a usual run of the same days,
+       the short ones in the warning ink. */
+    if (/\bweek\b/.test(q) && /\bmonth\b/.test(q) && /\bquarter\b/.test(q)) {
+      const who1 = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
+      const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
+      const ids = who1 ? [who1] : tm ? tm.members : ppl;
+      const name = who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team';
+      const spans = [
+        { cap: 'This week', from: weekStart(TODAY_ISO) },
+        { cap: 'This month', from: TODAY_ISO.slice(0, 8) + '01' },
+        { cap: 'This quarter', from: quarterStart(TODAY_ISO) },
+      ].reduce((out, s) => {
+        /* Early in a month the week and the month can be the same days; they
+           are one row then, named for both, rather than the same row twice. */
+        const same = out.filter((o) => o.from === s.from)[0];
+        if (same) same.cap += ' and ' + s.cap.toLowerCase().replace(/^this /, '');
+        else out.push(s);
+        return out;
+      }, []).map((s) => Object.assign(s, spanRead(ids, s.from, TODAY_ISO)));
+      const line = (s) => DAY_STEPS.map((st) => {
+        const n = s.t[st.k], u = s.u[st.k];
+        const v = esc(commas(n) + ' ' + (n === 1 ? st.noun.replace(/s$/, '') : st.noun));
+        return u && n < u * 0.9 && u - n >= 2 ? '<b class="b-door-warn">' + v + '</b> (usually ' + esc(commas(u)) + ')' : v;
+      }).join(', ');
+      const ratio = (s) => (s.u.calls ? s.t.calls / s.u.calls : 1);
+      const worst = spans.slice().sort((a, b) => ratio(a) - ratio(b))[0];
+      const said = ratio(worst) < 0.9
+        ? esc(name.charAt(0).toUpperCase() + name.slice(1)) + ' made the fewest calls against a usual run ' +
+          worst.cap.toLowerCase() + ': <b>' + esc(commas(worst.t.calls)) + '</b> against ' + esc(commas(worst.u.calls)) + '.'
+        : esc(name.charAt(0).toUpperCase() + name.slice(1)) + ' kept to a usual run of calls over the week, the month and the quarter.';
+      return said +
+        '<div class="b-tm-rows">' + spans.map((s) => '<div class="b-tm-row"><span class="b-tm-cap">' + esc(s.cap) +
+          '</span><span class="b-tm-say">' + line(s) + '</span></div>').join('') + '</div>' +
+        next([who1 ? 'How is ' + firstName(who1) + ' doing today?' : tm ? 'How is the ' + tm.name + ' doing today?' : 'Who is short on calls today?']);
+    }
     const person = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
     if (person && /\b(doing|day|today|calls?|how)\b/.test(q)) {
       const r = dayRead([person]);
@@ -11272,7 +11341,9 @@
       '</div>' +
       '<div class="b-side-sec">' + headH('Today') + '<ul class="b-ps-figs">' +
         fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
-        fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul></div>' +
+        fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul>' +
+        '<div class="b-day-asks"><button class="s-sec-ask b-day-span" type="button" data-ask="' + esc(spanAsk([id])) + '">' +
+          aiMark() + 'Week, month and quarter</button></div></div>' +
       '<div class="b-side-sec">' + aimyBlock({ text: daySay(r, esc(firstName(id)), 'has'), from: 'today against a usual day' }) +
         '<div class="b-ps-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
           : ['msg', 'book'].map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
