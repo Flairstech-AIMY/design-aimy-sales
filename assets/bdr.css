@@ -8320,8 +8320,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-team-stack .b-stack-face { position: relative; width: 24px; height: 24px; box-shadow: 0 0 0 2px var(--card-bg); }
 .b-team-stack .b-stack-face + .b-stack-face { margin: 0 0 0 -6px; }
 .b-team-stack .b-face { box-shadow: none; }
-/* The score tag and how it moved, where the card's summary line stood. */
-.b-team-score { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 6px 14px 0; }
+/* The card's head: the score tag, how it moved, and who is on a call. */
+.b-team-card .tc-head { flex-wrap: wrap; row-gap: 6px; }
 
 /* ══ 113. THE DAY'S NUMBERS, AND THE CHAT UNDER THEM (5 Nov 2026) ══════════
    bdr.js, THE DAY'S NUMBERS. No charts: AiMY's sentence, the figures as

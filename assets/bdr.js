@@ -10992,7 +10992,9 @@
      figures, AiMY's reading of today, and at the foot who is on it and the
      way into the chat. Not a door yet: the team page is step 4, so the
      card's one control asks AiMY about the team instead. */
-  /* The library's Score: a three-bar meter, what is scored, and the number. */
+  /* The library's Score (aimy ui lib, score.tsx: Knowledge's .conf-badge,
+     high from 75, medium from 50): a three-bar meter, what is scored, and
+     the number. */
   function scoreTag(n) {
     const band = n >= 75 ? 'high' : n >= 50 ? 'medium' : 'low';
     return '<span class="conf-badge conf-' + band + '" role="img" aria-label="Score ' + commas(n) +
@@ -11017,18 +11019,18 @@
       : (r.move > 0 ? 'up ' : 'down ') + commas(Math.abs(r.move)) + ' since last week';
     return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + esc(r.word.tone) + '">' + esc(r.word.say) + '</span>' +
+        /* The score tag is the card's state (Nour, 5 Nov): its colour says
+           what "Ahead" or "Needs you" said, so the word tag went. */
+        scoreTag(r.now) + '<span class="b-kind">' + esc(move) + '</span>' +
         '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
           commas(on) + '</span> on a call</span></span>' +
       '</div>' +
       '<span class="tc-title s-card-title">' + esc(r.t.name) + '</span>' +
-      /* The score is the library's Score tag (aimy ui lib, score.tsx: Knowledge's
-         .conf-badge, high from 75, medium from 50), with how it moved beside it. */
-      '<div class="b-team-score">' + scoreTag(r.now) + '<span class="b-kind">' + esc(move) + '</span></div>' +
       '<div class="b-qcard-why"><b>' + commas(d.t.calls) + '</b> calls ' + (d.day === TODAY_ISO ? 'today' : 'that day') +
         ', <b>' + commas(d.t.reached) + '</b> reached the decision maker, <b>' + commas(d.t.meets) + '</b> ' +
         verbFor(d.t.meets, 'meeting') + ' booked</div>' +
-      aimyBlock({ text: daySay(d, 'the ' + esc(r.t.name), 'has'), from: 'today against a usual day' }) +
+      /* AiMY's reading of the team's day lives on the team page (step 4),
+         not on the card (Nour, 5 Nov); until then Ask AiMY gives it. */
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-ask="' +
