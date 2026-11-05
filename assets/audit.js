@@ -67,6 +67,8 @@ const MARKERS = {
   'from': 'the date picker panel keeps the first day chosen on itself until the second',
   'to': 'the date picker panel keeps the range it opened with on itself',
   'month': 'the month the date picker panel is showing',
+  'x': 'where a day sits across the plan chart, read by the pointer\u2019s tooltip',
+  'tip': 'what a day on the plan chart was, shown over it on hover, not a click',
   'theme': 'the html element attribute the design system themes on',
   'submit-on-enter': 'read by a keydown listener, not by a click',
   'i': 'the row index a windowed list writes for its own bookkeeping',

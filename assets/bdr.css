@@ -8324,94 +8324,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-team-card .tc-head { flex-wrap: wrap; row-gap: 6px; }
 
 /* ══ 113. THE DAY'S NUMBERS, AND THE CHAT UNDER THEM (5 Nov 2026) ══════════
-   bdr.js, THE DAY'S NUMBERS. No charts: AiMY's sentence, the figures as
-   the build's evidence pills, and the questions that open the chat. */
+   bdr.js, THE DAY'S NUMBERS. AiMY's sentence, the figures (as widgets
+   since 6 Nov, section 121), and the questions that open the chat. */
 .b-day .b-aimy { margin: 0 0 14px; }
-.b-day-pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.b-day-pills + .b-day-pills { margin-top: 8px; }
 .b-day-asks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
-/* The pills keep the evidence pill exactly as the rest of the build draws
-   it (Nour, 5 Nov: the boxed version was not it). A button only needs the
-   button defaults taken back: its font, its pointer, and a ring for the
-   keyboard. Hover brightens the edge and nothing else. */
-.b-day-pill {
-  position: relative; font-family: inherit; line-height: inherit; cursor: pointer;
-  transition: border-color var(--t-fast);
-}
-.b-day-pill:hover { border-color: rgba(var(--accent-rgb), 0.45); }
-.b-day-pill:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-
-/* ══ THE QUESTION, REVEALED ════════════════════════════════════════════════
-   What a pill will ask, shown above it while the pointer rests on it. Not a
-   box of text: a floating pill of its own, on a softened ground with a
-   hairline that runs from the accent to the brand blue, and the question
-   arriving a word at a time, each one rising out of a blur (transitions-dev
-   texts reveal, 40ms apart). The AiMY mark turns in first. It waits 220ms
-   so a pointer crossing the row sets off nothing, and on leaving it fades
-   in 160ms rather than snapping, so it never flickers. */
-.b-day-q {
-  position: absolute; left: -2px; bottom: calc(100% + 10px); z-index: 3;
-  display: inline-flex; align-items: center; gap: 9px;
-  width: max-content; padding: 9px 16px 9px 12px;
-  font-size: var(--fs-sm); font-weight: var(--fw-medium); line-height: 1.35; letter-spacing: 0.005em;
-  color: var(--d50); text-align: left; white-space: nowrap;
-  border: 1px solid transparent; border-radius: var(--r-pill);
-  background:
-    linear-gradient(color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--panel-bg) 94%, transparent)) padding-box,
-    linear-gradient(115deg, rgba(var(--accent-rgb), 0.7), rgba(0, 102, 255, 0.45) 55%, rgba(var(--accent-rgb), 0.15)) border-box;
-  -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.55), 0 0 28px -10px rgba(var(--accent-rgb), 0.45);
-  opacity: 0; filter: blur(3px); transform: translateY(6px) scale(0.96); transform-origin: 18px 100%;
-  pointer-events: none;
-  transition: opacity 160ms ease-out, filter 160ms ease-out, transform 160ms ease-out;
-}
-.b-day-q > svg {
-  flex: none; transform: rotate(-60deg) scale(0.6); opacity: 0;
-  transition: transform 160ms ease-out, opacity 160ms ease-out;
-}
-.b-day-w { display: inline-block; opacity: 0; filter: blur(4px); transform: translateY(5px); transition: opacity 120ms ease-out, filter 120ms ease-out, transform 120ms ease-out; }
-.b-day-q-in { display: inline; }
-.b-day-pill:hover .b-day-q, .b-day-pill:focus-visible .b-day-q {
-  opacity: 1; filter: none; transform: none;
-  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1) 220ms, filter 400ms cubic-bezier(0.22, 1, 0.36, 1) 220ms,
-    transform 400ms cubic-bezier(0.22, 1, 0.36, 1) 220ms;
-}
-.b-day-pill:hover .b-day-q > svg, .b-day-pill:focus-visible .b-day-q > svg {
-  opacity: 1; transform: none;
-  transition: transform 600ms cubic-bezier(0.34, 1.36, 0.64, 1) 260ms, opacity 300ms ease-out 260ms;
-}
-.b-day-pill:hover .b-day-w, .b-day-pill:focus-visible .b-day-w {
-  opacity: 1; filter: none; transform: none;
-  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1), filter 400ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
-  transition-delay: calc(300ms + var(--i, 0) * 40ms);
-}
-/* On one line where there is room; a phone gets a wrapped question. */
-/* Where the row is narrow, a question anchored on a pill near the right
-   edge ran past the page and gave the phone a sideways scroll, even while
-   hidden. There it anchors on the row instead, across its full width. And
-   the block clips sideways at every width, so a hidden question can never
-   widen the page. */
-.b-day { overflow-x: clip; overflow-clip-margin: 0; }
-@media (max-width: 899.98px) {
-  .b-day-pills { position: relative; }
-  .b-day-pill { position: static; }
-  .b-day-q { left: 0; white-space: normal; max-width: 100%; border-radius: var(--r-lg); }
-}
-/* The same wherever the block is narrow for another reason: in the side
-   rail (420px), and on the page beside it. A question anchored on a pill
-   near the right edge ran past the block and was clipped (Nour, 5 Nov). */
-.app-side .b-day-pills, body.has-side .b-day-pills { position: relative; }
-.app-side .b-day-pill, body.has-side .b-day-pill { position: static; }
-.app-side .b-day-q, body.has-side .b-day-q { left: 0; white-space: normal; max-width: 100%; border-radius: var(--r-lg); }
-/* Reduced motion: the question is simply there after the wait, whole. */
-@media (prefers-reduced-motion: reduce) {
-  .b-day-q, .b-day-q > svg, .b-day-w { transform: none !important; filter: none !important; }
-  .b-day-w, .b-day-q > svg { opacity: 1; transition: none !important; }
-  .b-day-pill:hover .b-day-q, .b-day-pill:focus-visible .b-day-q { transition: opacity 150ms linear 220ms; }
-}
-/* A live count in a pill keeps the pill's ink; only its number ticks. */
-.b-day-pills .evidence-pill .val { font-variant-numeric: tabular-nums; }
 /* The chat's answers: one row per person, or one per part of a person's
    day, in the answer's own type. Rows, never a table (AIMY-2737). */
 .b-tm-rows { display: grid; gap: 8px; margin: 10px 0 4px; }
@@ -8462,98 +8378,17 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-wt-acts { grid-column: 2; justify-content: flex-start; margin-top: 8px; }
 }
 
-/* A person as a row: face, name with score and call state, today's four
-   figures each with its word, and the way in. */
-.b-pr-rows { display: grid; gap: 6px; }
-.b-pr-row {
-  display: grid; grid-template-columns: 40px minmax(170px, 1.1fr) minmax(0, 2fr) auto; gap: 6px 18px; align-items: center;
-  width: 100%; padding: 14px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer;
-  border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: border-color var(--t-fast);
-}
-.b-pr-row:hover { border-color: rgba(var(--accent-rgb), 0.4); }
-.b-pr-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-pr-who { min-width: 0; }
-.b-pr-name { display: block; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
-.b-pr-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+/* On a call, in words beside a name. */
 .b-pr-oncall { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok-text); }
 .b-pr-oncall i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok-text); }
-.b-pr-figs { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-sm); color: var(--d100); }
-.b-pr-figs b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
-.b-pr-figs .is-short, .b-pr-figs .is-short b { color: var(--warn-text); }
-.b-pr-go { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text); white-space: nowrap; }
-@media (max-width: 899.98px) {
-  .b-pr-row { grid-template-columns: 40px minmax(0, 1fr); }
-  .b-pr-figs, .b-pr-go { grid-column: 2; }
-}
 
-/* ══ 115. THE SIDE RAIL (5 Nov 2026) ═══════════════════════════════════════
-   bdr.js, THE SIDE RAIL. 420px beside the page, which narrows and reflows;
-   the call column takes the right edge while a call is live. */
-:root { --side-w: 420px; }
-.app-side {
-  width: var(--side-w); flex-shrink: 0; display: flex; flex-direction: column; min-height: 0;
-  /* The panel's tint over the page's own ground: `--panel-bg` alone is
-     translucent in light, and the page showed through it where it stands over. */
-  background: linear-gradient(var(--panel-bg), var(--panel-bg)), var(--body-bg);
-  border-left: 1px solid var(--hairline);
-}
-.app-side[hidden] { display: none; }
-/* The composer and the canvas keep clear of it, as they do of a call. */
-body.has-side:not(.is-calling) { --fb-reserve: var(--side-w); }
-body.has-side:not(.is-calling) .aimy-overlay { right: var(--side-w); }
-body.is-calling .app-side { display: none; }
-/* Opening: in from the right through a blur (transitions-dev panel reveal). */
-.app-side.is-opening { animation: b-side-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes b-side-in { from { opacity: 0; transform: translateX(24px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
-.b-side-head {
-  display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 8px 12px 8px 12px; flex: none;
-  border-bottom: 1px solid var(--card-border);
-}
-.b-side-back {
-  display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px 6px 6px; font: inherit;
-  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
-  background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
-  transition: background-color var(--t-fast);
-}
-.b-side-back:hover { background: rgba(var(--accent-rgb), 0.08); }
-.b-side-x {
-  display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; margin-left: auto;
-  color: var(--d100); background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast);
-}
-.b-side-x:hover { color: var(--d50); background: color-mix(in srgb, var(--d50) 8%, transparent); }
-/* On the team view the close button shares the name's row, top right. */
-.b-tp-top { display: flex; align-items: flex-start; gap: 12px; }
-.b-tp-top .b-tp-title { flex: 1; min-width: 0; }
-.b-tp-top .b-side-x { flex: none; margin: -2px -8px 0 0; }
-.b-side-back:focus-visible, .b-side-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-side-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
-.b-side-view { padding: 20px 20px 120px; }
-/* One step in, back, and a swap (transitions-dev page side by side). */
-.b-side-view.is-fwd { animation: b-side-fwd 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.b-side-view.is-back { animation: b-side-bk 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.b-side-view.is-swap { animation: b-side-swap 250ms ease-in-out both; }
-@keyframes b-side-fwd { from { opacity: 0; transform: translateX(16px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes b-side-bk { from { opacity: 0; transform: translateX(-16px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes b-side-swap { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .app-side.is-opening, .b-side-view.is-fwd, .b-side-view.is-back, .b-side-view.is-swap { animation: none; }
-}
+/* ══ 115. THE SIDE RAIL, GONE (6 Nov 2026) ═════════════════════════════════
+   The rail held a team, then a person a step in, beside the page. Feedback
+   on 5 Nov ditched it for a team page and the profile (section 121). What
+   stays is the person view's look, the profile's head. */
 .b-side-sec { margin-top: 26px; }
 .b-side-sec .s-camp-list-head { margin-bottom: 10px; }
 .b-side-sec .s-block-h { font-size: var(--fs-md); }
-.b-tp-meta .b-team-stack .b-stack-face { box-shadow: 0 0 0 2px var(--panel-bg); }
-.app-side .b-tp-name { font-size: 22px; }
-/* At the rail's width the rows stack: the actions and figures go under the name. */
-.app-side .b-wt-row { grid-template-columns: 36px minmax(0, 1fr); padding: 14px; }
-.app-side .b-wt-acts { grid-column: 2; justify-content: flex-start; margin-top: 8px; }
-.app-side .b-pr-row { grid-template-columns: 36px minmax(0, 1fr) auto; padding: 12px 14px; gap: 4px 12px; }
-.app-side .b-pr-figs { grid-column: 2; grid-row: 2; gap: 2px 14px; font-size: var(--fs-xs); }
-.app-side .b-pr-go { grid-column: 3; grid-row: 1 / span 2; color: var(--d200); }
-.app-side .b-face[style*="40px"] { width: 36px !important; height: 36px !important; }
-/* The open team's card is lit, the way the rail lights the card you are on. */
-.b-team-card.is-open { border-color: rgba(var(--accent-rgb), 0.7); box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), var(--shadow-sm); }
 
 /* A person, one step in: D's coach's note with A's figures (bdr.js,
    A PERSON, ONE STEP IN). */
@@ -8597,46 +8432,11 @@ body.is-calling .app-side { display: none; }
 .b-ps-q:hover { text-decoration: underline; }
 .b-ps-q:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 
-/* Between 900 and 1280 the page cannot spare 420px beside a 280px rail
-   (measured: 360px of page at 1100), so the rail changes form instead of
-   squeezing it: it stands over the page's right edge with a shadow, and
-   the page keeps its width. */
-@media (max-width: 1279.98px) {
-  .app-body { position: relative; }
-  .app-side { position: absolute; top: 0; right: 0; bottom: 0; z-index: 30;
-    box-shadow: -24px 0 48px -24px rgba(0, 0, 0, 0.55); }
-}
-/* Where the page cannot spare 420px, the rail is a sheet over the page (the top bar stays),
-   with its own way out, and the composer steps aside while it is open. */
-@media (max-width: 899.98px) {
-  .app-side { position: absolute; inset: 0; width: 100%; z-index: 80; border-left: 0; box-shadow: none; }
-  body.has-side:not(.is-calling) { --fb-reserve: 0px; }
-  body.has-side:not(.is-calling) .aimy-overlay { right: 0; }
-  body.has-side .aimy-float-wrap { display: none; }
-}
-
-/* ══ 116. THE RAIL'S FOLDED FIGURES (5 Nov 2026) ═══════════════════════════
-   The accordion from transitions-dev: the panel grows on grid rows from 0fr
-   to 1fr, the chevron flips through a flat line. The padding is on the
-   inner box, never the track, or a strip of it stays when shut. */
-.b-day-fold { margin: 8px 0 4px; }
-.b-day-fold-btn {
-  display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; font: inherit;
-  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
-  background: none; border: 0; cursor: pointer;
-}
-.b-day-fold-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
-.b-day-fold-chev { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
-.b-day-fold.is-open .b-day-fold-chev { transform: scaleY(-1); }
-.b-day-fold-panel {
-  display: grid; grid-template-rows: 0fr;
-  transition: grid-template-rows 250ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.b-day-fold.is-open .b-day-fold-panel { grid-template-rows: 1fr; }
-.b-day-fold-in { min-height: 0; overflow: hidden; }
-.b-day-fold.is-open .b-day-fold-in { overflow: visible; padding-bottom: 6px; }
-@media (prefers-reduced-motion: reduce) {
-  .b-day-fold-chev, .b-day-fold-panel { transition: none; }
+/* ══ 116. THE FOLD'S CHEVRON (5 Nov 2026) ══════════════════════════════════
+   The rail's folded figures went with the rail; the chevron stayed, for the
+   profile's coaching fold (section 120): it flips through a flat line. */
+@media (prefers-reduced-motion: no-preference) {
+  .b-day-fold-chev { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
 }
 
 /* The one door to the week, the month and the quarter (bdr.js, ONE DOOR TO
@@ -8830,3 +8630,161 @@ body.is-calling .app-side { display: none; }
 
 /* The teams page's heading carries the period picker on its right. */
 .b-tm-head { align-items: center; justify-content: space-between; }
+
+/* ══ 121. NUMBERS AS WIDGETS, AND THE PLAN (6 Nov 2026) ═════════════════════
+   bdr.js, NUMBERS AS WIDGETS and THE PLAN, AND THE PACE. Feedback on 5 Nov:
+   widgets for the numbers, burn-down told as a story, a page for each team
+   with its people as cards, and no side rail. Then distilled (Nour, 6 Nov:
+   too many charts, not clean): one chart, drawn bare, and figures for the
+   rest. */
+.b-wds { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 10px; margin-top: 10px; }
+.b-wds.is-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .b-wds.is-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.b-wd {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0;
+  padding: 14px 16px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer; overflow: hidden;
+  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg);
+}
+@media (prefers-reduced-motion: no-preference) { .b-wd { transition: border-color var(--t-fast) var(--ease-out); } }
+.b-wd:hover { border-color: rgba(var(--accent-rgb), 0.4); }
+.b-wd:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-wd-cap { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+.b-wd-val { font-size: 22px; font-weight: var(--fw-bold); line-height: 1.2; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-wd.is-big .b-wd-val { font-size: 28px; }
+.b-wd-d { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100); font-variant-numeric: tabular-nums; }
+.b-wd-d.is-dn { color: var(--warn-text); }
+.b-wd-d.is-up { color: var(--ok-text); }
+.b-wd-sub { font-size: var(--fs-sm); color: var(--d100); }
+.b-wd-sub b { font-weight: var(--fw-semibold); color: var(--d50); }
+/* The question the widget asks rises over its foot on hover and focus. */
+.b-wd-q {
+  position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50);
+  background: var(--card-bg-raised); border-top: 1px solid var(--card-border);
+  transform: translateY(101%);
+}
+@media (prefers-reduced-motion: no-preference) { .b-wd-q { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); } }
+.b-wd:hover .b-wd-q, .b-wd:focus-visible .b-wd-q { transform: none; }
+.b-day .b-wds.is-steps { margin-top: 0; }
+
+/* The pace in words and colour, wherever a figure carries one. */
+.b-pace { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100); white-space: nowrap; }
+.b-pace.is-up { color: var(--ok-text); }
+.b-pace.is-dn { color: var(--warn-text); }
+.b-pace.is-err { color: var(--err-text); }
+
+/* The plan: a board with a figure per step, the story and one chart. */
+.b-pl { margin-top: 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); overflow: hidden; }
+.b-pl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; padding: 16px 20px 0; }
+.b-pl-h { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pl-sub { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 14px;
+  border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+.b-pl-tab {
+  position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 20px 16px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer; background: none; border: 0; border-right: 1px solid var(--card-border);
+}
+.b-pl-tab:last-child { border-right: 0; }
+.b-pl-tab:hover { background: rgba(var(--accent-rgb), 0.04); }
+.b-pl-tab.is-on { background: rgba(var(--accent-rgb), 0.08); }
+.b-pl-tab.is-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); }
+.b-pl-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-pl-tcap { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-tval { font-size: 26px; font-weight: var(--fw-bold); line-height: 1.1; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-tval small { margin-left: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+@media (max-width: 760px) {
+  .b-pl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .b-pl-tab:nth-child(2) { border-right: 0; }
+  .b-pl-tab:nth-child(-n+2) { border-bottom: 1px solid var(--card-border); }
+}
+.b-pl-body { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 32px; padding: 20px; }
+@media (max-width: 1100px) { .b-pl-body { grid-template-columns: minmax(0, 1fr); } }
+.b-pl-lead { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 20px; font-weight: var(--fw-bold); color: var(--d50); }
+.b-pl-lead.is-up { color: var(--ok-text); }
+.b-pl-lead.is-dn { color: var(--warn-text); }
+.b-pl-lead.is-err { color: var(--err-text); }
+.b-pl-lead svg { flex: none; }
+.b-pl-story .b-aimy { margin: 0; }
+.b-pl-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--card-border); }
+.b-pl-facts div { min-width: 0; }
+.b-pl-facts dt { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-facts dd { margin: 2px 0 0; font-size: 18px; font-weight: var(--fw-bold); color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+.b-pl-chart { min-width: 0; }
+.b-pl-ctitle { margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
+/* The plot: the lines in a stretched SVG, every word in HTML over it. No
+   grid, no axis: the base line, the plan, what is left, the pace, today. */
+.b-pl-plot { position: relative; height: 240px; margin-top: 12px; padding: 20px 8px 30px; }
+@media (max-width: 760px) { .b-pl-plot { height: 200px; } }
+.b-pl-area { position: relative; width: 100%; height: 100%; }
+.b-pl-area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.pl-base { stroke: var(--card-border); stroke-width: 1; }
+.pl-ideal { fill: none; stroke: color-mix(in srgb, var(--d50) 35%, transparent); stroke-width: 1.5; stroke-dasharray: 5 6; }
+.pl-act { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.pl-area { fill: rgba(var(--accent-rgb), 0.1); }
+.pl-proj { fill: none; stroke: var(--d100); stroke-width: 3; stroke-dasharray: 1 7; stroke-linecap: round; }
+.pl-proj.is-up { stroke: var(--ok); }
+.pl-proj.is-dn { stroke: var(--warn); }
+.pl-proj.is-err { stroke: var(--err); }
+.pl-today { stroke: color-mix(in srgb, var(--d50) 25%, transparent); stroke-width: 1; }
+.pl-hit { fill: transparent; }
+.pl-hit:hover { fill: color-mix(in srgb, var(--d50) 4%, transparent); }
+.pl-xlab, .pl-note { position: absolute; font-size: var(--fs-xs); line-height: 1; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+.pl-xlab { margin-top: 10px; font-weight: var(--fw-medium); color: var(--d100); }
+.pl-xlab.is-last { transform: translateX(-100%); }
+.pl-xlab.is-today { transform: translateX(-50%); font-weight: var(--fw-semibold); color: var(--d50); }
+/* A note sits on a chip of the card's ground, so no line runs through it. */
+.pl-note { padding: 3px 6px; border-radius: var(--r-md); background: var(--card-bg-raised); font-weight: var(--fw-semibold); color: var(--d50); }
+.pl-note.is-act { transform: translate(calc(-100% - 10px), 35%); font-size: var(--fs-sm); }
+.pl-note.is-end { transform: translate(-100%, calc(-100% - 10px)); font-size: var(--fs-sm); }
+.pl-note.is-plan { transform: translate(-4px, calc(-100% - 10px)); font-weight: var(--fw-medium); color: var(--d100); }
+.pl-note.is-plan.is-under { transform: translate(-50%, 14px); }
+.pl-note.is-up { color: var(--ok-text); }
+.pl-note.is-dn { color: var(--warn-text); }
+.pl-note.is-err { color: var(--err-text); }
+.pl-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 3px var(--card-bg); pointer-events: none; }
+.pl-dot.is-end { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--d100); }
+.pl-dot.is-end.is-up { background: var(--ok); }
+.pl-dot.is-end.is-dn { background: var(--warn); }
+.pl-dot.is-end.is-err { background: var(--err); }
+.b-pl-tip {
+  position: absolute; top: -14px; transform: translateX(-50%); z-index: 2; padding: 6px 10px; pointer-events: none;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); white-space: nowrap;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border); border-radius: var(--r-md); box-shadow: var(--shadow-md);
+}
+.b-pl-tip[hidden] { display: none; }
+
+/* The four steps as figures on a card, two by two: what it counts, the
+   number, the pace. */
+.b-pl-figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 14px 14px 4px; padding: 0; list-style: none; }
+.b-pl-fig { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b-pl-fcap { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-fval { font-size: 20px; font-weight: var(--fw-bold); line-height: 1.2; color: var(--d50); font-variant-numeric: tabular-nums; }
+
+/* One team's page: the head with its period, then the sections. */
+.b-tpg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin-top: 4px; }
+.b-tpg-who { min-width: 0; }
+.b-tpg .s-back { margin: 0 0 16px; }
+/* A person as a card: the face, the name and score, their steps, AiMY. */
+.b-ro-card { cursor: default; }
+.b-ro-top { display: flex; align-items: center; gap: 12px; padding: 14px 14px 0; }
+.b-ro-who { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.b-ro-who .tc-title { margin: 0; padding: 0; cursor: pointer; text-align: left; }
+.b-ro-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.b-ro-card .b-aimy { margin-bottom: 12px; }
+
+/* The team against the others: each step, each team's share of the plan. */
+.b-cmp { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+@media (max-width: 900px) { .b-cmp { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.b-cmp-step { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 14px 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); }
+.b-cmp-cap { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-cmp-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.b-cmp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--d100); }
+.b-cmp-row.is-me .b-cmp-name { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-cmp-val { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-cmp-row.is-me .b-cmp-val { font-size: 20px; }
+.b-cmp-val.is-up { color: var(--ok-text); }
+.b-cmp-val.is-dn { color: var(--warn-text); }
+.b-cmp-val.is-err { color: var(--err-text); }
+.b-cmp-key { margin: 10px 0 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }

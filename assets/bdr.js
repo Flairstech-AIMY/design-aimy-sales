@@ -4086,8 +4086,10 @@
     /* `team` is one of this manager's teams, read on the teams surface, or
        nothing: a team that is not theirs is refused like any other key. */
     if (S.team && !((S.on === 'teams' || S.on === 'person') && teamsOf().some((t) => t.id === S.team))) S.team = '';
-    /* `ag` is a person on the open team, one step into the side rail. */
+    /* `ag` is a person on the open team: their profile. */
     if (S.ag && !(S.team && TEAMS.filter((t) => t.id === S.team)[0].members.indexOf(S.ag) > -1)) S.ag = '';
+    /* A link to a person in the old side rail opens their profile. */
+    if (S.on === 'teams' && S.team && S.ag) S.on = 'person';
     /* `on=person` is one person's full profile: it needs their team and them. */
     if (S.on === 'person' && !(isMgr() && S.team && S.ag)) S.on = S.team ? 'teams' : '';
     /* `from` and `to` are the period on the teams page and a person's
@@ -4451,7 +4453,6 @@
       : S.on === 'camps' ? campsPage()
       : homePage();
     paintRail();
-    paintSide();
     railNavMove();
     refreshTasks();
     paintProto();
@@ -10842,11 +10843,28 @@
      much, and all of them hidden was too little). Open or shut is
      remembered for the session, so an action that repaints the rail does
      not shut it. */
-  let DAY_OPEN = false;
   const DAY_FOLD_CHEV = '<svg class="b-day-fold-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="m6 9 6 6 6-6"/></svg>';
-  const dayFoldSay = (today) => (DAY_OPEN ? 'Show fewer' : 'Show ' + (today ? 5 : 4) + ' more');
+  /* ══ NUMBERS AS WIDGETS (6 Nov 2026) ═══════════════════════════════════
+     Nour: widgets here instead of pills. Each figure is a small card of its
+     own: what it counts, the number, how it stands against a usual day in
+     words and colour, and the rate behind it where there is one. The whole
+     widget still asks the chat its question; the question slides up over
+     its foot on hover and focus, and is part of its name for a reader. */
+  const wid = (o) => '<button class="b-wd' + (o.big ? ' is-big' : '') + '" type="button" data-ask="' + esc(o.q) + '">' +
+      '<span class="b-wd-cap">' + (o.live != null ? '<span class="b-live-dot" aria-hidden="true"></span>' : '') + esc(o.cap) + '</span>' +
+      '<span class="b-wd-val"' + (o.live != null ? ' data-live="' + esc(o.live) + '"' : '') + '>' + esc(o.val) + '</span>' +
+      (o.d ? '<span class="b-wd-d is-' + (o.tone || 'eq') + '">' + o.d + '</span>' : '') +
+      (o.sub ? '<span class="b-wd-sub">' + o.sub + '</span>' : '') +
+      '<span class="b-wd-q">' + aiMark() + '<span>' + esc(o.q) + '</span></span>' +
+    '</button>';
+  /* A figure against a usual one: the signed difference in words, and the
+     tone, short in the warning ink when it is a tenth and two under. */
+  const vsUsual = (n, u, tail) => {
+    const short = u - n >= 2 && n < u * 0.9, ahead = n - u >= 2 && n > u * 1.05;
+    return { d: short || ahead ? esc(SIGNED(n - u)) + ' ' + tail : 'As usual', tone: short ? 'dn' : ahead ? 'up' : 'eq' };
+  };
   function teamDayBlock(ids, who, has, fold, R) {
     if (R) return periodDayBlock(ids, who, has, fold, R);
     const r = dayRead(ids);
@@ -10865,16 +10883,10 @@
     const only = TEAMS.filter((t) => t.members.length === ids.length && t.members.every((id) => ids.indexOf(id) > -1))
       .filter(() => TEAMS.filter((t) => t.mgr === me().id).length > 1)[0];
     const inTeam = (q) => (only ? q.replace(/( today)?\?$/, ' in the ' + only.name + '$1?') : q);
-    const pill = (v, cap, k, live) => {
-      const q = one ? 'How is ' + firstName(ids[0]) + ' doing today?' : inTeam(DAY_METRIC[k].ask);
-      return '<button class="evidence-pill b-day-pill" type="button" data-ask="' + esc(q) + '">' +
-        '<span class="val"' + (live ? ' data-live="' + esc(live) + '"' : '') + '>' + esc(v) + '</span>' + esc(cap) +
-        /* A word at a time, so each can arrive on its own beat (bdr.css,
-           THE QUESTION, REVEALED). */
-        '<span class="b-day-q">' + aiMark() + '<span class="b-day-q-in">' + q.split(' ').map((w, i) =>
-          '<span class="b-day-w" style="--i:' + i + '">' + esc(w) + '</span>').join(' ') + '</span></span></button>';
-    };
+    const ask = (k) => (one ? 'How is ' + firstName(ids[0]) + ' doing today?' : inTeam(DAY_METRIC[k].ask));
     const today = r.day === TODAY_ISO && r.p < 1;
+    const usualCalls = Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) / r.n);
+    const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / r.n);
     /* The questions the sentence leaves open, each one a turn in the chat. */
     const asks = [];
     const worst = r.by.map((x) => ({ id: x.id, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0 }))
@@ -10893,21 +10905,25 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'calls so far against a usual day by this hour' }) +
-      /* Folded, the day's chain stays as the peek and the call figures
-         under it go behind "Show 5 more". */
-      '<div class="b-day-pills">' + DAY_STEPS.map((s) => pill(commas(r.t[s.k]), s.name, s.k)).join('') + '</div>' +
-      (fold ? '<div class="b-day-fold' + (DAY_OPEN ? ' is-open' : '') + '">' +
-        '<div class="b-day-fold-panel" id="dayFoldPanel"><div class="b-day-fold-in">' : '') +
-      '<div class="b-day-pills">' +
-        (today ? pill(commas(onCallNow(ids).length), 'of ' + commas(r.n) + ' on a call now', 'live', one ? ids[0] : 'all') : '') +
-        pill(commas(r.yest), 'calls' + each + ' the day before', 'yest') +
-        pill(commas(r.month), 'calls' + each + ' this month', 'month') +
-        pill(commas(r.avg), 'calls' + each + ' a working day', 'avg') +
-        pill(callLen(r.secs), 'an average call', 'secs') +
+      /* The chain as four widgets, each with the rate behind it; then the
+         call figures as smaller ones. */
+      '<div class="b-wds is-steps">' + DAY_STEPS.map((s) => {
+        const v = vsUsual(r.t[s.k], r.u[s.k], today ? 'vs usual by now' : 'vs a usual day');
+        const sub = s.k === 'reached' || s.k === 'talks'
+          ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
+          : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
+        return wid({ big: true, cap: cap1(s.name), val: commas(r.t[s.k]), d: v.d, tone: v.tone, sub, q: ask(s.k) });
+      }).join('') + '</div>' +
+      '<div class="b-wds">' +
+        (today ? wid({ cap: 'On a call now', val: commas(onCallNow(ids).length), live: one ? ids[0] : only ? only.id : 'all',
+          d: 'Of ' + esc(plural(r.n, 'person')), q: ask('live') }) : '') +
+        (() => { const v = vsUsual(r.yest, usualCalls, 'vs usual'); return wid({ cap: 'Calls' + each + ' the day before', val: commas(r.yest), d: v.d, tone: v.tone, q: ask('yest') }); })() +
+        wid({ cap: 'Calls' + each + ' this month', val: commas(r.month), d: 'Since 1 ' + esc(MONTHS[new Date(r.day + 'T00:00:00').getMonth()]), q: ask('month') }) +
+        (() => { const v = vsUsual(r.avg, GOAL.calls, 'vs the goal of ' + GOAL.calls); return wid({ cap: 'Calls' + each + ' a working day', val: commas(r.avg), d: v.d, tone: v.tone, q: ask('avg') }); })() +
+        wid({ cap: 'An average call', val: callLen(r.secs), q: ask('secs'),
+          d: Math.abs(r.secs - usualSecs) >= 5 ? esc(SIGNED(r.secs - usualSecs)) + 's vs usual' : 'As usual',
+          tone: r.secs < usualSecs * 0.85 ? 'dn' : r.secs > usualSecs * 1.1 ? 'up' : 'eq' }) +
       '</div>' +
-      (fold ? '</div></div>' +
-        '<button class="b-day-fold-btn" type="button" data-dayfold aria-controls="dayFoldPanel" aria-expanded="' + DAY_OPEN + '">' +
-          '<span>' + dayFoldSay(today) + '</span>' + DAY_FOLD_CHEV + '</button></div>' : '') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
            and the quarter are one question in the chat, not three buttons. */
@@ -10936,10 +10952,6 @@
     const scope = (q) => (team && teamsOf().length > 1 ? q.replace(/\?$/, ' in the ' + team.name + '?') : q);
     const ASKS = { calls: 'Who made the most calls ', reached: 'Who reached the most decision makers ',
       talks: 'Who had the most conversations ', meets: 'Who booked the most meetings ' };
-    const pill = (v, cap, q) => '<button class="evidence-pill b-day-pill" type="button" data-ask="' + esc(q) + '">' +
-      '<span class="val">' + esc(v) + '</span>' + esc(cap) +
-      '<span class="b-day-q">' + aiMark() + '<span class="b-day-q-in">' + q.split(' ').map((w, i) =>
-        '<span class="b-day-w" style="--i:' + i + '">' + esc(w) + '</span>').join(' ') + '</span></span></button>';
     const whoAsk = one ? firstName(ids[0]) : team && teamsOf().length > 1 ? 'the ' + team.name : teamsOf().length > 1 ? 'my teams' : 'my team';
     const overview = 'How did ' + whoAsk + ' do ' + R.words + '?';
     const dc = s.t.calls - s.u.calls;
@@ -10947,18 +10959,22 @@
       (Math.abs(dc) < Math.max(2, s.u.calls * 0.05) ? 'about a usual run for those days'
         : '<b>' + esc(commas(Math.abs(dc))) + (dc < 0 ? ' fewer' : ' more') + '</b> than a usual run of those days') +
       ', and booked <b>' + esc(plural(s.t.meets, 'meeting')) + '</b> (usually ' + esc(commas(s.u.meets)) + ').';
-    const more = '<div class="b-day-pills">' +
-      pill(commas(days ? Math.round(s.t.calls / n / days) : 0), 'calls' + each + ' a working day', overview) +
-      pill(commas(Math.round(days)), days === 1 ? 'working day' : 'working days', overview) +
-      pill(callLen(calls ? Math.round(secs / calls) : 0), 'an average call', overview) +
+    const perDay = days ? Math.round(s.t.calls / n / days) : 0;
+    const av = vsUsual(perDay, GOAL.calls, 'vs the goal of ' + GOAL.calls);
+    const more = '<div class="b-wds">' +
+      wid({ cap: 'Calls' + each + ' a working day', val: commas(perDay), d: av.d, tone: av.tone, q: overview }) +
+      wid({ cap: days === 1 ? 'Working day' : 'Working days', val: commas(Math.round(days)), d: esc(dateRange(R.from, R.to)), q: overview }) +
+      wid({ cap: 'An average call', val: callLen(calls ? Math.round(secs / calls) : 0), q: overview }) +
     '</div>';
     return '<div class="b-day">' +
       aimyBlock({ text: said, from: 'calls against a usual run of the same days' }) +
-      '<div class="b-day-pills">' + DAY_STEPS.map((st) => pill(commas(s.t[st.k]), st.name, scope(ASKS[st.k] + R.words + '?'))).join('') + '</div>' +
-      (fold ? '<div class="b-day-fold' + (DAY_OPEN ? ' is-open' : '') + '">' +
-        '<div class="b-day-fold-panel" id="dayFoldPanel"><div class="b-day-fold-in">' + more + '</div></div>' +
-        '<button class="b-day-fold-btn" type="button" data-dayfold aria-controls="dayFoldPanel" aria-expanded="' + DAY_OPEN + '">' +
-          '<span>' + (DAY_OPEN ? 'Show fewer' : 'Show 3 more') + '</span>' + DAY_FOLD_CHEV + '</button></div>' : more) +
+      '<div class="b-wds is-steps">' + DAY_STEPS.map((st) => {
+        const v = vsUsual(s.t[st.k], s.u[st.k], 'vs a usual run');
+        const sub = st.k === 'reached' || st.k === 'talks'
+          ? '<b>' + per100(s.t[st.k], s.t.calls) + ' in 100</b> calls, usually ' + per100(s.u[st.k], s.u.calls)
+          : st.k === 'meets' ? 'From <b>' + esc(plural(s.t.talks, 'conversation')) + '</b>' : '';
+        return wid({ big: true, cap: cap1(st.name), val: commas(s.t[st.k]), d: v.d, tone: v.tone, sub, q: one ? overview : scope(ASKS[st.k] + R.words + '?') });
+      }).join('') + '</div>' + more +
       '<div class="b-day-asks">' +
         '<button class="s-sec-ask" type="button" data-ask="' + esc(overview) + '">' + aiMark() + esc(overview) + '</button>' +
         (one ? '' : '<button class="s-sec-ask" type="button" data-ask="' + esc(scope('Who was short on calls ' + R.words + '?')) + '">' +
@@ -11067,6 +11083,26 @@
        "from 6 Oct to 17 Oct" or "on 6 Oct", as the teams page's pills ask
        once a period is chosen. A ranking by one step, who was short on
        calls, or the whole period with everyone's line. */
+    /* ══ THE PLAN: why it is behind on a step, or who is ahead of it ══ */
+    if (/\bthe plan\b/.test(q)) {
+      const w = spanWho();
+      const st = DAY_STEPS.filter((s) => q.indexOf(s.noun) > -1)[0] || DAY_STEPS[0];
+      const P = planSpan();
+      const R = planRead(w.ids, P);
+      const r = R[st.k];
+      if (!r.el) return 'The plan for ' + esc(P.when) + ' has not started yet, so there is no pace to read.';
+      const why = planWhy(R, st.k);
+      const head = esc(upper(w.name)) + ' ' + (w.who1 || w.tm || teams.length === 1 ? 'has' : 'have') + ' ' + st.verb + ' <b>' +
+        esc(commas(r.cum) + ' ' + st.noun) + '</b> ' + esc(P.when) + ', against ' + esc(commas(Math.round(r.byNow))) +
+        ' in the plan by now: ' + esc(pace(r).say.toLowerCase()) + '.' + (why ? ' ' + why : '');
+      if (w.who1) return head + next(['How is ' + firstName(w.who1) + ' doing today?']);
+      const rows = r.by.slice().sort((a, b) => b.gap - a.gap);
+      return head + ' Person by person, against the plan by now:' +
+        '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b' + (x.ratio < 0.85 ? ' class="b-door-warn"' : '') + '>' +
+          esc(commas(x.n)) + '</b> against ' + esc(commas(Math.round(x.plan))) + ', ' +
+          (x.gap >= 1 ? esc(commas(Math.round(x.gap))) + ' short' : x.gap <= -1 ? esc(commas(Math.round(-x.gap))) + ' over' : 'on the plan'))).join('') +
+        '</div>' + next(['How is ' + firstName(rows[0].id) + ' doing today?']);
+    }
     const PER = q.match(/\bfrom (\d{1,2}) ([a-z]{3}) to (\d{1,2}) ([a-z]{3})\b|\bon (\d{1,2}) ([a-z]{3})\b/i);
     if (PER) {
       const isoOf = (dd, mm) => {
@@ -11243,10 +11279,429 @@
   /* ══ AND THE PAGE IT OPENS ═══════════════════════════════════════════
      A holding page until step 3 of the plan gives it its design: the
      day's numbers for every team together, then a card per team. */
+  /* ══ THE PLAN, AND THE PACE (6 Nov 2026) ════════════════════════════════
+     Feedback on the teams pages (5 Nov): velocity and burn-down, told as a
+     story; the team's operation in plain sight; the numbers as widgets.
+     Nour: charts now, but smart ones, never drawn without what AiMY makes of
+     them and the thing to do about it beside them. Every step of the chain
+     has a plan, the GOAL for one person on one working day, over a period:
+     "What is left" is the burn-down (what is left of the plan day by day,
+     against the straight line that ends at nothing on the last day, and
+     where today's pace lands); "Each day" is the velocity (what each day
+     made, against the plan's day and what each day left now has to make).
+     References: Plane's cycle burn-down (the story beside the chart),
+     Profound's metric tabs over one chart, Fireflies' bars per team. */
+  const PLAN_RATE = { calls: 1, reached: GOAL.reach, talks: GOAL.talk, meets: GOAL.talk * GOAL.meet };
+  const planDay = (k) => GOAL.calls * PLAN_RATE[k];
+  let PLAN_STEP = 'calls';
+  const teamWith = (id) => TEAMS.filter((t) => t.members.indexOf(id) > -1)[0];
+  const monthLong = (iso) => new Date(iso + 'T00:00:00').toLocaleString('en-GB', { month: 'long' });
+  /* The period the plan runs over. With none chosen it is this month, the
+     whole of it, so there is a pace to read; a chosen "This week", "This
+     month" or "This quarter" runs to its end too; any other run of days is
+     the plan for those days and nothing after them. */
+  function planSpan() {
+    const ms = TODAY_ISO.slice(0, 8) + '01', ws = weekStart(TODAY_ISO), qs = quarterStart(TODAY_ISO);
+    const to = S.to || S.from;
+    const month = { from: ms, end: isoAdd(monthAdd(ms, 1), -1), unit: 'the month', when: 'this month', name: monthLong(ms) };
+    if (!S.from || (to === TODAY_ISO && S.from === ms)) return month;
+    if (to === TODAY_ISO && S.from === ws) return { from: ws, end: isoAdd(ws, 6), unit: 'the week', when: 'this week', name: 'This week' };
+    if (to === TODAY_ISO && S.from === qs) {
+      return { from: qs, end: isoAdd(monthAdd(qs, 3), -1), unit: 'the quarter', when: 'this quarter', name: 'This quarter' };
+    }
+    return { from: S.from, end: to, unit: 'the period', when: S.from === to ? 'on ' + dateSay(to) : 'from ' + dateSay(S.from) + ' to ' + dateSay(to),
+      name: dateRange(S.from, to) };
+  }
+  /* Each step for a set of people over the period: the plan, what was done
+     day by day, the plan by now, the pace so far, what each day left needs,
+     and where the pace lands; and each person's share of it. */
+  function planRead(ids, P) {
+    const days = [];
+    for (let iso = P.from; iso <= P.end; iso = isoAdd(iso, 1)) if (isWorkDay(iso)) days.push(iso);
+    const N = days.length;
+    const parts = days.map(dayPart);
+    const el = parts.reduce((a, b) => a + b, 0);
+    const per = days.map((iso, i) => (parts[i] ? ids.map((id) => repDay(id, iso)) : null));
+    const leftDays = days.filter((iso, i) => iso > TODAY_ISO || (iso === TODAY_ISO && parts[i] < 1)).length;
+    const out = { P };
+    DAY_STEPS.forEach((s) => {
+      const k = s.k;
+      const day = planDay(k) * ids.length;
+      const target = Math.round(day * N);
+      let cum = 0;
+      const pts = days.map((iso, i) => {
+        const n = per[i] ? per[i].reduce((a, d) => a + d[k], 0) : 0;
+        cum += n;
+        return { iso, n, cum, part: parts[i] };
+      });
+      const byNow = day * el;
+      const daysLeft = Math.max(0, N - el);
+      const vel = el ? cum / el : 0;
+      const by = ids.map((id, j) => {
+        let n = 0;
+        per.forEach((p) => { if (p) n += p[j][k]; });
+        const plan = planDay(k) * el;
+        return { id, n, plan, gap: plan - n, ratio: plan ? n / plan : 1 };
+      });
+      out[k] = { k, s, days, N, el, day, target, cum, pts, byNow, ratio: byNow ? cum / byNow : 1, vel,
+        need: daysLeft ? Math.max(0, target - cum) / daysLeft : 0, daysLeft, leftDays, proj: Math.round(cum + vel * daysLeft), by };
+    });
+    return out;
+  }
+  /* The pace in words and colour: ahead, on pace, behind (the warning ink),
+     well behind (the error ink), at 85% of the plan by now. */
+  function pace(r) {
+    if (!r.el) return { say: 'Not started', tone: 'eq' };
+    const pc = Math.round(Math.abs(1 - r.ratio) * 100);
+    if (r.ratio >= 1.03) return { say: pc + '% ahead', tone: 'up' };
+    if (r.ratio >= 0.97) return { say: 'On pace', tone: 'up' };
+    return { say: pc + '% behind', tone: r.ratio >= 0.85 ? 'dn' : 'err', short: true };
+  }
+  /* The four steps as figures, for a card: what each counts, the number,
+     and the pace in words and colour. No bars (Nour, 6 Nov: too many
+     charts, not clean). */
+  const planRows = (R) => '<ul class="b-pl-figs">' + DAY_STEPS.map((s) => {
+    const x = R[s.k], pc = pace(x);
+    return '<li class="b-pl-fig"><span class="b-pl-fcap">' + esc(cap1(s.noun)) + '</span>' +
+      '<span class="b-pl-fval">' + esc(commas(x.cum)) + '</span>' +
+      '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span></li>';
+  }).join('') + '</ul>';
+  /* Where in the chain a short step comes from: the calls themselves, or
+     what becomes of them. */
+  function planWhy(R, k) {
+    const w = { reached: ['calls', 'calls', 'reach a decision maker', GOAL.reach],
+      talks: ['calls', 'calls', 'become a conversation', GOAL.talk],
+      meets: ['talks', 'conversations', 'end in a meeting', GOAL.meet] }[k];
+    if (!w) return '';
+    const up = R[w[0]];
+    if (up.cum < 20) return '';
+    const got = Math.round((100 * R[k].cum) / up.cum), want = Math.round(100 * w[3]);
+    const upOk = up.ratio >= 0.95;
+    if (got < want * 0.95) {
+      return (upOk ? 'The ' + w[1] + ' are on pace; the drop comes after them: ' : '') +
+        '<b>' + got + ' in 100</b> ' + w[1] + ' ' + w[2] + ', against a plan of ' + want + '.';
+    }
+    return upOk ? '' : 'It comes from the ' + w[1] + ': ' + got + ' in 100 still ' + w[2] + ', as planned, but there are fewer ' + w[1] + ' to start from.';
+  }
+  /* Who the gap belongs to: the team that holds most of it and the person
+     furthest short, or, on pace, who is furthest ahead. */
+  function planWho(ctx, R, k) {
+    if (ctx.one) return '';
+    const r = R[k];
+    if (!pace(r).short) {
+      const best = r.by.slice().sort((a, b) => a.gap - b.gap)[0];
+      return best && best.gap <= -1 ? '<b>' + esc(REP[best.id].name) + '</b> is furthest ahead, ' + esc(commas(Math.round(-best.gap))) + ' over the plan.' : '';
+    }
+    const tot = r.by.reduce((a, x) => a + Math.max(0, x.gap), 0);
+    if (tot < 1) return '';
+    const top = r.by.slice().sort((a, b) => b.gap - a.gap)[0];
+    if (ctx.teams.length > 1) {
+      const tg = ctx.teams.map((t) => ({ t, g: r.by.filter((x) => t.members.indexOf(x.id) > -1).reduce((a, x) => a + Math.max(0, x.gap), 0) }))
+        .sort((a, b) => b.g - a.g)[0];
+      return 'The <b>' + esc(tg.t.name) + '</b> holds <b>' + Math.round((100 * tg.g) / tot) + '%</b> of the gap, and <b>' +
+        esc(REP[top.id].name) + '</b> is furthest short of anyone, by ' + esc(commas(Math.round(top.gap))) + '.';
+    }
+    return '<b>' + esc(REP[top.id].name) + '</b> alone is ' + esc(commas(Math.round(top.gap))) + ' of it, <b>' +
+      Math.round((100 * top.gap) / tot) + '%</b> of the gap.';
+  }
+  /* Where the pace lands at the end of the period. */
+  function planAhead(ctx, r, P) {
+    const Who = cap1(ctx.who), v = (one, many) => (ctx.pl ? many : one);
+    if (r.daysLeft < 0.01) {
+      return r.cum >= r.target ? Who + ' met the plan for ' + P.unit + ', with <b>' + esc(commas(r.cum - r.target)) + ' more</b>.'
+        : Who + ' ended ' + P.unit + ' <b>' + esc(commas(r.target - r.cum) + ' ' + r.s.noun) + ' short</b> of the plan.';
+    }
+    const left = r.target - r.cum;
+    if (left <= 0) return Who + ' ' + v('has', 'have') + ' already met the plan for ' + P.unit + '.';
+    if (r.proj >= r.target) {
+      const iso = r.days[Math.min(r.N - 1, Math.max(0, Math.ceil(r.el + left / r.vel) - 1))];
+      return 'At this pace ' + ctx.who + ' ' + v('meets', 'meet') + ' the plan by <b>' + esc(dateSay(iso)) + '</b>' +
+        (iso < P.end ? ', before the end of ' + P.unit : '') + '.';
+    }
+    /* The rates are the figures under the story; the sentence says where they land. */
+    return 'At this pace ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' <b>' + esc(commas(r.target - r.proj) + ' ' + r.s.noun) +
+      ' short</b>, with ' + esc(plural(r.leftDays, 'working day')) + ' left to close it.';
+  }
+  /* The last five working days against the five before, wherever they fall. */
+  function planTrend(ids, k) {
+    let a = 0, ap = 0, b = 0, bp = 0, seen = 0;
+    for (let iso = TODAY_ISO; seen < 10; iso = isoAdd(iso, -1)) {
+      const p = dayPart(iso);
+      if (!p) continue;
+      const n = ids.reduce((s, id) => s + repDay(id, iso)[k], 0);
+      if (seen < 5) { a += n; ap += p; } else { b += n; bp += p; }
+      seen++;
+    }
+    return ap && bp ? { now: a / ap, was: b / bp } : null;
+  }
+  const PL_DOWN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg>';
+  const PL_UP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>';
+  /* The thing to do about it: on a page for several teams, open the one
+     furthest behind; on one team's, a word with the person furthest short
+     (or a well done to the one furthest ahead); on a person's, the same for
+     them. Then the question the chart leaves open, for the chat. */
+  function planActs(ctx, R, k) {
+    const r = R[k], p = pace(r);
+    const q = (p.short ? 'Why is ' + ctx.ask + ' behind the plan on ' : 'Who is ahead of the plan on ') + r.s.noun + ' ' + R.P.when + '?';
+    let out = '';
+    if (r.el && !ctx.one && ctx.teams.length > 1) {
+      const tg = ctx.teams.map((t) => {
+        const xs = r.by.filter((x) => t.members.indexOf(x.id) > -1);
+        return { t, ratio: xs.reduce((a, x) => a + x.n, 0) / (xs.reduce((a, x) => a + x.plan, 0) || 1) };
+      }).sort((a, b) => a.ratio - b.ratio)[0];
+      out = '<button class="s-insight-lnk primary" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: tg.t.id, from: S.from, to: S.to }))) + '">Open the ' + esc(tg.t.name) + '</button>';
+    } else if (r.el) {
+      const pick = ctx.one ? r.by[0] : r.by.slice().sort((a, b) => (p.short ? b.gap - a.gap : a.gap - b.gap))[0];
+      const t = teamWith(pick.id);
+      const acts = p.short ? ['msg', 'book'] : ['thanks'];
+      const done = acts.filter((a) => TACTS[t.id + ':' + pick.id + ':' + a])[0];
+      out = done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + ' to ' + esc(firstName(pick.id)) + '</span>'
+        : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+          esc(t.id + ':' + pick.id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(pick.id))) + '</button>').join('');
+    }
+    return out + '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>';
+  }
+  /* The story beside the chart: where it stands in one line, what AiMY makes
+     of it, the four figures it rests on, and what to do. */
+  function planStory(ctx, R, k) {
+    const r = R[k], p = pace(r), P = R.P;
+    const say = [];
+    let head;
+    if (!r.el) {
+      head = 'Not started';
+      say.push('The plan for ' + P.when + ' starts on its first working day, so there is no pace to read yet.');
+    } else {
+      const gap = Math.round(r.byNow - r.cum);
+      head = p.short ? commas(gap) + ' ' + r.s.noun + ' behind' : r.ratio >= 1.03 ? commas(-gap) + ' ' + r.s.noun + ' ahead' : 'On pace';
+      /* Where it stands is the line above and the figures below, so the
+         story starts at why (Nour judges at a glance: no paragraph that
+         restates the numbers beside it). */
+      if (p.short) {
+        const why = planWhy(R, k);
+        if (why) say.push(why);
+      }
+      const who = planWho(ctx, R, k);
+      if (who) say.push(who);
+      say.push(planAhead(ctx, r, P));
+      const tr = planTrend(ctx.ids, k);
+      if (tr && tr.was && Math.abs(tr.now / tr.was - 1) >= 0.08) {
+        say.push('The last five working days made <b>' + esc(commas(Math.round(tr.now))) + ' a day</b>, ' +
+          (tr.now < tr.was ? 'down' : 'up') + ' from ' + esc(commas(Math.round(tr.was))) + ' the five before.');
+      }
+    }
+    const fact = (dt, dd) => '<div><dt>' + esc(dt) + '</dt><dd>' + esc(dd) + '</dd></div>';
+    return '<div class="b-pl-story">' +
+      '<p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
+      aimyBlock({ text: say.join(' ') }, true) +
+      (r.el ? '<dl class="b-pl-facts">' + fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
+        fact('A day so far', commas(Math.round(r.vel))) +
+        fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target)) + '</dl>' : '') +
+      '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div>' +
+    '</div>';
+  }
+  /* The chart, distilled (Nour, 6 Nov: too many charts, not clean): what is
+     left of the plan, the straight line the plan takes, today, and where the
+     pace lands. No grid, no axis, no legend, no second view: each line says
+     what it is where it is drawn. The lines are an SVG stretched to the plot
+     (strokes kept even by non-scaling-stroke) and every word is HTML over
+     it, placed in per cent, so it reads the same at any width. A column per
+     working day carries what that day was, shown over the plot on hover. */
+  const plPct = (n) => (+n).toFixed(2) + '%';
+  const plLab = (cls, x, y, txt) => '<span class="' + cls + '" style="left:' + plPct(x) + ';top:' + plPct(y) + '">' + txt + '</span>';
+  const plVb = (n) => (n * 10).toFixed(1);
+  function planChart(r) {
+    const N = r.N || 1;
+    const X = (i) => (100 * i) / N;
+    const tone = pace(r).tone;
+    const noun = r.s.noun;
+    const dayLab = (iso) => DAY_FULL[new Date(iso + 'T00:00:00').getDay()].slice(0, 3) + ' ' + dateSay(iso);
+    const live = r.el > 0 && r.daysLeft > 0.01;
+    const top = Math.max(r.target, 1);
+    const Y = (v) => 100 * (1 - Math.max(0, Math.min(top, v)) / top);
+    let acc = 0;
+    const ends = r.pts.map((p) => (acc += p.part));
+    let svg = '<line class="pl-base" x1="0" x2="1000" y1="1000" y2="1000" vector-effect="non-scaling-stroke"/>' +
+      '<path class="pl-ideal" d="M0 0 L1000 1000" vector-effect="non-scaling-stroke"/>';
+    /* "The plan" sits on the side of its line the pace leaves clear: under
+       it when behind (the pace runs above), over it when ahead. */
+    let labs = plLab('pl-note is-plan' + (pace(r).short ? ' is-under' : ''), 42, 42, 'The plan');
+    const pts = [[0, Y(top)]];
+    r.pts.forEach((p, i) => { if (p.part) pts.push([X(ends[i]), Y(r.target - p.cum)]); });
+    if (pts.length > 1) {
+      const d = pts.map((q, i) => (i ? 'L' : 'M') + plVb(q[0]) + ' ' + plVb(q[1])).join(' ');
+      const last = pts[pts.length - 1];
+      svg += '<path class="pl-area" d="' + d + ' L' + plVb(last[0]) + ' 1000 L0 1000 Z"/>' +
+        '<path class="pl-act" d="' + d + '" vector-effect="non-scaling-stroke"/>';
+      const left = r.target - r.cum;
+      if (live && left > 0) {
+        let ex = 100, ey, note;
+        if (r.proj >= r.target && r.vel > 0) {
+          const at = r.el + left / r.vel;
+          ex = X(at); ey = Y(0);
+          note = 'Meets it by ' + dateSay(r.days[Math.min(N - 1, Math.max(0, Math.ceil(at) - 1))]);
+        } else {
+          ey = Y(left - r.vel * r.daysLeft);
+          note = 'At this pace, ' + commas(r.target - r.proj) + ' short';
+        }
+        svg += '<path class="pl-proj is-' + tone + '" d="M' + plVb(last[0]) + ' ' + plVb(last[1]) + ' L' + plVb(ex) + ' ' + plVb(ey) +
+          '" vector-effect="non-scaling-stroke"/>';
+        labs += '<span class="pl-dot is-end is-' + tone + '" style="left:' + plPct(ex) + ';top:' + plPct(ey) + '"></span>' +
+          plLab('pl-note is-end is-' + tone, ex, ey, esc(note));
+      }
+      labs += '<span class="pl-dot" style="left:' + plPct(last[0]) + ';top:' + plPct(last[1]) + '"></span>' +
+        plLab('pl-note is-act', last[0], last[1], esc(commas(Math.max(0, left)) + ' left'));
+    }
+    if (live) {
+      svg += '<line class="pl-today" x1="' + plVb(X(r.el)) + '" x2="' + plVb(X(r.el)) + '" y1="0" y2="1000" vector-effect="non-scaling-stroke"/>';
+      labs += plLab('pl-xlab is-today', X(r.el), 100, 'Today');
+    }
+    if (r.days.length) {
+      labs += plLab('pl-xlab is-first', 0, 100, esc(dateSay(r.days[0]))) + plLab('pl-xlab is-last', 100, 100, esc(dateSay(r.days[N - 1])));
+    }
+    const hits = r.pts.map((p, i) => '<rect class="pl-hit" x="' + plVb(X(i)) + '" y="0" width="' + plVb(X(1)) + '" height="1000" data-tip="' +
+      esc(p.part
+        ? dayLab(p.iso) + ': ' + commas(p.n) + ' ' + noun + (p.part < 1 ? ' so far' : '') + ', ' + commas(Math.max(0, r.target - p.cum)) + ' left'
+        : dayLab(p.iso) + ': the plan leaves ' + commas(Math.max(0, Math.round(r.target - r.day * (i + 1))))) +
+      '" data-x="' + X(i + 0.5).toFixed(2) + '"/>').join('');
+    return '<div class="b-pl-plot"><div class="b-pl-area">' +
+      '<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + svg + hits + '</svg>' + labs +
+      '<span class="b-pl-tip" hidden></span></div></div>';
+  }
+  /* The whole board: one widget per step across the top (pressing one puts
+     it on the chart), then the story and the chart side by side. */
+  function planBoard(ctx) {
+    const R = planRead(ctx.ids, planSpan());
+    const k = R[PLAN_STEP] ? PLAN_STEP : 'calls';
+    const r = R[k], P = R.P;
+    const started = r.pts.filter((p) => p.part > 0).length;
+    const sub = P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', working day ' + commas(started) + ' of ' + commas(r.N));
+    return '<div class="b-pl">' +
+      '<div class="b-pl-head"><h3 class="b-pl-h">Against the plan</h3><span class="b-pl-sub">' + esc(sub) + '</span></div>' +
+      '<div class="b-pl-tabs">' + DAY_STEPS.map((s) => {
+        const x = R[s.k], pc = pace(x);
+        return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
+          '<span class="b-pl-tcap">' + esc(cap1(s.name)) + '</span>' +
+          '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>of ' + esc(commas(x.target)) + '</small></span>' +
+          '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="b-pl-body">' + planStory(ctx, R, k) +
+        '<div class="b-pl-chart"><p class="b-pl-ctitle">' + esc(cap1(r.s.noun)) + ' left to do</p>' + planChart(r) + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  document.addEventListener('click', (e) => {
+    const s = e.target.closest('[data-bstep]');
+    if (s) { PLAN_STEP = s.getAttribute('data-bstep'); paint(); }
+  });
+  /* The day under the pointer, over the plot. */
+  let PL_TIP = null;
+  document.addEventListener('mousemove', (e) => {
+    const h = e.target.closest ? e.target.closest('[data-tip]') : null;
+    const area = h ? h.closest('.b-pl-area') : null;
+    const tip = area ? area.querySelector('.b-pl-tip') : null;
+    if (PL_TIP && PL_TIP !== tip) { PL_TIP.hidden = true; PL_TIP = null; }
+    if (!tip) return;
+    tip.textContent = h.getAttribute('data-tip');
+    tip.style.left = Math.max(14, Math.min(86, +h.getAttribute('data-x'))) + '%';
+    tip.hidden = false;
+    PL_TIP = tip;
+  });
+
+  /* ══ A TEAM'S PAGE, WITH ITS PEOPLE AS CARDS (6 Nov 2026) ════════════════
+     The side rail is gone (feedback, 5 Nov): a team card opens the team's
+     own page, and a person on it opens their profile. Top to bottom: the
+     team, the plan and its pace, today live, who is worth the manager's
+     time, every person as a card, and the team against the manager's other
+     teams. */
+  function rosterCard(t, id, i, P) {
+    const R = planRead([id], P);
+    const on = onCallNow([id]).length;
+    const worst = DAY_STEPS.map((s) => R[s.k]).filter((x) => pace(x).short).sort((a, b) => a.ratio - b.ratio)[0];
+    const say = !R.calls.el ? 'The plan for ' + esc(P.when) + ' has not started yet.'
+      : worst ? (planWhy(R, worst.k) || 'Furthest behind on <b>' + esc(worst.s.noun) + '</b>: ' + esc(commas(worst.cum)) + ' against ' +
+          esc(commas(Math.round(worst.byNow))) + ' in the plan by now.')
+      : 'On pace on every step ' + esc(P.when) + '.';
+    const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to })));
+    return '<article class="type-card s-card b-qcard b-ro-card">' +
+      '<div class="b-ro-top"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 44) + '</span>' +
+        '<div class="b-ro-who"><button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(REP[id].name) + '</button>' +
+          '<span class="b-ro-sub">' + scoreTag(weekScores(id).now) +
+            (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</span></div></div>' +
+      planRows(R) +
+      aimyBlock({ text: say }, true) +
+      '<div class="tc-gov b-qcard-foot"><span></span><button class="s-insight-lnk" type="button" data-go="' + go + '">Open the profile</button></div>' +
+    '</article>';
+  }
+  /* The team against the manager's other teams: each step as a bar per team,
+     the share of the plan by now, the plan as the line all of them aim at. */
+  function teamCompare(t, P) {
+    const reads = teamsOf().map((x) => ({ t: x, R: planRead(x.members, P) }));
+    const mine = reads.filter((x) => x.t.id === t.id)[0];
+    if (!mine.R.calls.el) return '<p class="b-vfoot">Nothing to compare until the plan for ' + esc(P.when) + ' starts.</p>';
+    const pc = (x) => Math.round(100 * x) + '%';
+    const diffs = DAY_STEPS.map((s) => {
+      const best = reads.filter((x) => x !== mine).sort((a, b) => b.R[s.k].ratio - a.R[s.k].ratio)[0];
+      return { s, best, d: mine.R[s.k].ratio - best.R[s.k].ratio };
+    });
+    const lead = diffs.filter((x) => x.d > 0.005).length;
+    const w = diffs.slice().sort((a, b) => a.d - b.d)[0];
+    const b = diffs.slice().sort((a, b2) => b2.d - a.d)[0];
+    const others = reads.length > 2 ? 'your other teams' : 'the ' + esc(reads.filter((x) => x !== mine)[0].t.name);
+    const said = (lead === 0 ? 'The <b>' + esc(t.name) + '</b> trails ' + others + ' on every step'
+      : lead === 4 ? 'The <b>' + esc(t.name) + '</b> leads ' + others + ' on every step'
+      : 'The <b>' + esc(t.name) + '</b> leads ' + others + ' on ' + lead + ' of the four steps') +
+      (w.d < -0.005 ? '; the widest gap is <b>' + esc(w.s.noun) + '</b>, ' + pc(mine.R[w.s.k].ratio) + ' of the plan by now against ' +
+        pc(w.best.R[w.s.k].ratio) + ' for the ' + esc(w.best.t.name) + '.'
+        : ', most of all on <b>' + esc(b.s.noun) + '</b>, ' + pc(mine.R[b.s.k].ratio) + ' of the plan by now.');
+    /* Figures, not bars (Nour, 6 Nov): each step, each team's share of the
+       plan by now, in its pace's colour, the open team first and in bold. */
+    const order = [mine].concat(reads.filter((x) => x !== mine));
+    return aimyBlock({ text: said, from: 'share of the plan by now, ' + P.when }) +
+      '<div class="b-cmp">' + DAY_STEPS.map((s) => '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
+        order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
+          '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') + '</div>').join('') + '</div>' +
+      '<p class="b-cmp-key">Each figure is the share of the plan done by now; 100% is on pace.</p>';
+  }
+  function teamPage(t) {
+    const r = teamRead(t);
+    const P = planSpan();
+    const on = onCallNow(t.members).length;
+    const R0 = pagePeriod();
+    const move = r.was == null || r.move === 0 ? ''
+      : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' + (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
+    const others = teamsOf().length > 1;
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams') +
+        '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
+          '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
+            '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
+              '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span></div></div>' +
+          datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
+        planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false }) +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="' + esc(R0 ? dateRange(R0.from, R0.to) : 'Today') + '">' +
+        headH(R0 ? dateRange(R0.from, R0.to) : 'Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0) + '</section>' +
+      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="The people">' + headH('The people') +
+        cardGrid(t.members, (id, i) => rosterCard(t, id, i, P)) + '</section>' +
+      (others ? '<section class="s-block s-block-wide" aria-label="Against your other teams">' + headH('Against your other teams') +
+        teamCompare(t, P) + '</section>' : '') +
+    '</div>';
+  }
+
   function teamsPage() {
+    const tm = S.team && teamsOf().filter((x) => x.id === S.team)[0];
+    if (tm) return teamPage(tm);
     const reads = teamsOf().map(teamRead);
     const ppl = peopleOf(teamsOf());
     const live = onCallNow(ppl);
+    const P = planSpan();
+    const R0 = pagePeriod();
+    const many = reads.length > 1;
     const worst = reads.slice().sort((a, b) => a.now - b.now)[0];
     const said = worst && worst.word.rank >= 2
       ? '<b>' + esc(worst.t.name) + '</b> is at ' + commas(worst.now) + ' this week, ' +
@@ -11258,13 +11713,18 @@
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
         '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
           datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
-        teamDayBlock(ppl, reads.length > 1 ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
-          reads.length > 1 ? 'have' : 'has', false, pagePeriod()) +
+        planBoard({ ids: ppl, who: many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
+          ask: many ? 'my teams' : 'my team', teams: teamsOf(), one: false, pl: many }) +
       '</section>' +
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
         aimyBlock({ text: said, from: 'this week against last' }) +
-        cardGrid(reads, (r, i) => teamCard(r, i, live)) +
+        cardGrid(reads, (r, i) => teamCard(r, i, live, P)) +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="' + esc(R0 ? dateRange(R0.from, R0.to) : 'Today') + '">' +
+        headH(R0 ? dateRange(R0.from, R0.to) : 'Today') +
+        teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
+          many ? 'have' : 'has', false, R0) +
       '</section>' +
     '</div>';
   }
@@ -11297,34 +11757,40 @@
       (more ? '<span class="b-stack-face b-stack-n">+' + commas(more) + '</span>' : '') +
     '</span>';
   }
-  function teamCard(r, i, live) {
-    const d = dayRead(r.t.members);
+  /* The card carries what decides whether to open it (feedback, 5 Nov):
+     the four steps against the plan, each a bar with the plan's mark and the
+     pace in words and colour, and AiMY's one sentence on the step furthest
+     behind, who holds most of it and where the pace lands. */
+  function teamCard(r, i, live, P) {
+    const R = planRead(r.t.members, P);
     const on = r.t.members.filter((id) => live.indexOf(id) > -1).length;
-    return '<article class="type-card s-card b-qcard b-team-card' + (S.team === r.t.id ? ' is-open' : '') +
-      '" style="--i:' + Math.min(i, 8) + '">' +
+    const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id, from: S.from, to: S.to })));
+    const x = DAY_STEPS.map((s) => R[s.k]).sort((a, b) => a.ratio - b.ratio)[0];
+    const top = x.by.slice().sort((a, b) => b.gap - a.gap)[0];
+    const say = !x.el ? 'The plan for ' + esc(P.when) + ' has not started yet.'
+      : !pace(x).short ? 'On pace on every step ' + esc(P.when) + '.'
+      : 'Furthest behind on <b>' + esc(x.s.noun) + '</b>, ' + esc(commas(Math.round(x.byNow - x.cum))) + ' short of the plan by now' +
+        (top && top.gap >= 1 ? ', most of it <b>' + esc(firstName(top.id)) + '</b>' : '') + '.' +
+        (x.daysLeft > 0.01 && x.proj < x.target ? ' At this pace it ends ' + P.unit + ' ' + esc(commas(x.target - x.proj)) + ' short.' : '');
+    return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
-        /* The score tag is the card's state (Nour, 5 Nov): its colour says
-           what "Ahead" or "Needs you" said, so the word tag went. How it
-           moved since last week is the team page's, not the card's. */
         scoreTag(r.now) +
         '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
           commas(on) + '</span> on a call</span></span>' +
       '</div>' +
-      '<button class="tc-title s-card-title" type="button" data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id }))) + '">' +
-        esc(r.t.name) + '</button>' +
-      '<div class="b-qcard-why"><b>' + commas(d.t.calls) + '</b> calls ' + (d.day === TODAY_ISO ? 'today' : 'that day') +
-        ', <b>' + commas(d.t.reached) + '</b> reached the decision maker, <b>' + commas(d.t.meets) + '</b> ' +
-        verbFor(d.t.meets, 'meeting') + ' booked</div>' +
-      aimyBlock({ text: daySay(d, 'the ' + esc(r.t.name), 'has'), from: 'today against a usual day' }) +
+      '<button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(r.t.name) + '</button>' +
+      planRows(R) +
+      aimyBlock({ text: say, from: 'against the plan, ' + P.when }) +
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
-        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id }))) + '">Open</button>' +
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-go="' + go + '">Open</button>' +
       '</div>' +
     '</article>';
   }
 
-  /* ══ ONE TEAM, IN THE SIDE RAIL (step 3, 5 Nov 2026) ═══════════════════
+  /* ══ ONE TEAM: WHAT THE MANAGER DOES ABOUT IT (step 3, 5 Nov 2026) ══════
+     First a page, then a side rail (5 Nov), a page again since 6 Nov
+     (teamPage, above). What follows is history kept for its reasons.
      What a team card opens (`?on=teams&team=<id>`): first built as a page
      (variant C of docs/team-variants-3-team.html, Today first), then moved
      into a rail on the right beside Your teams at Nour's suggestion, so the
@@ -11394,114 +11860,12 @@
         '</div>';
       }).join('') + '</div>';
   }
-  /* A person as a row: never a table, every figure with its word, the ones
-     short of their usual in the warning ink. It opens them one step
-     deeper in the side rail. */
-  function personRow(id) {
-    const x = dayRead([id]).by[0];
-    const sh = dayShort(x.d, x.u).map((s) => s.s.k);
-    const fig = (k, one, many) => '<span' + (sh.indexOf(k) > -1 ? ' class="is-short"' : '') + '><b>' + esc(commas(x.d[k])) +
-      '</b> ' + (x.d[k] === 1 ? one : many) + '</span>';
-    const on = onCallNow([id]).length;
-    return '<button class="b-pr-row" type="button" data-go="' + esc(JSON.stringify({ ag: id })) + '">' +
-      faceOf(id, 40) +
-      '<span class="b-pr-who"><span class="b-pr-name">' + esc(REP[id].name) + '</span><span class="b-pr-sub">' +
-        scoreTag(weekScores(id).now) + (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</span></span>' +
-      '<span class="b-pr-figs">' + fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
-        fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</span>' +
-      '<span class="b-pr-go" aria-hidden="true">' + SIDE_CHEV + '</span>' +
-    '</button>';
-  }
-
-  /* ══ THE SIDE RAIL ═════════════════════════════════════════════════════
-     A shell region like the call column (`#sidePanel`, beside `.app-main`),
-     not an overlay: it takes its width from the page, which narrows and
-     reflows beside it, so nothing is covered. It is drawn from the URL on
-     every paint, so a link reopens it at the same step, the browser's back
-     steps out of it, and leaving Your teams closes it.
-
-     A LIVE CALL TAKES THE RIGHT EDGE. The call column is the one thing on
-     this screen with a person on the other end of it, so while one is live
-     the rail stands aside (bdr.css) and comes back at the same step when
-     the call ends; nothing about it is forgotten, because it is the URL. */
+  /* THE SIDE RAIL IS GONE (6 Nov 2026). It held one team, then one person a
+     step in. Feedback on 5 Nov ditched it: a team is its own page
+     (teamPage) and a person is their profile (personPage). The person view
+     below survives as the profile's head: its note and its actions. */
   const SIDE_CHEV = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
-  const SIDE_BACK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
-  const SIDE_X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
-  const sideOn = () => isMgr() && S.on === 'teams' && !!S.team;
-  let SIDE_AT = '';
-  function paintSide() {
-    const el = byId('sidePanel');
-    if (!el) return;
-    const at = sideOn() ? S.team + '|' + S.ag : '';
-    document.body.classList.toggle('has-side', !!at);
-    if (!at) {
-      if (!el.hidden) { el.hidden = true; el.innerHTML = ''; }
-      SIDE_AT = '';
-      return;
-    }
-    const t = TEAMS.filter((x) => x.id === S.team)[0];
-    const was = SIDE_AT.split('|');
-    const opening = el.hidden;
-    SIDE_AT = at;
-    /* How the view arrives: one step in slides from the right, back from the
-       left, another team or person swaps in place, and a repaint (an action,
-       the live count) does not move at all and keeps its scroll. */
-    const how = opening ? '' : was[0] !== S.team ? 'is-swap' : !was[1] && S.ag ? 'is-fwd'
-      : was[1] && !S.ag ? 'is-back' : was[1] !== S.ag ? 'is-swap' : '';
-    const body = el.querySelector('.b-side-body');
-    const y = body && !how ? body.scrollTop : 0;
-    /* The team view has nothing to go back to, so its close button sits on
-       the team name's row instead of taking a row of its own (Nour). */
-    const close = '<button class="b-side-x" type="button" data-go="' + esc(JSON.stringify({ team: '', ag: '' })) + '" ' +
-      'aria-label="Close">' + SIDE_X + '</button>';
-    el.innerHTML = (S.ag ? '<div class="b-side-head">' +
-        '<button class="b-side-back" type="button" data-go="' + esc(JSON.stringify({ ag: '' })) + '">' +
-          SIDE_BACK + esc(t.name) + '</button>' + close +
-      '</div>' : '') +
-      '<div class="b-side-body"><div class="b-side-view ' + how + '">' +
-        (S.ag ? personSide(t, S.ag) : teamSide(t, close)) +
-      '</div></div>';
-    if (y) el.querySelector('.b-side-body').scrollTop = y;
-    if (opening) {
-      el.hidden = false;
-      el.classList.remove('is-opening');
-      void el.offsetWidth;
-      el.classList.add('is-opening');
-    }
-  }
-  /* Escape steps out: from a person to the team, from the team to closed.
-     Only when nothing else on the screen is open to take it first. */
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || !sideOn()) return;
-    if (document.querySelector('.b-menu-wrap.is-open, .peek:not([hidden])')) return;
-    if (byId('aimyOverlay') && byId('aimyOverlay').classList.contains('open')) return;
-    e.preventDefault();
-    go(S.ag ? { ag: '' } : { team: '', ag: '' });
-  });
-  function teamSide(t, close) {
-    const r = teamRead(t);
-    const on = onCallNow(t.members).length;
-    const move = r.was == null || r.move === 0 ? ''
-      : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' +
-        (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
-    return '<div class="b-tp">' +
-        '<div class="b-tp-top"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
-          (close || '') + '</div>' +
-        '<div class="b-tp-meta">' + faceRow(t.members) +
-          '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
-          '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
-            '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="b-side-sec">' + headH(pagePeriod() ? dateRange(S.from, S.to || S.from) : 'Today') +
-        teamDayBlock(t.members, 'the ' + esc(t.name), 'has', true, pagePeriod()) + '</div>' +
-      '<div class="b-side-sec b-worth">' + teamWorth(t) + '</div>' +
-      '<div class="b-side-sec">' + headH('The people') +
-        '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></div>';
-  }
   /* ══ A PERSON, ONE STEP IN (5 Nov 2026) ════════════════════════════════
      Variant D of docs/team-variants-5-person.html with A's figures (Nour):
      the face (a green ring while on a call), the name, the score and how
@@ -11799,33 +12163,6 @@
       '</div></div></div>';
   }
   let COACH_OPEN = false;
-  /* A period's four figures against a usual run of the same days: the rail's
-     figures, in the same marks, over the days chosen. */
-  function periodFigs(id, R) {
-    const s = spanRead([id], R.from, R.to);
-    const first = firstName(id);
-    const fig = (k, one, many) => {
-      const n = s.t[k], u = s.u[k], dd = n - u;
-      const short = u - n >= 2 && n < u * 0.9;
-      const ahead = dd >= 2 && n > u * 1.05;
-      return '<li class="b-ps-fig"><span class="b-ps-n' + (short ? ' is-dn' : '') + '">' + esc(commas(n)) + '</span>' +
-        '<span class="b-ps-w">' + (n === 1 ? one : many) + '</span>' +
-        '<span class="b-ps-u ' + (short ? 'is-dn' : ahead ? 'is-up' : 'is-eq') + '">' +
-          (short || ahead ? SIGNED(dd) + ' vs usual' : 'as usual') + '</span></li>';
-    };
-    const dc = s.t.calls - s.u.calls;
-    const said = esc(first) + ' made <b>' + esc(plural(s.t.calls, 'call')) + '</b> ' + esc(R.words) + ', ' +
-      (Math.abs(dc) < Math.max(2, s.u.calls * 0.05) ? 'about a usual run for those days.'
-        : '<b>' + esc(commas(Math.abs(dc))) + (dc < 0 ? ' fewer' : ' more') + '</b> than a usual run of those days.');
-    return aimyBlock({ text: said }, true) +
-      '<div class="b-side-sec"><div class="b-ps-sech"><span>' + esc(dateRange(R.from, R.to)) + '</span><span>against a usual run of those days</span></div>' +
-        '<ul class="b-ps-figs">' + fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
-          fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul>' +
-        '<div class="b-ps-qs">' +
-          '<button class="b-ps-q" type="button" data-ask="' + esc(spanAsk([id])) + '">' + aiMark() + 'Week, month and quarter</button>' +
-        '</div></div>';
-  }
-
   /* ══ THE DATE PICKER (5 Nov 2026) ═══════════════════════════════════════
      The UI library's DatePicker and Calendar (aimy ui lib, registry/aimy/ui/
      date-picker.tsx and calendar.tsx, themselves Knowledge's .k-date), in
@@ -11985,12 +12322,11 @@
     /* The side rail's person view, reused for the head of this page: the
        same note, the same figures, the same actions. */
     const side = personSide(t, id);
-    const figs = side.slice(side.indexOf('<div class="b-side-sec"><div class="b-ps-sech">'), side.indexOf('<button class="b-ps-full"'));
     const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
     const agenda = personAgenda(t, id, note, agendaPats, moved);
     return '<div class="s-home">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, ag: id, from: S.from, to: S.to }))) + '"', 'Back to ' + t.name) +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name) +
         '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +
           /* The score beside the name (Nour); who they are under it, as part
              of the name; how the week moved and the call on their own row,
@@ -12014,8 +12350,10 @@
       /* Everything under this row follows the period chosen in it. */
       '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
-      (R ? '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(dateRange(R.from, R.to)) + '">' + periodFigs(id, R) + '</section>'
-        : '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + figs + '</section>') +
+      '<section class="s-block s-block-wide" aria-label="Against the plan">' +
+        planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
+      '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(R ? dateRange(R.from, R.to) : 'Today') + '">' +
+        headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R) + '</section>' +
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
@@ -38563,17 +38901,6 @@
       coachFold.setAttribute('aria-expanded', String(COACH_OPEN));
       return;
     }
-    /* The rail's folded figures: opened and shut in place, no repaint. */
-    const dayFold = t.closest('[data-dayfold]');
-    if (dayFold) {
-      DAY_OPEN = !DAY_OPEN;
-      dayFold.closest('.b-day-fold').classList.toggle('is-open', DAY_OPEN);
-      dayFold.setAttribute('aria-expanded', String(DAY_OPEN));
-      dayFold.querySelector('span').textContent = DAY_OPEN ? 'Show fewer'
-        : 'Show ' + dayFold.closest('.b-day-fold').querySelectorAll('.b-day-fold-in .b-day-pill').length + ' more';
-      return;
-    }
-
     const goEl = t.closest('[data-go]');
     if (goEl) {
       let over = {};
