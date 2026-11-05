@@ -4085,9 +4085,11 @@
     if (S.on === 'teams' && !isMgr()) S.on = '';
     /* `team` is one of this manager's teams, read on the teams surface, or
        nothing: a team that is not theirs is refused like any other key. */
-    if (S.team && !(S.on === 'teams' && teamsOf().some((t) => t.id === S.team))) S.team = '';
+    if (S.team && !((S.on === 'teams' || S.on === 'person') && teamsOf().some((t) => t.id === S.team))) S.team = '';
     /* `ag` is a person on the open team, one step into the side rail. */
     if (S.ag && !(S.team && TEAMS.filter((t) => t.id === S.team)[0].members.indexOf(S.ag) > -1)) S.ag = '';
+    /* `on=person` is one person's full profile: it needs their team and them. */
+    if (S.on === 'person' && !(isMgr() && S.team && S.ag)) S.on = S.team ? 'teams' : '';
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -4433,6 +4435,7 @@
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
       : S.on === 'teams' && isMgr() ? teamsPage()
+      : S.on === 'person' && isMgr() && S.ag ? personPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -7003,7 +7006,7 @@
   function hereTab() {
     if (S.on === 'cal' || S.on === 'notes' || S.on === 'missed') return 'cal';
     if (S.on === 'money') return 'money';
-    if (S.on === 'teams') return 'teams';
+    if (S.on === 'teams' || S.on === 'person') return 'teams';
     if (S.list || S.on === 'lists' || S.build) return 'lists';
     if (S.camp || S.on === 'camps') return 'camps';
     if (S.con || S.acc || S.on === 'deals' || S.on === 'history') return onBook() ? 'deals' : 'calls';
@@ -11478,9 +11481,211 @@
           fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul>' +
         '<div class="b-ps-qs">' +
           '<button class="b-ps-q" type="button" data-ask="' + esc(spanAsk([id])) + '">' + aiMark() + 'Week, month and quarter</button>' +
-          '<button class="b-ps-q" type="button" data-ask="' + esc('How is ' + firstName(id) + ' doing today?') + '">' + aiMark() +
-            'Ask AiMY about ' + esc(firstName(id)) + '</button>' +
-        '</div></div>';
+        '</div></div>' +
+      /* The way to everything else about them: the full profile page. */
+      '<button class="b-ps-full" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id }))) + '">' +
+        '<span>Open the full profile<small>The next 1:1, the coaching, and every call with its recording</small></span>' +
+        SIDE_CHEV + '</button>';
+  }
+
+  /* ══ A PERSON'S FULL PROFILE (step 4, 5 Nov 2026) ═══════════════════════
+     `?on=person&team=<id>&ag=<id>`, opened from the rail's person view.
+     Variant D of docs/team-variants-6-profile.html (Nour's pick): the next
+     1:1 first, three talking points AiMY reads off the record, each with its
+     evidence and the call behind it; then the coaching history, what the
+     manager did and what moved in the week after; then the coach's note and
+     today; then what AiMY noticed over the person's recorded calls; then
+     every call, drawn exactly as the history page draws one (Nour): the row,
+     the recording to play, the summary and the transcript in the chat. */
+  const callsBy = (ids) => DB.touch.filter((x) => ids.indexOf(x.by) > -1 && x.outcome !== 'phase' && OUTCOME[x.outcome])
+    .sort((a, b) => (a.at > b.at ? -1 : 1));
+  const gotThrough = (x) => !!(OUTCOME[x.outcome] || {}).writes && !wasMissed(x);
+  /* What AiMY noticed, over everything recorded for them against their team:
+     the objection that comes up most, how long the calls that get through
+     last, and how often a call ends in a callback asked for. Nothing is said
+     off fewer than ten calls that got through. */
+  function personPatterns(t, id) {
+    const mine = callsBy([id]).filter(gotThrough);
+    const team = callsBy(t.members).filter(gotThrough);
+    if (mine.length < 10) return { list: [], thin: true };
+    const first = firstName(id);
+    const list = [];
+    const count = (xs, k) => xs.filter((x) => (x.objections || []).indexOf(k) > -1).length;
+    const keys = Object.keys(OBJECTION).map((k) => ({ k, n: count(mine, k) })).filter((o) => o.n >= 3).sort((a, b) => b.n - a.n);
+    if (keys.length) {
+      const o = keys[0];
+      const tn = count(team, o.k);
+      const t1 = tn ? Math.round(team.length / tn) : 0;
+      const ex = mine.filter((x) => (x.objections || []).indexOf(o.k) > -1)[0];
+      list.push({ k: 'obj', obj: o.k, ex,
+        say: '<b>“' + esc(OBJECTION[o.k].label) + '”</b> came up on <b>' + commas(o.n) + ' of ' + commas(mine.length) +
+          '</b> of ' + esc(first) + '’s calls that got through.',
+        ev: t1 ? 'About 1 in ' + Math.round(mine.length / o.n) + ' for ' + first + ', 1 in ' + t1 + ' across the ' + t.name
+          : 'Nobody else on the team has heard it' });
+    }
+    const avg = (xs) => (xs.length ? Math.round(xs.reduce((n, x) => n + (x.secs || 0), 0) / xs.length) : 0);
+    const a = avg(mine), at = avg(team);
+    if (a && at) {
+      const longest = mine.slice().sort((x, y) => (y.secs || 0) - (x.secs || 0))[0];
+      const shortest = mine.slice().sort((x, y) => (x.secs || 0) - (y.secs || 0))[0];
+      list.push({ k: 'len', shorter: at - a >= 10, ex: at - a >= 10 ? shortest : longest,
+        say: 'Calls that get through last <b>' + callLen(a) + '</b> on average' + (Math.abs(a - at) >= 10
+          ? ', ' + (a > at ? 'longer' : 'shorter') + ' than the team’s ' + callLen(at) + '.' : ', about the same as the team.'),
+        ev: commas(mine.length) + ' calls that got through' });
+    }
+    const all = callsBy([id]), allT = callsBy(t.members);
+    const cb = all.filter((x) => x.outcome === 'callback').length, cbt = allT.filter((x) => x.outcome === 'callback').length;
+    if (all.length >= 20 && allT.length) {
+      const r = Math.round((10 * cb) / all.length), rt = Math.round((10 * cbt) / allT.length);
+      list.push({ k: 'cb', say: '<b>' + r + ' in 10</b> calls end with a callback asked for' +
+        (r !== rt ? ', against ' + rt + ' in 10 across the team.' : ', the same as the team.'), ev: commas(cb) + ' of ' + commas(all.length) + ' calls' });
+    }
+    return { list, thin: false };
+  }
+  /* The next 1:1: up to three talking points, each with its evidence and a
+     way to it (a call to read, a question for the chat, an action). */
+  function personAgenda(t, id, note, pats) {
+    const first = firstName(id);
+    const x = note.x;
+    const pts = [];
+    if (note.short) {
+      pts.push({ say: 'Ask what is in the way of the calls.', ev: x.d.calls + ' calls ' + (note.by ? 'by now' : 'that day') + ', usually ' + x.u.calls,
+        go: '<button class="s-insight-lnk" type="button" data-ask="' + esc('How did ' + first + ' do week by week this quarter?') + '">Week by week</button>' });
+    } else {
+      pts.push({ say: 'Say what is working, so it stays.', ev: note.well.replace(/<[^>]+>/g, ''),
+        go: '<button class="s-insight-lnk" type="button" data-tact="' + esc(t.id + ':' + id + ':share') + '">Share the best call</button>' });
+    }
+    const obj = pats.list.filter((p) => p.k === 'obj')[0];
+    if (obj) {
+      pts.push({ say: 'Talk through “' + esc(OBJECTION[obj.obj].label) + '”: what works when it comes up.', ev: obj.ev,
+        go: '<button class="s-insight-lnk" type="button" data-script="' + esc(obj.ex.id) + '">Read a call where it came up</button>' });
+    }
+    const len = pats.list.filter((p) => p.k === 'len')[0];
+    if (len && len.shorter) {
+      pts.push({ say: 'Calls end sooner than the team’s. What happens after the opener?', ev: len.say.replace(/<[^>]+>/g, ''),
+        go: '<button class="s-insight-lnk" type="button" data-script="' + esc(len.ex.id) + '">Read the shortest one</button>' });
+    } else {
+      pts.push({ say: 'Ask what would make one more meeting a day possible.', ev: x.d.meets + ' ' + (x.d.meets === 1 ? 'meeting' : 'meetings') +
+        ' today, usually ' + x.u.meets + ' by now',
+        go: '<button class="s-insight-lnk" type="button" data-ask="' + esc('How did ' + first + ' do month by month this year?') + '">Month by month</button>' });
+    }
+    const booked = TACTS[t.id + ':' + id + ':book'];
+    return '<div class="b-pf-agenda">' +
+      '<div class="b-pf-agh"><h3>For your next 1:1 with ' + esc(first) + '</h3>' +
+        (booked ? '<span class="b-wt-done">Asked for 15 minutes</span>' : '<button class="s-insight-lnk primary" type="button" data-tact="' +
+          esc(t.id + ':' + id + ':book') + '">Book it</button>') + '</div>' +
+      pts.slice(0, 3).map((pt, i) => '<div class="b-pf-pt"><span class="b-pf-ptn">' + (i + 1) + '</span>' +
+        '<span class="b-pf-pts">' + pt.say + '</span>' +
+        '<span class="b-pf-pte">' + esc(pt.ev) + '</span>' +
+        '<span class="b-pf-ptg">' + pt.go + '</span></div>').join('') +
+    '</div>';
+  }
+  /* The coaching history. What the manager did here this session (the
+     actions in the rail and on this page), then earlier coaching, which is
+     a fixture: the prototype has no record of past 1:1s. What moved after
+     each earlier one is read off the record: the step it was about, the
+     week before against the week after. */
+  const COACH_LOG = {
+    karim: [{ d: -15, what: 'You talked about openers', said: 'Agreed to open on the prospect’s last order, not the product.', step: 'talks' },
+      { d: -29, what: 'Message: a check-in', said: '“How is the Gulf list going? Anything in the way?”', step: 'calls' }],
+    salma: [{ d: -9, what: 'You talked about the morning block', said: 'Agreed to keep 9:00 to 11:00 for calls only.', step: 'calls' }],
+    tarek: [{ d: -22, what: 'Shared Rana’s best call', said: 'The Tidewater opener, 4 minutes.', step: 'reached' }],
+    rana: [{ d: -6, what: 'Said well done', said: 'For three meetings in a day.', step: 'meets' }],
+    engy: [{ d: -8, what: 'Said well done', said: 'For the Northgate meeting.', step: 'meets' },
+      { d: -22, what: 'Shared the best call with the team', said: 'The Northgate opener, 5 minutes.', step: 'reached' }],
+    omar: [{ d: -12, what: 'You talked about decision makers', said: 'Agreed to ask for the person by role, not by name.', step: 'reached' }],
+    mariam: [], youssef: [],
+  };
+  function stepMoved(id, at, step) {
+    const run = (from, to) => {
+      const s = spanRead([id], from, to);
+      let days = 0;
+      for (let iso = from; iso <= to; iso = isoAdd(iso, 1)) days += dayPart(iso);
+      return { s, days };
+    };
+    const before = run(isoAdd(at, -7), isoAdd(at, -1));
+    const afterTo = isoAdd(at, 6) > TODAY_ISO ? TODAY_ISO : isoAdd(at, 6);
+    const after = run(at, afterTo);
+    if (!before.days || !after.days) return null;
+    const per100 = (r, k) => (r.s.t.calls ? Math.round((100 * r.s.t[k]) / r.s.t.calls) : 0);
+    const meet100 = (r) => (r.s.t.talks ? Math.round((100 * r.s.t.meets) / r.s.t.talks) : 0);
+    const name = { calls: 'Calls', reached: 'Decision makers reached', talks: 'Conversations', meets: 'Meetings' }[step];
+    const a = step === 'calls' ? Math.round(before.s.t.calls / before.days) : step === 'meets' ? meet100(before) : per100(before, step);
+    const b = step === 'calls' ? Math.round(after.s.t.calls / after.days) : step === 'meets' ? meet100(after) : per100(after, step);
+    const unit = step === 'calls' ? ' a day' : step === 'meets' ? ' in 100 conversations' : ' in 100 calls';
+    return { up: b > a, same: a === b,
+      say: a === b ? name + ' held at ' + a + unit + ' the week after.' : name + ' went from ' + a + ' to ' + b + unit + ' the week after.' };
+  }
+  function personCoaching(t, id) {
+    const rows = [];
+    ['msg', 'book', 'share', 'thanks'].forEach((k) => {
+      if (TACTS[t.id + ':' + id + ':' + k]) rows.push({ when: 'Today', what: TEAM_ACT[k].done, said: TEAM_ACT[k].say(firstName(id), t.name), moved: null });
+    });
+    (COACH_LOG[id] || []).forEach((c) => {
+      const at = dayAdd(c.d);
+      rows.push({ when: sayDay(at), what: c.what, said: c.said, moved: stepMoved(id, at, c.step) });
+    });
+    if (!rows.length) return '<p class="b-vfoot">Nothing yet. What you do from the rail or from this page lands here, with what moved after.</p>';
+    return '<div class="b-pf-co">' + rows.map((r) => '<div class="b-pf-coi">' +
+      '<span class="b-pf-cow">' + esc(r.when) + '</span><span class="b-pf-cod" aria-hidden="true"><i></i></span>' +
+      '<div class="b-pf-cob"><div class="b-pf-cot">' + esc(r.what) + '</div><div class="b-pf-cos">' + esc(r.said) + '</div>' +
+        (r.moved ? '<div class="b-pf-com' + (r.moved.same ? '' : r.moved.up ? ' is-up' : ' is-dn') + '">' +
+          '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          esc(r.moved.say) + '</div>' : '') +
+      '</div></div>').join('') + '</div>';
+  }
+  function personPage() {
+    const t = teamsOf().filter((x) => x.id === S.team)[0];
+    const id = S.ag;
+    if (!t || t.members.indexOf(id) < 0) return teamsPage();
+    const w = weekScores(id);
+    const on = onCallNow([id]).length;
+    const note = personNote(t, id);
+    const pats = personPatterns(t, id);
+    const acts = note.short ? ['msg', 'book'] : ['share', 'thanks'];
+    const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+    const moved = w.was == null ? 0 : w.now - w.was;
+    const calls = callsBy([id]);
+    const pg = paged(calls);
+    const got = calls.filter(gotThrough).length;
+    /* The side rail's person view, reused for the head of this page: the
+       same note, the same figures, the same actions. */
+    const side = personSide(t, id);
+    const figs = side.slice(side.indexOf('<div class="b-side-sec"><div class="b-ps-sech">'), side.indexOf('<button class="b-ps-full"'));
+    const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, ag: id }))) + '"', 'Back to ' + t.name) +
+        '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +
+          '<div><h2 class="b-pf-name">' + esc(REP[id].name) + '</h2>' +
+            '<div class="b-pf-sub">' + scoreTag(w.now) +
+              (Math.abs(moved) >= 3 ? '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' + (moved < 0 ? 'Down ' : 'Up ') +
+                commas(Math.abs(moved)) + ' this week</span>' : '') +
+              '<span>' + esc(jobSay(REP[id])) + ', ' + esc(t.name) + '</span>' +
+              (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div></div>' +
+          '<div class="b-pf-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
+            : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+              esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</div>' +
+        '</div>' +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Next 1:1">' + personAgenda(t, id, note, pats) + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Coaching">' + headH('Coaching') + personCoaching(t, id) + '</section>' +
+      '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + noteHtml + figs + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
+        (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through to see a pattern yet.</p>'
+          : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+            '<use href="#aimy-logo-small"/></svg><span class="b-pf-pats">' + x.say + '</span><span class="b-pf-pate">' + esc(x.ev) + '</span></div>').join('')) +
+      '</section>' +
+      /* Every call, the history page's way: the same rows, the same
+         recording strip, the same summary and transcript (histCallRow). */
+      '<section class="s-block s-block-wide" aria-label="Calls">' + headH('Calls') +
+        (!calls.length ? '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' yet.</p>'
+          : aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> recorded since ' + esc(sayDay(calls[calls.length - 1].at)) +
+              ', and <b>' + esc(commas(got)) + '</b> got through.' }, true) +
+            '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call')) +
+      '</section>' +
+    '</div>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
