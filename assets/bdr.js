@@ -11675,16 +11675,28 @@
       const at = dayAdd(c.d);
       if (inDays(at)) rows.push({ when: sayDay(at), what: c.what, said: c.said, moved: stepMoved(id, at, c.step) });
     });
-    if (!rows.length) return R ? '<p class="b-vfoot">No coaching with ' + esc(firstName(id)) + ' ' + esc(R.words) + '.</p>'
-      : '<p class="b-vfoot">Nothing yet. What you do from the rail or from this page lands here, with what moved after.</p>';
-    return '<div class="b-pf-co">' + rows.map((r) => '<div class="b-pf-coi">' +
+    if (!rows.length) return headH('Coaching') + (R ? '<p class="b-vfoot">No coaching with ' + esc(firstName(id)) + ' ' + esc(R.words) + '.</p>'
+      : '<p class="b-vfoot">Nothing yet. What you do from the rail or from this page lands here, with what moved after.</p>');
+    /* Folded under its heading (Nour), which says how much is in it and how
+       recent, so a closed section still answers "when did we last talk?".
+       Opened and shut in place, no repaint; it stays as left for the visit. */
+    const last = rows[0].when === 'Today' ? 'today' : 'on ' + rows[0].when;
+    const say = rows.length === 1 ? 'Once, ' + last : rows.length + ' times, the latest ' + last;
+    return '<div class="b-pf-fold' + (COACH_OPEN ? ' is-open' : '') + '">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h"><button class="b-pf-foldb" type="button" data-coachfold ' +
+        'aria-controls="pfCoach" aria-expanded="' + COACH_OPEN + '"><span>Coaching</span>' +
+        '<span class="b-pf-folds">' + esc(say) + '</span>' + DAY_FOLD_CHEV + '</button></h2></div>' +
+      '<div class="b-pf-foldp" id="pfCoach"><div class="b-pf-foldi">' +
+      '<div class="b-pf-co">' + rows.map((r) => '<div class="b-pf-coi">' +
       '<span class="b-pf-cow">' + esc(r.when) + '</span><span class="b-pf-cod" aria-hidden="true"><i></i></span>' +
       '<div class="b-pf-cob"><div class="b-pf-cot">' + esc(r.what) + '</div><div class="b-pf-cos">' + esc(r.said) + '</div>' +
         (r.moved ? '<div class="b-pf-com' + (r.moved.same ? '' : r.moved.up ? ' is-up' : ' is-dn') + '">' +
           '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
           esc(r.moved.say) + '</div>' : '') +
-      '</div></div>').join('') + '</div>';
+      '</div></div>').join('') + '</div>' +
+      '</div></div></div>';
   }
+  let COACH_OPEN = false;
   /* A period's four figures against a usual run of the same days: the rail's
      figures, in the same marks, over the days chosen. */
   function periodFigs(id, R) {
@@ -11893,7 +11905,6 @@
       /* Everything under this row follows the period chosen in it. */
       '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="Coaching">' + headH('Coaching') + personCoaching(t, id, R) + '</section>' +
       (R ? '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(dateRange(R.from, R.to)) + '">' + periodFigs(id, R) + '</section>'
         : '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + figs + '</section>') +
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
@@ -11901,6 +11912,9 @@
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg><span class="b-pf-pats">' + x.say + '</span><span class="b-pf-pate">' + esc(x.ev) + '</span></div>').join('')) +
       '</section>' +
+      /* Coaching after what AiMY noticed (Nour): the record first, then what
+         was done about it. */
+      '<section class="s-block s-block-wide" aria-label="Coaching">' + personCoaching(t, id, R) + '</section>' +
       /* Every call, the history page's way: the same rows, the same
          recording strip, the same summary and transcript (histCallRow). */
       '<section class="s-block s-block-wide" aria-label="Calls">' + headH('Calls') +
@@ -38413,6 +38427,14 @@
     /* A team page's action on a person (bdr.js, ONE TEAM'S PAGE). */
     const tact = t.closest('[data-tact]');
     if (tact) { teamAct(tact.getAttribute('data-tact')); return; }
+    /* The profile's coaching, folded the same way. */
+    const coachFold = t.closest('[data-coachfold]');
+    if (coachFold) {
+      COACH_OPEN = !COACH_OPEN;
+      coachFold.closest('.b-pf-fold').classList.toggle('is-open', COACH_OPEN);
+      coachFold.setAttribute('aria-expanded', String(COACH_OPEN));
+      return;
+    }
     /* The rail's folded figures: opened and shut in place, no repaint. */
     const dayFold = t.closest('[data-dayfold]');
     if (dayFold) {

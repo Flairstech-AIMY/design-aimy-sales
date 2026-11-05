@@ -8806,3 +8806,24 @@ body.is-calling .app-side { display: none; }
   .b-date-clr { margin-top: 0; padding-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .b-date-chev { transition: none; } }
+
+/* ══ 120. THE PROFILE'S COACHING, FOLDED (5 Nov 2026) ══════════════════════
+   The heading is the button: the name, how many and how recent, and the
+   day block's chevron; the timeline opens on grid rows (transitions-dev
+   accordion), the same motion as the rail's folded figures. */
+.b-pf-fold .s-camp-list-head .s-block-h { flex: 1; min-width: 0; }
+.b-pf-foldb {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; font: inherit; color: inherit;
+  text-align: left; background: none; border: 0; cursor: pointer;
+}
+.b-pf-foldb:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; border-radius: 4px; }
+.b-pf-folds { margin-left: auto; font-size: var(--fs-sm); font-weight: var(--fw-medium); letter-spacing: 0; text-transform: none; color: var(--d100); }
+.b-pf-foldb .b-day-fold-chev { flex: none; color: var(--accent-text); }
+.b-pf-fold.is-open .b-day-fold-chev { transform: scaleY(-1); }
+.b-pf-foldb:hover .b-pf-folds { color: var(--d50); }
+.b-pf-foldp { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 250ms cubic-bezier(0.22, 1, 0.36, 1); }
+.b-pf-fold.is-open .b-pf-foldp { grid-template-rows: 1fr; }
+.b-pf-foldi { min-height: 0; overflow: hidden; }
+.b-pf-fold.is-open .b-pf-foldi { padding-top: 8px; }
+.b-pf-fold:not(.is-open) .s-camp-list-head { margin-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { .b-pf-foldp { transition: none; } }
