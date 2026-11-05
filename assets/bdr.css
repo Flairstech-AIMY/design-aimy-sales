@@ -8551,34 +8551,47 @@ body.is-calling .app-side { display: none; }
 /* The open team's card is lit, the way the rail lights the card you are on. */
 .b-team-card.is-open { border-color: rgba(var(--accent-rgb), 0.7); box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), var(--shadow-sm); }
 
-/* A person, one step in. */
-.b-ps-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 4px 14px; align-items: center; }
-.b-ps-name { margin: 0; font-size: 20px; font-weight: var(--fw-bold); color: var(--d50); }
-.b-ps-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-.b-ps-figs {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none;
-  border: 1px solid var(--card-border); border-radius: var(--r-lg); overflow: hidden;
-}
-.b-ps-fig { padding: 12px 14px; background: var(--card-bg); }
-.b-ps-fig:nth-child(odd) { border-right: 1px solid var(--card-border); }
-.b-ps-fig:nth-child(n+3) { border-top: 1px solid var(--card-border); }
-.b-ps-n { display: block; font-size: 22px; font-weight: var(--fw-extrabold); line-height: 1.15; color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-ps-w { display: block; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); }
-.b-ps-u { display: block; margin-top: 2px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
-.b-ps-u b { font-weight: var(--fw-semibold); color: var(--d50); }
-.b-ps-fig.is-short .b-ps-n, .b-ps-fig.is-short .b-ps-u b { color: var(--warn-text); }
-.b-ps-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+/* A person, one step in: D's coach's note with A's figures (bdr.js,
+   A PERSON, ONE STEP IN). */
+.b-ps-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 4px 16px; align-items: center; }
+/* On a call is a ring on the face, the one live thing, and the words beside it. */
+.b-ps-face { position: relative; display: inline-flex; border-radius: 50%; }
+.b-ps-face.is-live::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--ok-text); }
+.b-ps-name { margin: 0; font-size: 22px; font-weight: var(--fw-bold); letter-spacing: -0.01em; line-height: 1.2; color: var(--d50); }
+.b-ps-sub { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; margin-top: 6px; }
+.b-ps-note { margin-top: 20px; padding: 16px 16px 14px; border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border); }
+.b-ps-line { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 10px; }
+.b-ps-line + .b-ps-line { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--card-border); }
+.b-ps-ico { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; }
+.b-ps-ico.is-ok { color: var(--ok-text); background: var(--ok-bg); }
+.b-ps-ico.is-warn { color: var(--warn-text); background: var(--warn-bg); }
+.b-ps-cap { align-self: center; font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
+.b-ps-say { grid-column: 2; font-size: var(--fs-sm); line-height: 1.5; color: var(--d100); }
+.b-ps-say b { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ps-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .b-side-sec > .b-aimy { margin: 0 0 12px; }
-.b-ps-more {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 26px;
-  padding: 14px 16px; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
-  text-align: left; cursor: pointer; background: rgba(var(--accent-rgb), 0.06);
-  border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: var(--r-lg);
-  transition: background-color var(--t-fast);
-}
-.b-ps-more:hover { background: rgba(var(--accent-rgb), 0.12); }
-.b-ps-more:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-ps-more small { display: block; margin-top: 2px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+/* Today's four figures, A's: a quiet two by two on hairlines, each with its
+   signed difference from a usual day, coloured only when it is one. */
+.b-ps-sech { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 10px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ps-sech span + span { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-ps-figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 0; margin: 0; padding: 14px 0 0;
+  list-style: none; border-top: 1px solid var(--card-border); }
+.b-ps-fig { min-width: 0; padding-right: 12px; }
+.b-ps-fig:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--card-border); }
+.b-ps-n { display: block; font-size: 24px; font-weight: var(--fw-extrabold); line-height: 1.1; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-ps-n.is-dn { color: var(--warn-text); }
+.b-ps-w { display: block; margin-top: 2px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-ps-u { display: block; margin-top: 4px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.b-ps-u.is-dn { color: var(--warn-text); }
+.b-ps-u.is-up { color: var(--ok-text); }
+.b-ps-u.is-eq { font-weight: var(--fw-medium); color: var(--d100); }
+/* The chat's two doors, as plain links under the figures. */
+.b-ps-qs { display: flex; gap: 6px 18px; flex-wrap: wrap; margin-top: 16px; }
+.b-ps-q { display: inline-flex; align-items: center; gap: 6px; padding: 0; font: inherit; font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold); color: var(--accent-text); background: none; border: 0; cursor: pointer; }
+.b-ps-q:hover { text-decoration: underline; }
+.b-ps-q:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 
 /* Between 900 and 1280 the page cannot spare 420px beside a 280px rail
    (measured: 360px of page at 1100), so the rail changes form instead of

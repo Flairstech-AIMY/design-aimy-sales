@@ -11315,44 +11315,104 @@
       '<div class="b-side-sec">' + headH('The people') +
         '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></div>';
   }
-  /* One step in: who, today's four figures against their usual, AiMY's
-     line, the two things worth doing, and the chat for the rest. The full
-     profile, with every call and the coaching history, is the next step of
-     the plan and will be a page. */
-  function personSide(t, id) {
+  /* ══ A PERSON, ONE STEP IN (5 Nov 2026) ════════════════════════════════
+     Variant D of docs/team-variants-5-person.html with A's figures (Nour):
+     the face (a green ring while on a call), the name, the score and how
+     the week moved when it moved by 3 or more; then a coach's note, the two
+     lines a manager would say in a 1:1, what is going well and what is
+     worth a word, both read off the figures; then the actions that note
+     calls for; then today's four figures, each with its signed difference
+     from a usual day; then the chat's two doors as plain links. */
+  const SIGNED = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + commas(Math.abs(n));
+  function personNote(t, id) {
     const r = dayRead([id]);
     const x = r.by[0];
     const w = weekScores(id);
+    const by = r.day === TODAY_ISO && r.p < 1;
+    const rate = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+    const team = dayRead(t.members).by;
+    const top = (k) => team.every((o) => o.id === id || o.d[k] < x.d[k]);
+    /* Going well: the steps ahead of a usual day, the most meetings in the
+       team, or, on a day with neither, how long the calls that land last. */
+    const ahead = DAY_STEPS.filter((s) => x.d[s.k] - x.u[s.k] >= 2 && x.d[s.k] > x.u[s.k] * 1.05);
+    const well = [];
+    if (ahead.length) {
+      well.push('Ahead on ' + ahead.slice(0, 2).map((s) => s.noun + ' (<b>' + SIGNED(x.d[s.k] - x.u[s.k]) + '</b>)').join(' and '));
+    }
+    if (x.d.meets > 0 && top('meets')) {
+      well.push('<b>' + esc(plural(x.d.meets, 'meeting')) + '</b> booked, the most in the ' + esc(t.name));
+    }
+    if (!well.length && x.d.secs >= FORM[id].secs * 0.95) {
+      well.push('Calls that land last as long as usual, <b>' + callLen(x.d.secs) + '</b> on average');
+    }
+    /* And when nothing is, it says so plainly rather than inventing praise. */
+    if (!well.length) well.push('nothing stands out yet ' + (by ? 'today' : 'that day'));
+    /* Worth a word: calls short of a usual day, decision makers reached
+       less often than usual, a week that fell; or nothing. */
+    const word = [];
+    if (x.u.calls - x.d.calls >= 2 && x.d.calls < x.u.calls * 0.9) {
+      word.push('<b>' + esc(commas(x.d.calls)) + ' calls</b> against ' + esc(commas(x.u.calls)) + (by ? ' by now' : ' on a usual day'));
+    }
+    const rr = rate(x.d.reached, x.d.calls), ru = rate(x.u.reached, x.u.calls);
+    if (x.d.calls >= 10 && rr < ru * 0.9) word.push('only <b>' + rr + ' in 100</b> reach a decision maker, against ' + ru + ' usually');
+    if (w.was != null && w.was - w.now >= 3) word.push('the week is down <b>' + commas(w.was - w.now) + '</b>');
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    return {
+      well: cap(well.join(', and ')) + '.',
+      word: word.length ? cap(word.slice(0, 2).join(', and ')) + '.' : 'Nothing today. A word of thanks keeps it going.',
+      short: word.length > 0,
+      x, by,
+    };
+  }
+  const NOTE_OK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  const NOTE_WORD = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5"/><path d="M12 16.5h.01"/></svg>';
+  function personSide(t, id) {
+    const w = weekScores(id);
     const on = onCallNow([id]).length;
-    const sh = dayShort(x.d, x.u).map((s) => s.s.k);
-    const by = r.day === TODAY_ISO && r.p < 1 ? 'by now' : 'on a usual day';
-    const fig = (k, one, many) => '<li class="b-ps-fig' + (sh.indexOf(k) > -1 ? ' is-short' : '') + '">' +
-      '<span class="b-ps-n">' + esc(commas(x.d[k])) + '</span>' +
-      '<span class="b-ps-w">' + (x.d[k] === 1 ? one : many) + '</span>' +
-      '<span class="b-ps-u">usually <b>' + esc(commas(x.u[k])) + '</b> ' + by + '</span></li>';
-    const done = ['msg', 'book'].filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
-    const move = w.was == null || w.now === w.was ? ''
-      : '<span class="b-tp-move ' + (w.now < w.was ? 'is-down' : 'is-up') + '">' +
-        (w.now < w.was ? 'Down ' : 'Up ') + commas(Math.abs(w.now - w.was)) + ' since last week</span>';
-    return '<div class="b-ps-head">' + faceOf(id, 56) +
+    const n = personNote(t, id);
+    const x = n.x;
+    /* The actions the note calls for: a word when something is worth one,
+       a thanks and a lesson for the others when it is not. */
+    const acts = n.short ? ['msg', 'book'] : ['share', 'thanks'];
+    const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+    const moved = w.was == null ? 0 : w.now - w.was;
+    const move = Math.abs(moved) < 3 ? ''
+      : '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' +
+        (moved < 0 ? 'Down ' : 'Up ') + commas(Math.abs(moved)) + ' this week</span>';
+    const fig = (k, one, many) => {
+      const dd = x.d[k] - x.u[k];
+      const short = x.u[k] - x.d[k] >= 2 && x.d[k] < x.u[k] * 0.9;
+      const ahead = dd >= 2 && x.d[k] > x.u[k] * 1.05;
+      return '<li class="b-ps-fig"><span class="b-ps-n' + (short ? ' is-dn' : '') + '">' + esc(commas(x.d[k])) + '</span>' +
+        '<span class="b-ps-w">' + (x.d[k] === 1 ? one : many) + '</span>' +
+        '<span class="b-ps-u ' + (short ? 'is-dn' : ahead ? 'is-up' : 'is-eq') + '">' +
+          (short || ahead ? SIGNED(dd) + ' vs usual' : 'as usual') + '</span></li>';
+    };
+    return '<div class="b-ps-head"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 56) + '</span>' +
         '<div><h2 class="b-ps-name">' + esc(REP[id].name) + '</h2>' +
           '<div class="b-ps-sub">' + scoreTag(w.now) + move +
             (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div></div>' +
       '</div>' +
-      '<div class="b-side-sec">' + headH('Today') + '<ul class="b-ps-figs">' +
-        fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
-        fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul>' +
-        '<div class="b-day-asks"><button class="s-sec-ask b-day-span" type="button" data-ask="' + esc(spanAsk([id])) + '">' +
-          aiMark() + 'Week, month and quarter</button></div></div>' +
-      '<div class="b-side-sec">' + aimyBlock({ text: daySay(r, esc(firstName(id)), 'has'), from: 'today against a usual day' }) +
-        '<div class="b-ps-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
-          : ['msg', 'book'].map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
-            esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) +
-        '</div></div>' +
-      '<button class="b-ps-more" type="button" data-ask="' + esc('How is ' + firstName(id) + ' doing today?') + '">' +
-        '<span>Ask AiMY about ' + esc(firstName(id)) +
-          '<small>Their day, their calls this month and this week\u2019s score, in the chat</small></span>' + aiMark() +
-      '</button>';
+      '<div class="b-ps-note">' +
+        '<div class="b-ps-line"><span class="b-ps-ico is-ok">' + NOTE_OK + '</span>' +
+          '<span class="b-ps-cap">Going well</span><span class="b-ps-say">' + n.well + '</span></div>' +
+        '<div class="b-ps-line"><span class="b-ps-ico ' + (n.short ? 'is-warn' : 'is-ok') + '">' + (n.short ? NOTE_WORD : NOTE_OK) + '</span>' +
+          '<span class="b-ps-cap">Worth a word</span><span class="b-ps-say">' + n.word + '</span></div>' +
+      '</div>' +
+      '<div class="b-ps-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
+        : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+          esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) +
+      '</div>' +
+      '<div class="b-side-sec"><div class="b-ps-sech"><span>Today</span><span>' + (n.by ? 'against a usual day by now' : 'against a usual day') + '</span></div>' +
+        '<ul class="b-ps-figs">' + fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
+          fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul>' +
+        '<div class="b-ps-qs">' +
+          '<button class="b-ps-q" type="button" data-ask="' + esc(spanAsk([id])) + '">' + aiMark() + 'Week, month and quarter</button>' +
+          '<button class="b-ps-q" type="button" data-ask="' + esc('How is ' + firstName(id) + ' doing today?') + '">' + aiMark() +
+            'Ask AiMY about ' + esc(firstName(id)) + '</button>' +
+        '</div></div>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
