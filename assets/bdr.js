@@ -10820,7 +10820,14 @@
   };
   /* The block. `who` is how the sentence names the set: "your two teams",
      "the Gulf Team", "Karim". */
-  function teamDayBlock(ids, who, has) {
+  /* In the side rail the figures fold away behind one line (Nour, 5 Nov:
+     nine pills stacked in 420px was too much). Open or shut is remembered
+     for the session, so an action that repaints the rail does not shut it. */
+  let DAY_OPEN = false;
+  const DAY_FOLD_CHEV = '<svg class="b-day-fold-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="m6 9 6 6 6-6"/></svg>';
+  function teamDayBlock(ids, who, has, fold) {
     const r = dayRead(ids);
     const one = ids.length === 1;
     const each = one ? '' : ' each';
@@ -10865,6 +10872,10 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'calls so far against a usual day by this hour' }) +
+      (fold ? '<div class="b-day-fold' + (DAY_OPEN ? ' is-open' : '') + '">' +
+        '<button class="b-day-fold-btn" type="button" data-dayfold aria-expanded="' + DAY_OPEN + '">' +
+          '<span>' + (DAY_OPEN ? 'Hide' : 'Show') + ' today\u2019s numbers</span>' + DAY_FOLD_CHEV + '</button>' +
+        '<div class="b-day-fold-panel"><div class="b-day-fold-in">' : '') +
       '<div class="b-day-pills">' + DAY_STEPS.map((s) => pill(commas(r.t[s.k]), s.name, s.k)).join('') + '</div>' +
       '<div class="b-day-pills">' +
         (today ? pill(commas(onCallNow(ids).length), 'of ' + commas(r.n) + ' on a call now', 'live', one ? ids[0] : 'all') : '') +
@@ -10873,6 +10884,7 @@
         pill(commas(r.avg), 'calls' + each + ' a working day', 'avg') +
         pill(callLen(r.secs), 'an average call', 'secs') +
       '</div>' +
+      (fold ? '</div></div></div>' : '') +
       '<div class="b-day-asks">' + asks.slice(0, 3).map((q) =>
         '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') +
       '</div>' +
@@ -11224,7 +11236,7 @@
             '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>' +
         '</div>' +
       '</div>' +
-      '<div class="b-side-sec">' + headH('Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has') + '</div>' +
+      '<div class="b-side-sec">' + headH('Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', true) + '</div>' +
       '<div class="b-side-sec b-worth">' + teamWorth(t) + '</div>' +
       '<div class="b-side-sec">' + headH('The people') +
         '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></div>';
@@ -37767,6 +37779,15 @@
     /* A team page's action on a person (bdr.js, ONE TEAM'S PAGE). */
     const tact = t.closest('[data-tact]');
     if (tact) { teamAct(tact.getAttribute('data-tact')); return; }
+    /* The rail's folded figures: opened and shut in place, no repaint. */
+    const dayFold = t.closest('[data-dayfold]');
+    if (dayFold) {
+      DAY_OPEN = !DAY_OPEN;
+      dayFold.closest('.b-day-fold').classList.toggle('is-open', DAY_OPEN);
+      dayFold.setAttribute('aria-expanded', String(DAY_OPEN));
+      dayFold.querySelector('span').textContent = (DAY_OPEN ? 'Hide' : 'Show') + ' today\u2019s numbers';
+      return;
+    }
 
     const goEl = t.closest('[data-go]');
     if (goEl) {
