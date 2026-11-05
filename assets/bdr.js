@@ -4090,11 +4090,12 @@
     if (S.ag && !(S.team && TEAMS.filter((t) => t.id === S.team)[0].members.indexOf(S.ag) > -1)) S.ag = '';
     /* `on=person` is one person's full profile: it needs their team and them. */
     if (S.on === 'person' && !(isMgr() && S.team && S.ag)) S.on = S.team ? 'teams' : '';
-    /* `from` and `to` are the profile's period, days in ISO, never in the
-       future, `to` never before `from`. Anywhere else they mean nothing. */
+    /* `from` and `to` are the period on the teams page and a person's
+       profile, days in ISO, never in the future, `to` never before `from`.
+       Anywhere else they mean nothing. */
     {
       const day = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v);
-      if (S.on !== 'person' || !day(S.from) || S.from > TODAY_ISO) { S.from = ''; S.to = ''; }
+      if ((S.on !== 'person' && S.on !== 'teams') || !day(S.from) || S.from > TODAY_ISO) { S.from = ''; S.to = ''; }
       else {
         if (!day(S.to) || S.to < S.from) S.to = S.from;
         if (S.to > TODAY_ISO) S.to = TODAY_ISO;
@@ -10846,7 +10847,8 @@
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="m6 9 6 6 6-6"/></svg>';
   const dayFoldSay = (today) => (DAY_OPEN ? 'Show fewer' : 'Show ' + (today ? 5 : 4) + ' more');
-  function teamDayBlock(ids, who, has, fold) {
+  function teamDayBlock(ids, who, has, fold, R) {
+    if (R) return periodDayBlock(ids, who, has, fold, R);
     const r = dayRead(ids);
     const one = ids.length === 1;
     const each = one ? '' : ' each';
@@ -10913,6 +10915,54 @@
           aiMark() + 'Week, month and quarter</button>' +
         asks.slice(0, 3).map((q) =>
         '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') +
+      '</div>' +
+    '</div>';
+  }
+  /* ══ THE SAME BLOCK OVER A PERIOD (5 Nov 2026) ═══════════════════════
+     The teams page's date picker (Nour): the four steps summed over the
+     days chosen against a usual run of the same days, then calls a working
+     day and the average call over those days. Nothing live: a period is
+     history. Every pill still asks the chat its question, for that period,
+     and teamAnswer reads the dates back out of it. */
+  function periodDayBlock(ids, who, has, fold, R) {
+    const s = spanRead(ids, R.from, R.to);
+    const n = ids.length, one = n === 1, each = one ? '' : ' each';
+    let days = 0, secs = 0, calls = 0;
+    for (let iso = R.from; iso <= R.to; iso = isoAdd(iso, 1)) {
+      days += dayPart(iso);
+      ids.forEach((id) => { const x = repDay(id, iso); secs += x.secs * x.calls; calls += x.calls; });
+    }
+    const team = TEAMS.filter((t) => t.members.length === n && t.members.every((id) => ids.indexOf(id) > -1))[0];
+    const scope = (q) => (team && teamsOf().length > 1 ? q.replace(/\?$/, ' in the ' + team.name + '?') : q);
+    const ASKS = { calls: 'Who made the most calls ', reached: 'Who reached the most decision makers ',
+      talks: 'Who had the most conversations ', meets: 'Who booked the most meetings ' };
+    const pill = (v, cap, q) => '<button class="evidence-pill b-day-pill" type="button" data-ask="' + esc(q) + '">' +
+      '<span class="val">' + esc(v) + '</span>' + esc(cap) +
+      '<span class="b-day-q">' + aiMark() + '<span class="b-day-q-in">' + q.split(' ').map((w, i) =>
+        '<span class="b-day-w" style="--i:' + i + '">' + esc(w) + '</span>').join(' ') + '</span></span></button>';
+    const whoAsk = one ? firstName(ids[0]) : team && teamsOf().length > 1 ? 'the ' + team.name : teamsOf().length > 1 ? 'my teams' : 'my team';
+    const overview = 'How did ' + whoAsk + ' do ' + R.words + '?';
+    const dc = s.t.calls - s.u.calls;
+    const said = esc(who.charAt(0).toUpperCase() + who.slice(1)) + ' made <b>' + esc(plural(s.t.calls, 'call')) + '</b> ' + esc(R.words) + ', ' +
+      (Math.abs(dc) < Math.max(2, s.u.calls * 0.05) ? 'about a usual run for those days'
+        : '<b>' + esc(commas(Math.abs(dc))) + (dc < 0 ? ' fewer' : ' more') + '</b> than a usual run of those days') +
+      ', and booked <b>' + esc(plural(s.t.meets, 'meeting')) + '</b> (usually ' + esc(commas(s.u.meets)) + ').';
+    const more = '<div class="b-day-pills">' +
+      pill(commas(days ? Math.round(s.t.calls / n / days) : 0), 'calls' + each + ' a working day', overview) +
+      pill(commas(Math.round(days)), days === 1 ? 'working day' : 'working days', overview) +
+      pill(callLen(calls ? Math.round(secs / calls) : 0), 'an average call', overview) +
+    '</div>';
+    return '<div class="b-day">' +
+      aimyBlock({ text: said, from: 'calls against a usual run of the same days' }) +
+      '<div class="b-day-pills">' + DAY_STEPS.map((st) => pill(commas(s.t[st.k]), st.name, scope(ASKS[st.k] + R.words + '?'))).join('') + '</div>' +
+      (fold ? '<div class="b-day-fold' + (DAY_OPEN ? ' is-open' : '') + '">' +
+        '<div class="b-day-fold-panel" id="dayFoldPanel"><div class="b-day-fold-in">' + more + '</div></div>' +
+        '<button class="b-day-fold-btn" type="button" data-dayfold aria-controls="dayFoldPanel" aria-expanded="' + DAY_OPEN + '">' +
+          '<span>' + (DAY_OPEN ? 'Show fewer' : 'Show 3 more') + '</span>' + DAY_FOLD_CHEV + '</button></div>' : more) +
+      '<div class="b-day-asks">' +
+        '<button class="s-sec-ask" type="button" data-ask="' + esc(overview) + '">' + aiMark() + esc(overview) + '</button>' +
+        (one ? '' : '<button class="s-sec-ask" type="button" data-ask="' + esc(scope('Who was short on calls ' + R.words + '?')) + '">' +
+          aiMark() + esc(scope('Who was short on calls ' + R.words + '?')) + '</button>') +
       '</div>' +
     '</div>';
   }
@@ -11013,6 +11063,56 @@
     const ASK_SPAN = (w) => 'How did ' + w.ask + ' do over the week, month and quarter?';
     const ASK_WEEKS = (w) => 'How did ' + w.ask + ' do week by week this quarter?';
     const ASK_MONTHS = (w) => 'How did ' + w.ask + ' do month by month this year?';
+    /* ══ A PERIOD, NAMED IN THE QUESTION ═══════════════════════════════
+       "from 6 Oct to 17 Oct" or "on 6 Oct", as the teams page's pills ask
+       once a period is chosen. A ranking by one step, who was short on
+       calls, or the whole period with everyone's line. */
+    const PER = q.match(/\bfrom (\d{1,2}) ([a-z]{3}) to (\d{1,2}) ([a-z]{3})\b|\bon (\d{1,2}) ([a-z]{3})\b/i);
+    if (PER) {
+      const isoOf = (dd, mm) => {
+        const m = MONTHS.map((x) => x.toLowerCase()).indexOf(mm.toLowerCase());
+        if (m < 0) return '';
+        const s = TODAY_ISO.slice(0, 4) + '-' + String(m + 1).padStart(2, '0') + '-' + String(+dd).padStart(2, '0');
+        return s > TODAY_ISO ? (+s.slice(0, 4) - 1) + s.slice(4) : s;
+      };
+      const from = PER[1] ? isoOf(PER[1], PER[2]) : isoOf(PER[5], PER[6]);
+      const to = PER[1] ? isoOf(PER[3], PER[4]) : from;
+      if (from && to && from <= to) {
+        const w = spanWho();
+        const words = from === to ? 'on ' + spanDay(from) : 'from ' + spanDay(from) + ' to ' + spanDay(to);
+        const rows = w.ids.map((id) => Object.assign({ id }, spanRead([id], from, to)));
+        const whole = spanRead(w.ids, from, to);
+        const ask = (x) => x + ' ' + words + (w.tm ? ' in the ' + w.tm.name : '') + '?';
+        const STEP = [['calls', /\bmost calls\b/], ['reached', /\bdecision makers?\b/], ['talks', /\bconversations?\b/], ['meets', /\bmeetings?\b/]]
+          .filter((x) => x[1].test(q))[0];
+        if (/\bshort on calls\b/.test(q)) {
+          const short = rows.filter((x) => !w.who1 && callShort(x)).sort((a, b) => a.t.calls / a.u.calls - b.t.calls / b.u.calls);
+          return (short.length ? '<b>' + short.length + ' of ' + rows.length + '</b> ' + (short.length === 1 ? 'was' : 'were') +
+              ' short on calls ' + esc(words) + '.' +
+              '<div class="b-tm-rows">' + short.map((x) => nameRow(x.id, '<b class="b-door-warn">' + esc(commas(x.t.calls)) + ' calls</b> (usually ' +
+                esc(commas(x.u.calls)) + ')')).join('') + '</div>'
+            : 'Nobody was short on calls ' + esc(words) + '.') +
+            next([ask('How did ' + w.ask + ' do'), ask('Who booked the most meetings')]);
+        }
+        if (STEP && !w.who1) {
+          const k = STEP[0], st = DAY_STEPS.filter((x) => x.k === k)[0];
+          const top = rows.slice().sort((a, b) => b.t[k] - a.t[k]);
+          return '<b>' + esc(REP[top[0].id].name) + '</b> ' + st.verb + ' the most ' + st.noun + ' ' + esc(words) + ': ' +
+            esc(commas(top[0].t[k])) + '.' +
+            '<div class="b-tm-rows">' + top.map((x) => {
+              const sh = x.u[k] - x.t[k] >= 2 && x.t[k] < x.u[k] * 0.9;
+              const v = esc(commas(x.t[k]) + ' ' + (x.t[k] === 1 ? st.noun.replace(/s$/, '') : st.noun));
+              return nameRow(x.id, (sh ? '<b class="b-door-warn">' + v + '</b>' : v) + ' (usually ' + esc(commas(x.u[k])) + ')');
+            }).join('') + '</div>' +
+            next([ask('How did ' + w.ask + ' do'), ask('Who was short on calls')]);
+        }
+        return esc(upper(w.name)) + (w.who1 ? ' was' : ' were') + ' ' + (callShort(whole) ? '<b>short on calls</b>' : 'on a usual run of calls') + ' ' +
+            esc(words) + ': ' + esc(commas(whole.t.calls)) + ' against ' + esc(commas(whole.u.calls)) + '.' +
+          '<div class="b-spans">' + spanBlock(upper(words), spanRange(from, to), whole) + '</div>' +
+          (w.who1 ? '' : '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, stepLine({ d: x.t, u: x.u }))).join('') + '</div>') +
+          next(w.who1 ? [ASK_WEEKS(w), ASK_MONTHS(w)] : [ask('Who was short on calls'), ask('Who booked the most meetings')]);
+      }
+    }
     /* Every week of this quarter. */
     if (/\bweek by week\b|\bevery week\b|\ball (the )?weeks\b/.test(q)) {
       const w = spanWho();
@@ -11156,9 +11256,10 @@
       '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', 'Back to Today') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Your teams</h2></div>' +
+        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
+          datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
         teamDayBlock(ppl, reads.length > 1 ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
-          reads.length > 1 ? 'have' : 'has') +
+          reads.length > 1 ? 'have' : 'has', false, pagePeriod()) +
       '</section>' +
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
@@ -11395,7 +11496,8 @@
             '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>' +
         '</div>' +
       '</div>' +
-      '<div class="b-side-sec">' + headH('Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', true) + '</div>' +
+      '<div class="b-side-sec">' + headH(pagePeriod() ? dateRange(S.from, S.to || S.from) : 'Today') +
+        teamDayBlock(t.members, 'the ' + esc(t.name), 'has', true, pagePeriod()) + '</div>' +
       '<div class="b-side-sec b-worth">' + teamWorth(t) + '</div>' +
       '<div class="b-side-sec">' + headH('The people') +
         '<div class="b-pr-rows">' + t.members.map(personRow).join('') + '</div></div>';
@@ -11500,7 +11602,7 @@
         '</div></div>' +
       /* The way to everything else about them: the full profile page. */
       '<button class="b-ps-full" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id }))) + '">' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to }))) + '">' +
         '<span>Open the full profile<small>The next 1:1, the coaching, and every call with its recording</small></span>' +
         SIDE_CHEV + '</button>';
   }
@@ -11747,6 +11849,13 @@
   const dateSay = (iso) => +iso.slice(8, 10) + ' ' + MONTHS[+iso.slice(5, 7) - 1];
   const dateRange = (from, to) => (!to || to === from ? dateSay(from) : dateSay(from) + ' to ' + dateSay(to));
   const monthAdd = (m, n) => { const x = new Date(m + 'T00:00:00'); return isoDay(new Date(x.getFullYear(), x.getMonth() + n, 1)); };
+  /* The page's period from the URL, or null for today. */
+  function pagePeriod() {
+    if (!S.from) return null;
+    const R = { from: S.from, to: S.to || S.from };
+    R.words = R.from === R.to ? 'on ' + dateSay(R.from) : 'from ' + dateSay(R.from) + ' to ' + dateSay(R.to);
+    return R;
+  }
   function datePresets() {
     const ws = weekStart(TODAY_ISO), ms = TODAY_ISO.slice(0, 8) + '01', lm = monthAdd(ms, -1);
     return [
@@ -11881,7 +11990,7 @@
     const agenda = personAgenda(t, id, note, agendaPats, moved);
     return '<div class="s-home">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, ag: id }))) + '"', 'Back to ' + t.name) +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, ag: id, from: S.from, to: S.to }))) + '"', 'Back to ' + t.name) +
         '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +
           /* The score beside the name (Nour); who they are under it, as part
              of the name; how the week moved and the call on their own row,
@@ -38441,7 +38550,8 @@
       DAY_OPEN = !DAY_OPEN;
       dayFold.closest('.b-day-fold').classList.toggle('is-open', DAY_OPEN);
       dayFold.setAttribute('aria-expanded', String(DAY_OPEN));
-      dayFold.querySelector('span').textContent = dayFoldSay(sideOn() && dayPart(TODAY_ISO) > 0 && dayPart(TODAY_ISO) < 1);
+      dayFold.querySelector('span').textContent = DAY_OPEN ? 'Show fewer'
+        : 'Show ' + dayFold.closest('.b-day-fold').querySelectorAll('.b-day-fold-in .b-day-pill').length + ' more';
       return;
     }
 

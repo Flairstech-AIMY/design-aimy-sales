@@ -8827,3 +8827,6 @@ body.is-calling .app-side { display: none; }
 .b-pf-fold.is-open .b-pf-foldi { padding-top: 8px; }
 .b-pf-fold:not(.is-open) .s-camp-list-head { margin-bottom: 0; }
 @media (prefers-reduced-motion: reduce) { .b-pf-foldp { transition: none; } }
+
+/* The teams page's heading carries the period picker on its right. */
+.b-tm-head { align-items: center; justify-content: space-between; }
