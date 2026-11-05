@@ -8398,6 +8398,12 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   .b-day-pill { position: static; }
   .b-day-q { left: 0; white-space: normal; max-width: 100%; border-radius: var(--r-lg); }
 }
+/* The same wherever the block is narrow for another reason: in the side
+   rail (420px), and on the page beside it. A question anchored on a pill
+   near the right edge ran past the block and was clipped (Nour, 5 Nov). */
+.app-side .b-day-pills, body.has-side .b-day-pills { position: relative; }
+.app-side .b-day-pill, body.has-side .b-day-pill { position: static; }
+.app-side .b-day-q, body.has-side .b-day-q { left: 0; white-space: normal; max-width: 100%; border-radius: var(--r-lg); }
 /* Reduced motion: the question is simply there after the wait, whole. */
 @media (prefers-reduced-motion: reduce) {
   .b-day-q, .b-day-q > svg, .b-day-w { transform: none !important; filter: none !important; }
