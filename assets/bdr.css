@@ -8602,7 +8602,7 @@ body.is-calling .app-side { display: none; }
    The accordion from transitions-dev: the panel grows on grid rows from 0fr
    to 1fr, the chevron flips through a flat line. The padding is on the
    inner box, never the track, or a strip of it stays when shut. */
-.b-day-fold { margin: 0 0 4px; }
+.b-day-fold { margin: 8px 0 4px; }
 .b-day-fold-btn {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; font: inherit;
   font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
@@ -8617,7 +8617,7 @@ body.is-calling .app-side { display: none; }
 }
 .b-day-fold.is-open .b-day-fold-panel { grid-template-rows: 1fr; }
 .b-day-fold-in { min-height: 0; overflow: hidden; }
-.b-day-fold.is-open .b-day-fold-in { overflow: visible; padding-top: 10px; }
+.b-day-fold.is-open .b-day-fold-in { overflow: visible; padding-bottom: 6px; }
 @media (prefers-reduced-motion: reduce) {
   .b-day-fold-chev, .b-day-fold-panel { transition: none; }
 }
