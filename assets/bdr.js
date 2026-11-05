@@ -11372,8 +11372,10 @@
   }
   const NOTE_OK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
-  const NOTE_WORD = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5"/><path d="M12 16.5h.01"/></svg>';
+  /* The mark fills its circle like the tick beside it does: a taller bar
+     and a full dot (Nour, 5 Nov: the 13px one read as a speck). */
+  const NOTE_WORD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v9"/><path d="M12 19h.01"/></svg>';
   function personSide(t, id) {
     const w = weekScores(id);
     const on = onCallNow([id]).length;
