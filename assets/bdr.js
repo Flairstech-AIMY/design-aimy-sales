@@ -11534,7 +11534,7 @@
       const tn = count(team, o.k);
       const t1 = tn ? Math.round(team.length / tn) : 0;
       const ex = mine.filter((x) => (x.objections || []).indexOf(o.k) > -1)[0];
-      list.push({ k: 'obj', obj: o.k, ex,
+      list.push({ k: 'obj', obj: o.k, ex, mine: o.n / mine.length, team: tn / team.length,
         say: '<b>“' + esc(OBJECTION[o.k].label) + '”</b> came up on <b>' + commas(o.n) + ' of ' + commas(mine.length) +
           '</b> of ' + esc(first) + '’s calls that got through.',
         ev: t1 ? 'About 1 in ' + Math.round(mine.length / o.n) + ' for ' + first + ', 1 in ' + t1 + ' across the ' + t.name
@@ -11561,8 +11561,37 @@
   }
   /* The next 1:1: up to three talking points, each with its evidence and a
      way to it (a call to read, a question for the chat, an action). */
-  function personAgenda(t, id, note, pats) {
+  /* ══ WHEN THERE IS A 1:1 AT ALL (Nour) ═══════════════════════════════════
+     Not everybody has a 1:1 coming, so the block is drawn only when one is:
+     in the diary already (ONE_ON_ONE, a fixture: the prototype's diary has
+     no manager 1:1s), asked for from this page or the rail (TACTS book), or
+     suggested by AiMY because something on the record calls for one: calls
+     short today, the score down 3 or more this week, or an objection coming
+     up half as often again as it does across the team. None of these, no
+     block. */
+  const ONE_ON_ONE = { rana: { d: 1, at: '10:00' }, omar: { d: 4, at: '14:30' } };
+  function oneOnOne(t, id, note, moved, pats) {
     const first = firstName(id);
+    const set = ONE_ON_ONE[id];
+    if (set) {
+      return { kind: 'set', head: 'For your 1:1 with ' + first + ', ' +
+        (set.d === 1 ? 'tomorrow' : new Date(dayAdd(set.d) + 'T00:00:00').toLocaleString('en-GB', { weekday: 'long' }) + ' ' +
+        sayDay(dayAdd(set.d))) + ' at ' + set.at };
+    }
+    if (TACTS[t.id + ':' + id + ':book']) return { kind: 'asked', head: 'For your 1:1 with ' + first };
+    const why = [];
+    if (note.short) why.push('calls are short today');
+    if (moved <= -3) why.push('the score is down ' + commas(-moved) + ' this week');
+    const obj = pats.list.filter((x) => x.k === 'obj')[0];
+    if (obj && obj.mine >= obj.team * 1.5) why.push('“' + OBJECTION[obj.obj].label + '” comes up more than across the team');
+    if (!why.length) return null;
+    const said = why.length > 1 ? why.slice(0, -1).join(', ') + ' and ' + why[why.length - 1] : why[0];
+    return { kind: 'suggest', head: 'A 1:1 with ' + first + ' would help', why: said.charAt(0).toUpperCase() + said.slice(1) + '.' };
+  }
+  function personAgenda(t, id, note, pats, moved) {
+    const first = firstName(id);
+    const one = oneOnOne(t, id, note, moved, pats);
+    if (!one) return '';
     const x = note.x;
     const pts = [];
     if (note.short) {
@@ -11586,11 +11615,14 @@
         ' today, usually ' + x.u.meets + ' by now',
         go: '<button class="s-insight-lnk" type="button" data-ask="' + esc('How did ' + first + ' do month by month this year?') + '">Month by month</button>' });
     }
-    const booked = TACTS[t.id + ':' + id + ':book'];
+    /* In the diary: nothing to do but prepare. Asked for: said so. A
+       suggestion: AiMY says why, and Book it makes it one. */
     return '<div class="b-pf-agenda">' +
-      '<div class="b-pf-agh"><h3>For your next 1:1 with ' + esc(first) + '</h3>' +
-        (booked ? '<span class="b-wt-done">Asked for 15 minutes</span>' : '<button class="s-insight-lnk primary" type="button" data-tact="' +
-          esc(t.id + ':' + id + ':book') + '">Book it</button>') + '</div>' +
+      '<div class="b-pf-agh"><div><h3>' + (one.kind === 'suggest' ? aiMark() : '') + esc(one.head) + '</h3>' +
+          (one.why ? '<p class="b-pf-agw">' + esc(one.why) + '</p>' : '') + '</div>' +
+        (one.kind === 'set' ? '<span class="b-pf-agin">In your diary</span>'
+          : one.kind === 'asked' ? '<span class="b-wt-done">Asked for 15 minutes</span>'
+          : '<button class="s-insight-lnk primary" type="button" data-tact="' + esc(t.id + ':' + id + ':book') + '">Book it</button>') + '</div>' +
       pts.slice(0, 3).map((pt, i) => '<div class="b-pf-pt"><span class="b-pf-ptn">' + (i + 1) + '</span>' +
         '<span class="b-pf-pts">' + pt.say + '</span>' +
         '<span class="b-pf-pte">' + esc(pt.ev) + '</span>' +
@@ -11834,6 +11866,7 @@
     const side = personSide(t, id);
     const figs = side.slice(side.indexOf('<div class="b-side-sec"><div class="b-ps-sech">'), side.indexOf('<button class="b-ps-full"'));
     const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
+    const agenda = personAgenda(t, id, note, agendaPats, moved);
     return '<div class="s-home">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, ag: id }))) + '"', 'Back to ' + t.name) +
@@ -11847,18 +11880,22 @@
               (Math.abs(moved) >= 3 ? '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' + (moved < 0 ? 'Down ' : 'Up ') +
                 commas(Math.abs(moved)) + ' this week</span>' : '') +
               (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div>' : '') + '</div>' +
-          '<div class="b-pf-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
-            : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+          /* Booking lives on the 1:1 block when there is one, not twice. */
+          '<div class="b-pf-acts">' + (done && !(agenda && done === 'book') ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
+            : acts.filter((a) => !(agenda && a === 'book')).map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
               esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</div>' +
         '</div>' +
+        /* Today's coach's note, under the head where it is read first (Nour);
+           it is about today whatever period is chosen below. */
+        noteHtml +
       '</section>' +
-      '<section class="s-block s-block-wide" aria-label="Next 1:1">' + personAgenda(t, id, note, agendaPats) + '</section>' +
+      (agenda ? '<section class="s-block s-block-wide" aria-label="Next 1:1">' + agenda + '</section>' : '') +
       /* Everything under this row follows the period chosen in it. */
       '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Coaching">' + headH('Coaching') + personCoaching(t, id, R) + '</section>' +
       (R ? '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(dateRange(R.from, R.to)) + '">' + periodFigs(id, R) + '</section>'
-        : '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + noteHtml + figs + '</section>') +
+        : '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + figs + '</section>') +
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +

@@ -8688,7 +8688,10 @@ body.is-calling .app-side { display: none; }
   background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04)), var(--card-bg);
 }
 .b-pf-agh { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
-.b-pf-agh h3 { margin: 0; font-size: 18px; font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pf-agh h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pf-agw { margin: 4px 0 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--d100); }
+.b-pf-agin { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text); }
+.b-pf .b-ps-note { margin-top: 20px; }
 .b-pf-pt { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--card-border); }
 .b-pf-pt:first-of-type { border-top: 0; }
 .b-pf-ptn { grid-row: 1 / span 2; align-self: start; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
