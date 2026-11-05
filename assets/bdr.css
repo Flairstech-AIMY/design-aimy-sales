@@ -8315,8 +8315,13 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    pointer; the people on it stand at the foot as overlapping faces. */
 .b-team-card { cursor: default; }
 .b-team-stack { display: inline-flex; align-items: center; flex: none; }
-.b-team-stack .b-face { box-shadow: 0 0 0 2px var(--card-bg); }
-.b-team-stack .b-face + .b-face { margin-left: -6px; }
+/* The stack's circles, laid left to right inside a card: the ring is the
+   card's ground, and the count is the last circle. */
+.b-team-stack .b-stack-face { position: relative; width: 24px; height: 24px; box-shadow: 0 0 0 2px var(--card-bg); }
+.b-team-stack .b-stack-face + .b-stack-face { margin: 0 0 0 -6px; }
+.b-team-stack .b-face { box-shadow: none; }
+/* The score tag and how it moved, where the card's summary line stood. */
+.b-team-score { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 6px 14px 0; }
 
 /* ══ 113. THE DAY'S NUMBERS, AND THE CHAT UNDER THEM (5 Nov 2026) ══════════
    bdr.js, THE DAY'S NUMBERS. No charts: AiMY's sentence, the figures as
