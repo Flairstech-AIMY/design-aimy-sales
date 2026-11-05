@@ -10956,9 +10956,8 @@
   }
 
   /* ══ AND THE PAGE IT OPENS ═══════════════════════════════════════════
-     A holding page until step 3 of the plan gives it its design: each team
-     with its score, its word, who is in it and how it moved. The rows are
-     not doors yet, because the team page (step 4) does not exist. */
+     A holding page until step 3 of the plan gives it its design: the
+     day's numbers for every team together, then a card per team. */
   function teamsPage() {
     const reads = teamsOf().map(teamRead);
     const ppl = peopleOf(teamsOf());
@@ -10976,28 +10975,48 @@
         teamDayBlock(ppl, reads.length > 1 ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
           reads.length > 1 ? 'have' : 'has') +
       '</section>' +
-      '<section class="s-block s-block-wide" aria-label="This week">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">This week</h2></div>' +
+      '<section class="s-block s-block-wide" aria-label="Teams">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Teams</h2></div>' +
         aimyBlock({ text: said, from: 'this week against last' }) +
-        '<div class="b-owed">' + reads.map((r, i) =>
-          '<div class="b-owed-row b-team-row" style="--i:' + i + '">' +
-            '<span class="b-owed-main">' +
-              '<span class="b-owed-head">' +
-                '<span class="b-owed-type">' + esc(r.t.name) + '</span>' +
-                '<span class="s-meta-st tone-' + r.word.tone + '">' + esc(r.word.say) + '</span>' +
-              '</span>' +
-              '<span class="b-owed-body">' + esc([
-                commas(r.now) + ' of 100 this week',
-                (r.move === 0 ? 'same as' : (r.move > 0 ? 'up ' : 'down ') + commas(Math.abs(r.move)) + ' since') + ' last week',
-                plural(r.t.members.length, 'person'),
-              ].join(' · ')) + ' · <span data-live="' + esc(r.t.id) + '">' +
-                commas(r.t.members.filter((id) => live.indexOf(id) > -1).length) + '</span> on a call</span>' +
-              '<span class="b-team-faces">' + r.t.members.map((id) =>
-                '<span class="b-team-who">' + faceOf(id, 24) + esc(REP[id].name) + '</span>').join('') + '</span>' +
-            '</span>' +
-          '</div>').join('') + '</div>' +
+        cardGrid(reads, (r, i) => teamCard(r, i, live)) +
       '</section>' +
     '</div>';
+  }
+
+  /* ══ A TEAM, AS THE SAME CARD ══════════════════════════════════════════
+     Nour, 5 Nov 2026: teams are cards, not rows. The campaign card's
+     anatomy (`ccard`), because a second card design for a second list on
+     the same product is two things to learn for one job: where it stands
+     across the top (the score's word as the tag, how many people, how many
+     on a call now), the name, the week's score and how it moved, today's
+     figures, AiMY's reading of today, and at the foot who is on it and the
+     way into the chat. Not a door yet: the team page is step 4, so the
+     card's one control asks AiMY about the team instead. */
+  function teamCard(r, i, live) {
+    const d = dayRead(r.t.members);
+    const on = r.t.members.filter((id) => live.indexOf(id) > -1).length;
+    const move = r.move === 0 ? 'the same as last week'
+      : (r.move > 0 ? 'up ' : 'down ') + commas(Math.abs(r.move)) + ' since last week';
+    return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
+      '<div class="tc-head">' +
+        '<span class="tag tag-' + esc(r.word.tone) + '">' + esc(r.word.say) + '</span>' +
+        '<span class="b-kind">' + esc(plural(r.t.members.length, 'person')) + '</span>' +
+        '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
+          commas(on) + '</span> on a call</span></span>' +
+      '</div>' +
+      '<span class="tc-title s-card-title">' + esc(r.t.name) + '</span>' +
+      '<p class="tc-summary b-qcard-what b-fact">' + chIcon('target') +
+        '<span><b>' + commas(r.now) + '</b> of 100 this week, ' + esc(move) + '</span></p>' +
+      '<div class="b-qcard-why"><b>' + commas(d.t.calls) + '</b> calls ' + (d.day === TODAY_ISO ? 'today' : 'that day') +
+        ', <b>' + commas(d.t.reached) + '</b> reached the decision maker, <b>' + commas(d.t.meets) + '</b> ' +
+        verbFor(d.t.meets, 'meeting') + ' booked</div>' +
+      aimyBlock({ text: daySay(d, 'the ' + esc(r.t.name), 'has'), from: 'today against a usual day' }) +
+      '<div class="tc-gov b-qcard-foot">' +
+        '<span class="b-team-stack">' + r.t.members.map((id) => faceOf(id, 24)).join('') + '</span>' +
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-ask="' +
+          esc('How is the ' + r.t.name + ' doing today?') + '">Ask AiMY</button>' +
+      '</div>' +
+    '</article>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════

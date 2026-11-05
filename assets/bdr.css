@@ -8310,15 +8310,13 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-live.is-none .b-live-dot { background: var(--d300); }
 .b-live.is-none .b-live-dot::after { display: none; }
 @keyframes b-live-ping { from { transform: scale(1); opacity: 0.6; } to { transform: scale(2.6); opacity: 0; } }
-/* The holding page's rows are not doors yet (the team page is step 4), so
-   they give up the row's pointer and hover. */
-.b-team-row { cursor: default; }
-.b-team-row:hover { background: none; }
-.b-team-faces { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
-.b-team-who {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
-}
+/* A team card is the campaign card (bdr.js, A TEAM, AS THE SAME CARD).
+   It is not a door yet, so it keeps the card's ground and gives up the
+   pointer; the people on it stand at the foot as overlapping faces. */
+.b-team-card { cursor: default; }
+.b-team-stack { display: inline-flex; align-items: center; flex: none; }
+.b-team-stack .b-face { box-shadow: 0 0 0 2px var(--card-bg); }
+.b-team-stack .b-face + .b-face { margin-left: -6px; }
 
 /* ══ 113. THE DAY'S NUMBERS, AND THE CHAT UNDER THEM (5 Nov 2026) ══════════
    bdr.js, THE DAY'S NUMBERS. No charts: AiMY's sentence, the figures as
@@ -8384,7 +8382,17 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   transition-delay: calc(300ms + var(--i, 0) * 40ms);
 }
 /* On one line where there is room; a phone gets a wrapped question. */
-@media (max-width: 639.98px) { .b-day-q { white-space: normal; max-width: min(320px, 80vw); border-radius: var(--r-lg); } }
+/* Where the row is narrow, a question anchored on a pill near the right
+   edge ran past the page and gave the phone a sideways scroll, even while
+   hidden. There it anchors on the row instead, across its full width. And
+   the block clips sideways at every width, so a hidden question can never
+   widen the page. */
+.b-day { overflow-x: clip; overflow-clip-margin: 0; }
+@media (max-width: 899.98px) {
+  .b-day-pills { position: relative; }
+  .b-day-pill { position: static; }
+  .b-day-q { left: 0; white-space: normal; max-width: 100%; border-radius: var(--r-lg); }
+}
 /* Reduced motion: the question is simply there after the wait, whole. */
 @media (prefers-reduced-motion: reduce) {
   .b-day-q, .b-day-q > svg, .b-day-w { transform: none !important; filter: none !important; }
