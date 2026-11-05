@@ -11838,11 +11838,13 @@
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, ag: id }))) + '"', 'Back to ' + t.name) +
         '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +
+          /* Who they are reads as part of the name, under it; how they are
+             doing has its own row (Nour: "BDR, Team" sat among the states). */
           '<div><h2 class="b-pf-name">' + esc(REP[id].name) + '</h2>' +
+            '<p class="b-pf-role">' + esc(jobSay(REP[id])) + ' in the ' + esc(t.name) + '</p>' +
             '<div class="b-pf-sub">' + scoreTag(w.now) +
               (Math.abs(moved) >= 3 ? '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' + (moved < 0 ? 'Down ' : 'Up ') +
                 commas(Math.abs(moved)) + ' this week</span>' : '') +
-              '<span>' + esc(jobSay(REP[id])) + ', ' + esc(t.name) + '</span>' +
               (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div></div>' +
           '<div class="b-pf-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
             : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
