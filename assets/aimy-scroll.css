@@ -1,0 +1,153 @@
+/* SALES: QA's aimy-scroll.css (origin/main 9911c5e), unchanged but for this
+   note and one token: QA's --qa-accent-rgb is the library's --accent-rgb here, and its
+   --elev-2 the library's --shadow-md.
+   It styles the dot on the main page and the chat thread only
+   (assets/aimy-scroll.js says why); every other scroller keeps the build's
+   own bar from aimy-ds.css. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   AIMY SCROLL DOT — styles for assets/aimy-scroll.js
+
+   Every vertical scroller in the product shows this in place of the native
+   bar: a translucent accent dot with no visible track, by decision — the dot
+   alone says "there is more, and you are here". While a surface moves the
+   dot trails a flame sized by speed; when it stops the flame pulls back in
+   and the dot lands with a squash-and-settle.
+
+   Accent at 0.85 with a 0.14 halo keeps the dot in the same family as the
+   chat's user bubble (--chat-user-bubble-*), not a new hue. The rail is a
+   16px strip with nothing painted on it; only the dot takes the pointer,
+   except on surfaces that ask for a clickable track (the chat), so content
+   under the right edge of an ordinary scroller stays clickable.
+
+   Surfaces the script skips (two-axis scrollers, text fields, anything under
+   [data-scroll-dot="off"]) keep the shared native bar from
+   aimy-responsive.css §9.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* The native vertical bar, on the surfaces that have a dot instead.
+   :root PREFIX IS LOAD-BEARING (aimy-responsive.css header): pages declare
+   per-component ::-webkit-scrollbar rules inline, and this must outrank them. */
+:root .has-scroll-dot,
+:root.has-scroll-dot {
+  scrollbar-width: none;
+}
+:root .has-scroll-dot::-webkit-scrollbar,
+:root.has-scroll-dot::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.aimy-scroll {
+  position: absolute;
+  z-index: 3;
+  width: 16px;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out, ease-out);
+}
+.aimy-scroll.has-track { pointer-events: auto; cursor: pointer; }
+.aimy-scroll.is-idle { opacity: 0; }
+.aimy-scroll.is-idle .aimy-scroll-head { pointer-events: none; }
+.aimy-scroll-head {
+  position: absolute;
+  top: 0;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  pointer-events: auto;
+  cursor: grab;
+  will-change: transform;
+}
+.aimy-scroll.is-dragging .aimy-scroll-head { cursor: grabbing; }
+.aimy-scroll-dot {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.85);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.14);
+  transition: transform 140ms var(--ease-out, ease-out), scale 160ms var(--ease-out, ease-out);
+}
+.aimy-scroll-head:hover .aimy-scroll-dot,
+.aimy-scroll.is-dragging .aimy-scroll-dot { scale: 1.3; }
+/* Moving: the dot stretches along the direction of travel. */
+.aimy-scroll.is-moving .aimy-scroll-dot { transform: scale(0.82, 1.18); }
+/* Stopping: squash on impact, overshoot, settle. --land is +1 when the dot
+   was travelling down and -1 when up, so the 3px overshoot follows it. */
+.aimy-scroll.is-landing .aimy-scroll-dot {
+  animation: aimyScrollLand 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes aimyScrollLand {
+  0%   { transform: translateY(calc(var(--land, 1) * 3px)) scale(1.32, 0.68); }
+  30%  { transform: translateY(calc(var(--land, 1) * -2px)) scale(0.86, 1.16); }
+  55%  { transform: translateY(calc(var(--land, 1) * 1px)) scale(1.08, 0.93); }
+  78%  { transform: translateY(0) scale(0.97, 1.03); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+/* The flame: a tapered gradient behind the dot, opposite to travel. Drawn
+   at full length (FLAME_MAX in aimy-scroll.js) and scaled from the dot's
+   side, so speed changes are a transform, never a layout pass. On stop it
+   scales back to nothing. */
+.aimy-scroll-tail {
+  position: absolute;
+  left: 0;
+  width: 10px;
+  height: 64px;
+  top: 5px;
+  background: linear-gradient(to bottom, rgba(var(--accent-rgb), 0.7), rgba(var(--accent-rgb), 0));
+  -webkit-clip-path: polygon(0 0, 100% 0, 62% 100%, 38% 100%);
+          clip-path: polygon(0 0, 100% 0, 62% 100%, 38% 100%);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform 90ms linear;
+  pointer-events: none;
+}
+.aimy-scroll.is-down .aimy-scroll-tail {
+  top: auto;
+  bottom: 5px;
+  background: linear-gradient(to top, rgba(var(--accent-rgb), 0.7), rgba(var(--accent-rgb), 0));
+  -webkit-clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+          clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  transform-origin: bottom center;
+}
+.aimy-scroll:not(.is-moving) .aimy-scroll-tail { transition: transform 260ms var(--ease-out, ease-out); }
+
+/* Back to the newest message, once you have scrolled away from it. */
+.aimy-scroll-latest {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, 6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  background: var(--card-bg-raised);
+  color: var(--d50);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 180ms var(--ease-out, ease-out), transform 180ms var(--ease-out, ease-out), visibility 0s linear 180ms, background 150ms;
+}
+.aimy-scroll-latest.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition-delay: 0s;
+}
+.aimy-scroll-latest:hover { background: rgba(var(--accent-rgb), 0.16); }
+.aimy-scroll-latest:active { transform: translate(-50%, 0) scale(0.97); }
+.aimy-scroll-latest:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.aimy-scroll-latest svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aimy-scroll-tail { display: none; }
+  .aimy-scroll.is-moving .aimy-scroll-dot { transform: none; }
+  .aimy-scroll.is-landing .aimy-scroll-dot { animation: none; }
+  .aimy-scroll-latest { transition: opacity 120ms linear, visibility 0s linear 120ms; transform: translate(-50%, 0); }
+}
