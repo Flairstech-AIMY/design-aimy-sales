@@ -8325,7 +8325,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 
 /* ══ 113. THE DAY'S NUMBERS, AND THE CHAT UNDER THEM (5 Nov 2026) ══════════
    bdr.js, THE DAY'S NUMBERS. AiMY's sentence, the figures (as widgets
-   since 6 Nov, section 121), and the questions that open the chat. */
+   since 5 Nov, section 121), and the questions that open the chat. */
 .b-day .b-aimy { margin: 0 0 14px; }
 .b-day-asks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
 /* The chat's answers: one row per person, or one per part of a person's
@@ -8382,7 +8382,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pr-oncall { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok-text); }
 .b-pr-oncall i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok-text); }
 
-/* ══ 115. THE SIDE RAIL, GONE (6 Nov 2026) ═════════════════════════════════
+/* ══ 115. THE SIDE RAIL, GONE (5 Nov 2026) ═════════════════════════════════
    The rail held a team, then a person a step in, beside the page. Feedback
    on 5 Nov ditched it for a team page and the profile (section 121). What
    stays is the person view's look, the profile's head. */
@@ -8631,10 +8631,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* The teams page's heading carries the period picker on its right. */
 .b-tm-head { align-items: center; justify-content: space-between; }
 
-/* ══ 121. NUMBERS AS WIDGETS, AND THE PLAN (6 Nov 2026) ═════════════════════
+/* ══ 121. NUMBERS AS WIDGETS, AND THE PLAN (5 Nov 2026) ═════════════════════
    bdr.js, NUMBERS AS WIDGETS and THE PLAN, AND THE PACE. Feedback on 5 Nov:
    widgets for the numbers, burn-down told as a story, a page for each team
-   with its people as cards, and no side rail. Then distilled (Nour, 6 Nov:
+   with its people as cards, and no side rail. Then distilled (Nour, 5 Nov:
    too many charts, not clean): one chart, drawn bare, and figures for the
    rest. */
 .b-wds { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 10px; margin-top: 10px; }

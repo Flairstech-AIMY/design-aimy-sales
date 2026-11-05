@@ -10846,7 +10846,7 @@
   const DAY_FOLD_CHEV = '<svg class="b-day-fold-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="m6 9 6 6 6-6"/></svg>';
-  /* ══ NUMBERS AS WIDGETS (6 Nov 2026) ═══════════════════════════════════
+  /* ══ NUMBERS AS WIDGETS (5 Nov 2026) ═══════════════════════════════════
      Nour: widgets here instead of pills. Each figure is a small card of its
      own: what it counts, the number, how it stands against a usual day in
      words and colour, and the rate behind it where there is one. The whole
@@ -11279,7 +11279,7 @@
   /* ══ AND THE PAGE IT OPENS ═══════════════════════════════════════════
      A holding page until step 3 of the plan gives it its design: the
      day's numbers for every team together, then a card per team. */
-  /* ══ THE PLAN, AND THE PACE (6 Nov 2026) ════════════════════════════════
+  /* ══ THE PLAN, AND THE PACE (5 Nov 2026) ════════════════════════════════
      Feedback on the teams pages (5 Nov): velocity and burn-down, told as a
      story; the team's operation in plain sight; the numbers as widgets.
      Nour: charts now, but smart ones, never drawn without what AiMY makes of
@@ -11358,7 +11358,7 @@
     return { say: pc + '% behind', tone: r.ratio >= 0.85 ? 'dn' : 'err', short: true };
   }
   /* The four steps as figures, for a card: what each counts, the number,
-     and the pace in words and colour. No bars (Nour, 6 Nov: too many
+     and the pace in words and colour. No bars (Nour, 5 Nov: too many
      charts, not clean). */
   const planRows = (R) => '<ul class="b-pl-figs">' + DAY_STEPS.map((s) => {
     const x = R[s.k], pc = pace(x);
@@ -11502,7 +11502,7 @@
       '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div>' +
     '</div>';
   }
-  /* The chart, distilled (Nour, 6 Nov: too many charts, not clean): what is
+  /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
      left of the plan, the straight line the plan takes, today, and where the
      pace lands. No grid, no axis, no legend, no second view: each line says
      what it is where it is drawn. The lines are an SVG stretched to the plot
@@ -11610,7 +11610,7 @@
     PL_TIP = tip;
   });
 
-  /* ══ A TEAM'S PAGE, WITH ITS PEOPLE AS CARDS (6 Nov 2026) ════════════════
+  /* ══ A TEAM'S PAGE, WITH ITS PEOPLE AS CARDS (5 Nov 2026) ════════════════
      The side rail is gone (feedback, 5 Nov): a team card opens the team's
      own page, and a person on it opens their profile. Top to bottom: the
      team, the plan and its pace, today live, who is worth the manager's
@@ -11656,7 +11656,7 @@
       (w.d < -0.005 ? '; the widest gap is <b>' + esc(w.s.noun) + '</b>, ' + pc(mine.R[w.s.k].ratio) + ' of the plan by now against ' +
         pc(w.best.R[w.s.k].ratio) + ' for the ' + esc(w.best.t.name) + '.'
         : ', most of all on <b>' + esc(b.s.noun) + '</b>, ' + pc(mine.R[b.s.k].ratio) + ' of the plan by now.');
-    /* Figures, not bars (Nour, 6 Nov): each step, each team's share of the
+    /* Figures, not bars (Nour, 5 Nov): each step, each team's share of the
        plan by now, in its pace's colour, the open team first and in bold. */
     const order = [mine].concat(reads.filter((x) => x !== mine));
     return aimyBlock({ text: said, from: 'share of the plan by now, ' + P.when }) +
@@ -11789,7 +11789,7 @@
   }
 
   /* ══ ONE TEAM: WHAT THE MANAGER DOES ABOUT IT (step 3, 5 Nov 2026) ══════
-     First a page, then a side rail (5 Nov), a page again since 6 Nov
+     First a page, then a side rail (5 Nov), a page again since 5 Nov
      (teamPage, above). What follows is history kept for its reasons.
      What a team card opens (`?on=teams&team=<id>`): first built as a page
      (variant C of docs/team-variants-3-team.html, Today first), then moved
@@ -11860,7 +11860,7 @@
         '</div>';
       }).join('') + '</div>';
   }
-  /* THE SIDE RAIL IS GONE (6 Nov 2026). It held one team, then one person a
+  /* THE SIDE RAIL IS GONE (5 Nov 2026). It held one team, then one person a
      step in. Feedback on 5 Nov ditched it: a team is its own page
      (teamPage) and a person is their profile (personPage). The person view
      below survives as the profile's head: its note and its actions. */
