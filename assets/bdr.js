@@ -10827,7 +10827,10 @@
       const q = one ? 'How is ' + firstName(ids[0]) + ' doing today?' : DAY_METRIC[k].ask;
       return '<button class="evidence-pill b-day-pill" type="button" data-ask="' + esc(q) + '">' +
         '<span class="val"' + (live ? ' data-live="' + esc(live) + '"' : '') + '>' + esc(v) + '</span>' + esc(cap) +
-        '<span class="b-day-q">' + aiMark() + esc(q) + '</span></button>';
+        /* A word at a time, so each can arrive on its own beat (bdr.css,
+           THE QUESTION, REVEALED). */
+        '<span class="b-day-q">' + aiMark() + '<span class="b-day-q-in">' + q.split(' ').map((w, i) =>
+          '<span class="b-day-w" style="--i:' + i + '">' + esc(w) + '</span>').join(' ') + '</span></span></button>';
     };
     const today = r.day === TODAY_ISO && r.p < 1;
     /* The questions the sentence leaves open, each one a turn in the chat. */
