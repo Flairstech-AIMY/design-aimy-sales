@@ -64,6 +64,9 @@ const fail = (check, msg) => fails.push(check + ': ' + msg);
 /* Attributes that are markers rather than verbs — read by something other
    than the click router, or by the browser itself. Each one needs a reason. */
 const MARKERS = {
+  'from': 'the date picker panel keeps the first day chosen on itself until the second',
+  'to': 'the date picker panel keeps the range it opened with on itself',
+  'month': 'the month the date picker panel is showing',
   'theme': 'the html element attribute the design system themes on',
   'submit-on-enter': 'read by a keydown listener, not by a click',
   'i': 'the row index a windowed list writes for its own bookkeeping',

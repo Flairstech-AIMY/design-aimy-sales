@@ -3971,7 +3971,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team', 'ag'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team', 'ag', 'from', 'to'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -4090,6 +4090,16 @@
     if (S.ag && !(S.team && TEAMS.filter((t) => t.id === S.team)[0].members.indexOf(S.ag) > -1)) S.ag = '';
     /* `on=person` is one person's full profile: it needs their team and them. */
     if (S.on === 'person' && !(isMgr() && S.team && S.ag)) S.on = S.team ? 'teams' : '';
+    /* `from` and `to` are the profile's period, days in ISO, never in the
+       future, `to` never before `from`. Anywhere else they mean nothing. */
+    {
+      const day = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+      if (S.on !== 'person' || !day(S.from) || S.from > TODAY_ISO) { S.from = ''; S.to = ''; }
+      else {
+        if (!day(S.to) || S.to < S.from) S.to = S.from;
+        if (S.to > TODAY_ISO) S.to = TODAY_ISO;
+      }
+    }
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -11511,9 +11521,9 @@
      the objection that comes up most, how long the calls that get through
      last, and how often a call ends in a callback asked for. Nothing is said
      off fewer than ten calls that got through. */
-  function personPatterns(t, id) {
-    const mine = callsBy([id]).filter(gotThrough);
-    const team = callsBy(t.members).filter(gotThrough);
+  function personPatterns(t, id, inR) {
+    const mine = callsBy([id]).filter(inR).filter(gotThrough);
+    const team = callsBy(t.members).filter(inR).filter(gotThrough);
     if (mine.length < 10) return { list: [], thin: true };
     const first = firstName(id);
     const list = [];
@@ -11540,7 +11550,7 @@
           ? ', ' + (a > at ? 'longer' : 'shorter') + ' than the team’s ' + callLen(at) + '.' : ', about the same as the team.'),
         ev: commas(mine.length) + ' calls that got through' });
     }
-    const all = callsBy([id]), allT = callsBy(t.members);
+    const all = callsBy([id]).filter(inR), allT = callsBy(t.members).filter(inR);
     const cb = all.filter((x) => x.outcome === 'callback').length, cbt = allT.filter((x) => x.outcome === 'callback').length;
     if (all.length >= 20 && allT.length) {
       const r = Math.round((10 * cb) / all.length), rt = Math.round((10 * cbt) / allT.length);
@@ -11623,16 +11633,18 @@
     return { up: b > a, same: a === b,
       say: a === b ? name + ' held at ' + a + unit + ' the week after.' : name + ' went from ' + a + ' to ' + b + unit + ' the week after.' };
   }
-  function personCoaching(t, id) {
+  function personCoaching(t, id, R) {
     const rows = [];
+    const inDays = (iso) => !R || (iso >= R.from && iso <= R.to);
     ['msg', 'book', 'share', 'thanks'].forEach((k) => {
-      if (TACTS[t.id + ':' + id + ':' + k]) rows.push({ when: 'Today', what: TEAM_ACT[k].done, said: TEAM_ACT[k].say(firstName(id), t.name), moved: null });
+      if (TACTS[t.id + ':' + id + ':' + k] && inDays(TODAY_ISO)) rows.push({ when: 'Today', what: TEAM_ACT[k].done, said: TEAM_ACT[k].say(firstName(id), t.name), moved: null });
     });
     (COACH_LOG[id] || []).forEach((c) => {
       const at = dayAdd(c.d);
-      rows.push({ when: sayDay(at), what: c.what, said: c.said, moved: stepMoved(id, at, c.step) });
+      if (inDays(at)) rows.push({ when: sayDay(at), what: c.what, said: c.said, moved: stepMoved(id, at, c.step) });
     });
-    if (!rows.length) return '<p class="b-vfoot">Nothing yet. What you do from the rail or from this page lands here, with what moved after.</p>';
+    if (!rows.length) return R ? '<p class="b-vfoot">No coaching with ' + esc(firstName(id)) + ' ' + esc(R.words) + '.</p>'
+      : '<p class="b-vfoot">Nothing yet. What you do from the rail or from this page lands here, with what moved after.</p>';
     return '<div class="b-pf-co">' + rows.map((r) => '<div class="b-pf-coi">' +
       '<span class="b-pf-cow">' + esc(r.when) + '</span><span class="b-pf-cod" aria-hidden="true"><i></i></span>' +
       '<div class="b-pf-cob"><div class="b-pf-cot">' + esc(r.what) + '</div><div class="b-pf-cos">' + esc(r.said) + '</div>' +
@@ -11641,6 +11653,161 @@
           esc(r.moved.say) + '</div>' : '') +
       '</div></div>').join('') + '</div>';
   }
+  /* A period's four figures against a usual run of the same days: the rail's
+     figures, in the same marks, over the days chosen. */
+  function periodFigs(id, R) {
+    const s = spanRead([id], R.from, R.to);
+    const first = firstName(id);
+    const fig = (k, one, many) => {
+      const n = s.t[k], u = s.u[k], dd = n - u;
+      const short = u - n >= 2 && n < u * 0.9;
+      const ahead = dd >= 2 && n > u * 1.05;
+      return '<li class="b-ps-fig"><span class="b-ps-n' + (short ? ' is-dn' : '') + '">' + esc(commas(n)) + '</span>' +
+        '<span class="b-ps-w">' + (n === 1 ? one : many) + '</span>' +
+        '<span class="b-ps-u ' + (short ? 'is-dn' : ahead ? 'is-up' : 'is-eq') + '">' +
+          (short || ahead ? SIGNED(dd) + ' vs usual' : 'as usual') + '</span></li>';
+    };
+    const dc = s.t.calls - s.u.calls;
+    const said = esc(first) + ' made <b>' + esc(plural(s.t.calls, 'call')) + '</b> ' + esc(R.words) + ', ' +
+      (Math.abs(dc) < Math.max(2, s.u.calls * 0.05) ? 'about a usual run for those days.'
+        : '<b>' + esc(commas(Math.abs(dc))) + (dc < 0 ? ' fewer' : ' more') + '</b> than a usual run of those days.');
+    return aimyBlock({ text: said }, true) +
+      '<div class="b-side-sec"><div class="b-ps-sech"><span>' + esc(dateRange(R.from, R.to)) + '</span><span>against a usual run of those days</span></div>' +
+        '<ul class="b-ps-figs">' + fig('calls', 'call', 'calls') + fig('reached', 'decision maker', 'decision makers') +
+          fig('talks', 'conversation', 'conversations') + fig('meets', 'meeting', 'meetings') + '</ul>' +
+        '<div class="b-ps-qs">' +
+          '<button class="b-ps-q" type="button" data-ask="' + esc(spanAsk([id])) + '">' + aiMark() + 'Week, month and quarter</button>' +
+        '</div></div>';
+  }
+
+  /* ══ THE DATE PICKER (5 Nov 2026) ═══════════════════════════════════════
+     The UI library's DatePicker and Calendar (aimy ui lib, registry/aimy/ui/
+     date-picker.tsx and calendar.tsx, themselves Knowledge's .k-date), in
+     this build's own terms: a pill that opens a `.b-menu` panel (so one
+     open at a time, outside click and Escape close it, and it flips at the
+     window's edge) with quick choices beside a month grid. Choosing a quick
+     choice, or a range's second day, closes it, as the library's does.
+     Weeks start on Monday, future days cannot be chosen, the grid is a real
+     grid with the library's keyboard model: arrows by day and week, Home and
+     End, Page Up and Page Down by month. The days in between live on the
+     panel until the second day writes `from` and `to` to the URL. */
+  const DP_ICO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/>' +
+    '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/>' +
+    '<path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>';
+  const DP_DOWN = '<svg class="b-date-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const DP_NAV = (d) => '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d < 0 ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6') + '"/></svg>';
+  const DP_DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  const dateSay = (iso) => +iso.slice(8, 10) + ' ' + MONTHS[+iso.slice(5, 7) - 1];
+  const dateRange = (from, to) => (!to || to === from ? dateSay(from) : dateSay(from) + ' to ' + dateSay(to));
+  const monthAdd = (m, n) => { const x = new Date(m + 'T00:00:00'); return isoDay(new Date(x.getFullYear(), x.getMonth() + n, 1)); };
+  function datePresets() {
+    const ws = weekStart(TODAY_ISO), ms = TODAY_ISO.slice(0, 8) + '01', lm = monthAdd(ms, -1);
+    return [
+      { label: 'Today', from: TODAY_ISO, to: TODAY_ISO },
+      { label: 'This week', from: ws, to: TODAY_ISO },
+      { label: 'Last week', from: isoAdd(ws, -7), to: isoAdd(ws, -1) },
+      { label: 'This month', from: ms, to: TODAY_ISO },
+      { label: 'Last month', from: lm, to: isoAdd(ms, -1) },
+      { label: 'This quarter', from: quarterStart(TODAY_ISO), to: TODAY_ISO },
+    ];
+  }
+  function calHtml(month, from, to, focus) {
+    const first = new Date(month + 'T00:00:00');
+    const start = isoAdd(month, -((first.getDay() + 6) % 7));
+    const title = first.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    let rows = '';
+    for (let w = 0; w < 6; w++) {
+      rows += '<tr>';
+      for (let i = 0; i < 7; i++) {
+        const iso = isoAdd(start, w * 7 + i);
+        const on = iso === from || iso === to;
+        const between = !!to && iso > from && iso < to;
+        const full = new Date(iso + 'T00:00:00').toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        rows += '<td role="gridcell" aria-selected="' + on + '"' + (between ? ' class="is-in"' : '') + '>' +
+          '<button class="b-dp-cal-day' + (iso.slice(0, 7) !== month.slice(0, 7) ? ' is-out' : '') + (on ? ' is-on' : '') + '" type="button" ' +
+            'data-calday="' + iso + '" tabindex="' + (iso === focus ? 0 : -1) + '" aria-label="' + esc(full) + '"' +
+            (iso === TODAY_ISO ? ' aria-current="date"' : '') + (iso > TODAY_ISO ? ' disabled' : '') + '>' + (+iso.slice(8, 10)) + '</button></td>';
+      }
+      rows += '</tr>';
+    }
+    return '<div class="b-dp-cal-head">' +
+        '<button class="b-dp-cal-nav" type="button" data-calnav="-1" aria-label="Previous month">' + DP_NAV(-1) + '</button>' +
+        '<p class="b-dp-cal-title" aria-live="polite">' + esc(title) + '</p>' +
+        '<button class="b-dp-cal-nav" type="button" data-calnav="1" aria-label="Next month">' + DP_NAV(1) + '</button>' +
+      '</div>' +
+      '<table class="b-dp-cal-grid" role="grid" aria-label="' + esc(title) + '"><thead><tr>' +
+        DP_DOW.map((x) => '<th scope="col">' + x + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  function datePicker(o) {
+    const shown = o.from ? dateRange(o.from, o.to) : '';
+    const pre = datePresets().filter((x) => x.from === o.from && x.to === o.to)[0];
+    const focus = o.from || TODAY_ISO;
+    return '<span class="b-menu-wrap b-date">' +
+      '<button class="b-date-btn b-menu-open" type="button" data-pickopen="' + esc(o.id) + '" aria-haspopup="dialog" ' +
+        'aria-label="' + esc(o.label + ': ' + (shown || 'Any date')) + '">' +
+        DP_ICO + '<span>' + esc(pre ? pre.label + ', ' + shown : shown || 'Any date') + '</span>' + DP_DOWN + '</button>' +
+      '<div class="b-menu b-date-panel" id="' + esc(o.id) + '" role="dialog" aria-label="' + esc(o.label) + '" ' +
+        'data-from="' + esc(o.from) + '" data-to="' + esc(o.to) + '" data-month="' + focus.slice(0, 8) + '01" hidden>' +
+        '<ul class="b-date-quick">' + datePresets().map((x) => '<li><button class="b-date-q' + (pre === x ? ' is-on' : '') +
+            '" type="button" data-calpre="' + x.from + '|' + x.to + '">' + esc(x.label) + '</button></li>').join('') +
+          (o.from ? '<li class="b-date-clr"><button class="b-date-q is-clear" type="button" data-calpre="">Clear</button></li>' : '') +
+        '</ul>' +
+        '<div class="b-dp-cal">' + calHtml(focus.slice(0, 8) + '01', o.from, o.to, focus) + '</div>' +
+      '</div>' +
+    '</span>';
+  }
+  /* Choosing happens on the panel and paints only the grid, so the menu
+     stays open under the hand; only a finished choice goes to the URL. */
+  function calRedraw(panel, focus) {
+    const cal = panel.querySelector('.b-dp-cal');
+    cal.innerHTML = calHtml(panel.dataset.month, panel.dataset.from, panel.dataset.to, focus || panel.dataset.from || TODAY_ISO);
+    if (focus) { const b = cal.querySelector('[data-calday="' + focus + '"]'); if (b) b.focus(); }
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest) return;
+    const t = e.target.closest('[data-calnav]') || e.target.closest('[data-calday]') || e.target.closest('[data-calpre]');
+    if (!t) return;
+    const panel = t.closest('.b-date-panel');
+    if (!panel) return;
+    if (t.hasAttribute('data-calnav')) {
+      panel.dataset.month = monthAdd(panel.dataset.month, +t.getAttribute('data-calnav'));
+      calRedraw(panel);
+      return;
+    }
+    if (t.hasAttribute('data-calpre')) {
+      const v = t.getAttribute('data-calpre').split('|');
+      go({ from: v[0] || '', to: v[1] || '', p: '' });
+      return;
+    }
+    const day = t.getAttribute('data-calday');
+    const from = panel.dataset.from, to = panel.dataset.to;
+    if (!from || to || day < from) {
+      panel.dataset.from = day;
+      panel.dataset.to = '';
+      calRedraw(panel, day);
+      return;
+    }
+    go({ from, to: day, p: '' });
+  });
+  document.addEventListener('keydown', (e) => {
+    const b = e.target.closest && e.target.closest('[data-calday]');
+    if (!b) return;
+    const panel = b.closest('.b-date-panel');
+    const iso = b.getAttribute('data-calday');
+    const mon = (iso2) => (new Date(iso2 + 'T00:00:00').getDay() + 6) % 7;
+    const byMonth = (n) => { const m = monthAdd(iso.slice(0, 8) + '01', n); const last = isoAdd(monthAdd(m, 1), -1);
+      const dd = m.slice(0, 8) + iso.slice(8, 10); return dd > last ? last : dd; };
+    const next = { ArrowLeft: isoAdd(iso, -1), ArrowRight: isoAdd(iso, 1), ArrowUp: isoAdd(iso, -7), ArrowDown: isoAdd(iso, 7),
+      Home: isoAdd(iso, -mon(iso)), End: isoAdd(iso, 6 - mon(iso)), PageUp: byMonth(-1), PageDown: byMonth(1) }[e.key];
+    if (!next) return;
+    e.preventDefault();
+    if (next.slice(0, 7) !== panel.dataset.month.slice(0, 7)) panel.dataset.month = next.slice(0, 8) + '01';
+    calRedraw(panel, next);
+  });
+
   function personPage() {
     const t = teamsOf().filter((x) => x.id === S.team)[0];
     const id = S.ag;
@@ -11648,11 +11815,18 @@
     const w = weekScores(id);
     const on = onCallNow([id]).length;
     const note = personNote(t, id);
-    const pats = personPatterns(t, id);
+    /* The period from the date picker, or none: then the figures are today's
+       and the patterns and calls are everything on record. */
+    const R = S.from ? { from: S.from, to: S.to || S.from } : null;
+    if (R) R.words = R.from === R.to ? 'on ' + dateSay(R.from) : 'from ' + dateSay(R.from) + ' to ' + dateSay(R.to);
+    const inR = (x) => { if (!R) return true; const iso = isoDay(new Date(x.at)); return iso >= R.from && iso <= R.to; };
+    const pats = personPatterns(t, id, R ? inR : () => true);
+    /* The agenda reads the whole record: the next 1:1 is not about a period. */
+    const agendaPats = R ? personPatterns(t, id, () => true) : pats;
     const acts = note.short ? ['msg', 'book'] : ['share', 'thanks'];
     const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
     const moved = w.was == null ? 0 : w.now - w.was;
-    const calls = callsBy([id]);
+    const calls = callsBy([id]).filter(inR);
     const pg = paged(calls);
     const got = calls.filter(gotThrough).length;
     /* The side rail's person view, reused for the head of this page: the
@@ -11675,19 +11849,24 @@
               esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</div>' +
         '</div>' +
       '</section>' +
-      '<section class="s-block s-block-wide" aria-label="Next 1:1">' + personAgenda(t, id, note, pats) + '</section>' +
-      '<section class="s-block s-block-wide" aria-label="Coaching">' + headH('Coaching') + personCoaching(t, id) + '</section>' +
-      '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + noteHtml + figs + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Next 1:1">' + personAgenda(t, id, note, agendaPats) + '</section>' +
+      /* Everything under this row follows the period chosen in it. */
+      '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
+        datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="Coaching">' + headH('Coaching') + personCoaching(t, id, R) + '</section>' +
+      (R ? '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(dateRange(R.from, R.to)) + '">' + periodFigs(id, R) + '</section>'
+        : '<section class="s-block s-block-wide b-pf-today" aria-label="Today">' + noteHtml + figs + '</section>') +
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
-        (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through to see a pattern yet.</p>'
+        (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg><span class="b-pf-pats">' + x.say + '</span><span class="b-pf-pate">' + esc(x.ev) + '</span></div>').join('')) +
       '</section>' +
       /* Every call, the history page's way: the same rows, the same
          recording strip, the same summary and transcript (histCallRow). */
       '<section class="s-block s-block-wide" aria-label="Calls">' + headH('Calls') +
-        (!calls.length ? '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' yet.</p>'
-          : aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> recorded since ' + esc(sayDay(calls[calls.length - 1].at)) +
+        (!calls.length ? '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' ' + (R ? esc(R.words) : 'yet') + '.</p>'
+          : aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> recorded ' +
+              (R ? esc(R.words) : 'since ' + esc(sayDay(calls[calls.length - 1].at))) +
               ', and <b>' + esc(commas(got)) + '</b> got through.' }, true) +
             '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call')) +
       '</section>' +
