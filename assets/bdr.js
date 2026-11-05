@@ -10774,14 +10774,61 @@
       esc(plural(r.t.meets, 'meeting')) + '</b> booked.';
   }
   const firstName = (id) => REP[id].name.split(' ')[0];
+  /* ══ WHAT EACH PILL ASKS, AND HOW ITS ANSWER READS ════════════════════
+     One entry per figure on the block. `ask` is the question the pill puts
+     in the chat, `re` recognises it typed in other words, and the rest reads
+     one person's `dayRead`: the figure to rank by, the row's words, and
+     whether that row is short of the person's usual (warning ink). */
+  const per100 = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+  const DAY_METRIC = {
+    calls: { ask: 'Who made the most calls today?', re: /\bmost calls\b/,
+      val: (r) => r.t.calls, row: (r) => commas(r.t.calls) + ' calls, usually ' + commas(r.u.calls) + ' by now',
+      short: (r) => r.t.calls < r.u.calls * 0.9 && r.u.calls - r.t.calls >= 2, lead: 'made the most calls' },
+    reached: { ask: 'Who reached the most decision makers today?', re: /\bdecision makers?\b/,
+      val: (r) => r.t.reached, row: (r) => commas(r.t.reached) + ' decision makers, ' + per100(r.t.reached, r.t.calls) +
+        ' in 100 calls (usually ' + per100(r.u.reached, r.u.calls) + ')',
+      short: (r) => r.t.reached < r.u.reached * 0.9 && r.u.reached - r.t.reached >= 2, lead: 'reached the most decision makers' },
+    talks: { ask: 'Who had the most conversations today?', re: /\bconversations?\b/,
+      val: (r) => r.t.talks, row: (r) => commas(r.t.talks) + ' conversations, ' + per100(r.t.talks, r.t.calls) +
+        ' in 100 calls (usually ' + per100(r.u.talks, r.u.calls) + ')',
+      short: (r) => r.t.talks < r.u.talks * 0.9 && r.u.talks - r.t.talks >= 2, lead: 'had the most conversations' },
+    meets: { ask: 'Who booked meetings today?', re: /\bmeetings? (booked|today)\b|\bbooked meetings?\b/,
+      val: (r) => r.t.meets, row: (r) => plural(r.t.meets, 'meeting') + ' from ' + plural(r.t.talks, 'conversation'),
+      short: (r) => r.t.meets < r.u.meets * 0.9 && r.u.meets - r.t.meets >= 2, lead: 'booked the most meetings' },
+    live: { ask: 'Who is on a call right now?', re: /\bon a call\b/ },
+    yest: { ask: 'How many calls did each person make the day before?', re: /\bday before\b|\byesterday\b/,
+      val: (r) => r.yest, row: (r) => commas(r.yest) + ' calls, usually ' + commas(FORM[r.ids[0]].calls),
+      short: (r) => r.yest < FORM[r.ids[0]].calls * 0.9, lead: 'made the most calls the day before' },
+    month: { ask: 'How many calls has each person made this month?', re: /\bthis month\b/,
+      val: (r) => r.month, row: (r) => commas(r.month) + ' calls since 1 ' + MONTHS[new Date(r.day + 'T00:00:00').getMonth()],
+      short: () => false, lead: 'has made the most calls this month' },
+    avg: { ask: 'What is each person’s daily average?', re: /\bdaily average\b|\ba working day\b/,
+      val: (r) => r.avg, row: (r) => commas(r.avg) + ' calls a working day, against the goal of ' + GOAL.calls,
+      short: (r) => r.avg < GOAL.calls * 0.9, lead: 'has the highest daily average' },
+    secs: { ask: 'How long are each person’s calls?', re: /\bhow long\b|\baverage call\b|\bcall length\b/,
+      val: (r) => r.secs, row: (r) => callLen(r.secs) + ' on average, usually ' + callLen(FORM[r.ids[0]].secs),
+      short: (r) => r.secs < FORM[r.ids[0]].secs * 0.85, lead: 'has the longest calls' },
+  };
   /* The block. `who` is how the sentence names the set: "your two teams",
      "the Gulf Team", "Karim". */
   function teamDayBlock(ids, who, has) {
     const r = dayRead(ids);
     const one = ids.length === 1;
     const each = one ? '' : ' each';
-    const pill = (v, cap, live) => '<span class="evidence-pill"><span class="val"' + (live ? ' data-live="' + esc(live) + '"' : '') +
-      '>' + esc(v) + '</span>' + esc(cap) + '</span>';
+    /* Every figure is a door into the chat (Nour, 5 Nov 2026): the pill asks
+       the question its number is the answer to, person by person. On one
+       person's block there is nobody to break it down by, so it asks about
+       them. */
+    /* Hovering a pill shows the question it asks, above it, so a reader
+       knows what pressing it will do before they press (Nour, 5 Nov). The
+       question is part of the button's name, so a screen reader hears it
+       without hovering. */
+    const pill = (v, cap, k, live) => {
+      const q = one ? 'How is ' + firstName(ids[0]) + ' doing today?' : DAY_METRIC[k].ask;
+      return '<button class="evidence-pill b-day-pill" type="button" data-ask="' + esc(q) + '">' +
+        '<span class="val"' + (live ? ' data-live="' + esc(live) + '"' : '') + '>' + esc(v) + '</span>' + esc(cap) +
+        '<span class="b-day-q">' + aiMark() + esc(q) + '</span></button>';
+    };
     const today = r.day === TODAY_ISO && r.p < 1;
     /* The questions the sentence leaves open, each one a turn in the chat. */
     const asks = [];
@@ -10801,13 +10848,13 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'calls so far against a usual day by this hour' }) +
-      '<div class="b-day-pills">' + DAY_STEPS.map((s) => pill(commas(r.t[s.k]), s.name)).join('') + '</div>' +
+      '<div class="b-day-pills">' + DAY_STEPS.map((s) => pill(commas(r.t[s.k]), s.name, s.k)).join('') + '</div>' +
       '<div class="b-day-pills">' +
-        (today ? pill(commas(onCallNow(ids).length), 'of ' + commas(r.n) + ' on a call now', one ? ids[0] : 'all') : '') +
-        pill(commas(r.yest), 'calls' + each + ' the day before') +
-        pill(commas(r.month), 'calls' + each + ' this month') +
-        pill(commas(r.avg), 'calls' + each + ' a working day') +
-        pill(callLen(r.secs), 'an average call') +
+        (today ? pill(commas(onCallNow(ids).length), 'of ' + commas(r.n) + ' on a call now', 'live', one ? ids[0] : 'all') : '') +
+        pill(commas(r.yest), 'calls' + each + ' the day before', 'yest') +
+        pill(commas(r.month), 'calls' + each + ' this month', 'month') +
+        pill(commas(r.avg), 'calls' + each + ' a working day', 'avg') +
+        pill(callLen(r.secs), 'an average call', 'secs') +
       '</div>' +
       '<div class="b-day-asks">' + asks.slice(0, 3).map((q) =>
         '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') +
@@ -10816,10 +10863,10 @@
   }
 
   /* ══ AND WHAT THE CHAT ANSWERS ═════════════════════════════════════════
-     The drill-down. Four questions, each read off the same `dayRead` as the
-     block so the chat and the page never disagree: who is short on calls,
-     how one team is doing, how one person is doing, and how the teams
-     compare. Each answer ends in the next question worth asking. */
+     The drill-down, read off the same `dayRead` as the block so the chat
+     and the page never disagree: who is short on calls, how one team is
+     doing, how one person is doing, how the teams compare, and each pill's
+     own question (DAY_METRIC). Each answer ends in the next question. */
   function teamAnswer(q) {
     const teams = teamsOf();
     if (!teams.length) return null;
@@ -10872,6 +10919,31 @@
         '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b class="b-door-warn">' + esc(commas(x.d.calls) +
           ' calls') + '</b>, usually ' + esc(commas(x.u.calls)) + ' by now')).join('') + '</div>' +
         next(['How is ' + firstName(rows[0].id) + ' doing today?']);
+    }
+    /* A pill's question: everybody, ranked by that figure. */
+    const mk = Object.keys(DAY_METRIC).filter((k) => DAY_METRIC[k].re.test(q))[0];
+    if (mk === 'live') {
+      if (!dayPart(TODAY_ISO) || dayPart(TODAY_ISO) >= 1) return 'Nobody is calling now. The day runs 9:00 to 17:00.';
+      const on = onCallNow(ppl);
+      if (!on.length) return 'Nobody on your teams is on a call right now.' + next(['Who made the most calls today?']);
+      return '<b>' + esc(commas(on.length) + ' of ' + commas(ppl.length)) + '</b> ' + (on.length === 1 ? 'is' : 'are') +
+          ' on a call right now.' +
+        '<div class="b-tm-rows">' + on.map((id) => nameRow(id, esc('On a call, ' +
+          teams.filter((t) => t.members.indexOf(id) > -1)[0].name))).join('') + '</div>' +
+        next(['Who made the most calls today?']);
+    }
+    if (mk) {
+      const m = DAY_METRIC[mk];
+      const fmt = (v) => esc(mk === 'secs' ? callLen(v) : commas(v));
+      const rows = ppl.map((id) => dayRead([id])).sort((a, b) => m.val(b) - m.val(a));
+      const top = rows[0], low = rows[rows.length - 1];
+      const shortN = rows.filter(m.short).length;
+      return '<b>' + esc(firstName(top.ids[0])) + '</b> ' + m.lead + ', ' + fmt(m.val(top)) +
+          (rows.length > 1 ? '; <b>' + esc(firstName(low.ids[0])) + '</b> the least, ' + fmt(m.val(low)) : '') + '.' +
+          (shortN ? ' ' + esc(plural(shortN, 'person')) + ' ' + (shortN === 1 ? 'is' : 'are') + ' short of their usual.' : '') +
+        '<div class="b-tm-rows">' + rows.map((r) => nameRow(r.ids[0], m.short(r)
+          ? '<b class="b-door-warn">' + esc(m.row(r)) + '</b>' : esc(m.row(r)))).join('') + '</div>' +
+        next(['How is ' + firstName(low.ids[0]) + ' doing today?']);
     }
     if (/\b(compare|my teams|both teams|the teams)\b/.test(q) && /\b(today|doing|compare|day)\b/.test(q)) {
       return teams.map((t) => daySay(dayRead(t.members), 'the ' + t.name, 'has')).join(' ') +

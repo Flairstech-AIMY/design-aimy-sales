@@ -8327,6 +8327,48 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-day-pills { display: flex; flex-wrap: wrap; gap: 8px; }
 .b-day-pills + .b-day-pills { margin-top: 8px; }
 .b-day-asks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
+/* Every pill is a door into the chat, so it is drawn as a control in both
+   themes: its own ground and edge (the base pill's white-alpha ground is
+   flattened away in light), the pointer, a lift of the edge on hover, the
+   press, and the focus ring. */
+.b-day-pill {
+  font: inherit; font-size: var(--fs-sm); color: var(--d100); cursor: pointer;
+  padding: 5px 12px; background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-day-pill:hover { border-color: var(--card-border-hover); background: rgba(var(--accent-rgb), 0.08); }
+.b-day-pill:active { transform: scale(0.97); }
+.b-day-pill:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .b-day-pill:active { transform: none; } }
+/* THE QUESTION A PILL ASKS, SHOWN ON HOVER. The tooltip pattern from
+   transitions-dev: in after a short wait with a fade, a rise and a small
+   scale, so a pointer passing over the row does not set off a flicker of
+   questions; out at once, because a question still showing after you have
+   moved on is in the way. Anchored at the pill's left edge and growing
+   right, so the first pill in a row never runs under the rail. */
+.b-day-pill { position: relative; }
+.b-day-q {
+  position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 3;
+  display: inline-flex; align-items: center; gap: 7px;
+  width: max-content; max-width: min(320px, 80vw); padding: 7px 11px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); line-height: 1.35; color: var(--d50);
+  text-align: left; white-space: nowrap;
+  background: var(--panel-bg); border: 1px solid var(--card-border-hover); border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  opacity: 0; transform: translateY(4px) scale(0.98); transform-origin: left bottom;
+  pointer-events: none; transition: none;
+}
+.b-day-q > svg { flex: none; }
+/* On one line where there is room; a phone gets a wrapped question. */
+@media (max-width: 639.98px) { .b-day-q { white-space: normal; } }
+.b-day-pill:hover .b-day-q, .b-day-pill:focus-visible .b-day-q {
+  opacity: 1; transform: none;
+  transition: opacity 150ms ease-out 200ms, transform 150ms ease-out 200ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-day-q { transform: none; }
+  .b-day-pill:hover .b-day-q, .b-day-pill:focus-visible .b-day-q { transition: opacity 150ms linear 200ms; }
+}
 /* A live count in a pill keeps the pill's ink; only its number ticks. */
 .b-day-pills .evidence-pill .val { font-variant-numeric: tabular-nums; }
 /* The chat's answers: one row per person, or one per part of a person's
