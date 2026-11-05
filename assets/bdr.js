@@ -27439,8 +27439,10 @@
      it goes. The person at the other end sees that number and calls back on
      it, which is why it is chosen in the open and not defaulted out of sight.
 
-     THE CALLER'S DESK ONLY, FOR NOW. Nobody else has lines, so `telLines` is
-     empty on every other desk and each control below draws nothing there.
+     EVERY DESK, SINCE 5 NOV 2026 (Nour: "make this available for all
+     personas"). Each of the five desks has its own lines; a person with none
+     in TEL_LINES gets an empty `telLines`, and each control below draws
+     nothing for them.
 
      A MENU OF NUMBERS, NOT A STRIP OF COUNTRIES. The first cut was three
      segments, one per country, and Nour corrected it: a caller holds several
@@ -27458,11 +27460,27 @@
       { id: 'uk1', cc: 'UK', num: '+44 20 7946 0318' },
       { id: 'uk2', cc: 'UK', num: '+44 161 496 0752' },
     ],
+    lina: [
+      { id: 'us1', cc: 'US', num: '+1 646 555 0123' },
+      { id: 'uk1', cc: 'UK', num: '+44 20 7946 0451' },
+    ],
+    sherif: [
+      { id: 'us1', cc: 'US', num: '+1 617 555 0164' },
+      { id: 'uk1', cc: 'UK', num: '+44 20 7946 0627' },
+    ],
+    rami: [
+      { id: 'us1', cc: 'US', num: '+1 202 555 0175' },
+      { id: 'uk1', cc: 'UK', num: '+44 20 7946 0893' },
+    ],
+    kestrel: [
+      { id: 'uk1', cc: 'UK', num: '+44 113 496 0215' },
+      { id: 'us1', cc: 'US', num: '+1 312 555 0198' },
+    ],
   };
   /* "NL 4417": the country and the last four digits, which is how two
      numbers in one country are told apart in the space of a button. */
   const telTag = (l) => l.cc + ' ' + l.num.replace(/\D/g, '').slice(-4);
-  const telLines = () => (me().fn === 'bdr' && TEL_LINES[me().id]) || [];
+  const telLines = () => TEL_LINES[me().id] || [];
   const telLine = (id) => telLines().filter((l) => l.id === id)[0] || null;
   /* The line you last called on, which is where the next call starts. */
   const lastTel = () => telLine((UI.line || {})[me().id]) || telLines()[0] || null;
@@ -30344,7 +30362,8 @@
   function paintDial() {
     const anchor = byId('dialAnchor');
     if (!anchor) return;
-    const on = me().fn === 'bdr';
+    /* Every desk that has a line (all five, Nour, 5 Nov 2026). */
+    const on = telLines().length > 0;
     anchor.hidden = !on;
     if (!on) { closeDial(false); return; }
     const l = lastTel();
