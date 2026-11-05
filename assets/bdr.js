@@ -10411,8 +10411,10 @@
   function diaryDoor() {
     return '<button class="b-door' + doorHere('cal') + '" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
-        '<span class="b-door-cap">Today</span>' + dayHead() +
-        doorGo('Open the diary') +
+        /* Named for the page it opens, and the link is one word: the card
+           already says where it goes (Nour, 5 Nov 2026). */
+        '<span class="b-door-cap">Diary</span>' + dayHead() +
+        doorGo('Open') +
       '</button>';
   }
   function railDoors() {
