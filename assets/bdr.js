@@ -11600,14 +11600,20 @@
     /* AiMY's read, the way AiMY QA opens a page (Nour, 9 Nov): the reading
        first, in its colour, the sentence under it and the things to do; the
        figures it rests on stand beside it as its evidence. */
+    /* In the tiles of Knowledge's agent page (Nour, 9 Nov: "so editorial",
+       look at the voice agents): AiMY's tile in the AiMY wash with its mark
+       and what it reads, the reading as the tile's headline, the sentence and
+       pill actions; the figures are their own tile. */
     return {
-      line: '<div class="b-pl-say"><p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
-        '<p class="b-pl-why"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<span>' + say.join(' ') + '</span></p>' +
+      line: '<div class="b-pl-say"><p class="b-pl-k"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          '<span>' + esc(cap1(r.s.noun)) + ' against the plan, ' + esc(P.when) + '</span></p>' +
+        '<p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
+        '<p class="b-pl-why">' + say.join(' ') + '</p>' +
         '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div></div>',
-      facts: r.el ? '<dl class="b-pl-facts">' + fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
+      facts: r.el ? '<div class="b-pl-ev"><p class="b-pl-k">What it rests on</p><dl class="b-pl-facts">' +
+          fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
           fact('A day so far', commas(Math.round(r.vel))) +
-          fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target), needTone) + '</dl>' : '',
+          fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target), needTone) + '</dl></div>' : '',
     };
   }
   /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
@@ -11749,7 +11755,7 @@
       /* The charts, folded (Nour, 9 Nov), as AiMY QA keeps its trend: the
          evidence opened on demand, not the fold spent on it. One press opens
          or closes it in place; it stays as it was left, on every board. */
-      '<button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
+      '<div class="b-pl-ct"><button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
         '<span class="b-pl-open-ico" aria-hidden="true">' + PL_CHART + '</span>' +
         '<span class="b-pl-open-w">' + (open ? 'Close the chart' : 'Open the chart') + '</span>' +
         '<span class="b-pl-open-sub">Burn-down and velocity for ' + esc(r.s.noun) + '</span>' +
@@ -11763,7 +11769,7 @@
             ? '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>The plan a day</span><span><i class="k-pace is-' + tone + '"></i>Needed from today</span>'
             : '<span><i class="k-done"></i>Left to do</span><span><i class="k-plan"></i>The plan</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>') +
           '</span></div>' + planChart(r) + '</div>' +
-      '</div></div>' +
+      '</div></div></div>' +
     '</div>';
   }
   let PL_N = 0;
@@ -11871,7 +11877,7 @@
     const move = r.was == null || r.move === 0 ? ''
       : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' + (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
     const others = teamsOf().length > 1;
-    return '<div class="s-home">' +
+    return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams') +
         '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
@@ -11905,7 +11911,7 @@
       ? '<b>' + esc(worst.t.name) + '</b> is at ' + commas(worst.now) + ' this week, ' +
         (worst.move < 0 ? 'down ' + commas(-worst.move) : 'up ' + commas(worst.move)) + ' since last week.'
       : 'Every team is on track this week.';
-    return '<div class="s-home">' +
+    return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', 'Back to Today') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
@@ -12519,7 +12525,7 @@
     const side = personSide(t, id);
     const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
     const agenda = personAgenda(t, id, note, agendaPats, moved);
-    return '<div class="s-home">' +
+    return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name) +
         '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +

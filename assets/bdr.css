@@ -8722,79 +8722,105 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pace.is-dn { color: var(--warn-text); }
 .b-pace.is-err { color: var(--err-text); }
 
-/* The plan: a board with a figure per step, the story and one chart. */
-.b-pl { margin-top: 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); overflow: hidden; }
-.b-pl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 16px 20px; }
+/* The plan, in tiles (9 Nov 2026). Nour: the board read "so editorial";
+   look at the voice agents in Knowledge's console. So it takes that page's
+   language (settings.css `.agv-*`): rounded 20px tiles with an inset edge,
+   AiMY's tile in the AiMY wash, a small key over a large bold headline,
+   figures as large bold numbers with a caption, pill actions. No outer
+   card: the tiles are the block. */
+.b-pl { --pl-r: 20px; --pl-gap: 12px; margin-top: 18px; display: flex; flex-direction: column; gap: var(--pl-gap); }
+.b-pl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
 .b-pl-hl { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
-.b-pl-h { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-pl-h { margin: 0; font-size: 18px; font-weight: var(--fw-bold); letter-spacing: -0.01em; color: var(--d50); }
 .b-pl-sub { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
-/* The two views as quiet text tabs. */
-.b-pl-seg { display: inline-flex; gap: 18px; }
+/* One tile. */
+.b-pl-tab, .b-pl-say, .b-pl-ev, .b-pl-ct {
+  position: relative; min-width: 0; border-radius: var(--pl-r);
+  background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--card-border);
+}
+/* The key over a tile: small, upper case, the tile's subject. */
+.b-pl-k {
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--d100);
+}
+.b-pl-k .b-aimy-mark { flex: none; }
+/* The two views as a pill switch, in the chart's tile. */
+.b-pl-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--card-border); }
 .b-pl-seg button {
-  padding: 4px 0; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
-  background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer;
+  padding: 5px 14px; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
+  background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
 }
-.b-pl-seg button[aria-pressed="true"] { color: var(--d50); border-bottom-color: var(--accent); }
+.b-pl-seg button[aria-pressed="true"] { color: var(--d50); background: var(--card-bg-raised); box-shadow: inset 0 0 0 1px var(--card-border); }
 .b-pl-seg button:hover { color: var(--d50); }
-.b-pl-seg button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
-/* The steps: the strip's hairline cells; the one on the chart is underlined. */
-.b-pl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+.b-pl-seg button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The steps: four tiles, a radio in effect; the one read below is in the
+   AiMY wash with the accent edge. */
+.b-pl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--pl-gap); }
 .b-pl-tab {
-  position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 20px 18px;
-  text-align: left; font: inherit; color: inherit; cursor: pointer; background: none; border: 0;
+  display: flex; flex-direction: column; gap: 6px; padding: 18px 20px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer; border: 0;
+  transition: background-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.b-pl-tab + .b-pl-tab { border-left: 1px solid var(--card-border); }
-.b-pl-tab:hover { background: color-mix(in srgb, var(--d50) 3%, transparent); }
-.b-pl-tab.is-on { box-shadow: inset 0 -2px 0 var(--accent); }
+.b-pl-tab:hover { background: var(--card-bg-raised); }
+.b-pl-tab:active { transform: scale(0.98); }
+.b-pl-tab.is-on { background: var(--aimy-wash); box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.55); }
+.b-pl-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-pl-tcap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--d100); }
 .b-pl-tab.is-on .b-pl-tcap { color: var(--d50); }
-.b-pl-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.b-pl-tcap { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
-.b-pl-tval { font-size: 26px; font-weight: var(--fw-semibold); line-height: 1.1; color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-pl-tval small { margin-left: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
-@media (max-width: 760px) {
-  .b-pl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .b-pl-tab:nth-child(3) { border-left: 0; }
-  .b-pl-tab:nth-child(-n+2) { border-bottom: 1px solid var(--card-border); }
-}
-/* AiMY's read (9 Nov, after AiMY QA's opening): the reading and what to do
-   on the left, the four figures it rests on in a 2x2 on the right. */
-.b-pl-read { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); }
+.b-pl-tval { margin-top: 4px; font-size: 30px; font-weight: var(--fw-bold); line-height: 1.05; letter-spacing: -0.02em; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-tval small { margin-left: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); letter-spacing: 0; color: var(--d100); }
+@media (max-width: 760px) { .b-pl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* AiMY's tile and the figures' tile, side by side. */
+.b-pl-read { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--pl-gap); }
 .b-pl-read.is-solo { grid-template-columns: minmax(0, 1fr); }
-.b-pl-say { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; padding: 22px 24px 22px 20px; }
-.b-pl-lead { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; font-weight: var(--fw-semibold); line-height: 1.2; color: var(--d50); white-space: nowrap; }
+.b-pl-say {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 22px 24px;
+  background: var(--aimy-wash); box-shadow: inset 0 0 0 1px var(--aimy-wash-edge);
+}
+.b-pl-lead { display: inline-flex; align-items: center; gap: 10px; margin: 2px 0 0; font-size: 30px; font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.02em; color: var(--d50); }
 .b-pl-lead.is-up { color: var(--ok-text); }
 .b-pl-lead.is-dn { color: var(--warn-text); }
 .b-pl-lead.is-err { color: var(--err-text); }
-.b-pl-lead svg { flex: none; width: 18px; height: 18px; }
-.b-pl-why { display: flex; gap: 8px; max-width: 72ch; min-width: 0; margin: 0; font-size: var(--fs-md); line-height: 1.55; color: var(--d50); }
-.b-pl-why .b-aimy-mark { flex: none; margin-top: 5px; }
+.b-pl-lead svg { flex: none; width: 26px; height: 26px; }
+.b-pl-why { max-width: 68ch; margin: 0; font-size: var(--fs-md); line-height: 1.6; color: var(--d50); }
 .b-pl-why b { font-weight: var(--fw-semibold); color: var(--d50); }
-.b-pl-chart { min-width: 0; padding: 4px 20px 18px; }
-.b-pl-ctop { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
-/* The evidence: four figures on hairlines, the step's own language. */
-.b-pl-read .b-pl-facts {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0;
-  border-left: 1px solid var(--card-border);
-}
-.b-pl-read .b-pl-facts div { padding: 18px 20px; }
-.b-pl-read .b-pl-facts div:nth-child(even) { border-left: 1px solid var(--card-border); }
-.b-pl-read .b-pl-facts div:nth-child(-n+2) { border-bottom: 1px solid var(--card-border); }
-.b-pl-read .b-pl-facts dt { font-size: var(--fs-sm); }
-.b-pl-read .b-pl-facts dd { margin-top: 4px; font-size: 22px; line-height: 1.15; }
+.b-pl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 6px; }
+/* The figures: a 2x2 of large numbers with their captions under them. */
+.b-pl-ev { display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; }
+.b-pl-ev .b-pl-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; margin: auto 0 0; }
+.b-pl-facts div { min-width: 0; display: flex; flex-direction: column-reverse; gap: 2px; }
+.b-pl-facts dt { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-facts dd { margin: 0; font-size: 26px; font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.01em; color: var(--d50); font-variant-numeric: tabular-nums; }
 .b-pl-facts dd.is-dn { color: var(--warn-text); }
 .b-pl-facts dd.is-err { color: var(--err-text); }
-/* The door to the charts: one full-width row at the board's foot. */
+@media (max-width: 900px) { .b-pl-read { grid-template-columns: minmax(0, 1fr); } }
+/* "Ask AiMY why" as a pill beside the action, the mark on it. */
+.b-pl-ask {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px;
+  font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50);
+  background: transparent; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.45);
+  transition: background-color 150ms ease-out, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.b-pl-ask:hover { background: rgba(var(--accent-rgb), 0.12); }
+.b-pl-ask:active { transform: scale(0.98); }
+.b-pl-ask:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The chart's tile: closed, it is one row that opens it. */
+.b-pl-ct { overflow: hidden; }
 .b-pl-open {
-  display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 20px;
-  font: inherit; text-align: left; color: var(--d50); cursor: pointer;
-  background: none; border: 0; border-top: 1px solid var(--card-border);
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 20px;
+  font: inherit; text-align: left; color: var(--d50); cursor: pointer; background: none; border: 0;
   transition: background-color 150ms ease-out;
 }
-.b-pl-open:hover { background: color-mix(in srgb, var(--d50) 3%, transparent); }
-.b-pl-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.b-pl-open-ico { display: inline-flex; color: var(--accent-text); }
-.b-pl-open-w { font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
-.b-pl-open-sub { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-open:hover { background: var(--card-bg-raised); }
+.b-pl-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; border-radius: var(--pl-r); }
+.b-pl-open-ico {
+  display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px;
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.14);
+}
+.b-pl-open-w { font-size: var(--fs-md); font-weight: var(--fw-semibold); white-space: nowrap; }
+.b-pl-open-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
 .b-pl-chev { display: inline-flex; margin-left: auto; color: var(--d100); transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
 .b-pl[data-fold="true"] .b-pl-chev { transform: scaleY(-1); }
 /* The fold: the accordion from transitions.dev, rows 0fr to 1fr, the
@@ -8804,14 +8830,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pl-fold-in { min-height: 0; overflow: hidden; opacity: 0; filter: blur(2px);
   transition: opacity 250ms cubic-bezier(0.22, 1, 0.36, 1), filter 250ms cubic-bezier(0.22, 1, 0.36, 1); }
 .b-pl[data-fold="true"] .b-pl-fold-in { opacity: 1; filter: none; }
+.b-pl-chart { min-width: 0; padding: 4px 20px 20px; }
+.b-pl-ctop { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) {
-  .b-pl-fold, .b-pl-fold-in, .b-pl-chev, .b-pl-open { transition: none !important; }
+  .b-pl-fold, .b-pl-fold-in, .b-pl-chev, .b-pl-open, .b-pl-tab, .b-pl-ask, .b-pl-seg button { transition: none !important; }
 }
-@media (max-width: 900px) {
-  .b-pl-read { grid-template-columns: minmax(0, 1fr); }
-  .b-pl-read .b-pl-facts { border-left: 0; border-top: 1px solid var(--card-border); }
-}
-.b-pl-open-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The key: what each line is, in the lines' own marks. */
 .b-pl-key { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
 .b-pl-key span { display: inline-flex; align-items: center; gap: 6px; }
@@ -8823,16 +8846,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pl-key .k-pace.is-dn { border-top-color: var(--warn); }
 .b-pl-key .k-pace.is-err { border-top-color: var(--err); }
 .b-pl-key .k-bar { width: 8px; height: 10px; border-radius: 1px; background: rgba(var(--accent-rgb), 0.75); }
-/* The figures and the things to do. */
-.b-pl-facts { display: flex; gap: 12px 32px; flex-wrap: wrap; margin: 0; }
-.b-pl-facts div { min-width: 0; }
-.b-pl-facts dt { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
-.b-pl-facts dd { margin: 2px 0 0; font-size: 18px; font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-pl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.b-pl-ask { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
-  color: var(--accent-text); background: none; border: 0; cursor: pointer; }
-.b-pl-ask:hover span { text-decoration: underline; }
-.b-pl-ask:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 .pl-bar { fill: rgba(var(--accent-rgb), 0.75); }
 .pl-bar.is-dn { fill: var(--warn); }
 .pl-bar.is-err { fill: var(--err); }
@@ -8911,3 +8924,46 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-val.is-dn { color: var(--warn-text); }
 .b-cmp-val.is-err { color: var(--err-text); }
 .b-cmp-key { margin: 10px 0 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+/* ══ §122 THE TEAMS PAGES, IN TILES (9 Nov 2026) ═════════════════════════
+   Nour: the team page read "so editorial"; take the voice agents' page in
+   Knowledge's console (settings.css `.agv-*`) as the language. The team
+   page, Your teams and the profile (`.b-tmp`) draw every panel as a rounded
+   20px tile with an inset edge, AiMY's lines in the AiMY wash, figures as
+   large bold numbers under a small upper-case key, and actions as pills.
+   Borders stay in place (transparent) so nothing moves by a pixel. */
+.b-tmp { --tl-r: 20px; --tl-gap: 12px; }
+.b-tmp .b-tp-name { font-size: 32px; letter-spacing: -0.02em; }
+.b-tmp .b-tpg .b-pl, .b-tmp .b-pf .b-pl { margin-top: 28px; }
+.b-tmp .s-block-h { font-weight: var(--fw-bold); letter-spacing: -0.01em; }
+/* AiMY's lines: a tile in the AiMY wash. */
+.b-tmp .b-aimy { border-radius: 14px; background: var(--aimy-wash); box-shadow: inset 0 0 0 1px var(--aimy-wash-edge); padding: 12px 16px; }
+/* The day's figures: each one its own tile, in a row that scrolls. */
+.b-tmp .b-wscroll { gap: var(--tl-gap); padding: 1px; background: none; border-color: transparent; border-radius: 0; }
+.b-tmp .b-wscroll > .b-wd, .b-tmp .b-wscroll > .b-wd + .b-wd {
+  border-left: 0; border-radius: var(--tl-r); background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--card-border);
+}
+.b-tmp .b-wscroll > .b-wd:hover { background: var(--card-bg-raised); }
+.b-tmp .b-wrow.is-all .b-wscroll { gap: var(--tl-gap); background: none; overflow: visible; }
+.b-tmp .b-wd-cap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
+.b-tmp .b-wd-val { font-weight: var(--fw-bold); letter-spacing: -0.02em; }
+.b-tmp .b-wd-q { border-radius: 0 0 var(--tl-r) var(--tl-r); }
+/* Panels and cards: the tile. */
+.b-tmp .b-wt-row, .b-tmp .b-cmp-step, .b-tmp .b-ro-card, .b-tmp .b-team-card {
+  border-color: transparent; border-radius: var(--tl-r); box-shadow: inset 0 0 0 1px var(--card-border);
+}
+.b-tmp .b-ro-card:hover, .b-tmp .b-team-card:hover { box-shadow: inset 0 0 0 1px var(--card-border-hover, var(--card-border)); }
+.b-tmp .b-ro-top { padding: 18px 18px 0; }
+/* A 20px corner needs the content off it: the cards’ rows sit 18px in. */
+.b-tmp .b-team-card .tc-head { padding: 18px 18px 0; }
+.b-tmp .b-team-card .tc-title { padding: 10px 18px 0; font-size: 20px; letter-spacing: -0.01em; }
+.b-tmp .b-team-card .b-qcard-foot, .b-tmp .b-ro-card .b-qcard-foot { padding: 12px 18px 16px; }
+.b-tmp .b-ro-card .tc-title { font-size: 18px; letter-spacing: -0.01em; }
+.b-tmp .b-pl-figs { gap: 16px; margin: 18px 18px 6px; }
+.b-tmp .b-pl-fcap, .b-tmp .b-cmp-cap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--d100); }
+.b-tmp .b-pl-fval { margin-top: 2px; font-size: 24px; letter-spacing: -0.01em; line-height: 1.1; }
+.b-tmp .b-ro-card .b-aimy, .b-tmp .b-team-card .b-aimy { margin-left: 14px; margin-right: 14px; }
+.b-tmp .b-cmp { gap: var(--tl-gap); }
+.b-tmp .b-cmp-step { gap: 10px; padding: 18px 20px; }
+.b-tmp .b-cmp-val { font-size: 20px; letter-spacing: -0.01em; }
+/* On a phone each step of the comparison takes the full width. */
+@media (max-width: 600px) { .b-tmp .b-cmp { grid-template-columns: minmax(0, 1fr); } }
