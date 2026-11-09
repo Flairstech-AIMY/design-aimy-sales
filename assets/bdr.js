@@ -11898,13 +11898,13 @@
       '<div class="b-pl-ct"><button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
         '<span class="b-pl-open-ico" aria-hidden="true">' + PL_CHART + '</span>' +
         '<span class="b-pl-open-w">' + (open ? 'Close the chart' : 'Open the chart') + '</span>' +
-        '<span class="b-pl-open-sub">' + esc(cap1(r.s.noun)) + ' each day and so far, against their usual</span>' +
+        '<span class="b-pl-open-sub">Velocity and burn-up for ' + esc(r.s.noun) + ', against their usual</span>' +
         '<span class="b-pl-chev" aria-hidden="true">' + PL_CHEV + '</span></button>' +
       '<div class="b-pl-fold" id="' + fid + '"><div class="b-pl-fold-in"' + (open ? '' : ' inert') + '>' +
         '<div class="b-pl-chart"><div class="b-pl-ctop">' +
           '<span class="b-pl-seg" role="group" aria-label="Chart">' +
-            '<button type="button" data-bview="day" aria-pressed="' + !run + '">Each day</button>' +
-            '<button type="button" data-bview="run" aria-pressed="' + run + '">So far</button></span>' +
+            '<button type="button" data-bview="day" aria-pressed="' + !run + '">Velocity</button>' +
+            '<button type="button" data-bview="run" aria-pressed="' + run + '">Burn-up</button></span>' +
           '<span class="b-pl-key">' + (run
             ? '<span><i class="k-done"></i>So far</span><span><i class="k-plan"></i>A usual ' + esc(r.unit) + '</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>'
             : '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>A usual day</span>') +
