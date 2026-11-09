@@ -10907,13 +10907,25 @@
     if (!x) return null;
     const t = teamWith(x.id);
     const behind = st === 'short' || st === 'low';
+    /* Across several teams (Your teams), the line names the person's team,
+       and a team-wide step goes to the team with most of the gap (Nour,
+       9 Nov: "those cards are for all teams so it should specify more"). */
+    const teams = xs.map((y) => teamWith(y.id)).filter((y, i, a) => y && a.indexOf(y) === i);
+    const multi = teams.length > 1;
+    const gapOf = (tm) => xs.filter((y) => teamWith(y.id) === tm).reduce((a2, y) => a2 + Math.max(0, y.u - y.n), 0);
+    const worstT = multi ? teams.slice().sort((p, q) => gapOf(q) - gapOf(p))[0] : t;
+    const copyTo = multi ? teams.filter((y) => y !== t).sort((p, q) => gapOf(q) - gapOf(p))[0] : t;
     /* The verb follows the line: the person short gets their fix; a gap
        nobody holds alone gets the team's; the one who leads is what works,
-       so the team copies it. */
+       so the team (or, across teams, the other team) copies it. */
     const act = !t || !lev ? '' : short ? fixBtn(t.id, x.id, lev, 'row')
-      : behind ? fixBtn(t.id, 'all', lev, 'row') : xs.length > 1 ? fixBtn(t.id, 'all', lev, 'row', x.id) : '';
-    if (behind && !short) return { who: 'A little short across the team', act, tone: 'is-behind' };
-    return { who: '<b>' + esc(firstName(x.id)) + '</b> ' + say(x, !!short), act, tone: short ? 'is-behind' : 'is-ahead' };
+      : behind ? fixBtn(worstT.id, 'all', lev, 'row') : xs.length > 1 && copyTo ? fixBtn(copyTo.id, 'all', lev, 'row', x.id, false, multi) : '';
+    if (behind && !short) {
+      return { who: multi ? 'A little short across your teams, most in the <b>' + esc(worstT.name) + '</b>' : 'A little short across the team',
+        act, tone: 'is-behind' };
+    }
+    const named = '<b>' + esc(firstName(x.id)) + '</b>' + (multi && t ? ' in the ' + esc(t.name) + (short ? ',' : '') : '');
+    return { who: named + ' ' + say(x, !!short), act, tone: short ? 'is-behind' : 'is-ahead' };
   }
   /* Where a figure stands against what it is measured by: short by a tenth
      and two is short, a quarter is low (the error ink), a twentieth and two
@@ -11660,10 +11672,10 @@
   /* The lever as a button, or what it did once pressed. `who` is 'all' for
      the team or a person's id; `src` (optional) is whose practice is copied;
      `give` words it from the side that has it. */
-  function fixBtn(tid, who, lev, cls, src, give) {
+  function fixBtn(tid, who, lev, cls, src, give, named) {
     const key = tid + ':' + who + ':' + lev + (src ? ':' + src : '');
     const t = TEAMS.filter((x) => x.id === tid)[0];
-    const label = src ? (give ? 'Give ' + srcName(tid) + ' your ' + THING[lev] : 'Use ' + poss(srcName(src)) + ' ' + THING[lev])
+    const label = src ? (give ? 'Give ' + srcName(tid) + ' your ' + THING[lev] : 'Use ' + poss(srcName(src)) + ' ' + THING[lev] + (named ? ' for ' + srcName(tid) : ''))
       : who === 'all' ? LEVER[lev].label : LEVER_P[lev].label(firstName(who));
     const done = src ? (give ? 'Given to ' + (t ? 'the ' + t.name : '') : 'Using ' + poss(srcName(src)) + ' ' + THING[lev])
       : who === 'all' ? LEVER[lev].done : LEVER_P[lev].done;
