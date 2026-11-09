@@ -12061,7 +12061,7 @@
       return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
         order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
           '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') +
-        '<div class="b-cmp-do"><span class="b-cmp-gap">' + gap + '</span>' + act + '</div></div>';
+        '<div class="b-cmp-do"><span class="b-cmp-gap ' + (!best || n < 1 ? 'is-level' : d < 0 ? 'is-behind' : 'is-ahead') + '"><span>' + gap + '</span></span>' + act + '</div></div>';
     };
     return aimyBlock({ text: said, from: 'share of the plan by now, ' + P.when }) +
       '<div class="b-cmp">' + DAY_STEPS.map(step).join('') + '</div>' +
