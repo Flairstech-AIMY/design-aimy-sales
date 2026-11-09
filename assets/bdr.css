@@ -8949,6 +8949,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-val.is-dn { color: var(--warn-text); }
 .b-cmp-val.is-err { color: var(--err-text); }
 .b-cmp-key { margin: 10px 0 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+/* What the gap is worth, and the call to share. */
+.b-cmp-do { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--card-border); }
+.b-cmp-gap { font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d50); }
+.b-cmp-gap b { font-weight: var(--fw-semibold); }
 /* ══ §122 THE TEAMS PAGES, IN TILES (9 Nov 2026) ═════════════════════════
    Nour: the team page read "so editorial"; take the voice agents' page in
    Knowledge's console (settings.css `.agv-*`) as the language. The team

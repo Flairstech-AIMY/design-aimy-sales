@@ -11974,10 +11974,34 @@
     /* Figures, not bars (Nour, 5 Nov): each step, each team's share of the
        plan by now, in its pace's colour, the open team first and in bold. */
     const order = [mine].concat(reads.filter((x) => x !== mine));
-    return aimyBlock({ text: said, from: 'share of the plan by now, ' + P.when }) +
-      '<div class="b-cmp">' + DAY_STEPS.map((s) => '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
+    /* Each step says what the gap is worth and what to do with it (Nour,
+       9 Nov: "polish those to be useful"): the gap between the teams in the
+       step's own count, and the best call of whoever does it best, shared
+       with the team behind. */
+    const wide = (lead === 4 ? b : w.d < -0.005 ? w : b).s.k;
+    const step = (s) => {
+      const rest = order.slice(1).sort((a, b) => b.R[s.k].ratio - a.R[s.k].ratio);
+      const best = rest[0];
+      const d = best ? mine.R[s.k].ratio - best.R[s.k].ratio : 0;
+      const n = Math.round(Math.abs(d) * mine.R[s.k].byNow);
+      const lead = d >= 0 ? mine : best;
+      const trail = d >= 0 ? best : mine;
+      const star = lead && lead.R[s.k].by.slice().sort((a, b) => b.ratio - a.ratio)[0];
+      const gap = !best || n < 1 ? 'Level with the ' + esc(best ? best.t.name : 'others')
+        : (d < 0 ? 'Behind by about ' : 'Ahead by about ') + '<b>' + esc(plural(n, s.noun.replace(/s$/, ''))) + '</b>';
+      /* One verb on the board, on the widest gap (the step AiMY's line names). */
+      const key = star && trail && n >= 1 && s.k === wide ? trail.t.id + ':' + star.id + ':xshare' : '';
+      const act = !key ? '' : TACTS[key]
+        ? '<span class="b-wd-done">Shared with the ' + esc(trail.t.name) + '</span>'
+        : '<button class="b-wd-act" type="button" data-tact="' + esc(key) + '" title="Share it with the ' + esc(trail.t.name) + '">Share ' +
+          esc(firstName(star.id)) + '’s best call</button>';
+      return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
         order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
-          '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') + '</div>').join('') + '</div>' +
+          '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') +
+        '<div class="b-cmp-do"><span class="b-cmp-gap">' + gap + '</span>' + act + '</div></div>';
+    };
+    return aimyBlock({ text: said, from: 'share of the plan by now, ' + P.when }) +
+      '<div class="b-cmp">' + DAY_STEPS.map(step).join('') + '</div>' +
       '<p class="b-cmp-key">Each figure is the share of the plan done by now; 100% is on pace.</p>';
   }
   function teamPage(t) {
@@ -12125,6 +12149,9 @@
       say: (n, team) => n + '’s best call today is shared with the ' + team },
     thanks: { label: () => 'Say well done', done: 'Well done sent',
       say: (n) => '“Well done today” sent to ' + n },
+    /* Across teams: the key's team is the one that receives the call. */
+    xshare: { label: (n) => 'Share ' + n + '’s best call', done: 'Shared',
+      say: (n, team) => n + '’s best call is shared with the ' + team },
   };
   function teamAct(key) {
     const [tid, id, k] = key.split(':');
