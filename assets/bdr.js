@@ -10899,8 +10899,11 @@
     if (!x) return null;
     const t = teamWith(x.id);
     const behind = st === 'short' || st === 'low';
-    const act = t && lev && behind ? fixBtn(t.id, 'all', lev, 'b-wd-act') : '';
-    /* Short as a team with nobody short alone: the gap is everyone's. */
+    /* The verb follows the line: the person short gets their fix; a gap
+       nobody holds alone gets the team's; the one who leads is what works,
+       so the team copies it. */
+    const act = !t || !lev ? '' : short ? fixBtn(t.id, x.id, lev, 'b-wd-act')
+      : behind ? fixBtn(t.id, 'all', lev, 'b-wd-act') : xs.length > 1 ? fixBtn(t.id, 'all', lev, 'b-wd-act', x.id) : '';
     if (behind && !short) return { who: 'A little short across the team', act, tone: 'is-behind' };
     return { who: '<b>' + esc(firstName(x.id)) + '</b> ' + say(x, !!short), act, tone: short ? 'is-behind' : 'is-ahead' };
   }
@@ -11630,22 +11633,49 @@
     }
     return k;
   }
+  /* The next step follows the line it sits under (Nour, 9 Nov: "what did I
+     get when I knew Karim is 6 short? what is next?"). So a lever has three
+     shapes: for the team ('all'); for one person, named ("Coach Karim's
+     opener"); and copying what works from someone or another team ("Use
+     Rana's opener", "Use the Enterprise Team's opener"), which a team ahead
+     can also give ("Give the Gulf Team your opener"). */
+  const LEVER_P = {
+    calls: { label: (n) => 'Shorter wait for ' + n, done: 'Wait is 20 s now',
+      say: (n, extra) => n + '’s runs now wait 20 s between calls, not 30: about ' + commas(extra) + ' more calls a day' },
+    reached: { label: (n) => 'Find numbers for ' + n, done: 'Finding direct numbers',
+      say: (n) => 'AiMY is finding direct numbers on ' + n + '’s lists, so more calls reach the decision maker' },
+    talks: { label: (n) => 'Coach ' + n + '’s opener', done: 'Coaching the opener',
+      say: (n) => 'AiMY now coaches ' + n + '’s opener in runs: one tip after a call that ends in the first minute' },
+    meets: { label: (n) => 'Coach ' + n + '’s close', done: 'Coaching the close',
+      say: (n) => 'AiMY now coaches ' + n + '’s close in runs: one tip after a conversation that ends without a meeting' },
+  };
+  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', meets: 'close' };
+  const srcName = (src) => { const t = TEAMS.filter((x) => x.id === src)[0]; return t ? 'the ' + t.name : REP[src] ? firstName(src) : src; };
+  const poss = (n) => n + '’s';
   /* The lever as a button, or what it did once pressed. `who` is 'all' for
-     the team or a person's id on their profile. */
-  function fixBtn(tid, who, lev, cls) {
-    const key = tid + ':' + who + ':' + lev;
-    return TFIX[key] ? '<span class="b-wt-done">' + esc(LEVER[lev].done) + '</span>'
-      : '<button class="' + cls + '" type="button" data-tfix="' + esc(key) + '">' + esc(LEVER[lev].label) + '</button>';
+     the team or a person's id; `src` (optional) is whose practice is copied;
+     `give` words it from the side that has it. */
+  function fixBtn(tid, who, lev, cls, src, give) {
+    const key = tid + ':' + who + ':' + lev + (src ? ':' + src : '');
+    const t = TEAMS.filter((x) => x.id === tid)[0];
+    const label = src ? (give ? 'Give ' + srcName(tid) + ' your ' + THING[lev] : 'Use ' + poss(srcName(src)) + ' ' + THING[lev])
+      : who === 'all' ? LEVER[lev].label : LEVER_P[lev].label(firstName(who));
+    const done = src ? (give ? 'Given to ' + (t ? 'the ' + t.name : '') : 'Using ' + poss(srcName(src)) + ' ' + THING[lev])
+      : who === 'all' ? LEVER[lev].done : LEVER_P[lev].done;
+    return TFIX[key] ? '<span class="b-wt-done">' + esc(done) + '</span>'
+      : '<button class="' + cls + '" type="button" data-tfix="' + esc(key) + '">' + esc(label) + '</button>';
   }
   function planFix(key) {
-    const [tid, who, lev] = key.split(':');
+    const [tid, who, lev, src] = key.split(':');
     const t = TEAMS.filter((x) => x.id === tid)[0];
-    if (!t || !LEVER[lev]) return;
+    if (!t || !LEVER[lev] || (who !== 'all' && !REP[who])) return;
     const ids = who === 'all' ? t.members : [who];
     const extra = Math.max(1, Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) * 0.07));
+    const to = who === 'all' ? 'the ' + t.name : firstName(who);
     TFIX[key] = true;
     paint();
-    toast(LEVER[lev].say(who === 'all' ? 'the ' + t.name : firstName(who), extra), () => { delete TFIX[key]; paint(); });
+    toast(src ? cap1(to) + ' now uses ' + poss(srcName(src)) + ' ' + THING[lev] + '; AiMY compares the results with before'
+      : who === 'all' ? LEVER[lev].say(to, extra) : LEVER_P[lev].say(to, extra), () => { delete TFIX[key]; paint(); });
   }
   /* The thing to do about it: on a page for several teams, open the one
      furthest behind; on one team's or one person's, the lever where the
@@ -12045,19 +12075,18 @@
     const order = [mine].concat(reads.filter((x) => x !== mine));
     /* Each step says what the gap is worth and what to do with it (Nour,
        9 Nov: "polish those to be useful"): the gap between the teams in the
-       step's own count, and the lever that closes the widest one. */
-    const wide = (lead === 4 ? b : w.d < -0.005 ? w : b).s.k;
+       step's own count, and the next step that closes it. */
     const step = (s) => {
       const rest = order.slice(1).sort((a, b) => b.R[s.k].ratio - a.R[s.k].ratio);
       const best = rest[0];
       const d = best ? mine.R[s.k].ratio - best.R[s.k].ratio : 0;
       const n = Math.round(Math.abs(d) * mine.R[s.k].byNow);
-      /* One verb on the board, on the widest gap (the step AiMY's line names),
-         and only when this team is the one behind: the lever where its own
-         chain drops, not a call from the other team (Nour, 9 Nov). */
       const gap = !best || n < 1 ? 'Level with the ' + esc(best ? best.t.name : 'others')
         : (d < 0 ? 'Behind by about ' : 'Ahead by about ') + '<b>' + esc(plural(n, s.noun.replace(/s$/, ''))) + '</b>';
-      const act = d < 0 && n >= 1 && s.k === wide ? fixBtn(mine.t.id, 'all', leverFor(mine.R, s.k), 'b-wd-act') : '';
+      /* Next on every step (Nour, 9 Nov): behind, take what the team ahead
+         does on it; ahead, give it to the team behind. */
+      const act = n < 1 || !best ? '' : d < 0 ? fixBtn(mine.t.id, 'all', s.k, 'b-wd-act', best.t.id)
+        : fixBtn(best.t.id, 'all', s.k, 'b-wd-act', mine.t.id, true);
       return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
         order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
           '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') +

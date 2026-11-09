@@ -8972,6 +8972,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-gap b, .b-wd-who b { font-weight: var(--fw-bold); }
 .b-cmp-gap.is-behind, .b-wd-who.is-behind { color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 13%, transparent); }
 .b-cmp-gap.is-ahead, .b-wd-who.is-ahead { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 13%, transparent); }
+/* A longer verb wraps inside its tile rather than widening the column. */
+.b-cmp-do { min-width: 0; }
+.b-cmp-do .b-wd-act, .b-wd-btns .b-wd-act { max-width: 100%; height: auto; min-height: 30px; padding: 6px 12px; white-space: normal; text-align: left; line-height: 1.3; }
 /* ══ §122 THE TEAMS PAGES, IN TILES (9 Nov 2026) ═════════════════════════
    Nour: the team page read "so editorial"; take the voice agents' page in
    Knowledge's console (settings.css `.agv-*`) as the language. The team
