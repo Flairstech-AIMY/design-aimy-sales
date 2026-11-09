@@ -11595,8 +11595,6 @@
           (tr.now < tr.was ? 'down' : 'up') + ' from ' + esc(commas(Math.round(tr.was))) + ' the five before.');
       }
     }
-    const fact = (dt, dd, tone) => '<div><dt>' + esc(dt) + '</dt><dd' + (tone ? ' class="is-' + tone + '"' : '') + '>' + esc(dd) + '</dd></div>';
-    const needTone = r.daysLeft > 0.01 && r.vel && r.need > r.vel * 1.03 ? (r.need > r.vel * 1.18 ? 'err' : 'dn') : '';
     /* AiMY's read, the way AiMY QA opens a page (Nour, 9 Nov): the reading
        first, in its colour, the sentence under it and the things to do; the
        figures it rests on stand beside it as its evidence. */
@@ -11610,13 +11608,81 @@
         '<p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
         '<p class="b-pl-why">' + say.join(' ') + '</p>' +
         '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div></div>',
-      /* Plain words (Nour, 9 Nov): "The numbers", and captions anyone reads
-         without the plan's vocabulary. */
-      facts: r.el ? '<div class="b-pl-ev"><p class="b-pl-k">The numbers</p><dl class="b-pl-facts">' +
-          fact('Planned by now', commas(Math.round(r.byNow))) + fact('Done so far', commas(r.cum)) +
-          fact('Average per day', commas(Math.round(r.vel))) +
-          fact(r.daysLeft > 0.01 ? 'Needed per day' : 'Planned in all', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target), needTone) + '</dl></div>' : '',
+      facts: r.el ? planNeed(ctx, R, k) : '',
     };
+  }
+  /* What it takes to finish (Nour, 9 Nov: "this block should give insight
+     and action, not just static numbers"). The four figures it had (planned
+     by now, done, a day so far, needed a day) answer one question together:
+     what each day left has to make. So the tile says that number, what it
+     means against the pace the team keeps now and for each person in it,
+     and gives the verb that uses it: send each person their own number for
+     the days left. Done against planned stays as the evidence line. */
+  const PL_SENT = Object.create(null);
+  function planNeed(ctx, R, k) {
+    const r = R[k], P = R.P, noun = r.s.noun;
+    const t = ctx.teams[0];
+    const live = r.daysLeft > 0.01;
+    const evid = '<p class="b-pl-evid"><b>' + esc(commas(r.cum)) + '</b> done of <b>' + esc(commas(Math.round(r.byNow))) + '</b> planned by now</p>';
+    if (!live) {
+      const met = r.cum >= r.target;
+      return '<div class="b-pl-ev"><p class="b-pl-k">How ' + esc(P.unit) + ' ended</p>' +
+        '<p class="b-pl-big' + (met ? ' is-up' : ' is-dn') + '">' + esc(commas(r.cum)) + '<small>of ' + esc(commas(r.target)) + '</small></p>' +
+        '<p class="b-pl-evsay">' + (met ? 'The plan was met, with <b>' + esc(commas(r.cum - r.target)) + ' more</b>.'
+          : '<b>' + esc(commas(r.target - r.cum)) + ' ' + esc(noun) + '</b> short of the plan.') + '</p></div>';
+    }
+    const need = Math.ceil(r.need), vel = Math.round(r.vel);
+    /* Amber as soon as today's pace falls short of it, so the colour agrees
+       with "at this pace it ends short" beside it; red when far short. */
+    const tone = r.vel && need > vel ? (r.need > r.vel * 1.18 ? 'err' : 'dn') : 'up';
+    /* Each person's own number: what is left of their share, over the days left. */
+    const each = r.by.map((x) => {
+      const share = planDay(k) * r.N;
+      return { id: x.id, need: Math.ceil(Math.max(0, share - x.n) / r.daysLeft), now: r.el ? Math.round(x.n / r.el) : 0 };
+    });
+    const far = each.slice().sort((a, b) => (b.need - b.now) - (a.need - a.now))[0];
+    let say;
+    if (r.need <= 0) {
+      say = cap1(ctx.who) + ' ' + (ctx.pl ? 'have' : 'has') + ' already made the plan for ' + esc(P.unit) + '.';
+    } else if (need > vel) {
+      const more = need - vel;
+      say = (ctx.one ? esc(firstName(ctx.ids[0])) + ' makes ' : 'The team makes ') + '<b>' + esc(commas(vel)) + ' a day</b> now, so it takes <b>' +
+        esc(commas(more)) + ' more a day</b>' + (ctx.one ? '' : ', about ' + esc(commas(Math.ceil(more / ctx.ids.length))) + ' more each') + '.' +
+        (!ctx.one && far && far.need > far.now ? ' <b>' + esc(firstName(far.id)) + '</b> has the most to make up: ' + esc(commas(far.need)) +
+          ' a day against ' + esc(commas(far.now)) + ' now.' : '');
+    } else {
+      say = (ctx.one ? esc(firstName(ctx.ids[0])) + ' makes ' : 'The team makes ') + '<b>' + esc(commas(vel)) + ' a day</b>, ' +
+        esc(commas(vel - need)) + ' more than it takes. Keep this pace and the plan is met early.';
+    }
+    const key = (t ? t.id : '') + ':' + (ctx.one ? ctx.ids[0] : 'all') + ':' + k;
+    const sent = PL_SENT[key];
+    const label = ctx.one ? 'Send ' + firstName(ctx.ids[0]) + ' this number' : 'Send each person their number';
+    const act = r.need <= 0 ? '' : sent
+      ? '<span class="b-wt-done">' + esc(ctx.one ? 'Sent to ' + firstName(ctx.ids[0]) : 'Sent to each person') + '</span>'
+      : '<button class="s-insight-lnk primary" type="button" data-plnum="' + esc(key) + '">' + esc(label) + '</button>';
+    return '<div class="b-pl-ev"><p class="b-pl-k">To finish ' + esc(P.unit) + '</p>' +
+      '<p class="b-pl-big is-' + tone + '">' + esc(commas(Math.max(0, need))) + '<small>' + esc(noun) + ' a day</small></p>' +
+      '<p class="b-pl-evcap">for the ' + esc(plural(r.leftDays, 'working day')) + ' left</p>' +
+      '<p class="b-pl-evsay">' + say + '</p>' + evid +
+      (act ? '<div class="b-pl-evact">' + act + '</div>' : '') + '</div>';
+  }
+  /* Send each person their number: the plan for the days left, split by
+     what each one still has to make. One press, toast to undo. */
+  function planNumSend(key) {
+    const [tid, who, k] = key.split(':');
+    const t = TEAMS.filter((x) => x.id === tid)[0];
+    if (!t || !DAY_STEPS.some((s) => s.k === k)) return;
+    const ids = who === 'all' ? t.members : [who];
+    const R = planRead(ids, planSpan());
+    const r = R[k];
+    if (!r || r.daysLeft < 0.01) return;
+    const nums = r.by.map((x) => firstName(x.id) + ' ' + commas(Math.ceil(Math.max(0, planDay(k) * r.N - x.n) / r.daysLeft)));
+    PL_SENT[key] = true;
+    paint();
+    toast(who === 'all'
+      ? 'Each person in the ' + t.name + ' has their ' + r.s.noun + ' a day to finish ' + R.P.unit + ': ' + nums.join(', ')
+      : firstName(who) + ' has ' + nums[0].split(' ').pop() + ' ' + r.s.noun + ' a day to finish ' + R.P.unit,
+      () => { delete PL_SENT[key]; paint(); });
   }
   /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
      left of the plan, the straight line the plan takes, today, and where the
@@ -11797,6 +11863,8 @@
   }
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-plfold]')) { planFold(); return; }
+    const num = e.target.closest('[data-plnum]');
+    if (num) { planNumSend(num.getAttribute('data-plnum')); return; }
     const s = e.target.closest('[data-bstep]');
     if (s) { PLAN_STEP = s.getAttribute('data-bstep'); paint(); return; }
     const v = e.target.closest('[data-bview]');

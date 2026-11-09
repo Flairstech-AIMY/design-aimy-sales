@@ -8786,16 +8786,21 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pl-why { max-width: 68ch; margin: 0; font-size: var(--fs-md); line-height: 1.6; color: var(--d50); }
 .b-pl-why b { font-weight: var(--fw-semibold); color: var(--d50); }
 .b-pl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 6px; }
-/* The figures: a 2x2 of large numbers with their captions under them. */
-.b-pl-ev { display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; }
-.b-pl-ev .b-pl-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; margin: auto 0 0; }
-/* The number over its caption; in a reversed column the start is the foot,
-   so flex-end keeps every number on the row's top line when a caption wraps. */
-.b-pl-facts div { min-width: 0; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 2px; }
-.b-pl-facts dt { font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d100); }
-.b-pl-facts dd { margin: 0; font-size: 26px; font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.01em; color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-pl-facts dd.is-dn { color: var(--warn-text); }
-.b-pl-facts dd.is-err { color: var(--err-text); }
+/* What it takes to finish: the number each day left has to make, in the
+   colour of how far it is from today's pace; what it means; done against
+   planned as the evidence; the verb that uses it. */
+.b-pl-ev { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 22px 24px; }
+.b-pl-ev .b-pl-k { margin-bottom: 4px; }
+.b-pl-big { margin: 0; font-size: 30px; font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.02em; color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-big small { margin-left: 8px; font-size: var(--fs-sm); font-weight: var(--fw-semibold); letter-spacing: 0; color: var(--d50); }
+.b-pl-big.is-up { color: var(--ok-text); }
+.b-pl-big.is-dn { color: var(--warn-text); }
+.b-pl-big.is-err { color: var(--err-text); }
+.b-pl-evcap { margin: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-evsay { margin: 8px 0 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--d50); }
+.b-pl-evsay b, .b-pl-evid b { font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-pl-evid { margin: 0; font-size: var(--fs-xs); color: var(--d100); }
+.b-pl-evact { margin-top: auto; padding-top: 12px; }
 @media (max-width: 900px) { .b-pl-read { grid-template-columns: minmax(0, 1fr); } }
 /* "Ask AiMY why" as a pill beside the action, the mark on it. */
 .b-pl-ask {
