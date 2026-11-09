@@ -93,6 +93,7 @@ const MARKERS = {
   'pdeck-camp': 'which campaign a pile of pitches belongs to, read by the data-pdeck handler on the same block',
   'pi': 'which pitch a field or verb in the pitch editor is about, read by its handler off the same element',
   'pid': 'a pitch row’s identity across a repaint, so a move can slide the row from where it was',
+  'fold': 'whether a plan board’s chart is open, read by bdr.css; data-plfold flips it in place (not data-open, which the router reads as open this card)',
   'rtab': 'which state of the page a rail tab row stands for, so a check can find a tab by name rather than by position',
 };
 

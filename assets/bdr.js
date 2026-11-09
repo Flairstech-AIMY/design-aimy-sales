@@ -11595,16 +11595,19 @@
           (tr.now < tr.was ? 'down' : 'up') + ' from ' + esc(commas(Math.round(tr.was))) + ' the five before.');
       }
     }
-    const fact = (dt, dd) => '<div><dt>' + esc(dt) + '</dt><dd>' + esc(dd) + '</dd></div>';
+    const fact = (dt, dd, tone) => '<div><dt>' + esc(dt) + '</dt><dd' + (tone ? ' class="is-' + tone + '"' : '') + '>' + esc(dd) + '</dd></div>';
+    const needTone = r.daysLeft > 0.01 && r.vel && r.need > r.vel * 1.03 ? (r.need > r.vel * 1.18 ? 'err' : 'dn') : '';
+    /* AiMY's read, the way AiMY QA opens a page (Nour, 9 Nov): the reading
+       first, in its colour, the sentence under it and the things to do; the
+       figures it rests on stand beside it as its evidence. */
     return {
       line: '<div class="b-pl-say"><p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
         '<p class="b-pl-why"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<span>' + say.join(' ') + '</span></p></div>',
-      foot: '<div class="b-pl-foot">' +
-        (r.el ? '<dl class="b-pl-facts">' + fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
-          fact('A day so far', commas(Math.round(r.vel))) +
-          fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target)) + '</dl>' : '<span></span>') +
+          '<span>' + say.join(' ') + '</span></p>' +
         '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div></div>',
+      facts: r.el ? '<dl class="b-pl-facts">' + fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
+          fact('A day so far', commas(Math.round(r.vel))) +
+          fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target), needTone) + '</dl>' : '',
     };
   }
   /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
@@ -11731,11 +11734,10 @@
     const vel = PLAN_VIEW === 'vel';
     const st = planStory(ctx, R, k);
     const tone = pace(r).tone;
-    return '<div class="b-pl">' +
-      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against the plan</h3><span class="b-pl-sub">' + esc(sub) + '</span></div>' +
-        '<span class="b-pl-seg" role="group" aria-label="Chart">' +
-          '<button type="button" data-bview="burn" aria-pressed="' + !vel + '">Burn-down</button>' +
-          '<button type="button" data-bview="vel" aria-pressed="' + vel + '">Velocity</button></span></div>' +
+    const open = !!UI.planOpen;
+    const fid = 'plFold-' + (++PL_N);
+    return '<div class="b-pl" data-fold="' + open + '">' +
+      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against the plan</h3><span class="b-pl-sub">' + esc(sub) + '</span></div></div>' +
       '<div class="b-pl-tabs">' + DAY_STEPS.map((s) => {
         const x = R[s.k], pc = pace(x);
         return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
@@ -11743,17 +11745,50 @@
           '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>of ' + esc(commas(x.target)) + '</small></span>' +
           '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span></button>';
       }).join('') + '</div>' +
-      '<div class="b-pl-body">' + st.line +
-        '<div class="b-pl-chart"><div class="b-pl-ctop"><p class="b-pl-ctitle">' + esc(cap1(r.s.noun)) + (vel ? ' each day' : ' left to do') + '</p>' +
+      '<div class="b-pl-read' + (st.facts ? '' : ' is-solo') + '">' + st.line + st.facts + '</div>' +
+      /* The charts, folded (Nour, 9 Nov), as AiMY QA keeps its trend: the
+         evidence opened on demand, not the fold spent on it. One press opens
+         or closes it in place; it stays as it was left, on every board. */
+      '<button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
+        '<span class="b-pl-open-ico" aria-hidden="true">' + PL_CHART + '</span>' +
+        '<span class="b-pl-open-w">' + (open ? 'Close the chart' : 'Open the chart') + '</span>' +
+        '<span class="b-pl-open-sub">Burn-down and velocity for ' + esc(r.s.noun) + '</span>' +
+        '<span class="b-pl-chev" aria-hidden="true">' + PL_CHEV + '</span></button>' +
+      '<div class="b-pl-fold" id="' + fid + '"><div class="b-pl-fold-in"' + (open ? '' : ' inert') + '>' +
+        '<div class="b-pl-chart"><div class="b-pl-ctop">' +
+          '<span class="b-pl-seg" role="group" aria-label="Chart">' +
+            '<button type="button" data-bview="burn" aria-pressed="' + !vel + '">Burn-down</button>' +
+            '<button type="button" data-bview="vel" aria-pressed="' + vel + '">Velocity</button></span>' +
           '<span class="b-pl-key">' + (vel
             ? '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>The plan a day</span><span><i class="k-pace is-' + tone + '"></i>Needed from today</span>'
             : '<span><i class="k-done"></i>Left to do</span><span><i class="k-plan"></i>The plan</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>') +
           '</span></div>' + planChart(r) + '</div>' +
-        st.foot +
-      '</div>' +
+      '</div></div>' +
     '</div>';
   }
+  let PL_N = 0;
+  const PL_CHART = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+    'stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>';
+  const PL_CHEV = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+    'stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  /* Open or close every board's chart in place, so the fold animates and
+     nothing else on the page is redrawn. */
+  function planFold() {
+    UI.planOpen = !UI.planOpen;
+    saveUI();
+    document.querySelectorAll('.b-pl').forEach((b) => {
+      b.setAttribute('data-fold', String(UI.planOpen));
+      const t = b.querySelector('[data-plfold]');
+      if (t) {
+        t.setAttribute('aria-expanded', String(UI.planOpen));
+        t.querySelector('.b-pl-open-w').textContent = UI.planOpen ? 'Close the chart' : 'Open the chart';
+      }
+      const f = b.querySelector('.b-pl-fold-in');
+      if (f) f.inert = !UI.planOpen;
+    });
+  }
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-plfold]')) { planFold(); return; }
     const s = e.target.closest('[data-bstep]');
     if (s) { PLAN_STEP = s.getAttribute('data-bstep'); paint(); return; }
     const v = e.target.closest('[data-bview]');
