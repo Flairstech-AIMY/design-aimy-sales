@@ -10831,8 +10831,8 @@
       val: (r) => r.month, row: (r) => commas(r.month) + ' calls since 1 ' + MONTHS[new Date(r.day + 'T00:00:00').getMonth()],
       short: () => false, lead: 'has made the most calls this month' },
     avg: { ask: 'What is each person’s daily average?', re: /\bdaily average\b|\ba working day\b/,
-      val: (r) => r.avg, row: (r) => commas(r.avg) + ' calls a working day, against the goal of ' + GOAL.calls,
-      short: (r) => r.avg < GOAL.calls * 0.9, lead: 'has the highest daily average' },
+      val: (r) => r.avg, row: (r) => commas(r.avg) + ' calls a working day, usually ' + FORM[r.ids[0]].calls,
+      short: (r) => r.avg < FORM[r.ids[0]].calls * 0.9, lead: 'has the highest daily average' },
     secs: { ask: 'How long are each person’s calls?', re: /\bhow long\b|\baverage call\b|\bcall length\b/,
       val: (r) => r.secs, row: (r) => callLen(r.secs) + ' on average, usually ' + callLen(FORM[r.ids[0]].secs),
       short: (r) => r.secs < FORM[r.ids[0]].secs * 0.85, lead: 'has the longest calls' },
@@ -11015,7 +11015,7 @@
             (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k)) }) };
       }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
       let planM = 0, mDays = 0;
-      for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) { planM += GOAL.calls * dayPart(iso); mDays += dayPart(iso); }
+      for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) { planM += usualCalls * dayPart(iso); mDays += dayPart(iso); }
       /* Each person's own figures, for who each widget comes down to. */
       const prevDay = lastWorkDay(r.day);
       const pm = ids.map((id) => {
@@ -11025,14 +11025,14 @@
       });
       const lead = (x, sh, unit) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n) + (unit || ''));
       const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, wState(r.yest, usualCalls).st, 'calls');
-      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(planM) })), lead, wState(r.month, Math.round(planM)).st, 'calls');
-      const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: GOAL.calls })), (x, sh) => lead(x, sh, ' a day'),
-        wState(r.avg, GOAL.calls).st, 'calls');
+      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, wState(r.month, Math.round(planM)).st, 'calls');
+      const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
+        wState(r.avg, usualCalls).st, 'calls');
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
         (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks');
       const onIds = onCallNow(ids);
-      const ys = wState(r.yest, usualCalls), ms = wState(r.month, Math.round(planM)), as = wState(r.avg, GOAL.calls);
+      const ys = wState(r.yest, usualCalls), ms = wState(r.month, Math.round(planM)), as = wState(r.avg, usualCalls);
       const on = onCallNow(ids).length;
       const sd = r.secs - usualSecs;
       const ss = Math.abs(sd) < 5 ? { st: 'ok', chip: 'As usual' } : sd < 0 && r.secs < usualSecs * 0.85 ? { st: 'short', chip: SIGNED(sd) + 's' }
@@ -11043,11 +11043,11 @@
           do: one || !onIds.length ? null : { who: onIds.map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ') } }) : '') +
         wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
-            { line: GOAL.calls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, goal ' + GOAL.calls }), do: wy }) +
+            { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
         wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
-          chart: wTrack(r.month, Math.round(planM), '<span>The plan by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
+          chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
         wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
-          chart: wTrack(r.avg, GOAL.calls, '<span>The goal <b>' + GOAL.calls + '</b></span>', as.st), do: wa }) +
+          chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa }) +
         wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
             { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws });
@@ -11121,11 +11121,12 @@
         chart: wTrack(s.t[st.k], s.u[st.k], '<span>A usual run <b>' + esc(commas(s.u[st.k])) + '</b></span>', w.st) }) };
     }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / n);
-    const as = wState(perDay, GOAL.calls);
+    const usualPer = Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) / n);
+    const as = wState(perDay, usualPer);
     const avgSecs = calls ? Math.round(secs / calls) : 0;
     const more =
       wid({ cap: 'A working day', val: commas(perDay), unit: 'calls' + each, st: as.st, chip: as.chip, q: overview,
-        chart: wTrack(perDay, GOAL.calls, '<span>The goal <b>' + GOAL.calls + '</b></span>', as.st) }) +
+        chart: wTrack(perDay, usualPer, '<span>Usual <b>' + usualPer + '</b></span>', as.st) }) +
       wid({ cap: days === 1 ? 'Working day' : 'Working days', val: commas(Math.round(days)), q: overview,
         chart: wTicks(pdays.length) + '<span class="w-tl">' + esc(dateRange(R.from, R.to)) + '</span>' }) +
       wid({ cap: 'An average call', val: callLen(avgSecs), st: avgSecs < usualSecs * 0.85 ? 'short' : 'ok',
@@ -11243,23 +11244,23 @@
        once a period is chosen. A ranking by one step, who was short on
        calls, or the whole period with everyone's line. */
     /* ══ THE PLAN: why it is behind on a step, or who is ahead of it ══ */
-    if (/\bthe plan\b/.test(q)) {
+    if (/\b(below|above) usual on\b/.test(q)) {
       const w = spanWho();
       const st = DAY_STEPS.filter((s) => q.indexOf(s.noun) > -1)[0] || DAY_STEPS[0];
       const P = planSpan();
       const R = planRead(w.ids, P);
       const r = R[st.k];
-      if (!r.el) return 'The plan for ' + esc(P.when) + ' has not started yet, so there is no pace to read.';
+      if (!r.el) return 'Nothing to read yet: ' + esc(P.unit) + ' starts on its first working day.';
       const why = planWhy(R, st.k);
       const head = esc(upper(w.name)) + ' ' + (w.who1 || w.tm || teams.length === 1 ? 'has' : 'have') + ' ' + st.verb + ' <b>' +
-        esc(commas(r.cum) + ' ' + st.noun) + '</b> ' + esc(P.when) + ', against ' + esc(commas(Math.round(r.byNow))) +
-        ' in the plan by now: ' + esc(pace(r).say.toLowerCase()) + '.' + (why ? ' ' + why : '');
+        esc(commas(r.cum) + ' ' + st.noun) + '</b> ' + esc(P.when) + ', against a usual ' + esc(commas(Math.round(r.byNow))) +
+        ' by now: ' + esc(pace(r).say.toLowerCase()) + '.' + (why ? ' ' + why : '');
       if (w.who1) return head + next(['How is ' + firstName(w.who1) + ' doing today?']);
       const rows = r.by.slice().sort((a, b) => b.gap - a.gap);
-      return head + ' Person by person, against the plan by now:' +
+      return head + ' Person by person, against their usual by now:' +
         '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b' + (x.ratio < 0.85 ? ' class="b-door-warn"' : '') + '>' +
           esc(commas(x.n)) + '</b> against ' + esc(commas(Math.round(x.plan))) + ', ' +
-          (x.gap >= 1 ? esc(commas(Math.round(x.gap))) + ' short' : x.gap <= -1 ? esc(commas(Math.round(-x.gap))) + ' over' : 'on the plan'))).join('') +
+          (x.gap >= 1 ? esc(commas(Math.round(x.gap))) + ' short' : x.gap <= -1 ? esc(commas(Math.round(-x.gap))) + ' over' : 'as usual'))).join('') +
         '</div>' + next(['How is ' + firstName(rows[0].id) + ' doing today?']);
     }
     const PER = q.match(/\bfrom (\d{1,2}) ([a-z]{3}) to (\d{1,2}) ([a-z]{3})\b|\bon (\d{1,2}) ([a-z]{3})\b/i);
@@ -11373,7 +11374,7 @@
           '<div class="b-tm-row"><span class="b-tm-cap">Today</span><span class="b-tm-say">' + stepLine(x) + '</span></div>' +
           '<div class="b-tm-row"><span class="b-tm-cap">Calls</span><span class="b-tm-say">' +
             esc(commas(r.yest) + ' the day before, ' + commas(r.month) + ' this month, ' + commas(r.avg) +
-              ' a working day against the goal of ' + GOAL.calls + '. An average call is ' + callLen(r.secs) +
+              ' a working day, usually ' + FORM[person].calls + '. An average call is ' + callLen(r.secs) +
               ', usually ' + callLen(FORM[person].secs) + '.') + '</span></div>' +
           '<div class="b-tm-row"><span class="b-tm-cap">This week</span><span class="b-tm-say">' +
             esc(commas(w.now) + ' of 100, ' + (w.was == null ? '' : (w.now === w.was ? 'the same as' : (w.now > w.was ? 'up ' : 'down ') +
@@ -11438,22 +11439,20 @@
   /* ══ AND THE PAGE IT OPENS ═══════════════════════════════════════════
      A holding page until step 3 of the plan gives it its design: the
      day's numbers for every team together, then a card per team. */
-  /* ══ THE PLAN, AND THE PACE (5 Nov 2026) ════════════════════════════════
-     Feedback on the teams pages (5 Nov): velocity and burn-down, told as a
-     story; the team's operation in plain sight; the numbers as widgets.
-     Nour: charts now, but smart ones, never drawn without what AiMY makes of
-     them and the thing to do about it beside them. Every step of the chain
-     has a plan, the GOAL for one person on one working day, over a period:
-     "What is left" is the burn-down (what is left of the plan day by day,
-     against the straight line that ends at nothing on the last day, and
-     where today's pace lands); "Each day" is the velocity (what each day
-     made, against the plan's day and what each day left now has to make).
-     References: Plane's cycle burn-down (the story beside the chart),
-     Profound's metric tabs over one chart, Fireflies' bars per team. */
-  const PLAN_RATE = { calls: 1, reached: GOAL.reach, talks: GOAL.talk, meets: GOAL.talk * GOAL.meet };
-  const planDay = (k) => GOAL.calls * PLAN_RATE[k];
+  /* ══ THE MONTH, AGAINST THEIR USUAL (5 Nov 2026, no plan since 9 Nov) ═══
+     Feedback on the teams pages (5 Nov): the team's operation in plain
+     sight, told as a story, the numbers as widgets. It was first built as a
+     plan with a burn-down; Nour (9 Nov) dropped the plan until a real one is
+     confirmed, so each step is read against the people's own usual pace and
+     the one chart left is each day against a usual day. */
+  /* NO PLAN (Nour, 9 Nov 2026: "we don't need to compare numbers to a plan,
+     at least until they confirm something else"). The plan and its targets
+     were never set by anyone; they came from the GOAL fixture. Every step is
+     now read against each person's own usual pace, the same usual the day's
+     figures use (FORM: their calls a day, then their own rates). The names
+     inside (target, byNow, plan) keep their shape; the words say usual. */
+  const usualDay = (id, k) => { const f = FORM[id]; return f.calls * ({ calls: 1, reached: f.reach, talks: f.talk, meets: f.talk * f.meet })[k]; };
   let PLAN_STEP = 'calls';
-  let PLAN_VIEW = 'burn';
   const teamWith = (id) => TEAMS.filter((t) => t.members.indexOf(id) > -1)[0];
   const monthLong = (iso) => new Date(iso + 'T00:00:00').toLocaleString('en-GB', { month: 'long' });
   /* The period the plan runs over. With none chosen it is this month, the
@@ -11486,7 +11485,7 @@
     const out = { P };
     DAY_STEPS.forEach((s) => {
       const k = s.k;
-      const day = planDay(k) * ids.length;
+      const day = ids.reduce((a, id) => a + usualDay(id, k), 0);
       const target = Math.round(day * N);
       let cum = 0;
       const pts = days.map((iso, i) => {
@@ -11500,7 +11499,7 @@
       const by = ids.map((id, j) => {
         let n = 0;
         per.forEach((p) => { if (p) n += p[j][k]; });
-        const plan = planDay(k) * el;
+        const plan = usualDay(id, k) * el;
         return { id, n, plan, gap: plan - n, ratio: plan ? n / plan : 1 };
       });
       out[k] = { k, s, days, N, el, day, target, cum, pts, byNow, ratio: byNow ? cum / byNow : 1, vel,
@@ -11513,9 +11512,9 @@
   function pace(r) {
     if (!r.el) return { say: 'Not started', tone: 'eq' };
     const pc = Math.round(Math.abs(1 - r.ratio) * 100);
-    if (r.ratio >= 1.03) return { say: pc + '% ahead', tone: 'up' };
-    if (r.ratio >= 0.97) return { say: 'On pace', tone: 'up' };
-    return { say: pc + '% behind', tone: r.ratio >= 0.85 ? 'dn' : 'err', short: true };
+    if (r.ratio >= 1.03) return { say: pc + '% above usual', tone: 'up' };
+    if (r.ratio >= 0.97) return { say: 'As usual', tone: 'up' };
+    return { say: pc + '% below usual', tone: r.ratio >= 0.85 ? 'dn' : 'err', short: true };
   }
   /* The four steps as figures, for a card: what each counts, the number,
      and the pace in words and colour. No bars (Nour, 5 Nov: too many
@@ -11529,19 +11528,19 @@
   /* Where in the chain a short step comes from: the calls themselves, or
      what becomes of them. */
   function planWhy(R, k) {
-    const w = { reached: ['calls', 'calls', 'reach a decision maker', GOAL.reach],
-      talks: ['calls', 'calls', 'become a conversation', GOAL.talk],
-      meets: ['talks', 'conversations', 'end in a meeting', GOAL.meet] }[k];
+    const w = { reached: ['calls', 'calls', 'reach a decision maker'],
+      talks: ['calls', 'calls', 'become a conversation'],
+      meets: ['talks', 'conversations', 'end in a meeting'] }[k];
     if (!w) return '';
     const up = R[w[0]];
-    if (up.cum < 20) return '';
-    const got = Math.round((100 * R[k].cum) / up.cum), want = Math.round(100 * w[3]);
+    if (up.cum < 20 || !up.day) return '';
+    const got = Math.round((100 * R[k].cum) / up.cum), want = Math.round((100 * R[k].day) / up.day);
     const upOk = up.ratio >= 0.95;
     if (got < want * 0.95) {
-      return (upOk ? 'The ' + w[1] + ' are on pace; the drop comes after them: ' : '') +
-        '<b>' + got + ' in 100</b> ' + w[1] + ' ' + w[2] + ', against a plan of ' + want + '.';
+      return (upOk ? 'The ' + w[1] + ' are as usual; the drop comes after them: ' : '') +
+        '<b>' + got + ' in 100</b> ' + w[1] + ' ' + w[2] + ', usually ' + want + '.';
     }
-    return upOk ? '' : 'It comes from the ' + w[1] + ': ' + got + ' in 100 still ' + w[2] + ', as planned, but there are fewer ' + w[1] + ' to start from.';
+    return upOk ? '' : 'It comes from the ' + w[1] + ': ' + got + ' in 100 still ' + w[2] + ', as usual, but there are fewer ' + w[1] + ' to start from.';
   }
   /* Who the gap belongs to: the team that holds most of it and the person
      furthest short, or, on pace, who is furthest ahead. */
@@ -11550,7 +11549,7 @@
     const r = R[k];
     if (!pace(r).short) {
       const best = r.by.slice().sort((a, b) => a.gap - b.gap)[0];
-      return best && best.gap <= -1 ? '<b>' + esc(REP[best.id].name) + '</b> is furthest ahead, ' + esc(commas(Math.round(-best.gap))) + ' over the plan.' : '';
+      return best && best.gap <= -1 ? '<b>' + esc(REP[best.id].name) + '</b> is furthest above usual, by ' + esc(commas(Math.round(-best.gap))) + '.' : '';
     }
     const tot = r.by.reduce((a, x) => a + Math.max(0, x.gap), 0);
     if (tot < 1) return '';
@@ -11559,7 +11558,7 @@
       const tg = ctx.teams.map((t) => ({ t, g: r.by.filter((x) => t.members.indexOf(x.id) > -1).reduce((a, x) => a + Math.max(0, x.gap), 0) }))
         .sort((a, b) => b.g - a.g)[0];
       return 'The <b>' + esc(tg.t.name) + '</b> holds <b>' + Math.round((100 * tg.g) / tot) + '%</b> of the gap, and <b>' +
-        esc(REP[top.id].name) + '</b> is furthest short of anyone, by ' + esc(commas(Math.round(top.gap))) + '.';
+        esc(REP[top.id].name) + '</b> is furthest below usual, by ' + esc(commas(Math.round(top.gap))) + '.';
     }
     return '<b>' + esc(REP[top.id].name) + '</b> alone is ' + esc(commas(Math.round(top.gap))) + ' of it, <b>' +
       Math.round((100 * top.gap) / tot) + '%</b> of the gap.';
@@ -11567,20 +11566,16 @@
   /* Where the pace lands at the end of the period. */
   function planAhead(ctx, r, P) {
     const Who = cap1(ctx.who), v = (one, many) => (ctx.pl ? many : one);
+    const usualOne = 'a usual ' + P.unit.replace(/^the /, '');
     if (r.daysLeft < 0.01) {
-      return r.cum >= r.target ? Who + ' met the plan for ' + P.unit + ', with <b>' + esc(commas(r.cum - r.target)) + ' more</b>.'
-        : Who + ' ended ' + P.unit + ' <b>' + esc(commas(r.target - r.cum) + ' ' + r.s.noun) + ' short</b> of the plan.';
+      const d = r.cum - r.target;
+      return Who + ' ended ' + P.unit + ' <b>' + esc(commas(Math.abs(d)) + ' ' + r.s.noun) + (d >= 0 ? ' above' : ' under') + '</b> ' + usualOne + '.';
     }
-    const left = r.target - r.cum;
-    if (left <= 0) return Who + ' ' + v('has', 'have') + ' already met the plan for ' + P.unit + '.';
-    if (r.proj >= r.target) {
-      const iso = r.days[Math.min(r.N - 1, Math.max(0, Math.ceil(r.el + left / r.vel) - 1))];
-      return 'At this pace ' + ctx.who + ' ' + v('meets', 'meet') + ' the plan by <b>' + esc(dateSay(iso)) + '</b>' +
-        (iso < P.end ? ', before the end of ' + P.unit : '') + '.';
-    }
-    /* The rates are the figures under the story; the sentence says where they land. */
-    return 'At this pace ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' <b>' + esc(commas(r.target - r.proj) + ' ' + r.s.noun) +
-      ' short</b>, with ' + esc(plural(r.leftDays, 'working day')) + ' left to close it.';
+    const d = r.proj - r.target;
+    /* Within 3% of a usual month is a usual month, as the step's own words say. */
+    if (Math.abs(d) < Math.max(1, r.target * 0.03)) return 'At this pace ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' about where ' + usualOne + ' ends.';
+    return 'At this pace ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' <b>' + esc(commas(Math.abs(d)) + ' ' + r.s.noun) +
+      (d > 0 ? ' above' : ' under') + '</b> ' + usualOne + (d < 0 ? ', with ' + esc(plural(r.leftDays, 'working day')) + ' left to close it.' : '.');
   }
   /* The last five working days against the five before, wherever they fall. */
   function planTrend(ids, k) {
@@ -11628,7 +11623,8 @@
       const u = LEVER_UP[k];
       if (!u) return 'calls';
       const up = R[u[0]];
-      if (!up || up.cum < 20 || R[k].cum / up.cum < GOAL[u[1]] * 0.95) return k;
+      /* The step before is as usual, so the drop is here, whatever its rate says. */
+      if (!up || up.cum < 20 || !up.day || up.ratio >= 0.97 || R[k].cum / up.cum < (R[k].day / up.day) * 0.95) return k;
       k = u[0];
     }
     return k;
@@ -11694,7 +11690,7 @@
      clearly ahead. Then the question the chart leaves open, for the chat. */
   function planActs(ctx, R, k) {
     const r = R[k], p = pace(r);
-    const q = (p.short ? 'Why is ' + ctx.ask + ' behind the plan on ' : 'Who is ahead of the plan on ') + r.s.noun + ' ' + R.P.when + '?';
+    const q = (p.short ? 'Why is ' + ctx.ask + ' below usual on ' : 'Who is above usual on ') + r.s.noun + ' ' + R.P.when + '?';
     let out = '';
     if (r.el && !ctx.one && ctx.teams.length > 1) {
       const tg = ctx.teams.map((t) => {
@@ -11733,10 +11729,10 @@
     let head;
     if (!r.el) {
       head = 'Not started';
-      say.push('The plan for ' + P.when + ' starts on its first working day, so there is no pace to read yet.');
+      say.push('Nothing to read yet: ' + P.unit + ' starts on its first working day.');
     } else {
       const gap = Math.round(r.byNow - r.cum);
-      head = p.short ? commas(gap) + ' ' + r.s.noun + ' behind' : r.ratio >= 1.03 ? commas(-gap) + ' ' + r.s.noun + ' ahead' : 'On pace';
+      head = p.short ? commas(gap) + ' ' + r.s.noun + ' below usual' : r.ratio >= 1.03 ? commas(-gap) + ' ' + r.s.noun + ' above usual' : 'As usual';
       if (p.short) {
         const why = planWhy(R, k);
         if (why) say.push(why);
@@ -11759,93 +11755,24 @@
        pill actions; the figures are their own tile. */
     return {
       line: '<div class="b-pl-say"><p class="b-pl-k"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<span>' + esc(cap1(r.s.noun)) + ' against the plan, ' + esc(P.when) + '</span></p>' +
+          '<span>' + esc(cap1(r.s.noun)) + ' ' + esc(P.when) + ', against their usual</span></p>' +
         '<p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
         '<p class="b-pl-why">' + say.join(' ') + '</p>' +
         '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div></div>',
-      facts: r.el ? planNeed(ctx, R, k) : '',
+      facts: '',
     };
   }
-  /* What it takes to finish (Nour, 9 Nov: "this block should give insight
-     and action, not just static numbers"). The four figures it had (planned
-     by now, done, a day so far, needed a day) answer one question together:
-     what each day left has to make. So the tile says that number, what it
-     means against the pace the team keeps now and for each person in it,
-     and gives the verb that uses it: send each person their own number for
-     the days left. Done against planned stays as the evidence line. */
-  const PL_SENT = Object.create(null);
-  function planNeed(ctx, R, k) {
-    const r = R[k], P = R.P, noun = r.s.noun;
-    const t = ctx.teams[0];
-    const live = r.daysLeft > 0.01;
-    if (!live) {
-      const met = r.cum >= r.target;
-      return '<div class="b-pl-ev"><p class="b-pl-k">How ' + esc(P.unit) + ' ended</p>' +
-        '<p class="b-pl-big' + (met ? ' is-up' : ' is-dn') + '">' + esc(commas(r.cum)) + '<small>of ' + esc(commas(r.target)) + '</small></p>' +
-        '<p class="b-pl-evsay">' + (met ? 'The plan was met, with <b>' + esc(commas(r.cum - r.target)) + ' more</b>.'
-          : '<b>' + esc(commas(r.target - r.cum)) + ' ' + esc(noun) + '</b> short of the plan.') + '</p></div>';
-    }
-    const need = Math.ceil(r.need), vel = Math.round(r.vel);
-    /* Amber as soon as today's pace falls short of it, so the colour agrees
-       with "at this pace it ends short" beside it; red when far short. */
-    const tone = r.vel && need > vel ? (r.need > r.vel * 1.18 ? 'err' : 'dn') : 'up';
-    /* Each person's own number: what is left of their share, over the days left. */
-    const each = r.by.map((x) => {
-      const share = planDay(k) * r.N;
-      return { id: x.id, need: Math.ceil(Math.max(0, share - x.n) / r.daysLeft), now: r.el ? Math.round(x.n / r.el) : 0 };
-    });
-    /* The same person AiMY's tile names: furthest short of the plan by now. */
-    const top = r.by.slice().sort((a, b) => b.gap - a.gap)[0];
-    const far = top && top.gap >= 1 ? each.filter((x) => x.id === top.id)[0] : null;
-    /* Short (Nour, 9 Nov: "so much yapping"): the number, today's pace
-       beside it in the caption, and at most one short line. */
-    const say = r.need <= 0 ? 'The plan is already made.'
-      : need <= vel ? 'Today’s pace is enough.'
-      : !ctx.one && far && far.need > far.now ? 'Most to make up: <b>' + esc(firstName(far.id)) + '</b>' : '';
-    const key = (t ? t.id : '') + ':' + (ctx.one ? ctx.ids[0] : 'all') + ':' + k;
-    const sent = PL_SENT[key];
-    const label = ctx.one ? 'Send ' + firstName(ctx.ids[0]) + ' this number' : 'Send each person their number';
-    const act = r.need <= 0 ? '' : sent
-      ? '<span class="b-wt-done">' + esc(ctx.one ? 'Sent to ' + firstName(ctx.ids[0]) : 'Sent to each person') + '</span>'
-      : '<button class="s-insight-lnk primary" type="button" data-plnum="' + esc(key) + '">' + esc(label) + '</button>';
-    return '<div class="b-pl-ev"><p class="b-pl-k">To finish ' + esc(P.unit) + '</p>' +
-      '<p class="b-pl-big is-' + tone + '">' + esc(commas(Math.max(0, need))) + '<small>' + esc(noun) + ' a day</small></p>' +
-      '<p class="b-pl-evcap">' + esc(plural(r.leftDays, 'working day')) + ' left, ' + esc(commas(vel)) + ' a day now</p>' +
-      (say ? '<p class="b-pl-evsay">' + say + '</p>' : '') +
-      (act ? '<div class="b-pl-evact">' + act + '</div>' : '') + '</div>';
-  }
-  /* Send each person their number: the plan for the days left, split by
-     what each one still has to make. One press, toast to undo. */
-  function planNumSend(key) {
-    const [tid, who, k] = key.split(':');
-    const t = TEAMS.filter((x) => x.id === tid)[0];
-    if (!t || !DAY_STEPS.some((s) => s.k === k)) return;
-    const ids = who === 'all' ? t.members : [who];
-    const R = planRead(ids, planSpan());
-    const r = R[k];
-    if (!r || r.daysLeft < 0.01) return;
-    const nums = r.by.map((x) => firstName(x.id) + ' ' + commas(Math.ceil(Math.max(0, planDay(k) * r.N - x.n) / r.daysLeft)));
-    PL_SENT[key] = true;
-    paint();
-    toast(who === 'all'
-      ? 'Each person in the ' + t.name + ' has their ' + r.s.noun + ' a day to finish ' + R.P.unit + ': ' + nums.join(', ')
-      : firstName(who) + ' has ' + nums[0].split(' ').pop() + ' ' + r.s.noun + ' a day to finish ' + R.P.unit,
-      () => { delete PL_SENT[key]; paint(); });
-  }
-  /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
-     left of the plan, the straight line the plan takes, today, and where the
-     pace lands. No grid, no axis, no legend, no second view: each line says
-     what it is where it is drawn. The lines are an SVG stretched to the plot
+  /* The chart, distilled (Nour, 5 Nov: too many charts, not clean). No grid,
+     no axis, no second view: each line says what it is where it is drawn. The lines are an SVG stretched to the plot
      (strokes kept even by non-scaling-stroke) and every word is HTML over
      it, placed in per cent, so it reads the same at any width. A column per
      working day carries what that day was, shown over the plot on hover. */
   const plPct = (n) => (+n).toFixed(2) + '%';
   const plLab = (cls, x, y, txt) => '<span class="' + cls + '" style="left:' + plPct(x) + ';top:' + plPct(y) + '">' + txt + '</span>';
   const plVb = (n) => (n * 10).toFixed(1);
-  /* Velocity, drawn the same bare way (Nour: keep velocity and burn-down on
-     the team page and the profile): a bar for each working day, what it
-     made, short days in the warning ink; the plan's day as a dash and what is needed from
-     today as dots, each named where it is drawn. */
+  /* Each day, drawn bare: a bar for each working day, what it made, days
+     under a usual day in the warning ink; a usual day as a dash, named
+     where it is drawn. */
   function planVel(r) {
     const N = r.N || 1;
     const X = (i) => (100 * i) / N;
@@ -11853,7 +11780,7 @@
     const noun = r.s.noun;
     const dayLab = (iso) => DAY_FULL[new Date(iso + 'T00:00:00').getDay()].slice(0, 3) + ' ' + dateSay(iso);
     const live = r.el > 0 && r.daysLeft > 0.01;
-    const top = Math.max(r.day, r.need, ...r.pts.map((p) => p.n), 1) * 1.2;
+    const top = Math.max(r.day, ...r.pts.map((p) => p.n), 1) * 1.2;
     const Y = (v) => 100 * (1 - Math.max(0, v) / top);
     const slot = X(1), bw = slot * 0.56;
     let svg = '<line class="pl-base" x1="0" x2="1000" y1="1000" y2="1000" vector-effect="non-scaling-stroke"/>';
@@ -11867,66 +11794,7 @@
       }
     });
     svg += '<line class="pl-ideal" x1="0" x2="1000" y1="' + plVb(Y(r.day)) + '" y2="' + plVb(Y(r.day)) + '" vector-effect="non-scaling-stroke"/>';
-    labs += plLab('pl-note is-plan', 0, Y(r.day), esc(commas(Math.round(r.day))) + ' a day');
-    if (live) {
-      svg += '<line class="pl-proj is-' + tone + '" x1="' + plVb(X(r.el)) + '" x2="1000" y1="' + plVb(Y(r.need)) + '" y2="' + plVb(Y(r.need)) +
-        '" vector-effect="non-scaling-stroke"/>' +
-        '<line class="pl-today" x1="' + plVb(X(r.el)) + '" x2="' + plVb(X(r.el)) + '" y1="0" y2="1000" vector-effect="non-scaling-stroke"/>';
-      labs += plLab('pl-note is-end is-' + tone, 100, Y(r.need), esc(commas(Math.ceil(r.need))) + ' a day') +
-        plLab('pl-xlab is-today', X(r.el), 100, 'Today');
-    }
-    if (r.days.length) {
-      labs += plLab('pl-xlab is-first', 0, 100, esc(dateSay(r.days[0]))) + plLab('pl-xlab is-last', 100, 100, esc(dateSay(r.days[N - 1])));
-    }
-    const hits = r.pts.map((p, i) => '<rect class="pl-hit" x="' + plVb(X(i)) + '" y="0" width="' + plVb(X(1)) + '" height="1000" data-tip="' +
-      esc(p.part
-        ? dayLab(p.iso) + ': ' + commas(p.n) + ' ' + noun + (p.part < 1 ? ' so far' : '') + ' (the plan: ' + commas(Math.round(r.day * p.part)) + ')'
-        : dayLab(p.iso) + (live ? ': needs ' + commas(Math.ceil(r.need)) : ': the plan, ' + commas(Math.round(r.day)))) +
-      '" data-x="' + X(i + 0.5).toFixed(2) + '"/>').join('');
-    return '<div class="b-pl-plot"><div class="b-pl-area">' +
-      '<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + svg + hits + '</svg>' + labs +
-      '<span class="b-pl-tip" hidden></span></div></div>';
-  }
-  function planChart(r) {
-    if (PLAN_VIEW === 'vel') return planVel(r);
-    const N = r.N || 1;
-    const X = (i) => (100 * i) / N;
-    const tone = pace(r).tone;
-    const noun = r.s.noun;
-    const dayLab = (iso) => DAY_FULL[new Date(iso + 'T00:00:00').getDay()].slice(0, 3) + ' ' + dateSay(iso);
-    const live = r.el > 0 && r.daysLeft > 0.01;
-    const top = Math.max(r.target, 1);
-    const Y = (v) => 100 * (1 - Math.max(0, Math.min(top, v)) / top);
-    let acc = 0;
-    const ends = r.pts.map((p) => (acc += p.part));
-    let svg = '<line class="pl-base" x1="0" x2="1000" y1="1000" y2="1000" vector-effect="non-scaling-stroke"/>' +
-      '<path class="pl-ideal" d="M0 0 L1000 1000" vector-effect="non-scaling-stroke"/>';
-    let labs = '';
-    const pts = [[0, Y(top)]];
-    r.pts.forEach((p, i) => { if (p.part) pts.push([X(ends[i]), Y(r.target - p.cum)]); });
-    if (pts.length > 1) {
-      const d = pts.map((q, i) => (i ? 'L' : 'M') + plVb(q[0]) + ' ' + plVb(q[1])).join(' ');
-      const last = pts[pts.length - 1];
-      svg += '<path class="pl-act" d="' + d + '" vector-effect="non-scaling-stroke"/>';
-      const left = r.target - r.cum;
-      if (live && left > 0) {
-        let ex = 100, ey, note;
-        if (r.proj >= r.target && r.vel > 0) {
-          const at = r.el + left / r.vel;
-          ex = X(at); ey = Y(0);
-          note = 'Done by ' + dateSay(r.days[Math.min(N - 1, Math.max(0, Math.ceil(at) - 1))]);
-        } else {
-          ey = Y(left - r.vel * r.daysLeft);
-          note = commas(r.target - r.proj) + ' short';
-        }
-        svg += '<path class="pl-proj is-' + tone + '" d="M' + plVb(last[0]) + ' ' + plVb(last[1]) + ' L' + plVb(ex) + ' ' + plVb(ey) +
-          '" vector-effect="non-scaling-stroke"/>';
-        labs += '<span class="pl-dot is-end is-' + tone + '" style="left:' + plPct(ex) + ';top:' + plPct(ey) + '"></span>' +
-          plLab('pl-note is-end is-' + tone, ex, ey, esc(note));
-      }
-      labs += '<span class="pl-dot" style="left:' + plPct(last[0]) + ';top:' + plPct(last[1]) + '"></span>' +
-        plLab('pl-note is-act', last[0], last[1], esc(commas(Math.max(0, left)) + ' left'));
-    }
+    labs += plLab('pl-note is-plan', 0, Y(r.day), 'Usually ' + esc(commas(Math.round(r.day))) + ' a day');
     if (live) {
       svg += '<line class="pl-today" x1="' + plVb(X(r.el)) + '" x2="' + plVb(X(r.el)) + '" y1="0" y2="1000" vector-effect="non-scaling-stroke"/>';
       labs += plLab('pl-xlab is-today', X(r.el), 100, 'Today');
@@ -11936,13 +11804,14 @@
     }
     const hits = r.pts.map((p, i) => '<rect class="pl-hit" x="' + plVb(X(i)) + '" y="0" width="' + plVb(X(1)) + '" height="1000" data-tip="' +
       esc(p.part
-        ? dayLab(p.iso) + ': ' + commas(p.n) + ' ' + noun + (p.part < 1 ? ' so far' : '') + ', ' + commas(Math.max(0, r.target - p.cum)) + ' left'
-        : dayLab(p.iso) + ': the plan leaves ' + commas(Math.max(0, Math.round(r.target - r.day * (i + 1))))) +
+        ? dayLab(p.iso) + ': ' + commas(p.n) + ' ' + noun + (p.part < 1 ? ' so far' : '') + ' (usually ' + commas(Math.round(r.day * p.part)) + ')'
+        : dayLab(p.iso) + ': usually ' + commas(Math.round(r.day))) +
       '" data-x="' + X(i + 0.5).toFixed(2) + '"/>').join('');
     return '<div class="b-pl-plot"><div class="b-pl-area">' +
       '<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + svg + hits + '</svg>' + labs +
       '<span class="b-pl-tip" hidden></span></div></div>';
   }
+  const planChart = (r) => planVel(r);
   /* The board, redesigned (Nour, 5 Nov) in the strip's language: a head
      with the month and the two views; the four steps as hairline cells
      (pressing one puts it on the chart); one line of story; the chart the
@@ -11953,18 +11822,16 @@
     const r = R[k], P = R.P;
     const started = r.pts.filter((p) => p.part > 0).length;
     const sub = P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N));
-    const vel = PLAN_VIEW === 'vel';
     const st = planStory(ctx, R, k);
-    const tone = pace(r).tone;
     const open = !!UI.planOpen;
     const fid = 'plFold-' + (++PL_N);
     return '<div class="b-pl" data-fold="' + open + '">' +
-      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against the plan</h3><span class="b-pl-sub">' + esc(sub) + '</span></div></div>' +
+      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against their usual</h3><span class="b-pl-sub">' + esc(sub) + '</span></div></div>' +
       '<div class="b-pl-tabs">' + DAY_STEPS.map((s) => {
         const x = R[s.k], pc = pace(x);
         return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
           '<span class="b-pl-tcap">' + esc(cap1(s.noun)) + '</span>' +
-          '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>of ' + esc(commas(x.target)) + '</small></span>' +
+          '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>usually ' + esc(commas(Math.round(x.byNow))) + '</small></span>' +
           '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span></button>';
       }).join('') + '</div>' +
       '<div class="b-pl-read' + (st.facts ? '' : ' is-solo') + '">' + st.line + st.facts + '</div>' +
@@ -11974,17 +11841,12 @@
       '<div class="b-pl-ct"><button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
         '<span class="b-pl-open-ico" aria-hidden="true">' + PL_CHART + '</span>' +
         '<span class="b-pl-open-w">' + (open ? 'Close the chart' : 'Open the chart') + '</span>' +
-        '<span class="b-pl-open-sub">Burn-down and velocity for ' + esc(r.s.noun) + '</span>' +
+        '<span class="b-pl-open-sub">' + esc(cap1(r.s.noun)) + ' each day, against a usual day</span>' +
         '<span class="b-pl-chev" aria-hidden="true">' + PL_CHEV + '</span></button>' +
       '<div class="b-pl-fold" id="' + fid + '"><div class="b-pl-fold-in"' + (open ? '' : ' inert') + '>' +
         '<div class="b-pl-chart"><div class="b-pl-ctop">' +
-          '<span class="b-pl-seg" role="group" aria-label="Chart">' +
-            '<button type="button" data-bview="burn" aria-pressed="' + !vel + '">Burn-down</button>' +
-            '<button type="button" data-bview="vel" aria-pressed="' + vel + '">Velocity</button></span>' +
-          '<span class="b-pl-key">' + (vel
-            ? '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>The plan a day</span><span><i class="k-pace is-' + tone + '"></i>Needed from today</span>'
-            : '<span><i class="k-done"></i>Left to do</span><span><i class="k-plan"></i>The plan</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>') +
-          '</span></div>' + planChart(r) + '</div>' +
+          '<span class="b-pl-key"><span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>A usual day</span></span></div>' +
+          planChart(r) + '</div>' +
       '</div></div></div>' +
     '</div>';
   }
@@ -12013,12 +11875,8 @@
     if (e.target.closest('[data-plfold]')) { planFold(); return; }
     const fix = e.target.closest('[data-tfix]');
     if (fix) { planFix(fix.getAttribute('data-tfix')); return; }
-    const num = e.target.closest('[data-plnum]');
-    if (num) { planNumSend(num.getAttribute('data-plnum')); return; }
     const s = e.target.closest('[data-bstep]');
     if (s) { PLAN_STEP = s.getAttribute('data-bstep'); paint(); return; }
-    const v = e.target.closest('[data-bview]');
-    if (v) { PLAN_VIEW = v.getAttribute('data-bview'); paint(); }
   });
   /* The day under the pointer, over the plot. */
   let PL_TIP = null;
@@ -12044,10 +11902,10 @@
     const R = planRead([id], P);
     const on = onCallNow([id]).length;
     const worst = DAY_STEPS.map((s) => R[s.k]).filter((x) => pace(x).short).sort((a, b) => a.ratio - b.ratio)[0];
-    const say = !R.calls.el ? 'The plan for ' + esc(P.when) + ' has not started yet.'
-      : worst ? (planWhy(R, worst.k) || 'Furthest behind on <b>' + esc(worst.s.noun) + '</b>: ' + esc(commas(worst.cum)) + ' against ' +
-          esc(commas(Math.round(worst.byNow))) + ' in the plan by now.')
-      : 'On pace on every step ' + esc(P.when) + '.';
+    const say = !R.calls.el ? 'Nothing to read yet ' + esc(P.when) + '.'
+      : worst ? (planWhy(R, worst.k) || 'Furthest below usual on <b>' + esc(worst.s.noun) + '</b>: ' + esc(commas(worst.cum)) + ', usually ' +
+          esc(commas(Math.round(worst.byNow))) + ' by now.')
+      : 'As usual on every step ' + esc(P.when) + '.';
     const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to })));
     return '<article class="type-card s-card b-qcard b-ro-card">' +
       '<div class="b-ro-top"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 44) + '</span>' +
@@ -12062,49 +11920,65 @@
   /* The team against the manager's other teams: each step as a bar per team,
      the share of the plan by now, the plan as the line all of them aim at. */
   function teamCompare(t, P) {
-    const reads = teamsOf().map((x) => ({ t: x, R: planRead(x.members, P) }));
+    const reads = teamsOf().map((x) => ({ t: x, R: planRead(x.members, P), n: x.members.length }));
     const mine = reads.filter((x) => x.t.id === t.id)[0];
-    if (!mine.R.calls.el) return '<p class="b-vfoot">Nothing to compare until the plan for ' + esc(P.when) + ' starts.</p>';
-    const pc = (x) => Math.round(100 * x) + '%';
+    if (!mine.R.calls.el) return '<p class="b-vfoot">Nothing to compare yet ' + esc(P.when) + '.</p>';
+    /* No plan (Nour, 9 Nov): the teams side by side on the same measures.
+       Calls are a day for each person; the rest are in 100 of the step
+       before, so a bigger team does not win by size. */
+    const UNIT = { calls: 'calls a day each', reached: 'in 100 calls', talks: 'in 100 calls', meets: 'in 100 conversations' };
+    const val = (x, k) => {
+      const R = x.R;
+      if (k === 'calls') return R.calls.el ? R.calls.cum / x.n / R.calls.el : 0;
+      const up = k === 'meets' ? R.talks.cum : R.calls.cum;
+      return up ? (100 * R[k].cum) / up : 0;
+    };
+    const fmt = (v) => commas(Math.round(v));
     const diffs = DAY_STEPS.map((s) => {
-      const best = reads.filter((x) => x !== mine).sort((a, b) => b.R[s.k].ratio - a.R[s.k].ratio)[0];
-      return { s, best, d: mine.R[s.k].ratio - best.R[s.k].ratio };
+      const best = reads.filter((x) => x !== mine).sort((a, b) => val(b, s.k) - val(a, s.k))[0];
+      const bv = val(best, s.k), mv = val(mine, s.k);
+      return { s, best, d: mv - bv, rel: bv ? (mv - bv) / bv : 0 };
     });
-    const lead = diffs.filter((x) => x.d > 0.005).length;
-    const w = diffs.slice().sort((a, b) => a.d - b.d)[0];
-    const b = diffs.slice().sort((a, b2) => b2.d - a.d)[0];
+    const lead = diffs.filter((x) => x.d >= 1).length;
+    const trail = diffs.filter((x) => x.d <= -1).length;
+    const w = diffs.slice().sort((a, b) => a.rel - b.rel)[0];
+    const b = diffs.slice().sort((a, b2) => b2.rel - a.rel)[0];
     const others = reads.length > 2 ? 'your other teams' : 'the ' + esc(reads.filter((x) => x !== mine)[0].t.name);
-    const said = (lead === 0 ? 'The <b>' + esc(t.name) + '</b> trails ' + others + ' on every step'
-      : lead === 4 ? 'The <b>' + esc(t.name) + '</b> leads ' + others + ' on every step'
-      : 'The <b>' + esc(t.name) + '</b> leads ' + others + ' on ' + lead + ' of the four steps') +
-      (w.d < -0.005 ? '; the widest gap is <b>' + esc(w.s.noun) + '</b>, ' + pc(mine.R[w.s.k].ratio) + ' of the plan by now against ' +
-        pc(w.best.R[w.s.k].ratio) + ' for the ' + esc(w.best.t.name) + '.'
-        : ', most of all on <b>' + esc(b.s.noun) + '</b>, ' + pc(mine.R[b.s.k].ratio) + ' of the plan by now.');
-    /* Figures, not bars (Nour, 5 Nov): each step, each team's share of the
-       plan by now, in its pace's colour, the open team first and in bold. */
+    const tn = 'The <b>' + esc(t.name) + '</b> ';
+    const said = (lead === 0 ? (trail === 0 ? tn + 'is level with ' + others
+        : tn + 'trails ' + others + (trail === 4 ? ' on every step' : ' on ' + trail + ' of the four steps'))
+      : lead === 4 ? tn + 'leads ' + others + ' on every step'
+      : tn + 'leads ' + others + ' on ' + lead + ' of the four steps') +
+      (w.d <= -1 ? '; the widest gap is <b>' + esc(w.s.noun) + '</b>, ' + fmt(val(mine, w.s.k)) + ' ' + UNIT[w.s.k] + ' against ' +
+        fmt(val(w.best, w.s.k)) + ' for the ' + esc(w.best.t.name) + '.'
+        : ', most of all on <b>' + esc(b.s.noun) + '</b>, ' + fmt(val(mine, b.s.k)) + ' ' + UNIT[b.s.k] + '.');
     const order = [mine].concat(reads.filter((x) => x !== mine));
-    /* Each step says what the gap is worth and what to do with it (Nour,
-       9 Nov: "polish those to be useful"): the gap between the teams in the
-       step's own count, and the next step that closes it. */
+    /* Each step: both teams' figure, what the gap is in the step's own
+       measure, highlighted, and the next step that closes it (behind, take
+       what the team ahead does; ahead, give it to the team behind). */
     const step = (s) => {
-      const rest = order.slice(1).sort((a, b) => b.R[s.k].ratio - a.R[s.k].ratio);
-      const best = rest[0];
-      const d = best ? mine.R[s.k].ratio - best.R[s.k].ratio : 0;
-      const n = Math.round(Math.abs(d) * mine.R[s.k].byNow);
+      const best = order.slice(1).sort((a, b) => val(b, s.k) - val(a, s.k))[0];
+      const d = best ? val(mine, s.k) - val(best, s.k) : 0;
+      const n = Math.round(Math.abs(d));
+      const word = s.k === 'calls' ? ' calls a day each' : ' in 100';
       const gap = !best || n < 1 ? 'Level with the ' + esc(best ? best.t.name : 'others')
-        : (d < 0 ? 'Behind by about ' : 'Ahead by about ') + '<b>' + esc(plural(n, s.noun.replace(/s$/, ''))) + '</b>';
-      /* Next on every step (Nour, 9 Nov): behind, take what the team ahead
-         does on it; ahead, give it to the team behind. */
+        : '<b>' + esc(commas(n)) + (d < 0 ? ' fewer' : ' more') + word + '</b> than the ' + esc(best.t.name);
       const act = n < 1 || !best ? '' : d < 0 ? fixBtn(mine.t.id, 'all', s.k, 'row', best.t.id)
         : fixBtn(best.t.id, 'all', s.k, 'row', mine.t.id, true);
+      const tone = (x) => {
+        const o = x === mine ? best : mine;
+        if (!o) return 'eq';
+        const dd = val(x, s.k) - val(o, s.k);
+        return dd >= 1 ? 'up' : dd <= -1 ? 'dn' : 'eq';
+      };
       return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
         order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
-          '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') +
+          '<span class="b-cmp-val is-' + tone(x) + '">' + fmt(val(x, s.k)) + '</span></div>').join('') +
         '<div class="b-cmp-do"><span class="b-cmp-gap ' + (!best || n < 1 ? 'is-level' : d < 0 ? 'is-behind' : 'is-ahead') + '"><span>' + gap + '</span></span>' + act + '</div></div>';
     };
-    return aimyBlock({ text: said, from: 'share of the plan by now, ' + P.when }) +
+    return aimyBlock({ text: said, from: 'each team ' + P.when }) +
       '<div class="b-cmp">' + DAY_STEPS.map(step).join('') + '</div>' +
-      '<p class="b-cmp-key">Each figure is the share of the plan done by now; 100% is on pace.</p>';
+      '<p class="b-cmp-key">Calls are a day for each person. Decision makers and conversations are in 100 calls, meetings in 100 conversations.</p>';
   }
   function teamPage(t) {
     const r = teamRead(t);
@@ -12205,11 +12079,10 @@
     const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id, from: S.from, to: S.to })));
     const x = DAY_STEPS.map((s) => R[s.k]).sort((a, b) => a.ratio - b.ratio)[0];
     const top = x.by.slice().sort((a, b) => b.gap - a.gap)[0];
-    const say = !x.el ? 'The plan for ' + esc(P.when) + ' has not started yet.'
-      : !pace(x).short ? 'On pace on every step ' + esc(P.when) + '.'
-      : 'Furthest behind on <b>' + esc(x.s.noun) + '</b>, ' + esc(commas(Math.round(x.byNow - x.cum))) + ' short of the plan by now' +
-        (top && top.gap >= 1 ? ', most of it <b>' + esc(firstName(top.id)) + '</b>' : '') + '.' +
-        (x.daysLeft > 0.01 && x.proj < x.target ? ' At this pace it ends ' + P.unit + ' ' + esc(commas(x.target - x.proj)) + ' short.' : '');
+    const say = !x.el ? 'Nothing to read yet ' + esc(P.when) + '.'
+      : !pace(x).short ? 'As usual on every step ' + esc(P.when) + '.'
+      : 'Furthest below usual on <b>' + esc(x.s.noun) + '</b>, ' + esc(commas(Math.round(x.byNow - x.cum))) + ' under a usual pace by now' +
+        (top && top.gap >= 1 ? ', most of it <b>' + esc(firstName(top.id)) + '</b>' : '') + '.';
     return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
         scoreTag(r.now) +
@@ -12218,7 +12091,7 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(r.t.name) + '</button>' +
       planRows(R) +
-      aimyBlock({ text: say, from: 'against the plan, ' + P.when }) +
+      aimyBlock({ text: say, from: 'against their usual, ' + P.when }) +
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-go="' + go + '">Open</button>' +
@@ -12788,7 +12661,7 @@
       /* Everything under this row follows the period chosen in it. */
       '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="Against the plan">' +
+      '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
       '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(R ? dateRange(R.from, R.to) : 'Today') + '">' +
         headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R) + '</section>' +
