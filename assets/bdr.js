@@ -6871,8 +6871,11 @@
     return backBtn('data-back', 'Back to the briefing');
   }
 
-  const backBtn = (attr, label) => {
-    const t = /^data-(back|home|go|camp)\b/.test(attr) ? trailTop() : null;
+  /* `up` keeps the back on its own place: inside a hierarchy (a team's page,
+     a person's profile) Back goes one level up, whatever was opened before
+     (Nour, 9 Nov: a team page said "Back to Lists"). */
+  const backBtn = (attr, label, up) => {
+    const t = !up && /^data-(back|home|go|camp)\b/.test(attr) ? trailTop() : null;
     if (t) { attr = 'data-trail'; label = 'Back to ' + trailLabel(t.u); }
     return '<button class="s-back" type="button" ' + attr + '>' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
@@ -10880,6 +10883,7 @@
         (o.unit ? '<small>' + esc(o.unit) + '</small>' : '') + '</span>' +
       (o.chip ? '<span class="b-wd-st">' + esc(o.chip) + '</span>' : '') +
       (o.sub ? '<span class="b-wd-sub">' + o.sub + '</span>' : '') +
+      (o.split ? '<span class="b-wd-split">' + o.split + '</span>' : '') +
       (o.chart ? '<span class="b-wd-ch">' + o.chart + '</span>' : '') +
       /* The foot: who it comes down to, then the verb and AiMY's question as
          a labelled pill (Nour, 9 Nov: a bare mark in the corner was not
@@ -11021,6 +11025,13 @@
     const today = r.day === TODAY_ISO && r.p < 1;
     const usualCalls = Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) / r.n);
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / r.n);
+    /* Several teams at once (Your teams): each card's number is the teams
+       together, so it says how much is each team's (Nour, 9 Nov: "the
+       numbers too"), in that team's own state colour. */
+    const parts = one || only ? [] : TEAMS.filter((t) => t.members.length < ids.length && t.members.every((id) => ids.indexOf(id) > -1));
+    const reads = parts.map((t) => ({ t, r: dayRead(t.members) }));
+    const splitRow = (name, txt, st) => '<span class="b-wd-srow"><span class="b-wd-sname">' + esc(name) + '</span><b class="' + W_ST[st || 'eq'] + '">' + txt + '</b></span>';
+    const split = (fn) => (reads.length > 1 ? reads.map((x) => { const o = fn(x); return splitRow(x.t.name, o[0], o[1]); }).join('') : '');
     /* Each figure as a widget with its chart. */
     const dayWidgets = () => {
       const by = today ? 'Usual by now ' : 'A usual day ';
@@ -11030,6 +11041,7 @@
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
           : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
         return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
+          split: split((x) => [esc(commas(x.r.t[s.k])), wState(x.r.t[s.k], x.r.u[s.k]).st]),
           chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st),
           do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
             (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k)) }) };
@@ -11060,15 +11072,20 @@
       return steps +
         (today ? wid({ cap: 'On a call now', val: commas(on), unit: 'of ' + commas(r.n), live: one ? ids[0] : only ? only.id : 'all',
           st: on ? 'live' : 'eq', chip: on ? 'Live' : 'Nobody', q: ask('live'), chart: wDots(ids, onIds),
+          split: split((x) => [esc(commas(onCallNow(x.t.members).length)) + ' of ' + esc(commas(x.t.members.length)), onCallNow(x.t.members).length ? 'live' : 'eq']),
           do: one || !onIds.length ? null : { who: onIds.map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ') } }) : '') +
         wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
+          split: split((x) => [esc(commas(x.r.yest)), wState(x.r.yest, Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length)).st]),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
             { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
         wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
+          split: split((x) => [esc(commas(x.r.month)), wState(x.r.month, Math.round(Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length) * mDays)).st]),
           chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
         wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
+          split: split((x) => [esc(commas(x.r.avg)), wState(x.r.avg, Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length)).st]),
           chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa }) +
         wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
+          split: split((x) => [esc(callLen(x.r.secs)), 'eq']),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
             { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws });
     };
@@ -12070,7 +12087,7 @@
     const others = teamsOf().length > 1;
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams') +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams', true) +
         '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
           '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
             '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
@@ -12717,7 +12734,7 @@
     const agenda = personAgenda(t, id, note, agendaPats, moved);
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name) +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name, true) +
         '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +
           /* The score beside the name (Nour); who they are under it, as part
              of the name; how the week moved and the call on their own row,
