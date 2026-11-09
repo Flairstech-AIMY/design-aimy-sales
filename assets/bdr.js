@@ -10552,9 +10552,10 @@
     rana:    { calls: 201, reach: 0.26, talk: 0.12, meet: 0.17, secs: 131, qa: 0.90, wk: 1.0 },
     tarek:   { calls: 178, reach: 0.21, talk: 0.09, meet: 0.10, secs: 96,  qa: 0.75, wk: 0.88 },
   };
-  /* What the score is measured against. A person who meets every one of
-     these scores 100. The weights are the plan's proposal, for Nour to set. */
-  const GOAL = { calls: 200, reach: 0.28, talk: 0.12, meet: 0.15 };
+  /* How much each part counts in the score. The weights are a proposal, for
+     Nour to set. (A GOAL of 200 calls a day and set rates used to sit here;
+     nobody had confirmed them, so since 9 Nov the score reads each person
+     against their own usual instead.) */
   const WEIGHT = { calls: 0.25, reach: 0.2, talk: 0.2, meet: 0.25, qa: 0.1 };
   /* Egypt works Sunday to Thursday, and its public holidays are days off.
      A fixture: the real list comes from the console's calendar settings. */
@@ -10591,8 +10592,11 @@
     const d = new Date(iso + 'T00:00:00');
     return isoAdd(iso, -d.getDay());
   }
-  /* The score over a run of days: each part is how close they came to the
-     goal, capped at the goal, then weighted. Out of 100. */
+  /* The score over a run of days (Nour, 9 Nov: "score against usual"): each
+     part is how close they came to their own usual (calls a day, then their
+     usual rates), capped at their usual, then weighted, with the AiMY QA
+     review average as the last part. Out of 100. A usual week scores in the
+     nineties; a week well under their usual is what pulls it down. */
   function repScore(id, from, to) {
     const f = FORM[id];
     if (!f) return null;
@@ -10604,10 +10608,10 @@
     if (!t.part) return null;
     const cap = (x) => Math.max(0, Math.min(1, x));
     const parts = {
-      calls: cap(t.calls / (GOAL.calls * t.part)),
-      reach: cap(t.calls ? t.reached / t.calls / GOAL.reach : 0),
-      talk: cap(t.calls ? t.talks / t.calls / GOAL.talk : 0),
-      meet: cap(t.talks ? t.meets / t.talks / GOAL.meet : 0),
+      calls: cap(t.calls / (f.calls * t.part)),
+      reach: cap(t.calls ? t.reached / t.calls / f.reach : 0),
+      talk: cap(t.calls ? t.talks / t.calls / f.talk : 0),
+      meet: cap(t.talks ? t.meets / t.talks / f.meet : 0),
       qa: cap(f.qa),
     };
     return Math.round(100 * Object.keys(WEIGHT).reduce((n, k) => n + WEIGHT[k] * parts[k], 0));
