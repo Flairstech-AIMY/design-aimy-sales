@@ -10902,8 +10902,8 @@
     /* The verb follows the line: the person short gets their fix; a gap
        nobody holds alone gets the team's; the one who leads is what works,
        so the team copies it. */
-    const act = !t || !lev ? '' : short ? fixBtn(t.id, x.id, lev, 'b-wd-act')
-      : behind ? fixBtn(t.id, 'all', lev, 'b-wd-act') : xs.length > 1 ? fixBtn(t.id, 'all', lev, 'b-wd-act', x.id) : '';
+    const act = !t || !lev ? '' : short ? fixBtn(t.id, x.id, lev, 'row')
+      : behind ? fixBtn(t.id, 'all', lev, 'row') : xs.length > 1 ? fixBtn(t.id, 'all', lev, 'row', x.id) : '';
     if (behind && !short) return { who: 'A little short across the team', act, tone: 'is-behind' };
     return { who: '<b>' + esc(firstName(x.id)) + '</b> ' + say(x, !!short), act, tone: short ? 'is-behind' : 'is-ahead' };
   }
@@ -11662,9 +11662,29 @@
       : who === 'all' ? LEVER[lev].label : LEVER_P[lev].label(firstName(who));
     const done = src ? (give ? 'Given to ' + (t ? 'the ' + t.name : '') : 'Using ' + poss(srcName(src)) + ' ' + THING[lev])
       : who === 'all' ? LEVER[lev].done : LEVER_P[lev].done;
+    /* In a tile the step is a row (`row`): the fix's icon, the words, an arrow. */
+    if (cls === 'row') {
+      return TFIX[key] ? '<span class="b-fix is-done"><span class="b-fix-ico">' + FIX_ICO.done + '</span><span class="b-fix-w">' + esc(done) + '</span></span>'
+        : '<button class="b-fix" type="button" data-tfix="' + esc(key) + '"><span class="b-fix-ico">' + FIX_ICO[src ? 'copy' : lev] + '</span>' +
+          '<span class="b-fix-w">' + esc(label) + '</span>' + FIX_ICO.go + '</button>';
+    }
     return TFIX[key] ? '<span class="b-wt-done">' + esc(done) + '</span>'
       : '<button class="' + cls + '" type="button" data-tfix="' + esc(key) + '">' + esc(label) + '</button>';
   }
+  /* Lucide marks: timer (the wait), phone (numbers), message-square (the
+     opener), calendar-check (the close), copy (what works elsewhere),
+     check (done), chevron-right (go). */
+  const fixSvg = (inner, cls) => '<svg' + (cls ? ' class="' + cls + '"' : '') + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  const FIX_ICO = {
+    calls: fixSvg('<line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/>'),
+    reached: fixSvg('<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>'),
+    talks: fixSvg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+    meets: fixSvg('<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>'),
+    copy: fixSvg('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'),
+    done: fixSvg('<path d="M20 6 9 17l-5-5"/>'),
+    go: fixSvg('<path d="m9 18 6-6-6-6"/>', 'b-fix-go'),
+  };
   function planFix(key) {
     const [tid, who, lev, src] = key.split(':');
     const t = TEAMS.filter((x) => x.id === tid)[0];
@@ -12085,8 +12105,8 @@
         : (d < 0 ? 'Behind by about ' : 'Ahead by about ') + '<b>' + esc(plural(n, s.noun.replace(/s$/, ''))) + '</b>';
       /* Next on every step (Nour, 9 Nov): behind, take what the team ahead
          does on it; ahead, give it to the team behind. */
-      const act = n < 1 || !best ? '' : d < 0 ? fixBtn(mine.t.id, 'all', s.k, 'b-wd-act', best.t.id)
-        : fixBtn(best.t.id, 'all', s.k, 'b-wd-act', mine.t.id, true);
+      const act = n < 1 || !best ? '' : d < 0 ? fixBtn(mine.t.id, 'all', s.k, 'row', best.t.id)
+        : fixBtn(best.t.id, 'all', s.k, 'row', mine.t.id, true);
       return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
         order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
           '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') +
