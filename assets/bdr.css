@@ -8345,9 +8345,18 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-tp .s-back { margin: 0 0 16px; }
 .b-tp-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .b-tp-name { margin: 0; font-size: 26px; font-weight: var(--fw-bold); color: var(--d50); letter-spacing: -0.01em; }
-.b-tp-move { font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
-.b-tp-move.is-down { color: var(--warn-text); }
-.b-tp-move.is-up { color: var(--ok-text); }
+/* The week's move, as a soft pill beside the score (Nour, 9 Nov: "could
+   look better"): the Lucide trend mark in its colour, then the words. */
+.b-tp-move {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px;
+  border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: var(--fw-semibold); white-space: nowrap;
+}
+.b-tp-move::before {
+  content: ""; flex: none; width: 15px; height: 15px; background: currentColor;
+  -webkit-mask: var(--mv-ico) center / contain no-repeat; mask: var(--mv-ico) center / contain no-repeat;
+}
+.b-tp-move.is-up { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 7h6v6'/%3E%3Cpath d='m22 7-8.5 8.5-5-5L2 17'/%3E%3C/svg%3E"); color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 14%, transparent); }
+.b-tp-move.is-down { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 17h6v-6'/%3E%3Cpath d='m22 17-8.5-8.5-5 5L2 7'/%3E%3C/svg%3E"); color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 14%, transparent); }
 .b-tp-meta {
   display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin: 12px 0 0;
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
@@ -8707,7 +8716,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-wd.is-short .b-wd-act:hover, .b-wd.is-low .b-wd-act:hover { background: var(--brand); filter: brightness(1.08); }
 .b-wd-act:active { transform: scale(0.97); }
 .b-wd-act:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-wd-done { flex: none; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok-text); }
 @media (prefers-reduced-motion: reduce) { .b-wd-ask, .b-wd-act { transition: none; } }
 /* Each widget's chart: a track for a step, a line for a trend, dots for who is on a call. */
 .b-wd-ch { display: block; width: 100%; margin-top: auto; padding-top: 18px; }

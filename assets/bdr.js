@@ -10887,18 +10887,22 @@
   /* The verb shows only where it is worth a press: someone short, or the
      figure ahead (one well done for the one who led it). On track, the line
      names who leads and nothing asks to be pressed. */
-  function wDo(xs, say, st) {
+  /* Improve, not nudge (Nour, 9 Nov): when the figure itself is short, the
+     verb is the lever on the process behind it (`lev`), for the team of the
+     person furthest short; nothing to press when it is on track or ahead. */
+  /* A step's own lever on the day: the day has no chain read, so each step
+     is fixed where it is counted. */
+  const dayLever = (k) => (LEVER[k] ? k : 'calls');
+  function wDo(xs, say, st, lev) {
     const short = xs.filter((x) => x.u - x.n >= 2 && x.n < x.u * 0.9).sort((a, b) => (b.u - b.n) - (a.u - a.n))[0];
     const x = short || xs.slice().sort((a, b) => b.n - a.n)[0];
     if (!x) return null;
-    const k = short ? 'msg' : 'thanks';
     const t = teamWith(x.id);
-    const key = t && (short || st === 'ahead') ? t.id + ':' + x.id + ':' + k : '';
-    const name = firstName(x.id);
-    const act = !key ? '' : TACTS[key] ? '<span class="b-wd-done">' + esc(TEAM_ACT[k].done) + '</span>'
-      : '<button class="b-wd-act" type="button" data-tact="' + esc(key) + '" aria-label="' + esc(TEAM_ACT[k].label(name)) + '">' +
-        (short ? 'Message' : 'Say well done') + '</button>';
-    return { who: '<b>' + esc(name) + '</b> ' + say(x, !!short), act };
+    const behind = st === 'short' || st === 'low';
+    const act = t && lev && behind ? fixBtn(t.id, 'all', lev, 'b-wd-act') : '';
+    /* Short as a team with nobody short alone: the gap is everyone's. */
+    if (behind && !short) return { who: 'A little short across the team', act };
+    return { who: '<b>' + esc(firstName(x.id)) + '</b> ' + say(x, !!short), act };
   }
   /* Where a figure stands against what it is measured by: short by a tenth
      and two is short, a quarter is low (the error ink), a twentieth and two
@@ -11005,7 +11009,7 @@
         return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
           chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st),
           do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
-            (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st) }) };
+            (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k)) }) };
       }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
       let planM = 0, mDays = 0;
       for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) { planM += GOAL.calls * dayPart(iso); mDays += dayPart(iso); }
@@ -11017,12 +11021,13 @@
         return { id, m, y: repDay(id, prevDay).calls, s: r.by.filter((x) => x.id === id)[0].d.secs };
       });
       const lead = (x, sh, unit) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n) + (unit || ''));
-      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, wState(r.yest, usualCalls).st);
-      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(planM) })), lead, wState(r.month, Math.round(planM)).st);
+      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, wState(r.yest, usualCalls).st, 'calls');
+      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(planM) })), lead, wState(r.month, Math.round(planM)).st, 'calls');
       const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: GOAL.calls })), (x, sh) => lead(x, sh, ' a day'),
-        wState(r.avg, GOAL.calls).st);
+        wState(r.avg, GOAL.calls).st, 'calls');
+      const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
-        (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), 'ok');
+        (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks');
       const onIds = onCallNow(ids);
       const ys = wState(r.yest, usualCalls), ms = wState(r.month, Math.round(planM)), as = wState(r.avg, GOAL.calls);
       const on = onCallNow(ids).length;
@@ -11590,10 +11595,63 @@
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg>';
   const PL_UP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>';
+  /* ══ WHAT IMPROVES IT (9 Nov 2026) ═════════════════════════════════════
+     Nour: actions should be about how to improve the number, not a message
+     or a well done to a person; a person's verb only where the context is a
+     1:1 or a real well done. So each shortfall has a lever on the process
+     behind it, one press with undo, and the lever is chosen where the chain
+     actually drops: a step whose own rate is on plan is short because the
+     step before it is, so the fix goes there.
+       calls      the wait between calls in a run, 30 s to 20 s
+       reached    AiMY finds direct numbers for the lists being called
+       talks      AiMY tries a shorter opener on half the calls
+       meets      AiMY coaches the close after calls that end without one
+     Prototype: a press records the change for the session and says what it
+     does; no run, list or pitch is rewritten. */
+  const LEVER = {
+    calls: { label: 'Shorten the wait to 20 s', done: 'Wait is 20 s now',
+      say: (who, extra) => 'Runs for ' + who + ' now wait 20 s between calls, not 30: about ' + commas(extra) + ' more calls a day' },
+    reached: { label: 'Find direct numbers', done: 'Finding direct numbers',
+      say: (who) => 'AiMY is finding direct numbers on the lists ' + who + ' calls, so more calls reach the decision maker' },
+    talks: { label: 'Try a shorter opener', done: 'Shorter opener on half the calls',
+      say: (who) => 'AiMY wrote a shorter opener; it runs on half of ' + who + '’s calls, and AiMY says which keeps people talking' },
+    meets: { label: 'Coach the close', done: 'Coaching the close',
+      say: (who) => 'AiMY now coaches the close in runs for ' + who + ': one tip after a conversation that ends without a meeting' },
+  };
+  const TFIX = Object.create(null);
+  const LEVER_UP = { reached: ['calls', 'reach'], talks: ['calls', 'talk'], meets: ['talks', 'meet'] };
+  function leverFor(R, k) {
+    for (let i = 0; i < 4; i++) {
+      const u = LEVER_UP[k];
+      if (!u) return 'calls';
+      const up = R[u[0]];
+      if (!up || up.cum < 20 || R[k].cum / up.cum < GOAL[u[1]] * 0.95) return k;
+      k = u[0];
+    }
+    return k;
+  }
+  /* The lever as a button, or what it did once pressed. `who` is 'all' for
+     the team or a person's id on their profile. */
+  function fixBtn(tid, who, lev, cls) {
+    const key = tid + ':' + who + ':' + lev;
+    return TFIX[key] ? '<span class="b-wt-done">' + esc(LEVER[lev].done) + '</span>'
+      : '<button class="' + cls + '" type="button" data-tfix="' + esc(key) + '">' + esc(LEVER[lev].label) + '</button>';
+  }
+  function planFix(key) {
+    const [tid, who, lev] = key.split(':');
+    const t = TEAMS.filter((x) => x.id === tid)[0];
+    if (!t || !LEVER[lev]) return;
+    const ids = who === 'all' ? t.members : [who];
+    const extra = Math.max(1, Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) * 0.07));
+    TFIX[key] = true;
+    paint();
+    toast(LEVER[lev].say(who === 'all' ? 'the ' + t.name : firstName(who), extra), () => { delete TFIX[key]; paint(); });
+  }
   /* The thing to do about it: on a page for several teams, open the one
-     furthest behind; on one team's, a word with the person furthest short
-     (or a well done to the one furthest ahead); on a person's, the same for
-     them. Then the question the chart leaves open, for the chat. */
+     furthest behind; on one team's or one person's, the lever where the
+     chain drops, and beside it a 1:1 only when one person holds most of the
+     gap (or on their own profile); on pace, a well done only to someone
+     clearly ahead. Then the question the chart leaves open, for the chat. */
   function planActs(ctx, R, k) {
     const r = R[k], p = pace(r);
     const q = (p.short ? 'Why is ' + ctx.ask + ' behind the plan on ' : 'Who is ahead of the plan on ') + r.s.noun + ' ' + R.P.when + '?';
@@ -11605,14 +11663,23 @@
       }).sort((a, b) => a.ratio - b.ratio)[0];
       out = '<button class="s-insight-lnk primary" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: tg.t.id, from: S.from, to: S.to }))) + '">Open the ' + esc(tg.t.name) + '</button>';
+    } else if (r.el && p.short) {
+      const t = ctx.teams[0] || teamWith(r.by[0].id);
+      out = fixBtn(t.id, ctx.one ? ctx.ids[0] : 'all', leverFor(R, k), 's-insight-lnk primary');
+      const tot = r.by.reduce((a, x) => a + Math.max(0, x.gap), 0);
+      const top = r.by.slice().sort((a, b) => b.gap - a.gap)[0];
+      if (top && (ctx.one || (tot >= 1 && top.gap / tot >= 0.5))) {
+        const key = teamWith(top.id).id + ':' + top.id + ':book';
+        out += TACTS[key] ? '<span class="b-wt-done">' + esc(TEAM_ACT.book.done) + ' with ' + esc(firstName(top.id)) + '</span>'
+          : '<button class="s-insight-lnk" type="button" data-tact="' + esc(key) + '">Book 15 minutes with ' + esc(firstName(top.id)) + '</button>';
+      }
     } else if (r.el) {
-      const pick = ctx.one ? r.by[0] : r.by.slice().sort((a, b) => (p.short ? b.gap - a.gap : a.gap - b.gap))[0];
-      const t = teamWith(pick.id);
-      const acts = p.short ? ['msg', 'book'] : ['thanks'];
-      const done = acts.filter((a) => TACTS[t.id + ':' + pick.id + ':' + a])[0];
-      out = done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + ' to ' + esc(firstName(pick.id)) + '</span>'
-        : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
-          esc(t.id + ':' + pick.id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(pick.id))) + '</button>').join('');
+      const best = r.by.slice().sort((a, b) => a.gap - b.gap)[0];
+      if (best && best.plan && -best.gap / best.plan >= 0.05) {
+        const key = teamWith(best.id).id + ':' + best.id + ':thanks';
+        out = TACTS[key] ? '<span class="b-wt-done">' + esc(TEAM_ACT.thanks.done) + ' to ' + esc(firstName(best.id)) + '</span>'
+          : '<button class="s-insight-lnk primary" type="button" data-tact="' + esc(key) + '">Say well done to ' + esc(firstName(best.id)) + '</button>';
+      }
     }
     return out + '<button class="b-pl-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + '<span>Ask AiMY why</span></button>';
   }
@@ -11904,6 +11971,8 @@
   }
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-plfold]')) { planFold(); return; }
+    const fix = e.target.closest('[data-tfix]');
+    if (fix) { planFix(fix.getAttribute('data-tfix')); return; }
     const num = e.target.closest('[data-plnum]');
     if (num) { planNumSend(num.getAttribute('data-plnum')); return; }
     const s = e.target.closest('[data-bstep]');
@@ -11976,25 +12045,19 @@
     const order = [mine].concat(reads.filter((x) => x !== mine));
     /* Each step says what the gap is worth and what to do with it (Nour,
        9 Nov: "polish those to be useful"): the gap between the teams in the
-       step's own count, and the best call of whoever does it best, shared
-       with the team behind. */
+       step's own count, and the lever that closes the widest one. */
     const wide = (lead === 4 ? b : w.d < -0.005 ? w : b).s.k;
     const step = (s) => {
       const rest = order.slice(1).sort((a, b) => b.R[s.k].ratio - a.R[s.k].ratio);
       const best = rest[0];
       const d = best ? mine.R[s.k].ratio - best.R[s.k].ratio : 0;
       const n = Math.round(Math.abs(d) * mine.R[s.k].byNow);
-      const lead = d >= 0 ? mine : best;
-      const trail = d >= 0 ? best : mine;
-      const star = lead && lead.R[s.k].by.slice().sort((a, b) => b.ratio - a.ratio)[0];
+      /* One verb on the board, on the widest gap (the step AiMY's line names),
+         and only when this team is the one behind: the lever where its own
+         chain drops, not a call from the other team (Nour, 9 Nov). */
       const gap = !best || n < 1 ? 'Level with the ' + esc(best ? best.t.name : 'others')
         : (d < 0 ? 'Behind by about ' : 'Ahead by about ') + '<b>' + esc(plural(n, s.noun.replace(/s$/, ''))) + '</b>';
-      /* One verb on the board, on the widest gap (the step AiMY's line names). */
-      const key = star && trail && n >= 1 && s.k === wide ? trail.t.id + ':' + star.id + ':xshare' : '';
-      const act = !key ? '' : TACTS[key]
-        ? '<span class="b-wd-done">Shared with the ' + esc(trail.t.name) + '</span>'
-        : '<button class="b-wd-act" type="button" data-tact="' + esc(key) + '" title="Share it with the ' + esc(trail.t.name) + '">Share ' +
-          esc(firstName(star.id)) + '’s best call</button>';
+      const act = d < 0 && n >= 1 && s.k === wide ? fixBtn(mine.t.id, 'all', leverFor(mine.R, s.k), 'b-wd-act') : '';
       return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
         order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
           '<span class="b-cmp-val is-' + pace(x.R[s.k]).tone + '">' + pc(x.R[s.k].ratio) + '</span></div>').join('') +
@@ -12149,9 +12212,6 @@
       say: (n, team) => n + '’s best call today is shared with the ' + team },
     thanks: { label: () => 'Say well done', done: 'Well done sent',
       say: (n) => '“Well done today” sent to ' + n },
-    /* Across teams: the key's team is the one that receives the call. */
-    xshare: { label: (n) => 'Share ' + n + '’s best call', done: 'Shared',
-      say: (n, team) => n + '’s best call is shared with the ' + team },
   };
   function teamAct(key) {
     const [tid, id, k] = key.split(':');
