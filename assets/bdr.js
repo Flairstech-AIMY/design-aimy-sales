@@ -11610,10 +11610,12 @@
         '<p class="b-pl-lead is-' + p.tone + '">' + (p.short ? PL_DOWN : r.el ? PL_UP : '') + '<span>' + esc(head) + '</span></p>' +
         '<p class="b-pl-why">' + say.join(' ') + '</p>' +
         '<div class="b-pl-acts">' + planActs(ctx, R, k) + '</div></div>',
-      facts: r.el ? '<div class="b-pl-ev"><p class="b-pl-k">What it rests on</p><dl class="b-pl-facts">' +
-          fact('The plan by now', commas(Math.round(r.byNow))) + fact('Done', commas(r.cum)) +
-          fact('A day so far', commas(Math.round(r.vel))) +
-          fact(r.daysLeft > 0.01 ? 'Needed a day' : 'The plan', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target), needTone) + '</dl></div>' : '',
+      /* Plain words (Nour, 9 Nov): "The numbers", and captions anyone reads
+         without the plan's vocabulary. */
+      facts: r.el ? '<div class="b-pl-ev"><p class="b-pl-k">The numbers</p><dl class="b-pl-facts">' +
+          fact('Planned by now', commas(Math.round(r.byNow))) + fact('Done so far', commas(r.cum)) +
+          fact('Average per day', commas(Math.round(r.vel))) +
+          fact(r.daysLeft > 0.01 ? 'Needed per day' : 'Planned in all', r.daysLeft > 0.01 ? commas(Math.ceil(r.need)) : commas(r.target), needTone) + '</dl></div>' : '',
     };
   }
   /* The chart, distilled (Nour, 5 Nov: too many charts, not clean): what is
