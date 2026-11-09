@@ -10867,14 +10867,19 @@
      AiMY's question as a small button in the corner. So the widget is a
      group, not one big button. */
   const wid = (o) => '<div class="b-wd ' + (o.size === 'big' ? 'is-big' : 'is-small') + (o.st ? ' ' + W_ST[o.st] : '') + '" role="group" aria-label="' + esc(o.cap) + '">' +
-      '<span class="b-wd-cap">' + (o.live != null ? '<span class="b-live-dot" aria-hidden="true"></span>' : '') + '<span>' + esc(o.cap) + '</span>' +
-        '<button class="b-wd-ask" type="button" data-ask="' + esc(o.q) + '" aria-label="Ask AiMY: ' + esc(o.q) + '" title="' + esc(o.q) + '">' + aiMark() + '</button></span>' +
+      '<span class="b-wd-cap">' + (o.live != null ? '<span class="b-live-dot" aria-hidden="true"></span>' : '') + '<span>' + esc(o.cap) + '</span></span>' +
       '<span class="b-wd-val"><span' + (o.live != null ? ' data-live="' + esc(o.live) + '"' : '') + '>' + esc(o.val) + '</span>' +
         (o.unit ? '<small>' + esc(o.unit) + '</small>' : '') + '</span>' +
       (o.chip ? '<span class="b-wd-st">' + esc(o.chip) + '</span>' : '') +
       (o.sub ? '<span class="b-wd-sub">' + o.sub + '</span>' : '') +
       (o.chart ? '<span class="b-wd-ch">' + o.chart + '</span>' : '') +
-      (o.do ? '<span class="b-wd-do"><span class="b-wd-who">' + o.do.who + '</span>' + (o.do.act || '') + '</span>' : '') +
+      /* The foot: who it comes down to, then the verb and AiMY's question as
+         a labelled pill (Nour, 9 Nov: a bare mark in the corner was not
+         obvious), the same pill as "Ask AiMY why" on the plan. */
+      '<span class="b-wd-do">' + (o.do && o.do.who ? '<span class="b-wd-who">' + o.do.who + '</span>' : '') +
+        '<span class="b-wd-btns">' + (o.do && o.do.act ? o.do.act : '') +
+          '<button class="b-wd-ask" type="button" data-ask="' + esc(o.q) + '" title="' + esc(o.q) + '">' + aiMark() + '<span>Ask AiMY</span></button>' +
+        '</span></span>' +
     '</div>';
   /* Who a figure comes down to: the person furthest short of what they are
      measured by (Message them), or, when nobody is, the one who leads (Say
