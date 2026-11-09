@@ -11643,6 +11643,8 @@
       say: (who) => 'AiMY is finding direct numbers on the lists ' + who + ' calls, so more calls reach the decision maker' },
     talks: { label: 'Try a shorter opener', done: 'Shorter opener on half the calls',
       say: (who) => 'AiMY wrote a shorter opener; it runs on half of ' + who + '’s calls, and AiMY says which keeps people talking' },
+    obj: { label: 'Coach the team on objections', done: 'Coaching objections',
+      say: (who) => 'AiMY now suggests an answer in runs for ' + who + ' when an objection comes up' },
     meets: { label: 'Coach the close', done: 'Coaching the close',
       say: (who) => 'AiMY now coaches the close in runs for ' + who + ': one tip after a conversation that ends without a meeting' },
   };
@@ -11672,20 +11674,22 @@
       say: (n) => 'AiMY is finding direct numbers on ' + n + '’s lists, so more calls reach the decision maker' },
     talks: { label: (n) => 'Coach ' + n + '’s opener', done: 'Coaching the opener',
       say: (n) => 'AiMY now coaches ' + n + '’s opener in runs: one tip after a call that ends in the first minute' },
+    obj: { label: (n) => 'Coach ' + n + ' on objections', done: 'Coaching the answer',
+      say: (n) => 'AiMY now suggests an answer in ' + n + '’s runs when this objection comes up' },
     meets: { label: (n) => 'Coach ' + n + '’s close', done: 'Coaching the close',
       say: (n) => 'AiMY now coaches ' + n + '’s close in runs: one tip after a conversation that ends without a meeting' },
   };
-  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', meets: 'close' };
+  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', meets: 'close', obj: 'answers to objections' };
   const srcName = (src) => { const t = TEAMS.filter((x) => x.id === src)[0]; return t ? 'the ' + t.name : REP[src] ? firstName(src) : src; };
   const poss = (n) => n + '’s';
   /* The lever as a button, or what it did once pressed. `who` is 'all' for
      the team or a person's id; `src` (optional) is whose practice is copied;
      `give` words it from the side that has it. */
-  function fixBtn(tid, who, lev, cls, src, give, named) {
+  function fixBtn(tid, who, lev, cls, src, give, named, lab) {
     const key = tid + ':' + who + ':' + lev + (src ? ':' + src : '');
     const t = TEAMS.filter((x) => x.id === tid)[0];
     const label = src ? (give ? 'Give ' + srcName(tid) + ' your ' + THING[lev] : 'Use ' + poss(srcName(src)) + ' ' + THING[lev] + (named ? ' for ' + srcName(tid) : ''))
-      : who === 'all' ? LEVER[lev].label : LEVER_P[lev].label(firstName(who));
+      : lab || (who === 'all' ? LEVER[lev].label : LEVER_P[lev].label(firstName(who)));
     const done = src ? (give ? 'Given to ' + (t ? 'the ' + t.name : '') : 'Using ' + poss(srcName(src)) + ' ' + THING[lev])
       : who === 'all' ? LEVER[lev].done : LEVER_P[lev].done;
     /* In a tile the step is an AiMY action (Nour, 9 Nov): AiMY does it, so
@@ -12387,6 +12391,7 @@
      the objection that comes up most, how long the calls that get through
      last, and how often a call ends in a callback asked for. Nothing is said
      off fewer than ten calls that got through. */
+  const callBtn = (x, label) => (x ? '<button class="s-insight-lnk" type="button" data-script="' + esc(x.id) + '">' + esc(label) + '</button>' : '');
   function personPatterns(t, id, inR) {
     const mine = callsBy([id]).filter(inR).filter(gotThrough);
     const team = callsBy(t.members).filter(inR).filter(gotThrough);
@@ -12400,9 +12405,14 @@
       const tn = count(team, o.k);
       const t1 = tn ? Math.round(team.length / tn) : 0;
       const ex = mine.filter((x) => (x.objections || []).indexOf(o.k) > -1)[0];
+      /* Next (Nour, 9 Nov: "this should have actions"): heard more than the
+         team hears it, coach the answer; always, a call where it came up. */
+      const more = !tn || o.n / mine.length >= (tn / team.length) * 1.2;
       list.push({ k: 'obj', obj: o.k, ex, mine: o.n / mine.length, team: tn / team.length,
-        say: '<b>“' + esc(OBJECTION[o.k].label) + '”</b> came up on <b>' + commas(o.n) + ' of ' + commas(mine.length) +
-          '</b> of ' + esc(first) + '’s calls that got through.',
+        act: (more ? fixBtn(t.id, id, 'obj', 'row', null, false, false, 'Coach ' + first + ' on “' + OBJECTION[o.k].label + '”') : '') +
+          callBtn(ex, 'Read a call where it came up'),
+        say: '<b>“' + esc(OBJECTION[o.k].label) + '”</b> came up on <b>' + commas(o.n) + '</b> of ' + esc(first) + '’s ' +
+          commas(mine.length) + ' calls that got through.',
         ev: t1 ? 'About 1 in ' + Math.round(mine.length / o.n) + ' for ' + first + ', 1 in ' + t1 + ' across the ' + t.name
           : 'Nobody else on the team has heard it' });
     }
@@ -12411,7 +12421,11 @@
     if (a && at) {
       const longest = mine.slice().sort((x, y) => (y.secs || 0) - (x.secs || 0))[0];
       const shortest = mine.slice().sort((x, y) => (x.secs || 0) - (y.secs || 0))[0];
+      /* Shorter than the team: coach the opener. Longer: the team takes the
+         opener from them. About the same: the longest call to learn from. */
       list.push({ k: 'len', shorter: at - a >= 10, ex: at - a >= 10 ? shortest : longest,
+        act: (at - a >= 10 ? fixBtn(t.id, id, 'talks', 'row') : a - at >= 10 ? fixBtn(t.id, 'all', 'talks', 'row', id) : '') +
+          callBtn(at - a >= 10 ? shortest : longest, at - a >= 10 ? 'Read the shortest one' : 'Read the longest one'),
         say: 'Calls that get through last <b>' + callLen(a) + '</b> on average' + (Math.abs(a - at) >= 10
           ? ', ' + (a > at ? 'longer' : 'shorter') + ' than the team’s ' + callLen(at) + '.' : ', about the same as the team.'),
         ev: commas(mine.length) + ' calls that got through' });
@@ -12420,7 +12434,12 @@
     const cb = all.filter((x) => x.outcome === 'callback').length, cbt = allT.filter((x) => x.outcome === 'callback').length;
     if (all.length >= 20 && allT.length) {
       const r = Math.round((10 * cb) / all.length), rt = Math.round((10 * cbt) / allT.length);
-      list.push({ k: 'cb', say: '<b>' + r + ' in 10</b> calls end with a callback asked for' +
+      /* More callbacks than the team: coach the close. Fewer: the team takes
+         the close from them. */
+      const cbEx = all.filter((x) => x.outcome === 'callback')[0];
+      list.push({ k: 'cb', act: (r > rt ? fixBtn(t.id, id, 'meets', 'row') : r < rt ? fixBtn(t.id, 'all', 'meets', 'row', id) : '') +
+          (cbEx ? callBtn(cbEx, 'Read one that ended in a callback') : ''),
+        say: '<b>' + r + ' in 10</b> calls end with a callback asked for' +
         (r !== rt ? ', against ' + rt + ' in 10 across the team.' : ', the same as the team.'), ev: commas(cb) + ' of ' + commas(all.length) + ' calls' });
     }
     return { list, thin: false };
@@ -12562,7 +12581,7 @@
       '</div></div>').join('') + '</div>' +
       '</div></div></div>';
   }
-  let COACH_OPEN = false;
+  let COACH_OPEN = true;
   /* ══ THE DATE PICKER (5 Nov 2026) ═══════════════════════════════════════
      The UI library's DatePicker and Calendar (aimy ui lib, registry/aimy/ui/
      date-picker.tsx and calendar.tsx, themselves Knowledge's .k-date), in
@@ -12757,7 +12776,8 @@
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
-            '<use href="#aimy-logo-small"/></svg><span class="b-pf-pats">' + x.say + '</span><span class="b-pf-pate">' + esc(x.ev) + '</span></div>').join('')) +
+            '<use href="#aimy-logo-small"/></svg><span class="b-pf-pats">' + x.say + '</span><span class="b-pf-pate">' + esc(x.ev) + '</span>' +
+            (x.act ? '<span class="b-pf-patg">' + x.act + '</span>' : '') + '</div>').join('')) +
       '</section>' +
       /* Coaching after what AiMY noticed (Nour): the record first, then what
          was done about it. */

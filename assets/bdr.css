@@ -8540,6 +8540,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pf-pats { font-size: 15px; line-height: 1.5; color: var(--d50); }
 .b-pf-pats b { font-weight: var(--fw-semibold); }
 .b-pf-pate { grid-column: 2; font-size: var(--fs-xs); color: var(--d100); }
+/* What to do about a finding: the AiMY step, then the call to read. */
+.b-pf-patg { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 /* The rail's door to this page. */
 .b-ps-full {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 22px;
