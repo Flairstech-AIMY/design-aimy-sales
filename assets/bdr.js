@@ -11457,6 +11457,7 @@
      inside (target, byNow, plan) keep their shape; the words say usual. */
   const usualDay = (id, k) => { const f = FORM[id]; return f.calls * ({ calls: 1, reached: f.reach, talks: f.talk, meets: f.talk * f.meet })[k]; };
   let PLAN_STEP = 'calls';
+  let PLAN_VIEW = 'day';
   const teamWith = (id) => TEAMS.filter((t) => t.members.indexOf(id) > -1)[0];
   const monthLong = (iso) => new Date(iso + 'T00:00:00').toLocaleString('en-GB', { month: 'long' });
   /* The period the plan runs over. With none chosen it is this month, the
@@ -11506,7 +11507,7 @@
         const plan = usualDay(id, k) * el;
         return { id, n, plan, gap: plan - n, ratio: plan ? n / plan : 1 };
       });
-      out[k] = { k, s, days, N, el, day, target, cum, pts, byNow, ratio: byNow ? cum / byNow : 1, vel,
+      out[k] = { k, s, unit: P.unit.replace(/^the /, ''), days, N, el, day, target, cum, pts, byNow, ratio: byNow ? cum / byNow : 1, vel,
         need: daysLeft ? Math.max(0, target - cum) / daysLeft : 0, daysLeft, leftDays, proj: Math.round(cum + vel * daysLeft), by };
     });
     return out;
@@ -11815,7 +11816,57 @@
       '<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + svg + hits + '</svg>' + labs +
       '<span class="b-pl-tip" hidden></span></div></div>';
   }
-  const planChart = (r) => planVel(r);
+  /* "So far" (Nour, 9 Nov: "where is the other chart"): the burn-down left
+     with the plan, so the second chart is the month's running total against
+     a usual month's, with where today's pace lands at the end. The usual
+     line climbs to what a usual month makes; nothing on it was set by anyone. */
+  function planRun(r) {
+    const N = r.N || 1;
+    const X = (i) => (100 * i) / N;
+    const tone = pace(r).tone;
+    const noun = r.s.noun;
+    const dayLab = (iso) => DAY_FULL[new Date(iso + 'T00:00:00').getDay()].slice(0, 3) + ' ' + dateSay(iso);
+    const live = r.el > 0 && r.daysLeft > 0.01;
+    const top = Math.max(r.target, r.proj, r.cum, 1) * 1.08;
+    const Y = (v) => 100 * (1 - Math.max(0, v) / top);
+    let acc = 0;
+    const ends = r.pts.map((p) => (acc += p.part));
+    let svg = '<line class="pl-base" x1="0" x2="1000" y1="1000" y2="1000" vector-effect="non-scaling-stroke"/>' +
+      '<path class="pl-ideal" d="M0 1000 L1000 ' + plVb(Y(r.target)) + '" vector-effect="non-scaling-stroke"/>';
+    let labs = '';
+    const pts = [[0, Y(0)]];
+    r.pts.forEach((p, i) => { if (p.part) pts.push([X(ends[i]), Y(p.cum)]); });
+    if (pts.length > 1) {
+      const last = pts[pts.length - 1];
+      svg += '<path class="pl-act" d="' + pts.map((q, i) => (i ? 'L' : 'M') + plVb(q[0]) + ' ' + plVb(q[1])).join(' ') + '" vector-effect="non-scaling-stroke"/>';
+      if (live) {
+        const d = r.proj - r.target;
+        const note = Math.abs(d) < Math.max(1, r.target * 0.03) ? 'About a usual ' + r.unit
+          : commas(Math.abs(d)) + (d < 0 ? ' under' : ' above') + ' a usual ' + r.unit;
+        svg += '<path class="pl-proj is-' + tone + '" d="M' + plVb(last[0]) + ' ' + plVb(last[1]) + ' L1000 ' + plVb(Y(r.proj)) +
+          '" vector-effect="non-scaling-stroke"/>';
+        labs += '<span class="pl-dot is-end is-' + tone + '" style="left:100%;top:' + plPct(Y(r.proj)) + '"></span>' +
+          plLab('pl-note is-end is-' + tone, 100, Y(r.proj), esc(note));
+      }
+      labs += '<span class="pl-dot" style="left:' + plPct(last[0]) + ';top:' + plPct(last[1]) + '"></span>' +
+        plLab('pl-note is-act', last[0], last[1], esc(commas(r.cum)) + ' so far');
+    }
+    if (live) {
+      svg += '<line class="pl-today" x1="' + plVb(X(r.el)) + '" x2="' + plVb(X(r.el)) + '" y1="0" y2="1000" vector-effect="non-scaling-stroke"/>';
+      labs += plLab('pl-xlab is-today', X(r.el), 100, 'Today');
+    }
+    if (r.days.length) {
+      labs += plLab('pl-xlab is-first', 0, 100, esc(dateSay(r.days[0]))) + plLab('pl-xlab is-last', 100, 100, esc(dateSay(r.days[N - 1])));
+    }
+    const hits = r.pts.map((p, i) => '<rect class="pl-hit" x="' + plVb(X(i)) + '" y="0" width="' + plVb(X(1)) + '" height="1000" data-tip="' +
+      esc(p.part ? dayLab(p.iso) + ': ' + commas(p.cum) + ' ' + noun + ' so far (usually ' + commas(Math.round(r.day * ends[i])) + ')'
+        : dayLab(p.iso) + ': a usual ' + r.unit + ' is at ' + commas(Math.round(r.day * (i + 1))) + ' by then') +
+      '" data-x="' + X(i + 0.5).toFixed(2) + '"/>').join('');
+    return '<div class="b-pl-plot"><div class="b-pl-area">' +
+      '<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + svg + hits + '</svg>' + labs +
+      '<span class="b-pl-tip" hidden></span></div></div>';
+  }
+  const planChart = (r) => (PLAN_VIEW === 'run' ? planRun(r) : planVel(r));
   /* The board, redesigned (Nour, 5 Nov) in the strip's language: a head
      with the month and the two views; the four steps as hairline cells
      (pressing one puts it on the chart); one line of story; the chart the
@@ -11827,6 +11878,8 @@
     const started = r.pts.filter((p) => p.part > 0).length;
     const sub = P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N));
     const st = planStory(ctx, R, k);
+    const run = PLAN_VIEW === 'run';
+    const tone = pace(r).tone;
     const open = !!UI.planOpen;
     const fid = 'plFold-' + (++PL_N);
     return '<div class="b-pl" data-fold="' + open + '">' +
@@ -11845,12 +11898,17 @@
       '<div class="b-pl-ct"><button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
         '<span class="b-pl-open-ico" aria-hidden="true">' + PL_CHART + '</span>' +
         '<span class="b-pl-open-w">' + (open ? 'Close the chart' : 'Open the chart') + '</span>' +
-        '<span class="b-pl-open-sub">' + esc(cap1(r.s.noun)) + ' each day, against a usual day</span>' +
+        '<span class="b-pl-open-sub">' + esc(cap1(r.s.noun)) + ' each day and so far, against their usual</span>' +
         '<span class="b-pl-chev" aria-hidden="true">' + PL_CHEV + '</span></button>' +
       '<div class="b-pl-fold" id="' + fid + '"><div class="b-pl-fold-in"' + (open ? '' : ' inert') + '>' +
         '<div class="b-pl-chart"><div class="b-pl-ctop">' +
-          '<span class="b-pl-key"><span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>A usual day</span></span></div>' +
-          planChart(r) + '</div>' +
+          '<span class="b-pl-seg" role="group" aria-label="Chart">' +
+            '<button type="button" data-bview="day" aria-pressed="' + !run + '">Each day</button>' +
+            '<button type="button" data-bview="run" aria-pressed="' + run + '">So far</button></span>' +
+          '<span class="b-pl-key">' + (run
+            ? '<span><i class="k-done"></i>So far</span><span><i class="k-plan"></i>A usual ' + esc(r.unit) + '</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>'
+            : '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>A usual day</span>') +
+          '</span></div>' + planChart(r) + '</div>' +
       '</div></div></div>' +
     '</div>';
   }
@@ -11881,6 +11939,8 @@
     if (fix) { planFix(fix.getAttribute('data-tfix')); return; }
     const s = e.target.closest('[data-bstep]');
     if (s) { PLAN_STEP = s.getAttribute('data-bstep'); paint(); return; }
+    const v = e.target.closest('[data-bview]');
+    if (v) { PLAN_VIEW = v.getAttribute('data-bview'); paint(); return; }
   });
   /* The day under the pointer, over the plot. */
   let PL_TIP = null;

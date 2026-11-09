@@ -8831,11 +8831,27 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 @media (prefers-reduced-motion: reduce) {
   .b-pl-fold, .b-pl-fold-in, .b-pl-chev, .b-pl-open, .b-pl-tab, .b-pl-ask { transition: none !important; }
 }
+/* The two views, Each day and So far, as a pill switch in the chart's tile. */
+.b-pl-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--card-border); }
+.b-pl-seg button {
+  padding: 5px 14px; font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
+  background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.b-pl-seg button[aria-pressed="true"] { color: var(--d50); background: var(--card-bg-raised); box-shadow: inset 0 0 0 1px var(--card-border); }
+.b-pl-seg button:hover { color: var(--d50); }
+.b-pl-seg button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .b-pl-seg button { transition: none; } }
 /* The key: what each line is, in the lines' own marks. */
 .b-pl-key { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
 .b-pl-key span { display: inline-flex; align-items: center; gap: 6px; }
 .b-pl-key i { display: inline-block; width: 16px; }
 .b-pl-key .k-plan { border-top: 1.5px dashed color-mix(in srgb, var(--d50) 45%, transparent); }
+.b-pl-key .k-done { border-top: 2.5px solid var(--accent); }
+.b-pl-key .k-pace { border-top: 3px dotted var(--d100); }
+.b-pl-key .k-pace.is-up { border-top-color: var(--ok); }
+.b-pl-key .k-pace.is-dn { border-top-color: var(--warn); }
+.b-pl-key .k-pace.is-err { border-top-color: var(--err); }
 .b-pl-key .k-bar { width: 8px; height: 10px; border-radius: 1px; background: rgba(var(--accent-rgb), 0.75); }
 .pl-bar { fill: rgba(var(--accent-rgb), 0.75); }
 .pl-bar.is-dn { fill: var(--warn); }
@@ -8849,6 +8865,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pl-area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .pl-base { stroke: var(--card-border); stroke-width: 1; }
 .pl-ideal { fill: none; stroke: color-mix(in srgb, var(--d50) 30%, transparent); stroke-width: 1.5; stroke-dasharray: 5 6; }
+.pl-act { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.pl-proj { fill: none; stroke: var(--d100); stroke-width: 2.5; stroke-dasharray: 1 6; stroke-linecap: round; }
+.pl-proj.is-up { stroke: var(--ok); }
+.pl-proj.is-dn { stroke: var(--warn); }
+.pl-proj.is-err { stroke: var(--err); }
 .pl-today { stroke: color-mix(in srgb, var(--d50) 25%, transparent); stroke-width: 1; }
 .pl-hit { fill: transparent; }
 .pl-hit:hover { fill: color-mix(in srgb, var(--d50) 4%, transparent); }
@@ -8858,10 +8879,18 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .pl-xlab.is-today { transform: translateX(-50%); font-weight: var(--fw-semibold); color: var(--d50); }
 /* A note sits on a chip of the card's ground, so no line runs through it. */
 .pl-note { font-weight: var(--fw-semibold); color: var(--d50); text-shadow: 0 0 4px var(--card-bg), 0 0 8px var(--card-bg); }
+.pl-note.is-act { transform: translate(-50%, calc(-100% - 12px)); font-size: var(--fs-sm); }
+.pl-note.is-end { transform: translate(-100%, calc(-100% - 12px)); font-size: var(--fs-sm); }
 .pl-note.is-plan { transform: translate(0, calc(-100% - 6px)); font-weight: var(--fw-medium); color: var(--d100); }
 .pl-note.is-up { color: var(--ok-text); }
 .pl-note.is-dn { color: var(--warn-text); }
 .pl-note.is-err { color: var(--err-text); }
+.pl-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 3px var(--card-bg); pointer-events: none; }
+.pl-dot.is-end { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--d100); }
+.pl-dot.is-end.is-up { background: var(--ok); }
+.pl-dot.is-end.is-dn { background: var(--warn); }
+.pl-dot.is-end.is-err { background: var(--err); }
 .b-pl-tip {
   position: absolute; top: -14px; transform: translateX(-50%); z-index: 2; padding: 6px 10px; pointer-events: none;
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); white-space: nowrap;
