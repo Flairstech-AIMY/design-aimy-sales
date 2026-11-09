@@ -8792,7 +8792,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* The number over its caption; in a reversed column the start is the foot,
    so flex-end keeps every number on the row's top line when a caption wraps. */
 .b-pl-facts div { min-width: 0; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 2px; }
-.b-pl-facts dt { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
+.b-pl-facts dt { font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d100); }
 .b-pl-facts dd { margin: 0; font-size: 26px; font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.01em; color: var(--d50); font-variant-numeric: tabular-nums; }
 .b-pl-facts dd.is-dn { color: var(--warn-text); }
 .b-pl-facts dd.is-err { color: var(--err-text); }
