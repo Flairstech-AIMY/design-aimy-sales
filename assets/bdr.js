@@ -10861,15 +10861,40 @@
      steps comes first. Colour is the only urgency. */
   /* The classes spelled out, so the audit can see each one is drawn. */
   const W_ST = { short: 'is-short', low: 'is-low', ok: 'is-ok', ahead: 'is-ahead', live: 'is-live', eq: 'is-eq' };
-  const wid = (o) => '<button class="b-wd ' + (o.size === 'big' ? 'is-big' : 'is-small') + (o.st ? ' ' + W_ST[o.st] : '') + '" type="button" data-ask="' + esc(o.q) + '">' +
-      '<span class="b-wd-cap">' + (o.live != null ? '<span class="b-live-dot" aria-hidden="true"></span>' : '') + esc(o.cap) + '</span>' +
+  /* Every figure says who it comes down to and carries the verb that uses
+     it (Nour, 9 Nov: a number gives insight and action, never only itself):
+     a line naming the person behind it, a one-click verb for them, and
+     AiMY's question as a small button in the corner. So the widget is a
+     group, not one big button. */
+  const wid = (o) => '<div class="b-wd ' + (o.size === 'big' ? 'is-big' : 'is-small') + (o.st ? ' ' + W_ST[o.st] : '') + '" role="group" aria-label="' + esc(o.cap) + '">' +
+      '<span class="b-wd-cap">' + (o.live != null ? '<span class="b-live-dot" aria-hidden="true"></span>' : '') + '<span>' + esc(o.cap) + '</span>' +
+        '<button class="b-wd-ask" type="button" data-ask="' + esc(o.q) + '" aria-label="Ask AiMY: ' + esc(o.q) + '" title="' + esc(o.q) + '">' + aiMark() + '</button></span>' +
       '<span class="b-wd-val"><span' + (o.live != null ? ' data-live="' + esc(o.live) + '"' : '') + '>' + esc(o.val) + '</span>' +
         (o.unit ? '<small>' + esc(o.unit) + '</small>' : '') + '</span>' +
       (o.chip ? '<span class="b-wd-st">' + esc(o.chip) + '</span>' : '') +
       (o.sub ? '<span class="b-wd-sub">' + o.sub + '</span>' : '') +
       (o.chart ? '<span class="b-wd-ch">' + o.chart + '</span>' : '') +
-      '<span class="b-wd-q">' + aiMark() + '<span>' + esc(o.q) + '</span></span>' +
-    '</button>';
+      (o.do ? '<span class="b-wd-do"><span class="b-wd-who">' + o.do.who + '</span>' + (o.do.act || '') + '</span>' : '') +
+    '</div>';
+  /* Who a figure comes down to: the person furthest short of what they are
+     measured by (Message them), or, when nobody is, the one who leads (Say
+     well done). `xs` is [{ id, n, u }]; `say` words the gap or the lead. */
+  /* The verb shows only where it is worth a press: someone short, or the
+     figure ahead (one well done for the one who led it). On track, the line
+     names who leads and nothing asks to be pressed. */
+  function wDo(xs, say, st) {
+    const short = xs.filter((x) => x.u - x.n >= 2 && x.n < x.u * 0.9).sort((a, b) => (b.u - b.n) - (a.u - a.n))[0];
+    const x = short || xs.slice().sort((a, b) => b.n - a.n)[0];
+    if (!x) return null;
+    const k = short ? 'msg' : 'thanks';
+    const t = teamWith(x.id);
+    const key = t && (short || st === 'ahead') ? t.id + ':' + x.id + ':' + k : '';
+    const name = firstName(x.id);
+    const act = !key ? '' : TACTS[key] ? '<span class="b-wd-done">' + esc(TEAM_ACT[k].done) + '</span>'
+      : '<button class="b-wd-act" type="button" data-tact="' + esc(key) + '" aria-label="' + esc(TEAM_ACT[k].label(name)) + '">' +
+        (short ? 'Message' : 'Say well done') + '</button>';
+    return { who: '<b>' + esc(name) + '</b> ' + say(x, !!short), act };
+  }
   /* Where a figure stands against what it is measured by: short by a tenth
      and two is short, a quarter is low (the error ink), a twentieth and two
      over is ahead. `sev` orders the steps, the most behind first. */
@@ -10973,10 +10998,27 @@
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
           : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
         return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
-          chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st) }) };
+          chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st),
+          do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
+            (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st) }) };
       }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
-      let planM = 0;
-      for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) planM += GOAL.calls * dayPart(iso);
+      let planM = 0, mDays = 0;
+      for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) { planM += GOAL.calls * dayPart(iso); mDays += dayPart(iso); }
+      /* Each person's own figures, for who each widget comes down to. */
+      const prevDay = lastWorkDay(r.day);
+      const pm = ids.map((id) => {
+        let m = 0;
+        for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) m += repDay(id, iso).calls;
+        return { id, m, y: repDay(id, prevDay).calls, s: r.by.filter((x) => x.id === id)[0].d.secs };
+      });
+      const lead = (x, sh, unit) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n) + (unit || ''));
+      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, wState(r.yest, usualCalls).st);
+      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(planM) })), lead, wState(r.month, Math.round(planM)).st);
+      const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: GOAL.calls })), (x, sh) => lead(x, sh, ' a day'),
+        wState(r.avg, GOAL.calls).st);
+      const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
+        (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), 'ok');
+      const onIds = onCallNow(ids);
       const ys = wState(r.yest, usualCalls), ms = wState(r.month, Math.round(planM)), as = wState(r.avg, GOAL.calls);
       const on = onCallNow(ids).length;
       const sd = r.secs - usualSecs;
@@ -10984,17 +11026,18 @@
         : { st: sd > 0 ? 'ahead' : 'ok', chip: SIGNED(sd) + 's' };
       return steps +
         (today ? wid({ cap: 'On a call now', val: commas(on), unit: 'of ' + commas(r.n), live: one ? ids[0] : only ? only.id : 'all',
-          st: on ? 'live' : 'eq', chip: on ? 'Live' : 'Nobody', q: ask('live'), chart: wDots(ids, onCallNow(ids)) }) : '') +
+          st: on ? 'live' : 'eq', chip: on ? 'Live' : 'Nobody', q: ask('live'), chart: wDots(ids, onIds),
+          do: one || !onIds.length ? null : { who: onIds.map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ') } }) : '') +
         wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
-            { line: GOAL.calls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, goal ' + GOAL.calls }) }) +
+            { line: GOAL.calls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, goal ' + GOAL.calls }), do: wy }) +
         wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
-          chart: wTrack(r.month, Math.round(planM), '<span>The plan by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st) }) +
+          chart: wTrack(r.month, Math.round(planM), '<span>The plan by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
         wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
-          chart: wTrack(r.avg, GOAL.calls, '<span>The goal <b>' + GOAL.calls + '</b></span>', as.st) }) +
+          chart: wTrack(r.avg, GOAL.calls, '<span>The goal <b>' + GOAL.calls + '</b></span>', as.st), do: wa }) +
         wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
-            { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }) });
+            { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws });
     };
     /* The questions the sentence leaves open, each one a turn in the chat. */
     const asks = [];

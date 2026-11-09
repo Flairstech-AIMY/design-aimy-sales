@@ -8665,12 +8665,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    colour, the rate behind it, and a thin bar. No card, no chip, no wash. */
 .b-wd {
   position: relative; display: flex; flex-direction: column; align-items: stretch; min-width: 0;
-  padding: 18px 20px 20px; text-align: left; font: inherit; color: inherit; cursor: pointer; overflow: hidden;
+  padding: 18px 20px 20px; text-align: left; font: inherit; color: inherit; overflow: hidden;
   background: none; border: 0; border-radius: 0;
 }
 @media (prefers-reduced-motion: no-preference) { .b-wd { transition: background-color var(--t-fast) var(--ease-out); } }
-.b-wd:hover { background-color: color-mix(in srgb, var(--d50) 3%, transparent); }
-.b-wd:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-wd-cap { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
 .b-wd-val { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; font-size: 26px; font-weight: var(--fw-semibold); line-height: 1.1; color: var(--d50); font-variant-numeric: tabular-nums; }
 .b-wd.is-big .b-wd-val { font-size: 34px; letter-spacing: -0.01em; }
@@ -8681,15 +8679,33 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-wd.is-ok .b-wd-st, .b-wd.is-ahead .b-wd-st, .b-wd.is-live .b-wd-st { color: var(--ok-text); }
 .b-wd-sub { margin-top: 4px; font-size: var(--fs-xs); line-height: 1.4; color: var(--d100); }
 .b-wd-sub b { font-weight: var(--fw-semibold); color: var(--d50); }
-/* The question the widget asks rises over its foot on hover and focus. */
-.b-wd-q {
-  position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50);
-  background: var(--card-bg-raised); border-top: 1px solid var(--card-border);
-  transform: translateY(101%);
+/* AiMY's question, a small button in the widget's corner. */
+.b-wd-cap > span:not(.b-live-dot) { min-width: 0; }
+.b-wd-ask {
+  display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; margin: -6px -8px -6px auto; padding: 0;
+  border: 0; border-radius: 50%; background: none; color: var(--accent-text); cursor: pointer;
+  transition: background-color 150ms ease-out, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-@media (prefers-reduced-motion: no-preference) { .b-wd-q { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); } }
-.b-wd:hover .b-wd-q, .b-wd:focus-visible .b-wd-q { transform: none; }
+.b-wd-ask:hover { background: rgba(var(--accent-rgb), 0.14); }
+.b-wd-ask:active { transform: scale(0.94); }
+.b-wd-ask:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+/* Who the figure comes down to, and the verb for them, at the foot. */
+.b-wd-do { display: flex; align-items: center; justify-content: space-between; gap: 6px 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); }
+.b-wd-who { min-width: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d50); }
+.b-wd-who b { font-weight: var(--fw-semibold); }
+.b-wd-act {
+  flex: none; height: 30px; padding: 0 12px; font: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold); white-space: nowrap;
+  color: var(--d50); background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--card-border-hover);
+  transition: background-color 150ms ease-out, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.b-wd.is-short .b-wd-act, .b-wd.is-low .b-wd-act { color: #fff; background: var(--brand); box-shadow: none; }
+.b-wd-act:hover { background: var(--card-bg-raised); }
+.b-wd.is-short .b-wd-act:hover, .b-wd.is-low .b-wd-act:hover { background: var(--brand); filter: brightness(1.08); }
+.b-wd-act:active { transform: scale(0.97); }
+.b-wd-act:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-wd-done { flex: none; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok-text); }
+@media (prefers-reduced-motion: reduce) { .b-wd-ask, .b-wd-act { transition: none; } }
 /* Each widget's chart: a track for a step, a line for a trend, dots for who is on a call. */
 .b-wd-ch { display: block; width: 100%; margin-top: auto; padding-top: 18px; }
 .w-track { position: relative; display: block; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--d50) 10%, transparent); }
@@ -8948,11 +8964,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-tmp .b-wscroll > .b-wd, .b-tmp .b-wscroll > .b-wd + .b-wd {
   border-left: 0; border-radius: var(--tl-r); background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--card-border);
 }
-.b-tmp .b-wscroll > .b-wd:hover { background: var(--card-bg-raised); }
 .b-tmp .b-wrow.is-all .b-wscroll { gap: var(--tl-gap); background: none; overflow: visible; }
 .b-tmp .b-wd-cap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
 .b-tmp .b-wd-val { font-weight: var(--fw-bold); letter-spacing: -0.02em; }
-.b-tmp .b-wd-q { border-radius: 0 0 var(--tl-r) var(--tl-r); }
 /* Panels and cards: the tile. */
 .b-tmp .b-wt-row, .b-tmp .b-cmp-step, .b-tmp .b-ro-card, .b-tmp .b-team-card {
   border-color: transparent; border-radius: var(--tl-r); box-shadow: inset 0 0 0 1px var(--card-border);
