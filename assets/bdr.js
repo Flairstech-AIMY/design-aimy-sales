@@ -4198,7 +4198,7 @@
      whole drill was a hard cut with no arrival — and worse below, where
      the scroll key decides whether a new page starts at its top. */
   const surfaceKey = () =>
-    [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build, S.eng].join('|');
+    [S.as, S.on, S.con, S.acc, S.camp, S.list, S.build, S.eng, S.team, S.ag].join('|');
   /* Which RECORD you are on, which is the narrower question: a page of the
      queue turning is the same list under your hands and must not be thrown
      to the top, and opening something from row eleven of it must. */
@@ -4252,7 +4252,11 @@
        opposite case: you are working a list, the rows change underneath you,
        and being thrown to the top of the document each time is what makes a
        pager worse than a scroll. */
-    if (wasOn !== recordKey()) byId('pageScroll').scrollTop = 0;
+    /* Any new page opens at its top (Nour, 9 Nov: a team or a person's
+       profile opened scrolled down, because only a contact, campaign or
+       engagement counted as new). A page of a list or a new period on the
+       same page keeps its place. */
+    if (fresh || wasOn !== recordKey()) byId('pageScroll').scrollTop = 0;
   }
 
   function arrive() {
