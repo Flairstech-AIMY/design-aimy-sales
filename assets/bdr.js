@@ -10876,7 +10876,7 @@
       /* The foot: who it comes down to, then the verb and AiMY's question as
          a labelled pill (Nour, 9 Nov: a bare mark in the corner was not
          obvious), the same pill as "Ask AiMY why" on the plan. */
-      '<span class="b-wd-do">' + (o.do && o.do.who ? '<span class="b-wd-who">' + o.do.who + '</span>' : '') +
+      '<span class="b-wd-do">' + (o.do && o.do.who ? '<span class="b-wd-who ' + (o.do.tone || 'is-level') + '"><span>' + o.do.who + '</span></span>' : '') +
         '<span class="b-wd-btns">' + (o.do && o.do.act ? o.do.act : '') +
           '<button class="b-wd-ask" type="button" data-ask="' + esc(o.q) + '" title="' + esc(o.q) + '">' + aiMark() + '<span>Ask AiMY</span></button>' +
         '</span></span>' +
@@ -10901,8 +10901,8 @@
     const behind = st === 'short' || st === 'low';
     const act = t && lev && behind ? fixBtn(t.id, 'all', lev, 'b-wd-act') : '';
     /* Short as a team with nobody short alone: the gap is everyone's. */
-    if (behind && !short) return { who: 'A little short across the team', act };
-    return { who: '<b>' + esc(firstName(x.id)) + '</b> ' + say(x, !!short), act };
+    if (behind && !short) return { who: 'A little short across the team', act, tone: 'is-behind' };
+    return { who: '<b>' + esc(firstName(x.id)) + '</b> ' + say(x, !!short), act, tone: short ? 'is-behind' : 'is-ahead' };
   }
   /* Where a figure stands against what it is measured by: short by a tenth
      and two is short, a quarter is low (the error ink), a twentieth and two

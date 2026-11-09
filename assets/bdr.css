@@ -8355,8 +8355,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   content: ""; flex: none; width: 15px; height: 15px; background: currentColor;
   -webkit-mask: var(--mv-ico) center / contain no-repeat; mask: var(--mv-ico) center / contain no-repeat;
 }
-.b-tp-move.is-up, .b-cmp-gap.is-ahead { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 7h6v6'/%3E%3Cpath d='m22 7-8.5 8.5-5-5L2 17'/%3E%3C/svg%3E"); color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 14%, transparent); }
-.b-tp-move.is-down, .b-cmp-gap.is-behind { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 17h6v-6'/%3E%3Cpath d='m22 17-8.5-8.5-5 5L2 7'/%3E%3C/svg%3E"); color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 14%, transparent); }
+.b-tp-move.is-up, .b-cmp-gap.is-ahead, .b-wd-who.is-ahead { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 7h6v6'/%3E%3Cpath d='m22 7-8.5 8.5-5-5L2 17'/%3E%3C/svg%3E"); color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 14%, transparent); }
+.b-tp-move.is-down, .b-cmp-gap.is-behind, .b-wd-who.is-behind { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 17h6v-6'/%3E%3Cpath d='m22 17-8.5-8.5-5 5L2 7'/%3E%3C/svg%3E"); color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 14%, transparent); }
 .b-tp-meta {
   display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin: 12px 0 0;
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
@@ -8691,7 +8691,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* The foot: who the figure comes down to on its own line, then the verb
    and "Ask AiMY" as pills. */
 .b-wd-do { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); }
-.b-wd-who { min-width: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d50); }
 .b-wd-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .b-wd-ask {
   display: inline-flex; align-items: center; gap: 6px; flex: none; height: 30px; padding: 0 12px;
@@ -8704,7 +8703,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-wd-ask:hover { background: rgba(var(--accent-rgb), 0.12); }
 .b-wd-ask:active { transform: scale(0.97); }
 .b-wd-ask:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-wd-who b { font-weight: var(--fw-semibold); }
 .b-wd-act {
   flex: none; height: 30px; padding: 0 12px; font: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold); white-space: nowrap;
   color: var(--d50); background: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
@@ -8961,19 +8959,19 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-do { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--card-border); }
 /* The gap, highlighted (Nour, 9 Nov): a tinted strip in the state's colour
    with the trend mark, the count in bold. */
-.b-cmp-gap {
+.b-cmp-gap, .b-wd-who {
   display: flex; align-items: flex-start; gap: 8px; align-self: stretch; padding: 9px 12px; border-radius: 12px;
   font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d50);
   background: color-mix(in srgb, var(--d50) 6%, transparent);
 }
-.b-cmp-gap::before {
+.b-cmp-gap::before, .b-wd-who::before {
   content: ""; flex: none; width: 15px; height: 15px; margin-top: 1px; background: currentColor;
   -webkit-mask: var(--mv-ico) center / contain no-repeat; mask: var(--mv-ico) center / contain no-repeat;
 }
-.b-cmp-gap.is-level::before { display: none; }
-.b-cmp-gap b { font-weight: var(--fw-bold); }
-.b-cmp-gap.is-behind { color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 13%, transparent); }
-.b-cmp-gap.is-ahead { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 13%, transparent); }
+.b-cmp-gap.is-level::before, .b-wd-who.is-level::before { display: none; }
+.b-cmp-gap b, .b-wd-who b { font-weight: var(--fw-bold); }
+.b-cmp-gap.is-behind, .b-wd-who.is-behind { color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 13%, transparent); }
+.b-cmp-gap.is-ahead, .b-wd-who.is-ahead { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 13%, transparent); }
 /* ══ §122 THE TEAMS PAGES, IN TILES (9 Nov 2026) ═════════════════════════
    Nour: the team page read "so editorial"; take the voice agents' page in
    Knowledge's console (settings.css `.agv-*`) as the language. The team
