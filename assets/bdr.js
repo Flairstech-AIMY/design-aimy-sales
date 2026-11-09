@@ -10796,8 +10796,8 @@
     const all = dayShort(r.t, r.u);
     const short = all.filter((x) => x.i === 0).concat(all.filter((x) => x.i > 0)).slice(0, 2)
       .sort((a, b) => a.i - b.i);
-    return short.map((x, j) => x.s.verb + ' <b>' + esc(commas(x.n) + ' ' + x.s.noun) + '</b> against ' +
-      esc(commas(x.u)) + (j ? '' : ' on a usual day')).join(', and ');
+    return short.map((x, j) => x.s.verb + ' <b>' + esc(commas(x.n) + ' ' + x.s.noun) + '</b>, ' +
+      esc(commas(x.u - x.n)) + ' fewer than usual' + (j ? '' : ' by this time')).join(', and ');
   }
   /* `parts` are the teams inside a set of several, so a team that is short
      is named even when the whole set, averaged, is not. */
@@ -10806,10 +10806,10 @@
     if (said) return dayWhen(r) + ' ' + who + ' ' + has + ' ' + said + '.';
     const inner = (parts || []).map((t) => ({ t, c: shortClause(dayRead(t.members)) })).filter((x) => x.c)[0];
     if (inner) {
-      return dayWhen(r) + ' ' + who + ' ' + has + ' kept to a usual day overall, but the <b>' +
+      return dayWhen(r) + ' ' + who + ' ' + (has === 'have' ? 'are' : 'is') + ' having a normal day overall, but the <b>' +
         esc(inner.t.name) + '</b> has ' + inner.c + '.';
     }
-    return dayWhen(r) + ' ' + who + ' ' + has + ' kept to a usual day on every step, with <b>' +
+    return dayWhen(r) + ' ' + who + ' ' + (has === 'have' ? 'are' : 'is') + ' having a normal day, with <b>' +
       esc(plural(r.t.meets, 'meeting')) + '</b> booked.';
   }
   const firstName = (id) => REP[id].name.split(' ')[0];
@@ -11106,7 +11106,7 @@
     if (one) asks.push('Who is short on calls today?');
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
-        t.members.every((id) => ids.indexOf(id) > -1))), from: 'calls so far against a usual day by this hour' }) +
+        t.members.every((id) => ids.indexOf(id) > -1))), from: 'compared with a normal day' }) +
       wRow(dayWidgets(), today ? 5 + DAY_STEPS.length : 4 + DAY_STEPS.length,
         today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
       '<div class="b-day-asks">' +
@@ -11170,7 +11170,7 @@
         chip: Math.abs(avgSecs - usualSecs) < 5 ? 'As usual' : SIGNED(avgSecs - usualSecs) + 's', q: overview,
         chart: wLine(cut.map((d) => secsDay(ids, d)), { line: usualSecs, label: 'Each working day, usual ' + callLen(usualSecs) }) });
     return '<div class="b-day">' +
-      aimyBlock({ text: said, from: 'calls against a usual run of the same days' }) +
+      aimyBlock({ text: said, from: 'compared with a normal run of those days' }) +
       wRow(steps + more, DAY_STEPS.length + 3, 'Most behind first, against a usual run of the same days') +
       '<div class="b-day-asks">' +
         '<button class="s-sec-ask" type="button" data-ask="' + esc(overview) + '">' + aiMark() + esc(overview) + '</button>' +
@@ -11574,11 +11574,13 @@
     if (up.cum < 20 || !up.day) return '';
     const got = Math.round((100 * R[k].cum) / up.cum), want = Math.round((100 * R[k].day) / up.day);
     const upOk = up.ratio >= 0.95;
+    /* Plain words (Nour, 9 Nov: AiMY's lines "more human friendly, easy to
+       understand"): what is happening first, then the one number behind it. */
     if (got < want * 0.95) {
-      return (upOk ? 'The ' + w[1] + ' are as usual; the drop comes after them: ' : '') +
-        '<b>' + got + ' in 100</b> ' + w[1] + ' ' + w[2] + ', usually ' + want + '.';
+      return (upOk ? cap1(w[1]) + ' are normal, but fewer of them ' : 'Fewer ' + w[1] + ' ') + w[2] +
+        ': <b>' + got + ' in every 100</b>, when it is usually ' + want + '.';
     }
-    return upOk ? '' : 'It comes from the ' + w[1] + ': ' + got + ' in 100 still ' + w[2] + ', as usual, but there are fewer ' + w[1] + ' to start from.';
+    return upOk ? '' : 'There are fewer ' + w[1] + ' than usual, so fewer ' + R[k].s.noun + ' too.';
   }
   /* Who the gap belongs to: the team that holds most of it and the person
      furthest short, or, on pace, who is furthest ahead. */
@@ -11587,7 +11589,7 @@
     const r = R[k];
     if (!pace(r).short) {
       const best = r.by.slice().sort((a, b) => a.gap - b.gap)[0];
-      return best && best.gap <= -1 ? '<b>' + esc(REP[best.id].name) + '</b> is furthest above usual, by ' + esc(commas(Math.round(-best.gap))) + '.' : '';
+      return best && best.gap <= -1 ? '<b>' + esc(firstName(best.id)) + '</b> is doing best, ' + esc(commas(Math.round(-best.gap))) + ' more than usual.' : '';
     }
     const tot = r.by.reduce((a, x) => a + Math.max(0, x.gap), 0);
     if (tot < 1) return '';
@@ -11595,37 +11597,27 @@
     if (ctx.teams.length > 1) {
       const tg = ctx.teams.map((t) => ({ t, g: r.by.filter((x) => t.members.indexOf(x.id) > -1).reduce((a, x) => a + Math.max(0, x.gap), 0) }))
         .sort((a, b) => b.g - a.g)[0];
-      return 'The <b>' + esc(tg.t.name) + '</b> holds <b>' + Math.round((100 * tg.g) / tot) + '%</b> of the gap, and <b>' +
-        esc(REP[top.id].name) + '</b> is furthest below usual, by ' + esc(commas(Math.round(top.gap))) + '.';
+      return 'Most of the gap is in the <b>' + esc(tg.t.name) + '</b>, and <b>' + esc(firstName(top.id)) + '</b> is the furthest behind, ' +
+        esc(commas(Math.round(top.gap))) + ' fewer than usual.';
     }
-    return '<b>' + esc(REP[top.id].name) + '</b> alone is ' + esc(commas(Math.round(top.gap))) + ' of it, <b>' +
-      Math.round((100 * top.gap) / tot) + '%</b> of the gap.';
+    /* No second total: the headline already says how far below usual. */
+    return (top.gap / tot >= 0.5 ? 'Most of it is <b>' : 'The furthest behind is <b>') + esc(firstName(top.id)) + '</b>: ' +
+      esc(commas(Math.round(top.gap))) + ' fewer than usual.';
   }
   /* Where the pace lands at the end of the period. */
   function planAhead(ctx, r, P) {
     const Who = cap1(ctx.who), v = (one, many) => (ctx.pl ? many : one);
-    const usualOne = 'a usual ' + P.unit.replace(/^the /, '');
+    const unit = P.unit.replace(/^the /, '');
     if (r.daysLeft < 0.01) {
       const d = r.cum - r.target;
-      return Who + ' ended ' + P.unit + ' <b>' + esc(commas(Math.abs(d)) + ' ' + r.s.noun) + (d >= 0 ? ' above' : ' under') + '</b> ' + usualOne + '.';
+      return Who + ' finished ' + P.unit + ' with <b>' + esc(commas(Math.abs(d)) + (d >= 0 ? ' more ' : ' fewer ') + r.s.noun) + '</b> than usual.';
     }
     const d = r.proj - r.target;
     /* Within 3% of a usual month is a usual month, as the step's own words say. */
-    if (Math.abs(d) < Math.max(1, r.target * 0.03)) return 'At this pace ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' about where ' + usualOne + ' ends.';
-    return 'At this pace ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' <b>' + esc(commas(Math.abs(d)) + ' ' + r.s.noun) +
-      (d > 0 ? ' above' : ' under') + '</b> ' + usualOne + (d < 0 ? ', with ' + esc(plural(r.leftDays, 'working day')) + ' left to close it.' : '.');
-  }
-  /* The last five working days against the five before, wherever they fall. */
-  function planTrend(ids, k) {
-    let a = 0, ap = 0, b = 0, bp = 0, seen = 0;
-    for (let iso = TODAY_ISO; seen < 10; iso = isoAdd(iso, -1)) {
-      const p = dayPart(iso);
-      if (!p) continue;
-      const n = ids.reduce((s, id) => s + repDay(id, iso)[k], 0);
-      if (seen < 5) { a += n; ap += p; } else { b += n; bp += p; }
-      seen++;
-    }
-    return ap && bp ? { now: a / ap, was: b / bp } : null;
+    if (Math.abs(d) < Math.max(1, r.target * 0.03)) return 'If this pace holds, ' + P.unit + ' ends about normal.';
+    return d > 0 ? 'If this pace holds, ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' with about <b>' + esc(commas(d) + ' more ' + r.s.noun) + '</b> than usual.'
+      : 'If nothing changes, ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' about <b>' + esc(commas(-d) + ' ' + r.s.noun) + ' short</b> of normal, with ' +
+        esc(plural(r.leftDays, 'working day')) + ' left.';
   }
   const PL_DOWN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg>';
@@ -11778,11 +11770,6 @@
       const who = planWho(ctx, R, k);
       if (who) say.push(who);
       say.push(planAhead(ctx, r, P));
-      const tr = planTrend(ctx.ids, k);
-      if (tr && tr.was && Math.abs(tr.now / tr.was - 1) >= 0.08) {
-        say.push('The last five working days made <b>' + esc(commas(Math.round(tr.now))) + ' a day</b>, ' +
-          (tr.now < tr.was ? 'down' : 'up') + ' from ' + esc(commas(Math.round(tr.was))) + ' the five before.');
-      }
     }
     /* AiMY's read, the way AiMY QA opens a page (Nour, 9 Nov): the reading
        first, in its colour, the sentence under it and the things to do; the
@@ -11999,10 +11986,10 @@
     const R = planRead([id], P);
     const on = onCallNow([id]).length;
     const worst = DAY_STEPS.map((s) => R[s.k]).filter((x) => pace(x).short).sort((a, b) => a.ratio - b.ratio)[0];
-    const say = !R.calls.el ? 'Nothing to read yet ' + esc(P.when) + '.'
-      : worst ? (planWhy(R, worst.k) || 'Furthest below usual on <b>' + esc(worst.s.noun) + '</b>: ' + esc(commas(worst.cum)) + ', usually ' +
-          esc(commas(Math.round(worst.byNow))) + ' by now.')
-      : 'As usual on every step ' + esc(P.when) + '.';
+    const say = !R.calls.el ? 'Nothing to show yet ' + esc(P.when) + '.'
+      : worst ? (planWhy(R, worst.k) || cap1(worst.s.noun) + ' are a bit low: <b>' + esc(commas(worst.cum)) + '</b> so far, when ' +
+          esc(commas(Math.round(worst.byNow))) + ' is normal.')
+      : 'A normal ' + esc(P.unit.replace(/^the /, '')) + ' so far, on every step.';
     const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to })));
     return '<article class="type-card s-card b-qcard b-ro-card">' +
       '<div class="b-ro-top"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 44) + '</span>' +
@@ -12042,13 +12029,17 @@
     const b = diffs.slice().sort((a, b2) => b2.rel - a.rel)[0];
     const others = reads.length > 2 ? 'your other teams' : 'the ' + esc(reads.filter((x) => x !== mine)[0].t.name);
     const tn = 'The <b>' + esc(t.name) + '</b> ';
-    const said = (lead === 0 ? (trail === 0 ? tn + 'is level with ' + others
-        : tn + 'trails ' + others + (trail === 4 ? ' on every step' : ' on ' + trail + ' of the four steps'))
-      : lead === 4 ? tn + 'leads ' + others + ' on every step'
-      : tn + 'leads ' + others + ' on ' + lead + ' of the four steps') +
-      (w.d <= -1 ? '; the widest gap is <b>' + esc(w.s.noun) + '</b>, ' + fmt(val(mine, w.s.k)) + ' ' + UNIT[w.s.k] + ' against ' +
+    /* One step in words a manager would say: "22 in every 100 calls reach a
+       decision maker, against 25 for the Enterprise Team". */
+    const SAYS = { calls: (v) => v + ' calls a day each', reached: (v) => v + ' in every 100 calls reach a decision maker',
+      talks: (v) => v + ' in every 100 calls become a conversation', meets: (v) => v + ' in every 100 conversations end in a meeting' };
+    const said = (lead === 0 ? (trail === 0 ? tn + 'is level with ' + others + '.'
+        : tn + 'is behind ' + others + (trail === 4 ? ' on every step.' : ' on ' + trail + ' of the 4 steps.'))
+      : lead === 4 ? tn + 'is ahead of ' + others + ' on every step.'
+      : tn + 'is ahead of ' + others + ' on ' + lead + ' of the 4 steps.') +
+      (w.d <= -1 ? ' The biggest gap is <b>' + esc(w.s.noun) + '</b>: ' + SAYS[w.s.k](fmt(val(mine, w.s.k))) + ', against ' +
         fmt(val(w.best, w.s.k)) + ' for the ' + esc(w.best.t.name) + '.'
-        : ', most of all on <b>' + esc(b.s.noun) + '</b>, ' + fmt(val(mine, b.s.k)) + ' ' + UNIT[b.s.k] + '.');
+        : lead ? ' Most of all on <b>' + esc(b.s.noun) + '</b>: ' + SAYS[b.s.k](fmt(val(mine, b.s.k))) + '.' : '');
     const order = [mine].concat(reads.filter((x) => x !== mine));
     /* Each step: both teams' figure, what the gap is in the step's own
        measure, highlighted, and the next step that closes it (behind, take
@@ -12073,7 +12064,7 @@
           '<span class="b-cmp-val is-' + tone(x) + '">' + fmt(val(x, s.k)) + '</span></div>').join('') +
         '<div class="b-cmp-do"><span class="b-cmp-gap ' + (!best || n < 1 ? 'is-level' : d < 0 ? 'is-behind' : 'is-ahead') + '"><span>' + gap + '</span></span>' + act + '</div></div>';
     };
-    return aimyBlock({ text: said, from: 'each team ' + P.when }) +
+    return aimyBlock({ text: said, from: 'both teams, ' + P.when }) +
       '<div class="b-cmp">' + DAY_STEPS.map(step).join('') + '</div>' +
       '<p class="b-cmp-key">Calls are a day for each person. Decision makers and conversations are in 100 calls, meetings in 100 conversations.</p>';
   }
@@ -12116,9 +12107,9 @@
     const many = reads.length > 1;
     const worst = reads.slice().sort((a, b) => a.now - b.now)[0];
     const said = worst && worst.word.rank >= 2
-      ? '<b>' + esc(worst.t.name) + '</b> is at ' + commas(worst.now) + ' this week, ' +
-        (worst.move < 0 ? 'down ' + commas(-worst.move) : 'up ' + commas(worst.move)) + ' since last week.'
-      : 'Every team is on track this week.';
+      ? 'The <b>' + esc(worst.t.name) + '</b>\u2019s score ' + (worst.move < 0 ? 'dropped ' + commas(-worst.move) : 'rose ' + commas(worst.move)) +
+        ' points this week, to ' + commas(worst.now) + '.'
+      : (many ? 'All your teams are' : 'Your team is') + ' doing fine this week.';
     return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', 'Back to Today') + '</div>' +
@@ -12132,7 +12123,7 @@
       '</section>' +
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
-        aimyBlock({ text: said, from: 'this week against last' }) +
+        aimyBlock({ text: said, from: 'compared with last week' }) +
         cardGrid(reads, (r, i) => teamCard(r, i, live, P)) +
       '</section>' +
     '</div>';
@@ -12176,10 +12167,11 @@
     const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id, from: S.from, to: S.to })));
     const x = DAY_STEPS.map((s) => R[s.k]).sort((a, b) => a.ratio - b.ratio)[0];
     const top = x.by.slice().sort((a, b) => b.gap - a.gap)[0];
-    const say = !x.el ? 'Nothing to read yet ' + esc(P.when) + '.'
-      : !pace(x).short ? 'As usual on every step ' + esc(P.when) + '.'
-      : 'Furthest below usual on <b>' + esc(x.s.noun) + '</b>, ' + esc(commas(Math.round(x.byNow - x.cum))) + ' under a usual pace by now' +
-        (top && top.gap >= 1 ? ', most of it <b>' + esc(firstName(top.id)) + '</b>' : '') + '.';
+    const say = !x.el ? 'Nothing to show yet ' + esc(P.when) + '.'
+      : !pace(x).short ? 'A normal ' + esc(P.unit.replace(/^the /, '')) + ' so far, on every step.'
+      : cap1(x.s.noun) + ' are ' + (pace(x).tone === 'err' ? 'low' : 'a bit low') + ' ' + esc(P.when) + ': <b>' +
+        esc(commas(Math.round(x.byNow - x.cum))) + ' fewer</b> than usual so far' +
+        (top && top.gap >= 1 ? ', mostly <b>' + esc(firstName(top.id)) + '</b>' : '') + '.';
     return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
         scoreTag(r.now) +
@@ -12188,7 +12180,7 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(r.t.name) + '</button>' +
       planRows(R) +
-      aimyBlock({ text: say, from: 'against their usual, ' + P.when }) +
+      aimyBlock({ text: say, from: 'compared with a normal ' + P.unit.replace(/^the /, '') }) +
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-go="' + go + '">Open</button>' +
@@ -12242,18 +12234,18 @@
     const behind = rows.filter((p) => p.gap > 0.1 && p.x.u.calls - p.x.d.calls >= 2).sort((a, b) => b.gap - a.gap)[0];
     if (behind) {
       picks.push({ p: behind, acts: ['msg', 'book'],
-        why: '<b>' + esc(commas(behind.x.d.calls)) + ' calls</b> ' + when + ', usually ' + esc(commas(behind.x.u.calls)) + '.' +
-          (behind.w.was != null && behind.w.now < behind.w.was ? ' This week ' + commas(behind.w.now) + ', down ' +
-            commas(behind.w.was - behind.w.now) + ' since last week.' : '') });
+        why: 'Only <b>' + esc(commas(behind.x.d.calls)) + ' calls</b> ' + when + ', when ' + esc(commas(behind.x.u.calls)) + ' is normal.' +
+          (behind.w.was != null && behind.w.now < behind.w.was ? ' The score dropped ' + commas(behind.w.was - behind.w.now) +
+            ' points this week, to ' + commas(behind.w.now) + '.' : '') });
     }
     const best = rows.filter((p) => p !== behind && p.x.d.meets > 0)
       .sort((a, b) => (b.x.d.meets - a.x.d.meets) || (b.x.d.meets / (b.x.d.talks || 1) - a.x.d.meets / (a.x.d.talks || 1)))[0];
     if (best) {
       picks.push({ p: best, acts: ['share', 'thanks'],
-        why: '<b>' + esc(plural(best.x.d.meets, 'meeting')) + '</b> from ' + esc(plural(best.x.d.talks, 'conversation')) + ' ' +
-          (r.day === TODAY_ISO ? 'today' : 'that day') + ', the most in the team. Worth the others hearing how.' });
+        why: 'Booked <b>' + esc(plural(best.x.d.meets, 'meeting')) + '</b> from ' + esc(plural(best.x.d.talks, 'conversation')) + ' ' +
+          (r.day === TODAY_ISO ? 'today' : 'that day') + ', more than anyone else. Worth sharing how.' });
     }
-    if (!picks.length) return aimyBlock({ text: 'Nobody in this team needs you today: everyone is near a usual day.' });
+    if (!picks.length) return aimyBlock({ text: 'Nobody needs you today: everyone is having a normal day.' });
     return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> in this team ' + (picks.length === 1 ? 'is' : 'are') +
         ' worth your time today.' }, true) +
       '<div class="b-wt-rows">' + picks.map((k) => {
