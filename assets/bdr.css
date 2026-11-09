@@ -8798,8 +8798,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pl-big.is-err { color: var(--err-text); }
 .b-pl-evcap { margin: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
 .b-pl-evsay { margin: 8px 0 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--d50); }
-.b-pl-evsay b, .b-pl-evid b { font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-pl-evid { margin: 0; font-size: var(--fs-xs); color: var(--d100); }
+.b-pl-evsay b { font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; }
 .b-pl-evact { margin-top: auto; padding-top: 12px; }
 @media (max-width: 900px) { .b-pl-read { grid-template-columns: minmax(0, 1fr); } }
 /* "Ask AiMY why" as a pill beside the action, the mark on it. */

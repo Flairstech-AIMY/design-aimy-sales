@@ -11623,7 +11623,6 @@
     const r = R[k], P = R.P, noun = r.s.noun;
     const t = ctx.teams[0];
     const live = r.daysLeft > 0.01;
-    const evid = '<p class="b-pl-evid"><b>' + esc(commas(r.cum)) + '</b> done of <b>' + esc(commas(Math.round(r.byNow))) + '</b> planned by now</p>';
     if (!live) {
       const met = r.cum >= r.target;
       return '<div class="b-pl-ev"><p class="b-pl-k">How ' + esc(P.unit) + ' ended</p>' +
@@ -11640,20 +11639,14 @@
       const share = planDay(k) * r.N;
       return { id: x.id, need: Math.ceil(Math.max(0, share - x.n) / r.daysLeft), now: r.el ? Math.round(x.n / r.el) : 0 };
     });
-    const far = each.slice().sort((a, b) => (b.need - b.now) - (a.need - a.now))[0];
-    let say;
-    if (r.need <= 0) {
-      say = cap1(ctx.who) + ' ' + (ctx.pl ? 'have' : 'has') + ' already made the plan for ' + esc(P.unit) + '.';
-    } else if (need > vel) {
-      const more = need - vel;
-      say = (ctx.one ? esc(firstName(ctx.ids[0])) + ' makes ' : 'The team makes ') + '<b>' + esc(commas(vel)) + ' a day</b> now, so it takes <b>' +
-        esc(commas(more)) + ' more a day</b>' + (ctx.one ? '' : ', about ' + esc(commas(Math.ceil(more / ctx.ids.length))) + ' more each') + '.' +
-        (!ctx.one && far && far.need > far.now ? ' <b>' + esc(firstName(far.id)) + '</b> has the most to make up: ' + esc(commas(far.need)) +
-          ' a day against ' + esc(commas(far.now)) + ' now.' : '');
-    } else {
-      say = (ctx.one ? esc(firstName(ctx.ids[0])) + ' makes ' : 'The team makes ') + '<b>' + esc(commas(vel)) + ' a day</b>, ' +
-        esc(commas(vel - need)) + ' more than it takes. Keep this pace and the plan is met early.';
-    }
+    /* The same person AiMY's tile names: furthest short of the plan by now. */
+    const top = r.by.slice().sort((a, b) => b.gap - a.gap)[0];
+    const far = top && top.gap >= 1 ? each.filter((x) => x.id === top.id)[0] : null;
+    /* Short (Nour, 9 Nov: "so much yapping"): the number, today's pace
+       beside it in the caption, and at most one short line. */
+    const say = r.need <= 0 ? 'The plan is already made.'
+      : need <= vel ? 'Today’s pace is enough.'
+      : !ctx.one && far && far.need > far.now ? 'Most to make up: <b>' + esc(firstName(far.id)) + '</b>' : '';
     const key = (t ? t.id : '') + ':' + (ctx.one ? ctx.ids[0] : 'all') + ':' + k;
     const sent = PL_SENT[key];
     const label = ctx.one ? 'Send ' + firstName(ctx.ids[0]) + ' this number' : 'Send each person their number';
@@ -11662,8 +11655,8 @@
       : '<button class="s-insight-lnk primary" type="button" data-plnum="' + esc(key) + '">' + esc(label) + '</button>';
     return '<div class="b-pl-ev"><p class="b-pl-k">To finish ' + esc(P.unit) + '</p>' +
       '<p class="b-pl-big is-' + tone + '">' + esc(commas(Math.max(0, need))) + '<small>' + esc(noun) + ' a day</small></p>' +
-      '<p class="b-pl-evcap">for the ' + esc(plural(r.leftDays, 'working day')) + ' left</p>' +
-      '<p class="b-pl-evsay">' + say + '</p>' + evid +
+      '<p class="b-pl-evcap">' + esc(plural(r.leftDays, 'working day')) + ' left, ' + esc(commas(vel)) + ' a day now</p>' +
+      (say ? '<p class="b-pl-evsay">' + say + '</p>' : '') +
       (act ? '<div class="b-pl-evact">' + act + '</div>' : '') + '</div>';
   }
   /* Send each person their number: the plan for the days left, split by
