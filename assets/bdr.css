@@ -8973,8 +8973,22 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-gap.is-behind, .b-wd-who.is-behind { color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 13%, transparent); }
 .b-cmp-gap.is-ahead, .b-wd-who.is-ahead { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 13%, transparent); }
 .b-cmp-do { min-width: 0; }
-/* On a call now: the names follow the live count; nobody on a call, no line. */
-.b-wd-who:has([data-live-names]:empty) { display: none; }
+/* Who is on a call, behind the live indicator (10 Nov): a row per person,
+   lit by the five-second timer; the words say the state, the dot repeats it. */
+.b-oc { cursor: help; border-radius: var(--r-pill); }
+.b-oc:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-oc .b-oc-pop { width: 17rem; max-width: min(17rem, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; cursor: default; }
+.b-oc-h { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-oc-rows { display: flex; flex-direction: column; gap: 8px; }
+.b-oc-row { display: flex; align-items: center; gap: 10px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d50); }
+.b-oc-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-oc-st { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--d100); }
+.b-oc-st i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--d50) 35%, transparent); }
+.b-oc-yes { display: none; }
+.b-oc-row.is-on .b-oc-st { color: var(--ok-text); }
+.b-oc-row.is-on .b-oc-st i { background: var(--ok-text); border-color: var(--ok-text); }
+.b-oc-row.is-on .b-oc-yes { display: inline; }
+.b-oc-row.is-on .b-oc-no { display: none; }
 /* The score, opened (10 Nov): the wait popover's hover and focus, holding
    what the score is made of. Each part's points on the right; the part that
    loses most in the warning ink. */

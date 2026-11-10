@@ -10692,27 +10692,25 @@
       if (el.textContent === n) return;
       const pill = el.closest('.b-live');
       if (pill) pill.classList.toggle('is-none', n === '0');
-      /* A widget's own state and a team's row in its split follow the count,
-         so the big number and the rows under it never disagree. */
-      const wd = el.closest('.b-wd-val') && el.closest('.b-wd');
-      if (wd) {
-        wd.classList.toggle('is-live', n !== '0');
-        wd.classList.toggle('is-eq', n === '0');
-        const chip = wd.querySelector('.b-wd-st');
-        if (chip) chip.textContent = n === '0' ? 'Nobody' : 'Live';
-      }
-      const row = el.closest('.b-wd-srow b');
-      if (row) { row.classList.toggle('is-live', n !== '0'); row.classList.toggle('is-eq', n === '0'); }
       el.innerHTML = '<span class="b-tick">' + esc(n) + '</span>';
     });
+    /* A person's row in an on-a-call popover: lit while they are on a call. */
     document.querySelectorAll('[data-live-who]').forEach((d) => d.classList.toggle('is-on', on.indexOf(d.getAttribute('data-live-who')) > -1));
-    /* The names under On a call now, among the people that widget counts. */
-    document.querySelectorAll('[data-live-names]').forEach((d) => {
-      const ids = d.getAttribute('data-live-names').split(',');
-      const html = on.filter((id) => ids.indexOf(id) > -1).map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ');
-      if (d.innerHTML !== html) d.innerHTML = html;
-    });
   }, LIVE_MS);
+  /* ══ WHO IS ON A CALL, BEHIND THE INDICATOR (10 Nov 2026) ═══════════════
+     The live "N on a call" beside a team's name opens, on hover or focus,
+     to its people: each one's row says On a call or Not on a call, and the
+     five-second timer relights the rows (`data-live-who`), so the list and
+     the count never disagree. The wait popover's pattern, no dialog. */
+  function onCallPop(t, inner) {
+    const on = onCallNow(t.members);
+    return '<span class="b-wait-info b-oc" tabindex="0">' + inner +
+      '<span class="b-wait-pop b-oc-pop" role="tooltip"><span class="b-oc-h">On a call now, the ' + esc(t.name) + '</span>' +
+        '<span class="b-oc-rows">' + t.members.map((id) => '<span class="b-oc-row' + (on.indexOf(id) > -1 ? ' is-on' : '') + '" data-live-who="' + esc(id) + '">' +
+          faceOf(id, 24) + '<span class="b-oc-name">' + esc(REP[id].name) + '</span>' +
+          '<span class="b-oc-st"><i aria-hidden="true"></i><span class="b-oc-yes">On a call</span><span class="b-oc-no">Not on a call</span></span></span>').join('') +
+        '</span></span></span>';
+  }
 
   /* ══ THE CARD: ONE SCORE AND ONE SENTENCE ═════════════════════════════
      Every team's people in one number, out of 100. The word beside it is
@@ -11030,9 +11028,6 @@
     return '<span class="w-spark">' + wSvg(out) + '<i class="w-end' + (o.cls ? ' ' + o.cls : '') + '" style="top:' +
       ((100 * Y(vals[vals.length - 1] || 0)) / 32).toFixed(1) + '%"></i></span>' + (o.label ? '<span class="w-tl">' + o.label + '</span>' : '');
   }
-  /* A dot per person, lit while they are on a call; the live timer relights them. */
-  const wDots = (ids, on) => '<span class="w-dots">' + ids.map((id) => '<i data-live-who="' + esc(id) + '"' +
-    (on.indexOf(id) > -1 ? ' class="is-on"' : '') + '></i>').join('') + '</span>';
   const wTicks = (n) => '<span class="w-dots is-days">' + Array.from({ length: Math.min(n, 23) }, () => '<i class="is-on"></i>').join('') + '</span>';
   const workDaysBefore = (day, n) => { const out = []; let d = day; while (out.length < n) { d = lastWorkDay(d); out.unshift(d); } return out; };
   const sumDay = (ids, iso, k) => ids.reduce((a, id) => a + repDay(id, iso)[k], 0);
@@ -11157,17 +11152,12 @@
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
         (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks', skip);
-      const onIds = onCallNow(ids);
-      const on = onCallNow(ids).length;
       const sd = r.secs - usualSecs;
       const ss = Math.abs(sd) < 5 ? { st: 'ok', chip: 'As usual' } : sd < 0 && r.secs < usualSecs * 0.85 ? { st: 'short', chip: SIGNED(sd) + 's' }
         : { st: sd > 0 ? 'ahead' : 'ok', chip: SIGNED(sd) + 's' };
+      /* No On a call now card (Nour, 10 Nov): the live indicator beside a
+         team's name says it, and opens to who is on a call (onCallPop). */
       return steps +
-        (today ? wid({ cap: 'On a call now', val: commas(on), unit: 'of ' + commas(r.n), live: one ? ids[0] : only ? only.id : 'all',
-          st: on ? 'live' : 'eq', chip: on ? 'Live' : 'Nobody', q: ask('live'), chart: wDots(ids, onIds),
-          split: split((x) => ['<span data-live="' + esc(x.t.id) + '">' + esc(commas(onCallNow(x.t.members).length)) + '</span> of ' + esc(commas(x.t.members.length)),
-            onCallNow(x.t.members).length ? 'live' : 'eq']),
-          do: one ? null : { who: '<span data-live-names="' + esc(ids.join(',')) + '">' + onIds.map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ') + '</span>' } }) : '') +
         wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
           split: split((x, i) => [esc(commas(x.r.yest)), yt[i].w.st]),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
@@ -11201,7 +11191,7 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'compared with a normal day' }) +
-      wRow(dayWidgets(), (today ? 5 : 4) - (lean === true ? 2 : lean ? 1 : 0) + DAY_STEPS.length,
+      wRow(dayWidgets(), 4 - (lean === true ? 2 : lean ? 1 : 0) + DAY_STEPS.length,
         today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
@@ -12224,8 +12214,8 @@
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams', true) +
         '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now, { team: t }) + move + '</div>' +
           '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
-            '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
-              '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span></div></div>' +
+            onCallPop(t, '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
+              '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>') + '</div></div>' +
           datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
         planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false, cmp: others ? t : null }) +
       '</section>' +
@@ -12308,9 +12298,9 @@
      edge is moved left by that much (rects are visual px and the body may be
      zoomed, so the shift is divided back into CSS px). */
   const scFit = (e) => {
-    const sc = e.target.closest && e.target.closest('.b-sc');
+    const sc = e.target.closest && e.target.closest('.b-sc, .b-oc');
     if (!sc) return;
-    const p = sc.querySelector('.b-sc-pop');
+    const p = sc.querySelector('.b-sc-pop, .b-oc-pop');
     p.style.left = '';
     const r = p.getBoundingClientRect();
     const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
@@ -12373,8 +12363,8 @@
     return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
         scoreTag(r.now, { team: r.t }) +
-        '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
-          commas(on) + '</span> on a call</span></span>' +
+        onCallPop(r.t, '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
+          commas(on) + '</span> on a call</span></span>') +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(r.t.name) + '</button>' +
       planRows(R) +
