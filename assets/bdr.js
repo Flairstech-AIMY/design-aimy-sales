@@ -11073,8 +11073,10 @@
       if (!WIDE_ALL) row.querySelector('.b-wscroll').scrollLeft = 0;
     });
   });
-  /* `lean`: the page already shows the month (a team's board), so This month
-     and A working day are left out rather than said twice. */
+  /* `lean`: the page already shows the month, so it is not said twice. true
+     (a team's page, whose board has the month and the calls a day each)
+     leaves out This month and A working day; 'month' (Your teams, whose
+     team cards carry each team's month) leaves out This month only. */
   function teamDayBlock(ids, who, has, fold, R, lean) {
     if (R) return periodDayBlock(ids, who, has, fold, R);
     const r = dayRead(ids);
@@ -11150,7 +11152,7 @@
       /* Not drawn, not asked: wDo names people, and a card that is not on
          the page must not use up a name. */
       const wm = one || lean ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
-      const wa = one || lean ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
+      const wa = one || lean === true ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
         as.st, 'calls', skip);
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
@@ -11172,8 +11174,8 @@
             { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
         (lean ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
           split: split((x, i) => [esc(commas(x.r.month)), mt[i].w.st]),
-          chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
-        wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
+          chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm })) +
+        (lean === true ? '' : wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
           split: split((x, i) => [esc(commas(x.r.avg)), at[i].w.st]),
           chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa })) +
         wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
@@ -11199,7 +11201,7 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'compared with a normal day' }) +
-      wRow(dayWidgets(), (today ? 5 : 4) - (lean ? 2 : 0) + DAY_STEPS.length,
+      wRow(dayWidgets(), (today ? 5 : 4) - (lean === true ? 2 : lean ? 1 : 0) + DAY_STEPS.length,
         today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
@@ -12192,6 +12194,19 @@
       : fixBtn(c.best.id, 'all', k, 'row', c.mine.t.id, true);
     return '<div class="b-cmp-do b-pl-cmp"><span class="b-cmp-gap ' + cmpTone(c) + '"><span>' + gap + '</span></span>' + act + '</div>';
   }
+  /* The roster, with the build's own find box (Nour, 10 Nov: "add search
+     for the team roster"), the one Campaigns and Lists use: `S.find`, kept
+     in the URL, the page redrawn per keystroke without moving the scroll.
+     It matches any part of a name; an empty result says what it looked for
+     and clears in one press. */
+  function teamPeople(t, P) {
+    const q = (S.find || '').trim().toLowerCase();
+    const ids = q ? t.members.filter((id) => REP[id].name.toLowerCase().indexOf(q) > -1) : t.members;
+    return '<div class="s-camp-list-head"><h2 class="s-block-h">The people</h2>' + findBox('Find someone in the ' + t.name) + '</div>' +
+      (ids.length ? cardGrid(ids, (id, i) => rosterCard(t, id, i, P))
+        : '<p class="b-vfoot">Nobody in the ' + esc(t.name) + ' matches “' + esc(S.find) + '”. ' +
+          '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>');
+  }
   /* Side by side on Your teams (a tile per step ranking every team) was
      built and taken out on 10 Nov: Nour noticed the team cards already sit
      side by side with these figures. The ranking lives on a team page's
@@ -12219,8 +12234,7 @@
       '<section class="s-block s-block-wide" aria-label="' + esc(R0 ? dateRange(R0.from, R0.to) : 'Today') + '">' +
         headH(R0 ? dateRange(R0.from, R0.to) : 'Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0, true) + '</section>' +
       '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>' +
-      '<section class="s-block s-block-wide" aria-label="The people">' + headH('The people') +
-        cardGrid(t.members, (id, i) => rosterCard(t, id, i, P)) + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="The people">' + teamPeople(t, P) + '</section>' +
     '</div>';
   }
 
@@ -12253,7 +12267,7 @@
         /* The day's figures first, as widgets; the plan and its charts live on
            each team's page and each person's profile (Nour). */
         teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
-          many ? 'have' : 'has', false, R0) +
+          many ? 'have' : 'has', false, R0, 'month') +
       '</section>' +
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
