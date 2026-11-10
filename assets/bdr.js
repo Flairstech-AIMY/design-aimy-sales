@@ -4464,6 +4464,9 @@
     paintProto();
     guardBack();
     postPaint(pre);
+    /* A row of cards that fits fades no edge (wEdge); measured on the next
+       frame so the paint itself never waits on layout. */
+    requestAnimationFrame(() => document.querySelectorAll('.b-wscroll').forEach(wEdge));
     /* Put down by the paint that used it, so the next one — a write, a page
        of the queue — draws its cards plain unless go() says otherwise. */
     SKEL_ON = false;
@@ -10918,10 +10921,12 @@
       /* The foot: who it comes down to, then the verb and AiMY's question as
          a labelled pill (Nour, 9 Nov: a bare mark in the corner was not
          obvious), the same pill as "Ask AiMY why" on the plan. */
-      '<span class="b-wd-do">' + (o.do && o.do.who ? '<span class="b-wd-who ' + (o.do.tone || 'is-level') + '"><span>' + o.do.who + '</span></span>' : '') +
+      /* No question, no pill: on the day's row the questions under the row
+         are the section's Ask AiMY (Nour, 10 Nov). An empty foot is not drawn. */
+      ((o.do && (o.do.who || o.do.act)) || o.q ? '<span class="b-wd-do">' + (o.do && o.do.who ? '<span class="b-wd-who ' + (o.do.tone || 'is-level') + '"><span>' + o.do.who + '</span></span>' : '') +
         '<span class="b-wd-btns">' + (o.do && o.do.act ? o.do.act : '') +
-          '<button class="s-sec-ask b-wd-ask" type="button" data-ask="' + esc(o.q) + '" title="' + esc(o.q) + '">' + aiMark() + '<span>Ask AiMY</span></button>' +
-        '</span></span>' +
+          (o.q ? '<button class="s-sec-ask b-wd-ask" type="button" data-ask="' + esc(o.q) + '" title="' + esc(o.q) + '">' + aiMark() + '<span>Ask AiMY</span></button>' : '') +
+        '</span></span>' : '') +
     '</div>';
   /* Who a figure comes down to: the person furthest short of what they are
      measured by (Message them), or, when nobody is, the one who leads (Say
@@ -11030,7 +11035,6 @@
   }
   const wTicks = (n) => '<span class="w-dots is-days">' + Array.from({ length: Math.min(n, 23) }, () => '<i class="is-on"></i>').join('') + '</span>';
   const workDaysBefore = (day, n) => { const out = []; let d = day; while (out.length < n) { d = lastWorkDay(d); out.unshift(d); } return out; };
-  const sumDay = (ids, iso, k) => ids.reduce((a, id) => a + repDay(id, iso)[k], 0);
   const secsDay = (ids, iso) => {
     let s = 0, c = 0;
     ids.forEach((id) => { const x = repDay(id, iso); s += x.secs * x.calls; c += x.calls; });
@@ -11048,6 +11052,9 @@
     sc.classList.toggle('is-fits', fits);
     sc.classList.toggle('is-end', end);
     sc.classList.toggle('is-mid', mid);
+    /* Show all has nothing to show when every card already does. */
+    const row = sc.closest('.b-wrow'), btn = row && row.querySelector('[data-wexp]');
+    if (btn) btn.hidden = fits && !row.classList.contains('is-all');
   }
   document.addEventListener('scroll', (e) => { if (e.target.classList && e.target.classList.contains('b-wscroll')) wEdge(e.target); }, true);
   window.addEventListener('resize', () => document.querySelectorAll('.b-wscroll').forEach(wEdge));
@@ -11075,10 +11082,10 @@
   function teamDayBlock(ids, who, has, fold, R, lean) {
     if (R) return periodDayBlock(ids, who, has, fold, R);
     /* What the page's board already says, left out of the day (10 Nov):
-       true = a team's page (the month, calls a day each, the average call);
-       'month' = Your teams (each team card has its month); 'secs' = a
-       profile (its board has the average call). */
-    const noMonth = lean === true || lean === 'month', noAvg = lean === true, noSecs = lean === true || lean === 'secs';
+       true = a team's page or a profile (the month, calls a day each and
+       the average call are on its board); 'month' = Your teams (each team
+       card has its month). */
+    const noMonth = lean === true || lean === 'month', noAvg = lean === true, noSecs = lean === true;
     const r = dayRead(ids);
     const one = ids.length === 1;
     const each = one ? '' : ' each';
@@ -11115,40 +11122,37 @@
     const skip = one ? [] : worthBehind(wTeams).map((p) => p.id).concat(wBest ? [wBest.id] : []);
     /* Each figure as a widget with its chart. */
     const dayWidgets = () => {
-      const by = today ? 'Usual by now ' : 'A usual day ';
-      /* Ordered before they are drawn, so the most behind card names its
-         person first (`skip`). */
-      const steps = DAY_STEPS.map((s, i) => {
+      /* The chain in its own order every day, calls first (Nour, 10 Nov:
+         sorting most behind first moved the cards daily; the colour already
+         says which is behind). No bar: it drew "N short" a second time, so
+         the usual by now sits beside the figure, the board's way. No Ask
+         AiMY per card: the questions under the row are the section's. */
+      const steps = DAY_STEPS.map((s) => {
         const tw = reads.map((x) => ({ t: x.t, w: wState(x.r.t[s.k], x.r.u[s.k]) }));
-        return { s, i, tw, w: wWorst(wState(r.t[s.k], r.u[s.k]), tw) };
-      }).sort((a, b) => (b.w.sev - a.w.sev) || (a.i - b.i)).map(({ s, tw, w }) => {
+        const w = wWorst(wState(r.t[s.k], r.u[s.k]), tw);
         const sub = s.k === 'reached' || s.k === 'talks'
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
-          : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
-        return wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
+          : s.k === 'meets' ? '<b>' + per100(r.t.meets, r.t.talks) + ' in 100</b> conversations, usually ' + per100(r.u.meets, r.u.talks) : '';
+        return wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), unit: today ? 'usually ' + commas(r.u[s.k]) + ' by now' : 'usually ' + commas(r.u[s.k]), sub,
           split: split((x, i) => [esc(commas(x.r.t[s.k])), tw[i].w.st]),
-          chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st),
           do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
             (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k), skip) });
       }).join('');
       let planM = 0, mDays = 0;
       for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) { planM += usualCalls * dayPart(iso); mDays += dayPart(iso); }
       /* Each person's own figures, for who each widget comes down to. */
-      const prevDay = lastWorkDay(r.day);
       const pm = ids.map((id) => {
         let m = 0;
         for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) m += repDay(id, iso).calls;
-        return { id, m, y: repDay(id, prevDay).calls, s: r.by.filter((x) => x.id === id)[0].d.secs };
+        return { id, m, s: r.by.filter((x) => x.id === id)[0].d.secs };
       });
       const lead = (x, sh, unit) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n) + (unit || ''));
-      /* The day before is one day (the looser tenth); the month and a
-         working day's average run over the month (the board's scale). */
-      const yt = reads.map((x) => ({ t: x.t, w: wState(x.r.yest, tU(x)) }));
+      /* The month and a working day's average run over the month (the
+         board's scale). The day before is not a card any more (Nour, 10 Nov):
+         Yesterday in the period picker shows the whole chain for that day. */
       const mt = reads.map((x) => ({ t: x.t, w: wState(x.r.month, Math.round(tU(x) * mDays), true) }));
       const at = reads.map((x) => ({ t: x.t, w: wState(x.r.avg, tU(x), true) }));
-      const ys = wWorst(wState(r.yest, usualCalls), yt), ms = wWorst(wState(r.month, Math.round(planM), true), mt),
-        as = wWorst(wState(r.avg, usualCalls, true), at);
-      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, ys.st, 'calls', skip);
+      const ms = wWorst(wState(r.month, Math.round(planM), true), mt), as = wWorst(wState(r.avg, usualCalls, true), at);
       /* Not drawn, not asked: wDo names people, and a card that is not on
          the page must not use up a name. */
       const wm = one || noMonth ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
@@ -11163,18 +11167,14 @@
       /* No On a call now card (Nour, 10 Nov): the live indicator beside a
          team's name says it, and opens to who is on a call (onCallPop). */
       return steps +
-        wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
-          split: split((x, i) => [esc(commas(x.r.yest)), yt[i].w.st]),
-          chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
-            { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
-        (noMonth ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
+        (noMonth ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip,
           split: split((x, i) => [esc(commas(x.r.month)), mt[i].w.st]),
           chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm })) +
-        (noAvg ? '' : wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
+        (noAvg ? '' : wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip,
           split: split((x, i) => [esc(commas(x.r.avg)), at[i].w.st]),
           chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa })) +
         /* On a page with a board, An average call is a tile there (secsTile). */
-        (noSecs ? '' : wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
+        (noSecs ? '' : wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip,
           split: split((x) => [esc(callLen(x.r.secs)), 'eq']),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
             { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws }));
@@ -11197,8 +11197,8 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'compared with a normal day' }) +
-      wRow(dayWidgets(), 4 - (noMonth ? 1 : 0) - (noAvg ? 1 : 0) - (noSecs ? 1 : 0) + DAY_STEPS.length,
-        today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
+      wRow(dayWidgets(), 3 - (noMonth ? 1 : 0) - (noAvg ? 1 : 0) - (noSecs ? 1 : 0) + DAY_STEPS.length,
+        today ? 'Against a usual day by now' : 'Against a usual day') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
            and the quarter are one question in the chat, not three buttons. */
@@ -11225,8 +11225,6 @@
     }
     const team = TEAMS.filter((t) => t.members.length === n && t.members.every((id) => ids.indexOf(id) > -1))[0];
     const scope = (q) => (team && teamsOf().length > 1 ? q.replace(/\?$/, ' in the ' + team.name + '?') : q);
-    const ASKS = { calls: 'Who made the most calls ', reached: 'Who reached the most decision makers ',
-      talks: 'Who had the most conversations ', meets: 'Who booked the most meetings ' };
     const whoAsk = one ? firstName(ids[0]) : team && teamsOf().length > 1 ? 'the ' + team.name : teamsOf().length > 1 ? 'my teams' : 'my team';
     const overview = 'How did ' + whoAsk + ' do ' + R.words + '?';
     const dc = s.t.calls - s.u.calls;
@@ -11238,30 +11236,30 @@
     const pdays = [];
     for (let iso = R.from; iso <= R.to; iso = isoAdd(iso, 1)) if (dayPart(iso)) pdays.push(iso);
     const cut = pdays.slice(-22);
-    const steps = DAY_STEPS.map((st, i) => {
+    /* The day's rules (10 Nov): the chain in its own order, the usual beside
+       the figure instead of a bar, the questions under the row only. */
+    const steps = DAY_STEPS.map((st) => {
       const w = wState(s.t[st.k], s.u[st.k], true);
       const sub = st.k === 'reached' || st.k === 'talks'
         ? '<b>' + per100(s.t[st.k], s.t.calls) + ' in 100</b> calls, usually ' + per100(s.u[st.k], s.u.calls)
-        : st.k === 'meets' ? 'From <b>' + esc(plural(s.t.talks, 'conversation')) + '</b>' : '';
-      return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(st.noun), val: commas(s.t[st.k]), sub,
-        q: one ? overview : scope(ASKS[st.k] + R.words + '?'),
-        chart: wTrack(s.t[st.k], s.u[st.k], '<span>A usual run <b>' + esc(commas(s.u[st.k])) + '</b></span>', w.st) }) };
-    }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
+        : st.k === 'meets' ? '<b>' + per100(s.t.meets, s.t.talks) + ' in 100</b> conversations, usually ' + per100(s.u.meets, s.u.talks) : '';
+      return wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(st.noun), val: commas(s.t[st.k]), unit: 'usually ' + commas(s.u[st.k]), sub });
+    }).join('');
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / n);
     const usualPer = Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) / n);
     const as = wState(perDay, usualPer, true);
     const avgSecs = calls ? Math.round(secs / calls) : 0;
     const more =
-      wid({ cap: 'A working day', val: commas(perDay), unit: 'calls' + each, st: as.st, chip: as.chip, q: overview,
+      wid({ cap: 'A working day', val: commas(perDay), unit: 'calls' + each, st: as.st, chip: as.chip,
         chart: wTrack(perDay, usualPer, '<span>Usual <b>' + usualPer + '</b></span>', as.st) }) +
-      wid({ cap: days === 1 ? 'Working day' : 'Working days', val: commas(Math.round(days)), q: overview,
+      wid({ cap: days === 1 ? 'Working day' : 'Working days', val: commas(Math.round(days)),
         chart: wTicks(pdays.length) + '<span class="w-tl">' + esc(dateRange(R.from, R.to)) + '</span>' }) +
       wid({ cap: 'An average call', val: callLen(avgSecs), st: avgSecs < usualSecs * 0.85 ? 'short' : 'ok',
-        chip: Math.abs(avgSecs - usualSecs) < 5 ? 'As usual' : SIGNED(avgSecs - usualSecs) + 's', q: overview,
+        chip: Math.abs(avgSecs - usualSecs) < 5 ? 'As usual' : SIGNED(avgSecs - usualSecs) + 's',
         chart: wLine(cut.map((d) => secsDay(ids, d)), { line: usualSecs, label: 'Each working day, usual ' + callLen(usualSecs) }) });
     return '<div class="b-day">' +
       aimyBlock({ text: said, from: 'compared with a normal run of those days' }) +
-      wRow(steps + more, DAY_STEPS.length + 3, 'Most behind first, against a usual run of the same days') +
+      wRow(steps + more, DAY_STEPS.length + 3, 'Against a usual run of the same days') +
       '<div class="b-day-asks">' +
         '<button class="s-sec-ask" type="button" data-ask="' + esc(overview) + '">' + aiMark() + esc(overview) + '</button>' +
         (one ? '' : '<button class="s-sec-ask" type="button" data-ask="' + esc(scope('Who was short on calls ' + R.words + '?')) + '">' +
@@ -12899,8 +12897,12 @@
   }
   function datePresets() {
     const ws = weekStart(TODAY_ISO), ms = TODAY_ISO.slice(0, 8) + '01', lm = monthAdd(ms, -1);
+    /* The last working day before today (Nour, 10 Nov: instead of the day
+       before card): called Yesterday when it was, else by its date. */
+    const yd = lastWorkDay(TODAY_ISO);
     return [
       { label: 'Today', from: TODAY_ISO, to: TODAY_ISO },
+      { label: yd === isoAdd(TODAY_ISO, -1) ? 'Yesterday' : 'Last working day', from: yd, to: yd },
       { label: 'This week', from: ws, to: TODAY_ISO },
       { label: 'Last week', from: isoAdd(ws, -7), to: isoAdd(ws, -1) },
       { label: 'This month', from: ms, to: TODAY_ISO },
@@ -13065,7 +13067,7 @@
       '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
       '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(R ? dateRange(R.from, R.to) : 'Today') + '">' +
-        headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R, 'secs') + '</section>' +
+        headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R, true) + '</section>' +
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +

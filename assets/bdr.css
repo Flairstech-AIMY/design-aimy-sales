@@ -8673,8 +8673,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 .b-wscroll.is-end { -webkit-mask-image: linear-gradient(to right, transparent, #000 48px); mask-image: linear-gradient(to right, transparent, #000 48px); }
 .b-wscroll.is-fits { -webkit-mask-image: none; mask-image: none; }
-.b-wscroll > .b-wd { flex: 0 0 290px; scroll-snap-align: start; }
-.b-wscroll > .b-wd.is-big { flex-basis: 320px; }
+.b-wscroll > .b-wd { flex: 1 0 260px; scroll-snap-align: start; }
+.b-wscroll > .b-wd.is-big { flex-basis: 260px; }
+/* The cards share the row when they fit (four on a team page), and keep
+   their width and scroll when they do not (Nour, 10 Nov: the fourth card was
+   cut off with room to spare). */
 .b-wscroll > .b-wd + .b-wd { border-left: 1px solid var(--card-border); }
 /* Show all: the same cells as a grid, the hairlines drawn by a 1px gap. */
 .b-wrow.is-all .b-wscroll {
