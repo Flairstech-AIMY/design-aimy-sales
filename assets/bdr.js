@@ -12186,7 +12186,6 @@
     const move = r.was == null || r.move === 0 ? ''
       : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' + (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
     const others = teamsOf().length > 1;
-    if (TV === 'a' || TV === 'b') return teamPageTV(t, r, P, R0, on, move, others);
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams', true) +
@@ -12204,67 +12203,6 @@
         cardGrid(t.members, (id, i) => rosterCard(t, id, i, P)) + '</section>' +
       (others ? '<section class="s-block s-block-wide" aria-label="Against your other teams">' + headH('Against your other teams') +
         teamCompare(t, P) + '</section>' : '') +
-    '</div>';
-  }
-
-  /* ══ THE TEAM PAGE, TWO OTHER ORDERS (variants, 10 Nov 2026) ═══════════
-     The page ran to 3,100px and told the month four times. To compare in the
-     real page, `&tv=a` or `&tv=b` on the URL (read once at load, so it holds
-     for the visit) draws the same sections in another order, the figures
-     behind folds that say in their heading what is inside:
-       a  who needs you first: Worth your time, the people, then today, the
-          month and the other teams, each folded
-       b  today first: the day's figures open, then Worth your time and the
-          people; the month and the other teams folded
-     Without it the page is as it was. Only the order and the folds differ;
-     every section is the one the page already draws. */
-  const TV = (() => { try { return new URLSearchParams(location.search).get('tv') || ''; } catch (e) { return ''; } })();
-  const TP_OPEN = Object.create(null);
-  function tpFold(key, title, sum, body) {
-    const open = !!TP_OPEN[key];
-    return '<div class="b-pf-fold b-tpf' + (open ? ' is-open' : '') + '">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h"><button class="b-pf-foldb" type="button" data-tpfold="' + esc(key) + '" ' +
-        'aria-controls="tpf-' + esc(key) + '" aria-expanded="' + open + '"><span>' + esc(title) + '</span>' +
-        '<span class="b-pf-folds">' + sum + '</span>' + DAY_FOLD_CHEV + '</button></h2></div>' +
-      '<div class="b-pf-foldp" id="tpf-' + esc(key) + '"><div class="b-pf-foldi">' + body + '</div></div></div>';
-  }
-  function teamPageTV(t, r, P, R0, on, move, others) {
-    const PR = planRead(t.members, P);
-    /* What each fold holds, said in its heading. */
-    const below = DAY_STEPS.filter((s) => pace(PR[s.k]).short);
-    const worstM = below.slice().sort((a, b) => PR[a.k].ratio - PR[b.k].ratio)[0];
-    const monthSum = !PR.calls.el ? 'Nothing yet ' + esc(P.when)
-      : !below.length ? 'As usual on every step ' + esc(P.when)
-      : esc(below.length === 4 ? 'Every step' : below.length + ' of 4 steps') + ' below usual ' + esc(P.when) +
-        ', ' + esc(worstM.noun) + ' most (' + esc(pace(PR[worstM.k]).say) + ')';
-    const dr = dayRead(t.members);
-    const shortToday = DAY_STEPS.filter((s) => W_BAD(wState(dr.t[s.k], dr.u[s.k]).st));
-    const daySum = R0 ? esc(dateRange(R0.from, R0.to))
-      : !shortToday.length ? 'A normal day so far'
-      : shortToday.length === 4 ? 'Every step short of a usual day by now'
-      : esc(shortToday.length + ' of 4 steps') + ' short of a usual day by now: ' +
-        esc(shortToday.map((s) => s.noun).join(', ').replace(/, ([^,]*)$/, ' and $1'));
-    const head = '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams', true) +
-        '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now, { team: t }) + move + '</div>' +
-          '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
-            '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
-              '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span></div></div>' +
-          datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div></section>';
-    const day = (fold) => '<section class="s-block s-block-wide" aria-label="' + esc(R0 ? dateRange(R0.from, R0.to) : 'Today') + '">' +
-      (fold ? tpFold('day', R0 ? 'The period' : 'Today', daySum, teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0))
-        : headH(R0 ? dateRange(R0.from, R0.to) : 'Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0)) + '</section>';
-    const month = '<section class="s-block s-block-wide" aria-label="Against their usual">' +
-      tpFold('month', 'Against their usual', monthSum,
-        planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false })) + '</section>';
-    const worth = '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>';
-    const people = '<section class="s-block s-block-wide" aria-label="The people">' + headH('The people') +
-      cardGrid(t.members, (id, i) => rosterCard(t, id, i, P)) + '</section>';
-    const cmp = others ? '<section class="s-block s-block-wide" aria-label="Against your other teams">' +
-      tpFold('cmp', 'Against your other teams', 'Each step beside ' +
-        esc(teamsOf().filter((x) => x !== t).map((x) => 'the ' + x.name).join(' and ')) + ', ' + esc(P.when), teamCompare(t, P)) + '</section>' : '';
-    return '<div class="s-home b-tmp b-tv-' + TV + '">' + head +
-      (TV === 'a' ? worth + people + day(true) + month + cmp : day(false) + worth + people + month + cmp) +
     '</div>';
   }
 
@@ -39619,14 +39557,6 @@
       COACH_OPEN = !COACH_OPEN;
       coachFold.closest('.b-pf-fold').classList.toggle('is-open', COACH_OPEN);
       coachFold.setAttribute('aria-expanded', String(COACH_OPEN));
-      return;
-    }
-    const tpFoldB = t.closest('[data-tpfold]');
-    if (tpFoldB) {
-      const k = tpFoldB.getAttribute('data-tpfold');
-      TP_OPEN[k] = !TP_OPEN[k];
-      tpFoldB.closest('.b-pf-fold').classList.toggle('is-open', TP_OPEN[k]);
-      tpFoldB.setAttribute('aria-expanded', String(TP_OPEN[k]));
       return;
     }
     const callsFold = t.closest('[data-callsfold]');
