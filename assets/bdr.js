@@ -10922,10 +10922,22 @@
   /* A step's own lever on the day: the day has no chain read, so each step
      is fixed where it is counted. */
   const dayLever = (k) => (LEVER[k] ? k : 'calls');
-  function wDo(xs, say, st, lev) {
-    const short = xs.filter((x) => x.u - x.n >= 2 && x.n < x.u * 0.9).sort((a, b) => (b.u - b.n) - (a.u - a.n))[0];
-    const x = short || xs.slice().sort((a, b) => b.n - a.n)[0];
+  /* `skip`: people already named on this page: in Worth your time (with
+     their fix), or on a card before this one. Each person is named in one
+     place (10 Nov: Karim was on six of nine cards, each with a different
+     fix). The cards are filled most behind first, so a person is named where
+     they are furthest short; a later card whose only short person is already
+     named draws no foot line, and the next one short is named instead. The
+     person this card names joins `skip`. */
+  function wDo(xs, say, st, lev, skip) {
+    const free = (x) => !skip || skip.indexOf(x.id) < 0;
+    const shorts = xs.filter((x) => x.u - x.n >= 2 && x.n < x.u * 0.9).sort((a, b) => (b.u - b.n) - (a.u - a.n));
+    const short = shorts.filter(free)[0];
+    if (!short && shorts.length) return null;
+    const behind0 = st === 'short' || st === 'low';
+    const x = short || (behind0 ? xs[0] : xs.filter(free).sort((a, b) => b.n - a.n)[0]);
     if (!x) return null;
+    if (skip && (short || !behind0)) skip.push(x.id);
     const t = teamWith(x.id);
     const behind = st === 'short' || st === 'low';
     /* Across several teams (Your teams), the line names the person's team,
@@ -11066,21 +11078,29 @@
     const split = (fn) => (reads.length > 1 ? reads.map((x, i) => { const o = fn(x, i); return splitRow(x.t.name, o[0], o[1]); }).join('') : '');
     /* A team's usual calls a day for each person. */
     const tU = (x) => Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length);
+    /* Who Worth your time names on this page (it sits on the team page and
+       on Your teams): the cards leave them to it. */
+    const wTeams = TEAMS.filter((t) => t.members.every((id) => ids.indexOf(id) > -1));
+    const wBest = one || !wTeams.length ? null : worthBest(wTeams);
+    const skip = one ? [] : worthBehind(wTeams).map((p) => p.id).concat(wBest ? [wBest.id] : []);
     /* Each figure as a widget with its chart. */
     const dayWidgets = () => {
       const by = today ? 'Usual by now ' : 'A usual day ';
+      /* Ordered before they are drawn, so the most behind card names its
+         person first (`skip`). */
       const steps = DAY_STEPS.map((s, i) => {
         const tw = reads.map((x) => ({ t: x.t, w: wState(x.r.t[s.k], x.r.u[s.k]) }));
-        const w = wWorst(wState(r.t[s.k], r.u[s.k]), tw);
+        return { s, i, tw, w: wWorst(wState(r.t[s.k], r.u[s.k]), tw) };
+      }).sort((a, b) => (b.w.sev - a.w.sev) || (a.i - b.i)).map(({ s, tw, w }) => {
         const sub = s.k === 'reached' || s.k === 'talks'
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
           : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
-        return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
+        return wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
           split: split((x, i) => [esc(commas(x.r.t[s.k])), tw[i].w.st]),
           chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st),
           do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
-            (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k)) }) };
-      }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
+            (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k), skip) });
+      }).join('');
       let planM = 0, mDays = 0;
       for (let iso = r.day.slice(0, 8) + '01'; iso <= r.day; iso = isoAdd(iso, 1)) { planM += usualCalls * dayPart(iso); mDays += dayPart(iso); }
       /* Each person's own figures, for who each widget comes down to. */
@@ -11098,13 +11118,13 @@
       const at = reads.map((x) => ({ t: x.t, w: wState(x.r.avg, tU(x), true) }));
       const ys = wWorst(wState(r.yest, usualCalls), yt), ms = wWorst(wState(r.month, Math.round(planM), true), mt),
         as = wWorst(wState(r.avg, usualCalls, true), at);
-      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, ys.st, 'calls');
-      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls');
+      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, ys.st, 'calls', skip);
+      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
       const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
-        as.st, 'calls');
+        as.st, 'calls', skip);
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
-        (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks');
+        (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks', skip);
       const onIds = onCallNow(ids);
       const on = onCallNow(ids).length;
       const sd = r.secs - usualSecs;
@@ -12176,6 +12196,8 @@
         teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
           many ? 'have' : 'has', false, R0) +
       '</section>' +
+      /* Who needs the manager, across the teams, named once (10 Nov). */
+      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(teamsOf()) + '</section>' +
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
         aimyBlock({ text: said, from: 'compared with last week' }) +
@@ -12281,37 +12303,71 @@
   /* Who in this team needs the manager today: the one furthest short of a
      usual day on calls, and the one who booked the most meetings, each with
      the two things worth doing about it. Nobody is named for the sake of it. */
-  function teamWorth(t) {
-    const r = dayRead(t.members);
+  /* Each team's one person furthest short of a usual day on calls (a tenth
+     and two or more). They are named here, once, with everything short for
+     them gathered in one line and one fix; the day's cards leave them out
+     (wDo's `skip`). Before 10 Nov Karim was on six of nine cards, each with
+     a different fix, and the page never said what to do about him. */
+  function worthBehind(teams) {
+    return teams.map((t) => dayRead(t.members).by
+      .map((x) => ({ id: x.id, t, x, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0 }))
+      .filter((p) => p.gap > 0.1 && p.x.u.calls - p.x.d.calls >= 2).sort((a, b) => b.gap - a.gap)[0]).filter(Boolean);
+  }
+  /* And the one who booked the most meetings (ties: the better rate), who is
+     not one of those behind: worth sharing how. */
+  function worthBest(teams) {
+    const named = worthBehind(teams).map((p) => p.id);
+    return dayRead(peopleOf(teams)).by.filter((x) => named.indexOf(x.id) < 0 && x.d.meets > 0)
+      .sort((a, b) => (b.d.meets - a.d.meets) || (b.d.meets / (b.d.talks || 1) - a.d.meets / (a.d.talks || 1)))[0];
+  }
+  /* Where a person's chain drops, by rate (not by count, since a short day
+     of calls makes every count short): the first step whose share of the
+     step before is under nine tenths of their usual share. */
+  const RATE_OF = { reached: 'calls', talks: 'calls', meets: 'talks' };
+  const RATE_SAY = { reached: 'fewer reach a decision maker', talks: 'fewer become a conversation', meets: 'fewer conversations end in a meeting' };
+  function rateDrop(x) {
+    return ['reached', 'talks', 'meets'].filter((k) => {
+      const up = RATE_OF[k], d = x.d[up], u = x.u[up];
+      return d >= (k === 'meets' ? 5 : 20) && u && x.d[k] / d < (x.u[k] / u) * 0.9;
+    })[0];
+  }
+  function teamWorth(tt) {
+    const teams = [].concat(tt);
+    const many = teams.length > 1;
+    const r = dayRead(peopleOf(teams));
     const when = dayWhen(r).replace(/^B/, 'b').replace(/^O/, 'o');
-    const rows = r.by.map((x) => ({ id: x.id, x, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0, w: weekScores(x.id) }));
+    const day = r.day === TODAY_ISO ? 'today' : 'that day';
     const picks = [];
-    const behind = rows.filter((p) => p.gap > 0.1 && p.x.u.calls - p.x.d.calls >= 2).sort((a, b) => b.gap - a.gap)[0];
-    if (behind) {
-      picks.push({ p: behind, acts: ['msg', 'book'],
-        why: 'Only <b>' + esc(commas(behind.x.d.calls)) + ' calls</b> ' + when + ', when ' + esc(commas(behind.x.u.calls)) + ' is normal.' +
-          (behind.w.was != null && behind.w.now < behind.w.was ? ' The score dropped ' + commas(behind.w.was - behind.w.now) +
-            ' points this week, to ' + commas(behind.w.now) + '.' : '') });
-    }
-    const best = rows.filter((p) => p !== behind && p.x.d.meets > 0)
-      .sort((a, b) => (b.x.d.meets - a.x.d.meets) || (b.x.d.meets / (b.x.d.talks || 1) - a.x.d.meets / (a.x.d.talks || 1)))[0];
+    /* Behind: the calls, then where their chain drops, then the week. The
+       verbs are the 1:1 (the calls are a conversation, not a setting) and,
+       when a rate dropped, AiMY's fix for that step for them. */
+    worthBehind(teams).forEach((b) => {
+      const x = b.x, w = weekScores(b.id), drop = rateDrop(x), up = drop && RATE_OF[drop];
+      picks.push({ id: b.id, t: b.t, w, acts: ['book'], fix: drop || null,
+        why: 'Only <b>' + esc(commas(x.d.calls)) + ' calls</b> ' + when + ', when ' + esc(commas(x.u.calls)) + ' is normal' +
+          (drop ? ', and ' + RATE_SAY[drop] + ': <b>' + per100(x.d[drop], x.d[up]) + ' in 100</b>, usually ' + per100(x.u[drop], x.u[up]) : '') + '.' +
+          (w.was != null && w.now < w.was ? ' The score dropped ' + commas(w.was - w.now) + ' points this week, to ' + commas(w.now) + '.' : '') });
+    });
+    const best = worthBest(teams);
     if (best) {
-      picks.push({ p: best, acts: ['share', 'thanks'],
-        why: 'Booked <b>' + esc(plural(best.x.d.meets, 'meeting')) + '</b> from ' + esc(plural(best.x.d.talks, 'conversation')) + ' ' +
-          (r.day === TODAY_ISO ? 'today' : 'that day') + ', more than anyone else. Worth sharing how.' });
+      picks.push({ id: best.id, t: teamWith(best.id), w: weekScores(best.id), acts: ['share', 'thanks'],
+        why: 'Booked <b>' + esc(plural(best.d.meets, 'meeting')) + '</b> from ' + esc(plural(best.d.talks, 'conversation')) + ' ' + day +
+          ', more than anyone ' + (many ? 'in your teams' : 'else') + '. Worth sharing how.' });
     }
-    if (!picks.length) return aimyBlock({ text: 'Nobody needs you today: everyone is having a normal day.' });
-    return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> in this team ' + (picks.length === 1 ? 'is' : 'are') +
-        ' worth your time today.' }, true) +
+    if (!picks.length) return aimyBlock({ text: 'Nobody needs you ' + day + ': everyone is having a normal day.' });
+    return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> ' + (many ? 'across your teams' : 'in this team') + ' ' +
+        (picks.length === 1 ? 'is' : 'are') + ' worth your time ' + day + '.' }, true) +
       '<div class="b-wt-rows">' + picks.map((k) => {
-        const id = k.p.id;
-        const done = k.acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+        const id = k.id, tid = k.t.id;
+        const done = k.acts.filter((a) => TACTS[tid + ':' + id + ':' + a])[0];
+        const btns = k.acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+          esc(tid + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('');
         return '<div class="b-wt-row' + (done ? ' is-done' : '') + '">' + faceOf(id, 40) +
-          '<div class="b-wt-main"><span class="b-wt-name">' + esc(REP[id].name) + scoreTag(k.p.w.now) + '</span>' +
+          '<div class="b-wt-main"><span class="b-wt-name">' + esc(REP[id].name) + scoreTag(k.w.now) +
+            (many ? '<span class="b-wt-team">' + esc(k.t.name) + '</span>' : '') + '</span>' +
             '<p class="b-wt-why">' + k.why + '</p></div>' +
-          '<div class="b-wt-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
-            : k.acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
-              esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</div>' +
+          '<div class="b-wt-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>' : btns) +
+            (k.fix ? fixBtn(tid, id, k.fix, 's-insight-lnk') : '') + '</div>' +
         '</div>';
       }).join('') + '</div>';
   }

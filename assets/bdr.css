@@ -8377,6 +8377,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-wt-row > .b-face { align-self: start; }
 .b-wt-main { min-width: 0; }
 .b-wt-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--d50); }
+/* Which team, on Your teams, where the rows come from several. */
+.b-wt-team { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
 .b-wt-why { margin: 3px 0 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--d100); }
 .b-wt-why b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-wt-acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
