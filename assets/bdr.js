@@ -10605,6 +10605,12 @@
      review average as the last part. Out of 100. A usual week scores in the
      nineties; a week well under their usual is what pulls it down. */
   function repScore(id, from, to) {
+    const p = repParts(id, from, to);
+    return p ? p.score : null;
+  }
+  /* What the score is made of, so it can be opened and trusted (plan, 5 Nov:
+     "the score is never a black box"). */
+  function repParts(id, from, to) {
     const f = FORM[id];
     if (!f) return null;
     const t = { calls: 0, reached: 0, talks: 0, meets: 0, part: 0 };
@@ -10621,7 +10627,14 @@
       meet: cap(t.talks ? t.meets / t.talks / f.meet : 0),
       qa: cap(f.qa),
     };
-    return Math.round(100 * Object.keys(WEIGHT).reduce((n, k) => n + WEIGHT[k] * parts[k], 0));
+    return { parts, score: Math.round(100 * Object.keys(WEIGHT).reduce((n, k) => n + WEIGHT[k] * parts[k], 0)) };
+  }
+  /* The week a score tag reads: this week so far, or the week before on a
+     day this week has nothing yet (weekScores' rule). */
+  function scoreWeek(id) {
+    const w0 = weekStart(TODAY_ISO);
+    return repParts(id, w0, TODAY_ISO) ? { from: w0, to: TODAY_ISO, words: 'this week so far' }
+      : { from: isoAdd(w0, -7), to: isoAdd(w0, -1), words: 'last week' };
   }
   /* This week so far, and the whole of the week before, so a Sunday
      morning still has a week to read. */
@@ -12077,7 +12090,7 @@
     return '<article class="type-card s-card b-qcard b-ro-card">' +
       '<div class="b-ro-top"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 44) + '</span>' +
         '<div class="b-ro-who"><button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(REP[id].name) + '</button>' +
-          '<span class="b-ro-sub">' + scoreTag(weekScores(id).now) +
+          '<span class="b-ro-sub">' + scoreTag(weekScores(id).now, { id }) +
             (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</span></div></div>' +
       planRows(R) +
       aimyBlock({ text: say }, true) +
@@ -12165,7 +12178,7 @@
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams', true) +
-        '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now) + move + '</div>' +
+        '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now, { team: t }) + move + '</div>' +
           '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
             '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
               '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span></div></div>' +
@@ -12218,7 +12231,7 @@
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
         aimyBlock({ text: said, from: 'compared with last week' }) +
-        cardGrid(reads, (r, i) => teamCard(r, i, live, P)) +
+        cardGrid(reads, (r, i) => teamCard(r, i, live, P, worst && worst.t.id)) +
       '</section>' +
     '</div>';
   }
@@ -12234,11 +12247,56 @@
   /* The library's Score (aimy ui lib, score.tsx: Knowledge's .conf-badge,
      high from 75, medium from 50): a three-bar meter, what is scored, and
      the number. */
-  function scoreTag(n) {
+  function scoreTag(n, o) {
     const band = n >= 75 ? 'high' : n >= 50 ? 'medium' : 'low';
-    return '<span class="conf-badge conf-' + band + '" role="img" aria-label="Score ' + commas(n) +
+    const tag = '<span class="conf-badge conf-' + band + '" role="img" aria-label="Score ' + commas(n) +
       ' out of 100, ' + band + '"><span class="conf-meter" aria-hidden="true"><i></i><i></i><i></i></span>' +
       '<span aria-hidden="true">Score</span><span class="conf-val" aria-hidden="true">' + commas(n) + '</span></span>';
+    const pop = o ? scorePop(n, o) : '';
+    return pop ? '<span class="b-wait-info b-sc" tabindex="0">' + tag + '<span class="b-wait-pop b-sc-pop" role="tooltip">' + pop + '</span></span>' : tag;
+  }
+  /* The score, opened (hover or focus; no dialog). A person's: each part as
+     the points it gives out of what it can give, with how close they came to
+     their own usual; the part that loses most is in the warning ink and named
+     at the foot. A team's: its people's scores, lowest first, since a team's
+     score is their average. */
+  /* Kept on screen: before it shows, a popover that would cross the right
+     edge is moved left by that much (rects are visual px and the body may be
+     zoomed, so the shift is divided back into CSS px). */
+  const scFit = (e) => {
+    const sc = e.target.closest && e.target.closest('.b-sc');
+    if (!sc) return;
+    const p = sc.querySelector('.b-sc-pop');
+    p.style.left = '';
+    const r = p.getBoundingClientRect();
+    const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+    /* Its width from layout, not the rect: shut, it is scaled to 98%. */
+    const over = r.left + p.offsetWidth * z - (document.documentElement.clientWidth - 16);
+    if (over > 0) p.style.left = -Math.round(Math.min(over, r.left - 16) / z) + 'px';
+  };
+  document.addEventListener('mouseover', scFit);
+  document.addEventListener('focusin', scFit);
+  const SCORE_PART = { calls: 'Calls made', reach: 'Reach a decision maker', talk: 'Become a conversation',
+    meet: 'End in a meeting', qa: 'Call quality, from AiMY QA' };
+  const SCORE_GAP = { calls: 'the number of calls', reach: 'reaching the decision maker', talk: 'turning calls into conversations',
+    meet: 'turning conversations into meetings', qa: 'call quality' };
+  function scorePop(n, o) {
+    if (o.team) {
+      const ppl = o.team.members.map((id) => ({ id, s: weekScores(id).now })).filter((x) => x.s != null).sort((a, b) => a.s - b.s);
+      return '<span class="b-sc-h"><b>' + commas(n) + '</b> is the average of its ' + esc(plural(ppl.length, 'person')) + '</span>' +
+        '<span class="b-sc-rows">' + ppl.map((x) => '<span class="b-sc-row' + (x.s < 75 ? ' is-low' : '') + '"><span>' + esc(REP[x.id].name) + '</span><b>' +
+          commas(x.s) + '</b></span>').join('') + '</span>';
+    }
+    const id = o.id, wk = scoreWeek(id), p = repParts(id, wk.from, wk.to);
+    if (!p) return '';
+    const rows = Object.keys(WEIGHT).map((k) => ({ k, got: Math.round(100 * WEIGHT[k] * p.parts[k]), of: Math.round(100 * WEIGHT[k]), pc: Math.round(100 * p.parts[k]) }));
+    const worst = rows.slice().sort((a, b) => (b.of - b.got) - (a.of - a.got))[0];
+    const fn = esc(firstName(id));
+    return '<span class="b-sc-h"><b>' + commas(n) + '</b> out of 100, ' + esc(wk.words) + ', against ' + fn + '’s own usual</span>' +
+      '<span class="b-sc-rows">' + rows.map((x) => '<span class="b-sc-row' + (x === worst && x.of - x.got >= 3 ? ' is-low' : '') + '"><span>' +
+        esc(SCORE_PART[x.k]) + '<small>' + (x.k === 'qa' ? 'Reviews average ' + x.pc + ' of 100' : x.pc >= 100 ? 'As usual or better' : x.pc + '% of usual') +
+        '</small></span><b>' + x.got + ' of ' + x.of + '</b></span>').join('') + '</span>' +
+      (worst.of - worst.got >= 3 ? '<span class="b-sc-f">Most of what is missing is ' + SCORE_GAP[worst.k] + '.</span>' : '');
   }
   /* The library's face stack, faces only (face-stack.tsx, `.b-team-stack`):
      the first four, the first on top, then one more circle with the count. */
@@ -12255,7 +12313,9 @@
      the four steps against the plan, each a bar with the plan's mark and the
      pace in words and colour, and AiMY's one sentence on the step furthest
      behind, who holds most of it and where the pace lands. */
-  function teamCard(r, i, live, P) {
+  /* `lead`: the team with the lowest score, whose Open is the primary (it
+     used to be the first card, so a healthy team got the loud button). */
+  function teamCard(r, i, live, P, lead) {
     const R = planRead(r.t.members, P);
     const on = r.t.members.filter((id) => live.indexOf(id) > -1).length;
     const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id, from: S.from, to: S.to })));
@@ -12268,7 +12328,7 @@
         (top && top.gap >= 1 ? ', mostly <b>' + esc(firstName(top.id)) + '</b>' : '') + '.';
     return '<article class="type-card s-card b-qcard b-team-card" style="--i:' + Math.min(i, 8) + '">' +
       '<div class="tc-head">' +
-        scoreTag(r.now) +
+        scoreTag(r.now, { team: r.t }) +
         '<span class="tc-type b-fact">' + chIcon('phone') + '<span><span data-live="' + esc(r.t.id) + '">' +
           commas(on) + '</span> on a call</span></span>' +
       '</div>' +
@@ -12277,7 +12337,7 @@
       aimyBlock({ text: say, from: 'compared with a normal ' + P.unit.replace(/^the /, '') }) +
       '<div class="tc-gov b-qcard-foot">' +
         faceRow(r.t.members) +
-        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" type="button" data-go="' + go + '">Open</button>' +
+        '<button class="s-insight-lnk' + ((lead ? r.t.id === lead : i === 0) ? ' primary' : '') + '" type="button" data-go="' + go + '">Open</button>' +
       '</div>' +
     '</article>';
   }
@@ -12392,7 +12452,7 @@
         const btns = k.acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
           esc(tid + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('');
         return '<div class="b-wt-row' + (done ? ' is-done' : '') + '">' + faceOf(id, 40) +
-          '<div class="b-wt-main"><span class="b-wt-name">' + esc(REP[id].name) + scoreTag(k.w.now) +
+          '<div class="b-wt-main"><span class="b-wt-name">' + esc(REP[id].name) + scoreTag(k.w.now, { id }) +
             (many ? '<span class="b-wt-team">' + esc(k.t.name) + '</span>' : '') + '</span>' +
             '<p class="b-wt-why">' + k.why + '</p></div>' +
           '<div class="b-wt-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>' : btns) +
@@ -12485,7 +12545,7 @@
     };
     return '<div class="b-ps-head"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 56) + '</span>' +
         '<div><h2 class="b-ps-name">' + esc(REP[id].name) + '</h2>' +
-          '<div class="b-ps-sub">' + scoreTag(w.now) + move +
+          '<div class="b-ps-sub">' + scoreTag(w.now, { id }) + move +
             (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div></div>' +
       '</div>' +
       '<div class="b-ps-note">' +
@@ -12886,7 +12946,7 @@
           /* The score beside the name (Nour); who they are under it, as part
              of the name; how the week moved and the call on their own row,
              which is not drawn when there is neither. */
-          '<div><div class="b-pf-nrow"><h2 class="b-pf-name">' + esc(REP[id].name) + '</h2>' + scoreTag(w.now) + '</div>' +
+          '<div><div class="b-pf-nrow"><h2 class="b-pf-name">' + esc(REP[id].name) + '</h2>' + scoreTag(w.now, { id }) + '</div>' +
             '<p class="b-pf-role">' + esc(jobSay(REP[id])) + ' in the ' + esc(t.name) + '</p>' +
             (Math.abs(moved) >= 3 || on ? '<div class="b-pf-sub">' +
               (Math.abs(moved) >= 3 ? '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' + (moved < 0 ? 'Down ' : 'Up ') +

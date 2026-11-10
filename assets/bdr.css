@@ -8964,6 +8964,21 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-do { min-width: 0; }
 /* On a call now: the names follow the live count; nobody on a call, no line. */
 .b-wd-who:has([data-live-names]:empty) { display: none; }
+/* The score, opened (10 Nov): the wait popover's hover and focus, holding
+   what the score is made of. Each part's points on the right; the part that
+   loses most in the warning ink. */
+.b-sc { cursor: help; border-radius: var(--r-pill); }
+.b-sc:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-sc .b-sc-pop { width: 19rem; max-width: min(19rem, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; cursor: default; }
+.b-sc-h { font-size: var(--fs-xs); line-height: 1.4; color: var(--d100); }
+.b-sc-h b { font-size: var(--fs-md); }
+.b-sc-rows { display: flex; flex-direction: column; gap: 8px; }
+.b-sc-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d50); }
+.b-sc-row > span { display: flex; flex-direction: column; min-width: 0; }
+.b-sc-row small { font-size: var(--fs-xs); font-weight: var(--fw-regular, 400); color: var(--d100); }
+.b-sc-row > b { flex: none; font-variant-numeric: tabular-nums; }
+.b-sc-row.is-low, .b-sc-row.is-low small, .b-sc-row.is-low > b { color: var(--warn-text); }
+.b-sc-f { padding-top: 10px; border-top: 1px solid var(--card-border); font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d50); }
 /* ══ §122 THE TEAMS PAGES, IN TILES (9 Nov 2026) ═════════════════════════
    Nour: the team page read "so editorial"; take the voice agents' page in
    Knowledge's console (settings.css `.agv-*`) as the language. The team
