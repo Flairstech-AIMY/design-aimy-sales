@@ -12909,8 +12909,9 @@
       '</div></div></div>';
   }
   let COACH_OPEN = true;
-  /* The profile's calls list, shut until opened; kept as left for the visit. */
-  let CALLS_OPEN = false;
+  /* The profile's calls list, open by default (Nour, 10 Nov: "keep the
+     calls expanded"); it can still be folded, and stays as left for the visit. */
+  let CALLS_OPEN = true;
   /* ══ THE DATE PICKER (5 Nov 2026) ═══════════════════════════════════════
      The UI library's DatePicker and Calendar (aimy ui lib, registry/aimy/ui/
      date-picker.tsx and calendar.tsx, themselves Knowledge's .k-date), in
@@ -13075,7 +13076,12 @@
     const acts = note.short ? ['msg', 'book'] : ['share', 'thanks'];
     const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
     const moved = w.was == null ? 0 : w.now - w.was;
-    const calls = callsBy([id]).filter(inR);
+    /* The calls follow the period picker, whose default is today (Nour,
+       10 Nov: "calls should follow the period filter"), so the list and the
+       board above it always read the same days. */
+    const CP = planSpan(), cpTo = CP.end < TODAY_ISO ? CP.end : TODAY_ISO;
+    const inCP = (x) => { const iso = isoDay(new Date(x.at)); return iso >= CP.from && iso <= cpTo; };
+    const calls = callsBy([id]).filter(inCP);
     const pg = paged(calls);
     const got = calls.filter(gotThrough).length;
     /* The side rail's person view, reused for the head of this page: the
@@ -13123,22 +13129,24 @@
       '<section class="s-block s-block-wide" aria-label="Coaching">' + personCoaching(t, id, R) + '</section>' +
       /* Every call, the history page's way: the same rows, the same
          recording strip, the same summary and transcript (histCallRow). */
-      /* Folded by default (10 Nov: the profile ran to 5,000px, most of it
-         this list); the heading says how many and how recent, so a closed
-         section still answers "when did they last log a call?". */
+      /* Open by default (CALLS_OPEN) and foldable; the heading says how many
+         and how recent, so a folded section still answers "when did they
+         last log a call?". */
       '<section class="s-block s-block-wide" aria-label="Calls">' +
-        (!calls.length ? headH('Calls') + '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' ' + (R ? esc(R.words) : 'yet') + '.</p>'
+        (!calls.length ? headH('Calls') + '<p class="b-vfoot">No calls logged on a contact by ' + esc(firstName(id)) + ' ' + esc(CP.when) + '.</p>'
           : '<div class="b-pf-fold' + (CALLS_OPEN ? ' is-open' : '') + '">' +
             '<div class="s-camp-list-head"><h2 class="s-block-h"><button class="b-pf-foldb" type="button" data-callsfold ' +
               'aria-controls="pfCalls" aria-expanded="' + CALLS_OPEN + '"><span>Calls</span>' +
-              '<span class="b-pf-folds">' + esc(plural(calls.length, 'call') + ', the latest on ' + sayDay(calls[0].at)) + '</span>' +
+              '<span class="b-pf-folds">' + esc(plural(calls.length, 'call') + ' ' + CP.when + ', the latest ' + (CP.day
+                ? 'at ' + new Date(calls[0].at).getHours() + ':' + String(new Date(calls[0].at).getMinutes()).padStart(2, '0')
+                : 'on ' + sayDay(calls[0].at))) + '</span>' +
               DAY_FOLD_CHEV + '</button></h2></div>' +
             '<div class="b-pf-foldp" id="pfCalls"><div class="b-pf-foldi">' +
           /* These are the calls logged on a contact, with notes and a
              recording; the day's figures above count every number dialled,
              so the two are never the same count (and never claim to be). */
           aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> logged on a contact ' +
-              (R ? esc(R.words) : 'since ' + esc(sayDay(calls[calls.length - 1].at))) +
+              esc(CP.when) +
               ', and <b>' + esc(commas(got)) + '</b> got through.' }, true) +
             '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call') +
             '</div></div></div>') +
