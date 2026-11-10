@@ -8664,6 +8664,15 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
 }
+/* The fade says "more this way", so it follows the scroll (Nour, 10 Nov:
+   the last card was cut off at the end): both edges in the middle, only the
+   left at the end, none when it all fits. Set by wEdge in bdr.js. */
+.b-wscroll.is-mid {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+}
+.b-wscroll.is-end { -webkit-mask-image: linear-gradient(to right, transparent, #000 48px); mask-image: linear-gradient(to right, transparent, #000 48px); }
+.b-wscroll.is-fits { -webkit-mask-image: none; mask-image: none; }
 .b-wscroll > .b-wd { flex: 0 0 290px; scroll-snap-align: start; }
 .b-wscroll > .b-wd.is-big { flex-basis: 320px; }
 .b-wscroll > .b-wd + .b-wd { border-left: 1px solid var(--card-border); }

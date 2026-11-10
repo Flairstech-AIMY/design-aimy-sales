@@ -11045,6 +11045,17 @@
      Nour: the numbers scroll sideways in one row, and "Show all" lays every
      one out at once. Open or shut is kept for the session and set in place,
      without a repaint, on every row on the page. */
+  /* Which edge of a row has more to show: the fade follows it, so the last
+     card is whole once the row is scrolled to its end. */
+  function wEdge(sc) {
+    const max = sc.scrollWidth - sc.clientWidth;
+    const fits = max <= 2, end = !fits && sc.scrollLeft >= max - 2, mid = !fits && !end && sc.scrollLeft > 2;
+    sc.classList.toggle('is-fits', fits);
+    sc.classList.toggle('is-end', end);
+    sc.classList.toggle('is-mid', mid);
+  }
+  document.addEventListener('scroll', (e) => { if (e.target.classList && e.target.classList.contains('b-wscroll')) wEdge(e.target); }, true);
+  window.addEventListener('resize', () => document.querySelectorAll('.b-wscroll').forEach(wEdge));
   let WIDE_ALL = false;
   const wRow = (html, n, note) => '<div class="b-wrow' + (WIDE_ALL ? ' is-all' : '') + '">' +
       '<div class="b-wrow-top"><span class="b-wrow-note">' + esc(note) + '</span>' +
