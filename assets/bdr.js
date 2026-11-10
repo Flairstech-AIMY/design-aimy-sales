@@ -12192,46 +12192,10 @@
       : fixBtn(c.best.id, 'all', k, 'row', c.mine.t.id, true);
     return '<div class="b-cmp-do b-pl-cmp"><span class="b-cmp-gap ' + cmpTone(c) + '"><span>' + gap + '</span></span>' + act + '</div>';
   }
-  /* ══ SIDE BY SIDE, ON YOUR TEAMS (10 Nov 2026) ══════════════════════════
-     Every team ranked on each step, where all the teams already are: a tile
-     per step, the leader in the ok ink, the last in the warning ink, and the
-     next step for the last team (the leader's practice). Its key is the one
-     a team page's gap uses, so doing it in either place marks both. No
-     chart: rows and figures (Nour: no charts). */
-  const CMP_SAY = { calls: 'calls', reached: 'decision makers', talks: 'conversations', meets: 'meetings' };
-  function teamsSide(P) {
-    const D = cmpData(P);
-    if (!D) return '';
-    const tops = {}, lasts = {};
-    const tiles = DAY_STEPS.map((s) => {
-      const rk = D.rank(s.k), hi = rk[0].v, lo = rk[rk.length - 1].v;
-      const top = rk.filter((y) => y.v === hi), bot = rk.filter((y) => y.v === lo);
-      if (top.length === 1 && hi > lo) tops[s.k] = top[0].x.t;
-      if (bot.length === 1 && hi > lo) lasts[s.k] = bot[0].x.t;
-      const fx = lasts[s.k] && tops[s.k] ? fixBtn(lasts[s.k].id, 'all', s.k, 'row', tops[s.k].id, false, true) : '';
-      /* The step and its measure are one title on one line (Nour, 10 Nov:
-         stacked, they read as a title that wrapped). */
-      return '<div class="b-side-t"><span class="b-side-h"><span class="b-side-cap">' + esc(cap1(s.noun)) + '</span>' +
-          '<span class="b-side-unit">' + esc(CMP_UNIT[s.k].trim()) + '</span></span>' +
-        rk.map((y) => '<div class="b-side-row' + (hi > lo && y.v === hi ? ' is-top' : hi > lo && y.v === lo ? ' is-last' : '') + '">' +
-          '<span class="b-side-n">' + D.pos(rk, y.v).n + '</span><span class="b-side-name">' + esc(y.x.t.name) + '</span>' +
-          '<span class="b-side-v">' + esc(commas(y.v)) + '</span></div>').join('') + fx + '</div>';
-    }).join('');
-    /* AiMY's line: who leads on what, then a team that is last on every step. */
-    const by = {};
-    DAY_STEPS.forEach((s) => { if (tops[s.k]) (by[tops[s.k].id] = by[tops[s.k].id] || { t: tops[s.k], ks: [] }).ks.push(CMP_SAY[s.k]); });
-    const and = (xs) => (xs.length > 1 ? xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1] : xs[0]);
-    /* "The Enterprise Team leads on calls and decision makers, the Levant
-       Team on conversations and meetings." */
-    const leads = Object.keys(by).map((id, i) => (i ? 'the' : 'The') + ' <b>' + esc(by[id].t.name) + '</b> ' + (i ? 'on ' : 'leads on ') + and(by[id].ks));
-    const level = DAY_STEPS.filter((s) => !tops[s.k]).map((s) => CMP_SAY[s.k]);
-    const lastAll = DAY_STEPS.every((s) => lasts[s.k] && lasts[s.k] === lasts[DAY_STEPS[0].k]) ? lasts[DAY_STEPS[0].k] : null;
-    const said = (leads.length ? leads.join(', ') + '.' : 'Your teams are level on every step.') +
-      (leads.length && level.length ? ' Level on ' + and(level) + '.' : '') +
-      (lastAll && D.reads.length > 2 ? ' The <b>' + esc(lastAll.name) + '</b> is last on all four.' : '');
-    return aimyBlock({ text: said, from: 'your ' + (D.reads.length === 2 ? 'two' : commas(D.reads.length)) + ' teams, ' + P.when }) +
-      '<div class="b-side">' + tiles + '</div>';
-  }
+  /* Side by side on Your teams (a tile per step ranking every team) was
+     built and taken out on 10 Nov: Nour noticed the team cards already sit
+     side by side with these figures. The ranking lives on a team page's
+     tiles (cmpLine) only. */
   function teamPage(t) {
     const r = teamRead(t);
     const P = planSpan();
@@ -12291,15 +12255,14 @@
         teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
           many ? 'have' : 'has', false, R0) +
       '</section>' +
-      /* Who needs the manager, across the teams, named once (10 Nov). */
-      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(teamsOf()) + '</section>' +
-      /* The teams against each other, ranked per step (10 Nov). */
-      (many ? '<section class="s-block s-block-wide" aria-label="Side by side">' + headH('Side by side') + teamsSide(P) + '</section>' : '') +
       /* No second heading: the page is already "Your teams" (Nour). */
       '<section class="s-block s-block-wide" aria-label="Each team">' +
         aimyBlock({ text: said, from: 'compared with last week' }) +
         cardGrid(reads, (r, i) => teamCard(r, i, live, P, worst && worst.t.id)) +
       '</section>' +
+      /* Who needs the manager, across the teams, named once (10 Nov), under
+         the teams (Nour: the people below the teams). */
+      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(teamsOf()) + '</section>' +
     '</div>';
   }
 
