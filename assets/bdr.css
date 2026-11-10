@@ -8526,15 +8526,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-pf-com { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); }
 .b-pf-com.is-up { color: var(--ok-text); }
 .b-pf-com.is-dn { color: var(--warn-text); }
-/* Today on the page: the rail's note and figures, at the page's width. */
-.b-pf-today .b-ps-note { margin-top: 0; }
-.b-pf-today .b-ps-figs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.b-pf-today .b-ps-fig { padding: 0 16px; border-left: 1px solid var(--card-border); }
-.b-pf-today .b-ps-fig:first-child { padding-left: 0; border-left: 0; }
-@media (max-width: 759.98px) {
-  .b-pf-today .b-ps-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .b-pf-today .b-ps-fig:nth-child(3) { padding-left: 0; border-left: 0; }
-}
+/* The read's questions, under it (they were the Today section's). */
+.b-pl-asks { margin-top: 12px; }
 /* What AiMY noticed: one line each, with its evidence under it. */
 .b-pf-pat { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 4px 10px; padding: 12px 0; border-top: 1px solid var(--card-border); }
 .b-pf-pat:first-of-type { border-top: 0; padding-top: 0; }

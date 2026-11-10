@@ -11589,7 +11589,14 @@
     const ms = TODAY_ISO.slice(0, 8) + '01', ws = weekStart(TODAY_ISO), qs = quarterStart(TODAY_ISO);
     const to = S.to || S.from;
     const month = { from: ms, end: isoAdd(monthAdd(ms, 1), -1), unit: 'the month', when: 'this month', name: monthLong(ms) };
-    if (!S.from || (to === TODAY_ISO && S.from === ms)) return month;
+    /* One day (Nour, 10 Nov: the default is Today). `day` marks it, so the
+       board reads a day so far, ranks on so far, and charts the week. Before
+       9:00 or on a day off, "today" is the last working day, as dayRead's. */
+    const one = (iso) => ({ from: iso, end: iso, unit: 'the day', day: iso,
+      when: iso === TODAY_ISO ? 'today' : 'on ' + dateSay(iso), name: iso === TODAY_ISO ? 'Today' : DAY_FULL[new Date(iso + 'T00:00:00').getDay()] + ' ' + dateSay(iso) });
+    if (!S.from) return one(dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO));
+    if (S.from === to) return one(S.from);
+    if (to === TODAY_ISO && S.from === ms) return month;
     if (to === TODAY_ISO && S.from === ws) return { from: ws, end: isoAdd(ws, 6), unit: 'the week', when: 'this week', name: 'This week' };
     if (to === TODAY_ISO && S.from === qs) {
       return { from: qs, end: isoAdd(monthAdd(qs, 3), -1), unit: 'the quarter', when: 'this quarter', name: 'This quarter' };
@@ -11887,7 +11894,12 @@
       }
       const who = planWho(ctx, R, k);
       if (who) say.push(who);
-      say.push(planAhead(ctx, r, P));
+      /* A day: the Today section's sentence leads (it was the day's AiMY
+         line, Nour 10 Nov), and nothing projects to "the end of the day". */
+      if (P.day) {
+        const d0 = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
+        if (P.day === d0) say.unshift(daySay(dayRead(ctx.ids), esc(ctx.who), ctx.pl ? 'have' : 'has', []));
+      } else say.push(planAhead(ctx, r, P));
     }
     /* AiMY's read, the way AiMY QA opens a page (Nour, 9 Nov): the reading
        first, in its colour, the sentence under it and the things to do; the
@@ -12014,10 +12026,17 @@
     const k = R[PLAN_STEP] ? PLAN_STEP : 'calls';
     const r = R[k], P = R.P;
     const started = r.pts.filter((p) => p.part > 0).length;
-    const sub = P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N));
+    /* A day in progress reads "by now", against a usual day by this hour. */
+    const live = P.day === TODAY_ISO && dayPart(TODAY_ISO) < 1;
+    const now = new Date();
+    const sub = P.day ? (live ? 'Today, by ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') : P.name)
+      : P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N));
     const st = planStory(ctx, R, k);
+    /* A day is too short to chart (Nour, 10 Nov: keep the chart, say it is
+       the week): with one day picked the chart reads its week. */
+    const CR = P.day ? planRead(ctx.ids, weekOf(P.day)) : R, cr = CR[k];
     const run = PLAN_VIEW === 'run';
-    const tone = pace(r).tone;
+    const tone = pace(cr).tone;
     const open = !!UI.planOpen;
     const fid = 'plFold-' + (++PL_N);
     /* On a team's page, the other teams on each tile (`ctx.cmp` is the team). */
@@ -12028,18 +12047,22 @@
         const x = R[s.k], pc = pace(x);
         return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
           '<span class="b-pl-tcap">' + esc(cap1(s.noun)) + '</span>' +
-          '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>usually ' + esc(commas(Math.round(x.byNow))) + '</small></span>' +
+          '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>usually ' + esc(commas(Math.round(x.byNow))) + (live ? ' by now' : '') + '</small></span>' +
           '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span>' + (C ? cmpLine(C(s.k), s.k) : '') + '</button>';
       }).join('') + secsTile(ctx, P) + '</div>' +
       (C ? cmpGap(C(k), k) : '') +
       '<div class="b-pl-read' + (st.facts ? '' : ' is-solo') + '">' + st.line + st.facts + '</div>' +
+      /* The questions the read leaves open, each a turn in the chat (they
+         were the Today section's, Nour 10 Nov). */
+      boardAsks(ctx, P) +
       /* The charts, folded (Nour, 9 Nov), as AiMY QA keeps its trend: the
          evidence opened on demand, not the fold spent on it. One press opens
          or closes it in place; it stays as it was left, on every board. */
       '<div class="b-pl-ct"><button class="b-pl-open" type="button" data-plfold aria-expanded="' + open + '" aria-controls="' + fid + '">' +
         '<span class="b-pl-open-ico" aria-hidden="true">' + PL_CHART + '</span>' +
         '<span class="b-pl-open-w">' + (open ? 'Close the chart' : 'Open the chart') + '</span>' +
-        '<span class="b-pl-open-sub">Velocity and burn-up for ' + esc(r.s.noun) + ', against their usual</span>' +
+        '<span class="b-pl-open-sub">' + (P.day ? 'The week’s chart: velocity and burn-up for ' + esc(r.s.noun) + ' ' + esc(CR.P.when) + ', since one day is too short to chart'
+          : 'Velocity and burn-up for ' + esc(r.s.noun) + ', against their usual') + '</span>' +
         '<span class="b-pl-chev" aria-hidden="true">' + PL_CHEV + '</span></button>' +
       '<div class="b-pl-fold" id="' + fid + '"><div class="b-pl-fold-in"' + (open ? '' : ' inert') + '>' +
         '<div class="b-pl-chart"><div class="b-pl-ctop">' +
@@ -12047,11 +12070,34 @@
             '<button type="button" data-bview="day" aria-pressed="' + !run + '">Velocity</button>' +
             '<button type="button" data-bview="run" aria-pressed="' + run + '">Burn-up</button></span>' +
           '<span class="b-pl-key">' + (run
-            ? '<span><i class="k-done"></i>So far</span><span><i class="k-plan"></i>A usual ' + esc(r.unit) + '</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>'
+            ? '<span><i class="k-done"></i>So far</span><span><i class="k-plan"></i>A usual ' + esc(cr.unit) + '</span><span><i class="k-pace is-' + tone + '"></i>At this pace</span>'
             : '<span><i class="k-bar"></i>Each day</span><span><i class="k-plan"></i>A usual day</span>') +
-          '</span></div>' + planChart(r) + '</div>' +
+          '</span></div>' + planChart(cr) + '</div>' +
       '</div></div></div>' +
     '</div>';
+  }
+  /* The week a day sits in, for the chart when one day is picked. */
+  function weekOf(iso) {
+    const ws = weekStart(iso), thisWeek = ws === weekStart(TODAY_ISO);
+    return { from: ws, end: isoAdd(ws, 6), unit: 'the week', when: thisWeek ? 'this week' : 'the week of ' + dateSay(ws), name: thisWeek ? 'This week' : 'Week of ' + dateSay(ws) };
+  }
+  /* The read's questions for the chat, under it: the longer view, the
+     team (or the person) on the period, and whoever is furthest short today. */
+  function boardAsks(ctx, P) {
+    const ids = ctx.ids, one = ctx.one;
+    const now = P.day === TODAY_ISO || P.end >= TODAY_ISO;
+    const when = P.day === TODAY_ISO ? 'today' : P.when;
+    const name = one ? firstName(ids[0]) : ctx.who;
+    /* A period still running is asked in the present, one that is over in the past. */
+    const asks = [now ? 'How is ' + name + ' doing ' + when + '?' : 'How did ' + name + ' do ' + when + '?'];
+    if (!one && P.day === TODAY_ISO) {
+      const w = dayRead(ids).by.map((x) => ({ id: x.id, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0 })).sort((a, b) => b.gap - a.gap)[0];
+      if (w && w.gap > 0.1) asks.push('How is ' + firstName(w.id) + ' doing today?');
+    }
+    if (one) asks.push(now ? 'Who is short on calls ' + when + '?' : 'Who was short on calls ' + when + '?');
+    return '<div class="b-day-asks b-pl-asks">' +
+      '<button class="s-sec-ask b-day-span" type="button" data-ask="' + esc(spanAsk(ids)) + '">' + aiMark() + 'Week, month and quarter</button>' +
+      asks.map((q) => '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') + '</div>';
   }
   /* ══ AN AVERAGE CALL, ON THE BOARD (Nour, 10 Nov) ═══════════════════════
      How long a call lasts over the period, against their usual, as a fifth
@@ -12171,9 +12217,11 @@
   function cmpData(P) {
     const reads = teamsOf().map((x) => ({ t: x, R: planRead(x.members, P), n: x.members.length })).filter((x) => x.R.calls.el);
     if (reads.length < 2) return null;
+    /* One day compares what each made of it so far, not a pace stretched to
+       a whole day (Nour, 10 Nov: today is the default). */
     const val = (x, k) => {
       const R = x.R;
-      if (k === 'calls') return R.calls.el ? Math.round(R.calls.cum / x.n / R.calls.el) : 0;
+      if (k === 'calls') return R.calls.el ? Math.round(R.calls.cum / x.n / (P.day ? 1 : R.calls.el)) : 0;
       const up = k === 'meets' ? R.talks.cum : R.calls.cum;
       return up ? Math.round((100 * R[k].cum) / up) : 0;
     };
@@ -12193,13 +12241,16 @@
          leader, the team next to it. */
       const o = rk.filter((y) => y.x !== mine)[0];
       const p = D.pos(rk, mv);
-      return { mine, best: o.x.t, mv, bv: o.v, d: mv - o.v, n: rk.length, at: p.n, tie: p.tie };
+      const sofar = P.day === TODAY_ISO && dayPart(TODAY_ISO) < 1;
+      return { mine, best: o.x.t, mv, bv: o.v, d: mv - o.v, n: rk.length, at: p.n, tie: p.tie,
+        unit: k === 'calls' && P.day ? (sofar ? ' calls each so far' : ' calls each') : CMP_UNIT[k],
+        gapw: k === 'calls' && P.day ? (sofar ? ' calls each so far' : ' calls each') : CMP_GAP[k] };
     };
   }
   const cmpTone = (c) => (c.d <= -1 ? 'is-behind' : c.d >= 1 ? 'is-ahead' : 'is-level');
   /* A tile's line: this team's figure on the shared measure and its place,
      then who leads (or, for the leader, who is next), in the gap's colour. */
-  const cmpLine = (c, k) => '<span class="b-pl-tcmp ' + cmpTone(c) + '"><b>' + esc(commas(c.mv)) + '</b>' + esc(CMP_UNIT[k]) +
+  const cmpLine = (c, k) => '<span class="b-pl-tcmp ' + cmpTone(c) + '"><b>' + esc(commas(c.mv)) + '</b>' + esc(c.unit) +
     ' · <b>' + (c.tie ? 'joint ' : '') + ORDINAL(c.at) + '</b> of ' + c.n +
     '<span class="b-pl-tcmp2">' + (c.d > 0 ? 'Next: the ' + esc(c.best.name) + ', <b>' + esc(commas(c.bv)) + '</b>'
       : c.d < 0 ? 'The ' + esc(c.best.name) + ' leads with <b>' + esc(commas(c.bv)) + '</b>'
@@ -12214,7 +12265,7 @@
        much. */
     const lead = c.d < 0 ? c.best : c.mine.t, trail = c.d < 0 ? c.mine.t : c.best;
     const gap = n < 1 ? 'Level with the ' + esc(c.best.name) + ' on ' + esc(DAY_STEPS.filter((s) => s.k === k)[0].noun)
-      : 'The ' + esc(lead.name) + ' leads the ' + esc(trail.name) + ' by <b>' + esc(commas(n)) + esc(CMP_GAP[k]) + '</b>';
+      : 'The ' + esc(lead.name) + ' leads the ' + esc(trail.name) + ' by <b>' + esc(commas(n)) + esc(c.gapw) + '</b>';
     const act = n < 1 ? '' : c.d < 0 ? fixBtn(c.mine.t.id, 'all', k, 'row', c.best.id)
       : fixBtn(c.best.id, 'all', k, 'row', c.mine.t.id, true);
     return '<div class="b-cmp-do b-pl-cmp"><span class="b-cmp-gap ' + cmpTone(c) + '"><span>' + gap + '</span></span>' + act + '</div>';
@@ -12240,7 +12291,6 @@
     const r = teamRead(t);
     const P = planSpan();
     const on = onCallNow(t.members).length;
-    const R0 = pagePeriod();
     const move = r.was == null || r.move === 0 ? ''
       : '<span class="b-tp-move ' + (r.move < 0 ? 'is-down' : 'is-up') + '">' + (r.move < 0 ? 'Down ' : 'Up ') + commas(Math.abs(r.move)) + ' since last week</span>';
     const others = teamsOf().length > 1;
@@ -12254,10 +12304,9 @@
           datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
         planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false, cmp: others ? t : null }) +
       '</section>' +
-      /* The day without its month figures: the board above is the month
-         (10 Nov, cut repeats). */
-      '<section class="s-block s-block-wide" aria-label="' + esc(R0 ? dateRange(R0.from, R0.to) : 'Today') + '">' +
-        headH(R0 ? dateRange(R0.from, R0.to) : 'Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0, true) + '</section>' +
+      /* No Today section (Nour, 10 Nov): the board reads today by default,
+         its read carries the day's sentence and questions, and Worth your
+         time names the people. */
       '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>' +
       '<section class="s-block s-block-wide" aria-label="The people">' + teamPeople(t, P) + '</section>' +
     '</div>';
@@ -12937,17 +12986,16 @@
       '<table class="b-dp-cal-grid" role="grid" aria-label="' + esc(title) + '"><thead><tr>' +
         DP_DOW.map((x) => '<th scope="col">' + x + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>';
   }
-  /* With no period chosen, the figures are this month so far (the board)
-     beside today (the day's block), so the pill says "This month", not "Any
-     date" (Nour, 10 Nov: "what is the default date for those numbers?").
-     Choosing This month is that default, so it clears the period rather than
-     turning the day's block into a month the board already shows. */
+  /* With no period chosen the page reads today (Nour, 10 Nov), so the pill
+     says "Today", and choosing Today clears the period back to that default.
+     Before 9:00 or on a day off it is the last working day, by its date. */
   function datePicker(o) {
     const PRE = datePresets();
-    const month = PRE.filter((x) => x.label === 'This month')[0];
+    const todayP = PRE.filter((x) => x.label === 'Today')[0];
+    const d0 = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
     const def = !o.from;
-    const shown = def ? dateRange(month.from, month.to) : dateRange(o.from, o.to);
-    const pre = def ? month : PRE.filter((x) => x !== month && x.from === o.from && x.to === o.to)[0];
+    const shown = def ? dateSay(d0) : dateRange(o.from, o.to);
+    const pre = def ? (d0 === TODAY_ISO ? todayP : null) : PRE.filter((x) => x !== todayP && x.from === o.from && x.to === o.to)[0];
     const focus = o.from || TODAY_ISO;
     return '<span class="b-menu-wrap b-date">' +
       '<button class="b-date-btn b-menu-open" type="button" data-pickopen="' + esc(o.id) + '" aria-haspopup="dialog" ' +
@@ -12956,7 +13004,7 @@
       '<div class="b-menu b-date-panel" id="' + esc(o.id) + '" role="dialog" aria-label="' + esc(o.label) + '" ' +
         'data-from="' + esc(o.from) + '" data-to="' + esc(o.to) + '" data-month="' + focus.slice(0, 8) + '01" hidden>' +
         '<ul class="b-date-quick">' + PRE.map((x) => '<li><button class="b-date-q' + (pre === x ? ' is-on' : '') +
-            '" type="button" data-calpre="' + (x === month ? '' : x.from + '|' + x.to) + '">' + esc(x.label) + '</button></li>').join('') +
+            '" type="button" data-calpre="' + (x === todayP ? '' : x.from + '|' + x.to) + '">' + esc(x.label) + '</button></li>').join('') +
           (o.from ? '<li class="b-date-clr"><button class="b-date-q is-clear" type="button" data-calpre="">Clear</button></li>' : '') +
         '</ul>' +
         '<div class="b-dp-cal">' + calHtml(focus.slice(0, 8) + '01', o.from, o.to, focus) + '</div>' +
@@ -13066,8 +13114,7 @@
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
-      '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(R ? dateRange(R.from, R.to) : 'Today') + '">' +
-        headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R, true) + '</section>' +
+      /* No Today section: the board reads today by default (Nour, 10 Nov). */
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
