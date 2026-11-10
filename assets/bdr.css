@@ -8787,6 +8787,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* The steps: four tiles, a radio in effect; the one read below is in the
    AiMY wash with the accent edge. */
 .b-pl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--pl-gap); }
+/* With An average call beside the four steps, five across. */
+.b-pl-tabs:has(> :nth-child(5)) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+/* Five across, "usually …" takes its own line under the figure rather than
+   breaking the figure's line in two. */
+.b-pl-tabs:has(> :nth-child(5)) .b-pl-tval small { display: block; margin: 4px 0 0; }
 .b-pl-tab {
   display: flex; flex-direction: column; gap: 6px; padding: 18px 20px;
   text-align: left; font: inherit; color: inherit; cursor: pointer; border: 0;
@@ -8794,13 +8799,17 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 .b-pl-tab:hover { background: var(--card-bg-raised); }
 .b-pl-tab:active { transform: scale(0.98); }
+/* An average call: a tile that informs and is not pressed. */
+.b-pl-tab.is-static { cursor: default; }
+.b-pl-tab.is-static:hover { background: var(--card-bg); }
+.b-pl-tab.is-static:active { transform: none; }
 .b-pl-tab.is-on { background: var(--aimy-wash); box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.55); }
 .b-pl-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .b-pl-tcap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--d100); }
 .b-pl-tab.is-on .b-pl-tcap { color: var(--d50); }
 .b-pl-tval { margin-top: 4px; font-size: 30px; font-weight: var(--fw-bold); line-height: 1.05; letter-spacing: -0.02em; color: var(--d50); font-variant-numeric: tabular-nums; }
 .b-pl-tval small { margin-left: 6px; font-size: var(--fs-sm); font-weight: var(--fw-medium); letter-spacing: 0; color: var(--d100); }
-@media (max-width: 760px) { .b-pl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .b-pl-tabs, .b-pl-tabs:has(> :nth-child(5)) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* AiMY's tile and the figures' tile, side by side. */
 .b-pl-read { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--pl-gap); }
 .b-pl-read.is-solo { grid-template-columns: minmax(0, 1fr); }
@@ -8948,7 +8957,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    with its next step, on one row. */
 .b-pl-tcmp { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--card-border);
   font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d100); font-variant-numeric: tabular-nums; }
-.b-pl-tcmp b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-pl-tcmp b { font-weight: var(--fw-bold); color: var(--d50); white-space: nowrap; }
 .b-pl-tcmp.is-behind b:first-child { color: var(--warn-text); }
 .b-pl-tcmp.is-ahead b:first-child { color: var(--ok-text); }
 /* Who leads (or who is next), on its own line under the place. */

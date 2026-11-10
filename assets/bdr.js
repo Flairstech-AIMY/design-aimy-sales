@@ -11074,6 +11074,11 @@
      team cards carry each team's month) leaves out This month only. */
   function teamDayBlock(ids, who, has, fold, R, lean) {
     if (R) return periodDayBlock(ids, who, has, fold, R);
+    /* What the page's board already says, left out of the day (10 Nov):
+       true = a team's page (the month, calls a day each, the average call);
+       'month' = Your teams (each team card has its month); 'secs' = a
+       profile (its board has the average call). */
+    const noMonth = lean === true || lean === 'month', noAvg = lean === true, noSecs = lean === true || lean === 'secs';
     const r = dayRead(ids);
     const one = ids.length === 1;
     const each = one ? '' : ' each';
@@ -11146,11 +11151,11 @@
       const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, ys.st, 'calls', skip);
       /* Not drawn, not asked: wDo names people, and a card that is not on
          the page must not use up a name. */
-      const wm = one || lean ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
-      const wa = one || lean === true ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
+      const wm = one || noMonth ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
+      const wa = one || noAvg ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
         as.st, 'calls', skip);
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
-      const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
+      const ws = one || noSecs ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
         (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks', skip);
       const sd = r.secs - usualSecs;
       const ss = Math.abs(sd) < 5 ? { st: 'ok', chip: 'As usual' } : sd < 0 && r.secs < usualSecs * 0.85 ? { st: 'short', chip: SIGNED(sd) + 's' }
@@ -11162,16 +11167,17 @@
           split: split((x, i) => [esc(commas(x.r.yest)), yt[i].w.st]),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
             { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
-        (lean ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
+        (noMonth ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
           split: split((x, i) => [esc(commas(x.r.month)), mt[i].w.st]),
           chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm })) +
-        (lean === true ? '' : wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
+        (noAvg ? '' : wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
           split: split((x, i) => [esc(commas(x.r.avg)), at[i].w.st]),
           chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa })) +
-        wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
+        /* On a page with a board, An average call is a tile there (secsTile). */
+        (noSecs ? '' : wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
           split: split((x) => [esc(callLen(x.r.secs)), 'eq']),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
-            { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws });
+            { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws }));
     };
     /* The questions the sentence leaves open, each one a turn in the chat. */
     const asks = [];
@@ -11191,7 +11197,7 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'compared with a normal day' }) +
-      wRow(dayWidgets(), 4 - (lean === true ? 2 : lean ? 1 : 0) + DAY_STEPS.length,
+      wRow(dayWidgets(), 4 - (noMonth ? 1 : 0) - (noAvg ? 1 : 0) - (noSecs ? 1 : 0) + DAY_STEPS.length,
         today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
@@ -12026,7 +12032,7 @@
           '<span class="b-pl-tcap">' + esc(cap1(s.noun)) + '</span>' +
           '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>usually ' + esc(commas(Math.round(x.byNow))) + '</small></span>' +
           '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span>' + (C ? cmpLine(C(s.k), s.k) : '') + '</button>';
-      }).join('') + '</div>' +
+      }).join('') + secsTile(ctx, P) + '</div>' +
       (C ? cmpGap(C(k), k) : '') +
       '<div class="b-pl-read' + (st.facts ? '' : ' is-solo') + '">' + st.line + st.facts + '</div>' +
       /* The charts, folded (Nour, 9 Nov), as AiMY QA keeps its trend: the
@@ -12048,6 +12054,37 @@
           '</span></div>' + planChart(r) + '</div>' +
       '</div></div></div>' +
     '</div>';
+  }
+  /* ══ AN AVERAGE CALL, ON THE BOARD (Nour, 10 Nov) ═══════════════════════
+     How long a call lasts over the period, against their usual, as a fifth
+     tile beside the steps. Not a step: it drives no chart or fix, so it
+     cannot be selected. Weighted by calls, so a busy day counts for more,
+     and the usual is weighted the same way. On a team's page, the other
+     teams' figure under it (no rank: a longer call is not better). */
+  function secsSpan(ids, P) {
+    let s = 0, c = 0, us = 0;
+    const to = P.end < TODAY_ISO ? P.end : TODAY_ISO;
+    for (let iso = P.from; iso <= to; iso = isoAdd(iso, 1)) {
+      ids.forEach((id) => { const d = repDay(id, iso); s += d.secs * d.calls; c += d.calls; us += FORM[id].secs * d.calls; });
+    }
+    return c ? { secs: Math.round(s / c), usual: Math.round(us / c) } : null;
+  }
+  function secsTile(ctx, P) {
+    const A = secsSpan(ctx.ids, P);
+    if (!A) return '';
+    const d = A.secs - A.usual;
+    const say = Math.abs(d) < 5 ? { say: 'As usual', tone: 'up' }
+      : d < 0 ? { say: callLen(-d).replace(/^0m /, '') + ' shorter than usual', tone: A.secs < A.usual * 0.85 ? 'err' : 'dn' }
+      : { say: callLen(d).replace(/^0m /, '') + ' longer than usual', tone: 'up' };
+    const others = ctx.cmp ? teamsOf().filter((x) => x !== ctx.cmp).map((x) => ({ t: x, a: secsSpan(x.members, P) })).filter((x) => x.a) : [];
+    const line = !others.length ? ''
+      : others.length === 1 ? 'The ' + esc(others[0].t.name) + ' <b>' + esc(callLen(others[0].a.secs)) + '</b>'
+      : 'Your other teams <b>' + esc(callLen(Math.min(...others.map((x) => x.a.secs)))) + '</b> to <b>' + esc(callLen(Math.max(...others.map((x) => x.a.secs)))) + '</b>';
+    return '<div class="b-pl-tab is-static" role="group" aria-label="An average call">' +
+      '<span class="b-pl-tcap">An average call</span>' +
+      '<span class="b-pl-tval">' + esc(callLen(A.secs)) + '<small>usually ' + esc(callLen(A.usual)) + '</small></span>' +
+      '<span class="b-pace is-' + say.tone + '">' + esc(say.say) + '</span>' +
+      (line ? '<span class="b-pl-tcmp is-level">' + line + '</span>' : '') + '</div>';
   }
   let PL_N = 0;
   const PL_CHART = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
@@ -13028,7 +13065,7 @@
       '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
       '<section class="s-block s-block-wide b-pf-today" aria-label="' + esc(R ? dateRange(R.from, R.to) : 'Today') + '">' +
-        headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R) + '</section>' +
+        headH(R ? dateRange(R.from, R.to) : 'Today') + teamDayBlock([id], esc(firstName(id)), 'has', false, R, 'secs') + '</section>' +
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
