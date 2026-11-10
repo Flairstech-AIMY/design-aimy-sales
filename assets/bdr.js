@@ -12908,18 +12908,26 @@
       '<table class="b-dp-cal-grid" role="grid" aria-label="' + esc(title) + '"><thead><tr>' +
         DP_DOW.map((x) => '<th scope="col">' + x + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>';
   }
+  /* With no period chosen, the figures are this month so far (the board)
+     beside today (the day's block), so the pill says "This month", not "Any
+     date" (Nour, 10 Nov: "what is the default date for those numbers?").
+     Choosing This month is that default, so it clears the period rather than
+     turning the day's block into a month the board already shows. */
   function datePicker(o) {
-    const shown = o.from ? dateRange(o.from, o.to) : '';
-    const pre = datePresets().filter((x) => x.from === o.from && x.to === o.to)[0];
+    const PRE = datePresets();
+    const month = PRE.filter((x) => x.label === 'This month')[0];
+    const def = !o.from;
+    const shown = def ? dateRange(month.from, month.to) : dateRange(o.from, o.to);
+    const pre = def ? month : PRE.filter((x) => x !== month && x.from === o.from && x.to === o.to)[0];
     const focus = o.from || TODAY_ISO;
     return '<span class="b-menu-wrap b-date">' +
       '<button class="b-date-btn b-menu-open" type="button" data-pickopen="' + esc(o.id) + '" aria-haspopup="dialog" ' +
-        'aria-label="' + esc(o.label + ': ' + (shown || 'Any date')) + '">' +
-        DP_ICO + '<span>' + esc(pre ? pre.label + ', ' + shown : shown || 'Any date') + '</span>' + DP_DOWN + '</button>' +
+        'aria-label="' + esc(o.label + ': ' + (pre ? pre.label + ', ' : '') + shown) + '">' +
+        DP_ICO + '<span>' + esc(pre ? pre.label + ', ' + shown : shown) + '</span>' + DP_DOWN + '</button>' +
       '<div class="b-menu b-date-panel" id="' + esc(o.id) + '" role="dialog" aria-label="' + esc(o.label) + '" ' +
         'data-from="' + esc(o.from) + '" data-to="' + esc(o.to) + '" data-month="' + focus.slice(0, 8) + '01" hidden>' +
-        '<ul class="b-date-quick">' + datePresets().map((x) => '<li><button class="b-date-q' + (pre === x ? ' is-on' : '') +
-            '" type="button" data-calpre="' + x.from + '|' + x.to + '">' + esc(x.label) + '</button></li>').join('') +
+        '<ul class="b-date-quick">' + PRE.map((x) => '<li><button class="b-date-q' + (pre === x ? ' is-on' : '') +
+            '" type="button" data-calpre="' + (x === month ? '' : x.from + '|' + x.to) + '">' + esc(x.label) + '</button></li>').join('') +
           (o.from ? '<li class="b-date-clr"><button class="b-date-q is-clear" type="button" data-calpre="">Clear</button></li>' : '') +
         '</ul>' +
         '<div class="b-dp-cal">' + calHtml(focus.slice(0, 8) + '01', o.from, o.to, focus) + '</div>' +
