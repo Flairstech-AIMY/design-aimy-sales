@@ -8964,6 +8964,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-do { min-width: 0; }
 /* On a call now: the names follow the live count; nobody on a call, no line. */
 .b-wd-who:has([data-live-names]:empty) { display: none; }
+/* The team page's variants (`&tv=a|b`): a folded section's heading is the
+   fold's, so the board's own title is not said twice. */
+.b-tpf .b-pl-h { display: none; }
 /* The score, opened (10 Nov): the wait popover's hover and focus, holding
    what the score is made of. Each part's points on the right; the part that
    loses most in the warning ink. */
