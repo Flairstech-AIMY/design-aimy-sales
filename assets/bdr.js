@@ -11177,7 +11177,10 @@
     const asks = [];
     const worst = r.by.map((x) => ({ id: x.id, gap: x.u.calls ? (x.u.calls - x.d.calls) / x.u.calls : 0 }))
       .sort((a, b) => b.gap - a.gap)[0];
-    if (!one) asks.push(only ? 'How is the ' + only.name + ' doing today?' : 'Who is short on calls ' + (today ? 'today' : 'that day') + '?');
+    /* Today stays "today" after 17:00 too; only the last working day, read
+       before 9:00 or on a day off, is asked in the past, by its day. */
+    if (!one) asks.push(only ? 'How is the ' + only.name + ' doing today?' : r.day === TODAY_ISO ? 'Who is short on calls today?'
+      : 'Who was short on calls on ' + DAY_FULL[new Date(r.day + 'T00:00:00').getDay()] + '?');
     if (!one) {
       const teams = TEAMS.filter((t) => t.members.every((id) => ids.indexOf(id) > -1));
       if (teams.length > 1) {
