@@ -12171,9 +12171,12 @@
      team next). */
   function cmpGap(c, k) {
     const n = Math.abs(c.d);
+    /* One sentence that reads the same from either team's page (Nour, 10
+       Nov: "…than the Gulf Team, next" did not read): who leads whom, by how
+       much. */
+    const lead = c.d < 0 ? c.best : c.mine.t, trail = c.d < 0 ? c.mine.t : c.best;
     const gap = n < 1 ? 'Level with the ' + esc(c.best.name) + ' on ' + esc(DAY_STEPS.filter((s) => s.k === k)[0].noun)
-      : '<b>' + esc(commas(n)) + (c.d < 0 ? ' fewer' : ' more') + esc(CMP_GAP[k]) + '</b> than the ' + esc(c.best.name) +
-        (c.d < 0 ? ', which leads' : ', next');
+      : 'The ' + esc(lead.name) + ' leads the ' + esc(trail.name) + ' by <b>' + esc(commas(n)) + esc(CMP_GAP[k]) + '</b>';
     const act = n < 1 ? '' : c.d < 0 ? fixBtn(c.mine.t.id, 'all', k, 'row', c.best.id)
       : fixBtn(c.best.id, 'all', k, 'row', c.mine.t.id, true);
     return '<div class="b-cmp-do b-pl-cmp"><span class="b-cmp-gap ' + cmpTone(c) + '"><span>' + gap + '</span></span>' + act + '</div>';
@@ -12195,7 +12198,10 @@
       if (top.length === 1 && hi > lo) tops[s.k] = top[0].x.t;
       if (bot.length === 1 && hi > lo) lasts[s.k] = bot[0].x.t;
       const fx = lasts[s.k] && tops[s.k] ? fixBtn(lasts[s.k].id, 'all', s.k, 'row', tops[s.k].id, false, true) : '';
-      return '<div class="b-side-t"><span class="b-side-cap">' + esc(cap1(s.noun)) + '</span><span class="b-side-unit">' + esc(CMP_UNIT[s.k].trim()) + '</span>' +
+      /* The step and its measure are one title on one line (Nour, 10 Nov:
+         stacked, they read as a title that wrapped). */
+      return '<div class="b-side-t"><span class="b-side-h"><span class="b-side-cap">' + esc(cap1(s.noun)) + '</span>' +
+          '<span class="b-side-unit">' + esc(CMP_UNIT[s.k].trim()) + '</span></span>' +
         rk.map((y) => '<div class="b-side-row' + (hi > lo && y.v === hi ? ' is-top' : hi > lo && y.v === lo ? ' is-last' : '') + '">' +
           '<span class="b-side-n">' + D.pos(rk, y.v).n + '</span><span class="b-side-name">' + esc(y.x.t.name) + '</span>' +
           '<span class="b-side-v">' + esc(commas(y.v)) + '</span></div>').join('') + fx + '</div>';
