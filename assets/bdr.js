@@ -12312,6 +12312,20 @@
     '</div>';
   }
 
+  /* Your teams' questions for the chat, under the cards: the longer view,
+     who is short on calls, and the team with most steps short today. */
+  function teamsAsks(reads, ppl, P) {
+    const now = P.day === TODAY_ISO || P.end >= TODAY_ISO;
+    const when = P.day === TODAY_ISO ? 'today' : P.when;
+    const asks = [(now ? 'Who is short on calls ' : 'Who was short on calls ') + when + '?'];
+    if (reads.length > 1 && P.day === TODAY_ISO) {
+      const tr = reads.map((x) => ({ t: x.t, s: dayShort(dayRead(x.t.members).t, dayRead(x.t.members).u).length })).sort((a, b) => b.s - a.s)[0];
+      if (tr && tr.s) asks.push('How is the ' + tr.t.name + ' doing today?');
+    }
+    return '<div class="b-day-asks b-pl-asks">' +
+      '<button class="s-sec-ask b-day-span" type="button" data-ask="' + esc(spanAsk(ppl)) + '">' + aiMark() + 'Week, month and quarter</button>' +
+      asks.map((q) => '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') + '</div>';
+  }
   function teamsPage() {
     const tm = S.team && teamsOf().filter((x) => x.id === S.team)[0];
     if (tm) return teamPage(tm);
@@ -12319,7 +12333,6 @@
     const ppl = peopleOf(teamsOf());
     const live = onCallNow(ppl);
     const P = planSpan();
-    const R0 = pagePeriod();
     const many = reads.length > 1;
     const worst = reads.slice().sort((a, b) => a.now - b.now)[0];
     /* The same rule as the rail's card (teamsSay): a team down 3 or more
@@ -12335,18 +12348,15 @@
     return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', 'Back to Today') + '</div>' +
+      /* No day row (Nour, 10 Nov): the period is today by default, so each
+         team's card already is its day; the cards follow the picker, and the
+         day row's chat questions sit under them. */
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
         '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
           datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
-        /* The day's figures first, as widgets; the plan and its charts live on
-           each team's page and each person's profile (Nour). */
-        teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
-          many ? 'have' : 'has', false, R0, 'month') +
-      '</section>' +
-      /* No second heading: the page is already "Your teams" (Nour). */
-      '<section class="s-block s-block-wide" aria-label="Each team">' +
         aimyBlock({ text: said, from: 'compared with last week' }) +
         cardGrid(reads, (r, i) => teamCard(r, i, live, P, worst && worst.t.id)) +
+        teamsAsks(reads, ppl, P) +
       '</section>' +
       /* Who needs the manager, across the teams, named once (10 Nov), under
          the teams (Nour: the people below the teams). */
