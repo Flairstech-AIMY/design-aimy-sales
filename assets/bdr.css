@@ -8717,6 +8717,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 }
 .b-fix.is-done { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 10%, transparent); border: 1px solid color-mix(in srgb, var(--ok-text) 26%, transparent); }
 .b-fix.is-done svg { flex: none; }
+/* The mark (or the check) starts the sentence: it sits on the first line,
+   not in the middle of a step that wraps to three (Nour, 10 Nov). */
+.s-sec-ask.b-fix, .b-fix { align-items: flex-start; }
+.b-fix > svg, .s-sec-ask.b-fix > svg { flex: none; align-self: flex-start; margin-top: calc((1.35em - 14px) / 2); }
 /* Each widget's chart: a track for a step, a line for a trend, dots for who is on a call. */
 .b-wd-ch { display: block; width: 100%; margin-top: auto; padding-top: 18px; }
 .w-track { position: relative; display: block; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--d50) 10%, transparent); }
