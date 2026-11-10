@@ -8960,6 +8960,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-gap.is-behind, .b-wd-who.is-behind { color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 13%, transparent); }
 .b-cmp-gap.is-ahead, .b-wd-who.is-ahead { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 13%, transparent); }
 .b-cmp-do { min-width: 0; }
+/* On a call now: the names follow the live count; nobody on a call, no line. */
+.b-wd-who:has([data-live-names]:empty) { display: none; }
 /* ══ §122 THE TEAMS PAGES, IN TILES (9 Nov 2026) ═════════════════════════
    Nour: the team page read "so editorial"; take the voice agents' page in
    Knowledge's console (settings.css `.agv-*`) as the language. The team

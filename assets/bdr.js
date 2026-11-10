@@ -10677,9 +10677,26 @@
       if (el.textContent === n) return;
       const pill = el.closest('.b-live');
       if (pill) pill.classList.toggle('is-none', n === '0');
+      /* A widget's own state and a team's row in its split follow the count,
+         so the big number and the rows under it never disagree. */
+      const wd = el.closest('.b-wd-val') && el.closest('.b-wd');
+      if (wd) {
+        wd.classList.toggle('is-live', n !== '0');
+        wd.classList.toggle('is-eq', n === '0');
+        const chip = wd.querySelector('.b-wd-st');
+        if (chip) chip.textContent = n === '0' ? 'Nobody' : 'Live';
+      }
+      const row = el.closest('.b-wd-srow b');
+      if (row) { row.classList.toggle('is-live', n !== '0'); row.classList.toggle('is-eq', n === '0'); }
       el.innerHTML = '<span class="b-tick">' + esc(n) + '</span>';
     });
     document.querySelectorAll('[data-live-who]').forEach((d) => d.classList.toggle('is-on', on.indexOf(d.getAttribute('data-live-who')) > -1));
+    /* The names under On a call now, among the people that widget counts. */
+    document.querySelectorAll('[data-live-names]').forEach((d) => {
+      const ids = d.getAttribute('data-live-names').split(',');
+      const html = on.filter((id) => ids.indexOf(id) > -1).map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ');
+      if (d.innerHTML !== html) d.innerHTML = html;
+    });
   }, LIVE_MS);
 
   /* ══ THE CARD: ONE SCORE AND ONE SENTENCE ═════════════════════════════
@@ -10934,12 +10951,27 @@
   /* Where a figure stands against what it is measured by: short by a tenth
      and two is short, a quarter is low (the error ink), a twentieth and two
      over is ahead. `sev` orders the steps, the most behind first. */
-  function wState(n, u) {
+  /* `tight` is for a figure that runs over many days (a month, a period, a
+     working day's average): it reads on the plan board's own scale (pace:
+     within 3% is as usual, under 85% is the error ink), so the same month
+     never says "As usual" in a widget and "5% below usual" on the board.
+     A day's figures keep the looser tenth, since a day so far is noisy. A
+     figure at nothing when something was usual is always short. */
+  function wState(n, u, tight) {
     if (!u) return { st: 'eq', chip: '', sev: 0 };
     const r = n / u;
-    if (u - n >= 2 && r < 0.9) return { st: r < 0.75 ? 'low' : 'short', chip: commas(Math.round(u - n)) + ' short', sev: 1 - r };
-    if (n - u >= 2 && r > 1.05) return { st: 'ahead', chip: commas(Math.round(n - u)) + ' ahead', sev: 0 };
-    return { st: 'ok', chip: 'On track', sev: 0 };
+    const lo = tight ? 0.97 : 0.9, err = tight ? 0.85 : 0.75, hi = tight ? 1.03 : 1.05, gap = tight ? 1 : 2;
+    if ((u - n >= gap && r < lo) || (n === 0 && u >= 1)) return { st: r < err ? 'low' : 'short', chip: commas(Math.round(u - n)) + ' short', sev: 1 - r };
+    if (n - u >= gap && r > hi) return { st: 'ahead', chip: commas(Math.round(n - u)) + ' ahead', sev: 0 };
+    return { st: 'ok', chip: 'As usual', sev: 0 };
+  }
+  /* Several teams in one figure (Your teams): the figure takes the worst
+     team's state, named, so a team that is short is never averaged away by
+     one that is not (the rail's card works the same way). */
+  const W_BAD = (st) => st === 'short' || st === 'low';
+  function wWorst(w, tw) {
+    const b = tw.filter((x) => W_BAD(x.w.st)).sort((p, q) => q.w.sev - p.w.sev)[0];
+    return b && (!W_BAD(w.st) || b.w.sev > w.sev) ? { st: b.w.st, chip: b.t.name + ', ' + b.w.chip, sev: b.w.sev } : w;
   }
   /* ══ EACH WIDGET'S CHART (5 Nov 2026) ═══════════════════════════════════
      A step's chart is a track: what is done, filled; the gap to a usual day
@@ -11031,17 +11063,20 @@
     const parts = one || only ? [] : TEAMS.filter((t) => t.members.length < ids.length && t.members.every((id) => ids.indexOf(id) > -1));
     const reads = parts.map((t) => ({ t, r: dayRead(t.members) }));
     const splitRow = (name, txt, st) => '<span class="b-wd-srow"><span class="b-wd-sname">' + esc(name) + '</span><b class="' + W_ST[st || 'eq'] + '">' + txt + '</b></span>';
-    const split = (fn) => (reads.length > 1 ? reads.map((x) => { const o = fn(x); return splitRow(x.t.name, o[0], o[1]); }).join('') : '');
+    const split = (fn) => (reads.length > 1 ? reads.map((x, i) => { const o = fn(x, i); return splitRow(x.t.name, o[0], o[1]); }).join('') : '');
+    /* A team's usual calls a day for each person. */
+    const tU = (x) => Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length);
     /* Each figure as a widget with its chart. */
     const dayWidgets = () => {
       const by = today ? 'Usual by now ' : 'A usual day ';
       const steps = DAY_STEPS.map((s, i) => {
-        const w = wState(r.t[s.k], r.u[s.k]);
+        const tw = reads.map((x) => ({ t: x.t, w: wState(x.r.t[s.k], x.r.u[s.k]) }));
+        const w = wWorst(wState(r.t[s.k], r.u[s.k]), tw);
         const sub = s.k === 'reached' || s.k === 'talks'
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
           : s.k === 'meets' ? 'From <b>' + esc(plural(r.t.talks, 'conversation')) + '</b>' : '';
         return { sev: w.sev, i, html: wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), sub, q: ask(s.k),
-          split: split((x) => [esc(commas(x.r.t[s.k])), wState(x.r.t[s.k], x.r.u[s.k]).st]),
+          split: split((x, i) => [esc(commas(x.r.t[s.k])), tw[i].w.st]),
           chart: wTrack(r.t[s.k], r.u[s.k], '<span>' + by + '<b>' + esc(commas(r.u[s.k])) + '</b></span>', w.st),
           do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
             (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k)) }) };
@@ -11056,15 +11091,21 @@
         return { id, m, y: repDay(id, prevDay).calls, s: r.by.filter((x) => x.id === id)[0].d.secs };
       });
       const lead = (x, sh, unit) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n) + (unit || ''));
-      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, wState(r.yest, usualCalls).st, 'calls');
-      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, wState(r.month, Math.round(planM)).st, 'calls');
+      /* The day before is one day (the looser tenth); the month and a
+         working day's average run over the month (the board's scale). */
+      const yt = reads.map((x) => ({ t: x.t, w: wState(x.r.yest, tU(x)) }));
+      const mt = reads.map((x) => ({ t: x.t, w: wState(x.r.month, Math.round(tU(x) * mDays), true) }));
+      const at = reads.map((x) => ({ t: x.t, w: wState(x.r.avg, tU(x), true) }));
+      const ys = wWorst(wState(r.yest, usualCalls), yt), ms = wWorst(wState(r.month, Math.round(planM), true), mt),
+        as = wWorst(wState(r.avg, usualCalls, true), at);
+      const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, ys.st, 'calls');
+      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls');
       const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
-        wState(r.avg, usualCalls).st, 'calls');
+        as.st, 'calls');
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
         (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks');
       const onIds = onCallNow(ids);
-      const ys = wState(r.yest, usualCalls), ms = wState(r.month, Math.round(planM)), as = wState(r.avg, usualCalls);
       const on = onCallNow(ids).length;
       const sd = r.secs - usualSecs;
       const ss = Math.abs(sd) < 5 ? { st: 'ok', chip: 'As usual' } : sd < 0 && r.secs < usualSecs * 0.85 ? { st: 'short', chip: SIGNED(sd) + 's' }
@@ -11072,17 +11113,18 @@
       return steps +
         (today ? wid({ cap: 'On a call now', val: commas(on), unit: 'of ' + commas(r.n), live: one ? ids[0] : only ? only.id : 'all',
           st: on ? 'live' : 'eq', chip: on ? 'Live' : 'Nobody', q: ask('live'), chart: wDots(ids, onIds),
-          split: split((x) => [esc(commas(onCallNow(x.t.members).length)) + ' of ' + esc(commas(x.t.members.length)), onCallNow(x.t.members).length ? 'live' : 'eq']),
-          do: one || !onIds.length ? null : { who: onIds.map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ') } }) : '') +
+          split: split((x) => ['<span data-live="' + esc(x.t.id) + '">' + esc(commas(onCallNow(x.t.members).length)) + '</span> of ' + esc(commas(x.t.members.length)),
+            onCallNow(x.t.members).length ? 'live' : 'eq']),
+          do: one ? null : { who: '<span data-live-names="' + esc(ids.join(',')) + '">' + onIds.map((id) => '<b>' + esc(firstName(id)) + '</b>').join(', ') + '</span>' } }) : '') +
         wid({ cap: 'The day before', val: commas(r.yest), unit: 'calls' + each, st: ys.st, chip: ys.chip, q: ask('yest'),
-          split: split((x) => [esc(commas(x.r.yest)), wState(x.r.yest, Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length)).st]),
+          split: split((x, i) => [esc(commas(x.r.yest)), yt[i].w.st]),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
             { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
         wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
-          split: split((x) => [esc(commas(x.r.month)), wState(x.r.month, Math.round(Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length) * mDays)).st]),
+          split: split((x, i) => [esc(commas(x.r.month)), mt[i].w.st]),
           chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
         wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
-          split: split((x) => [esc(commas(x.r.avg)), wState(x.r.avg, Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length)).st]),
+          split: split((x, i) => [esc(commas(x.r.avg)), at[i].w.st]),
           chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa }) +
         wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
           split: split((x) => [esc(callLen(x.r.secs)), 'eq']),
@@ -11149,7 +11191,7 @@
     for (let iso = R.from; iso <= R.to; iso = isoAdd(iso, 1)) if (dayPart(iso)) pdays.push(iso);
     const cut = pdays.slice(-22);
     const steps = DAY_STEPS.map((st, i) => {
-      const w = wState(s.t[st.k], s.u[st.k]);
+      const w = wState(s.t[st.k], s.u[st.k], true);
       const sub = st.k === 'reached' || st.k === 'talks'
         ? '<b>' + per100(s.t[st.k], s.t.calls) + ' in 100</b> calls, usually ' + per100(s.u[st.k], s.u.calls)
         : st.k === 'meets' ? 'From <b>' + esc(plural(s.t.talks, 'conversation')) + '</b>' : '';
@@ -11159,7 +11201,7 @@
     }).sort((a, b) => (b.sev - a.sev) || (a.i - b.i)).map((x) => x.html).join('');
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / n);
     const usualPer = Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) / n);
-    const as = wState(perDay, usualPer);
+    const as = wState(perDay, usualPer, true);
     const avgSecs = calls ? Math.round(secs / calls) : 0;
     const more =
       wid({ cap: 'A working day', val: commas(perDay), unit: 'calls' + each, st: as.st, chip: as.chip, q: overview,
@@ -12015,11 +12057,14 @@
        Calls are a day for each person; the rest are in 100 of the step
        before, so a bigger team does not win by size. */
     const UNIT = { calls: 'calls a day each', reached: 'in 100 calls', talks: 'in 100 calls', meets: 'in 100 conversations' };
+    /* Rounded here, once, so the sentence, the tiles' figures and the gap
+       between them are the same numbers: 22 against 25 is 3 fewer, and a
+       step the tiles call behind is counted behind in the sentence. */
     const val = (x, k) => {
       const R = x.R;
-      if (k === 'calls') return R.calls.el ? R.calls.cum / x.n / R.calls.el : 0;
+      if (k === 'calls') return R.calls.el ? Math.round(R.calls.cum / x.n / R.calls.el) : 0;
       const up = k === 'meets' ? R.talks.cum : R.calls.cum;
-      return up ? (100 * R[k].cum) / up : 0;
+      return up ? Math.round((100 * R[k].cum) / up) : 0;
     };
     const fmt = (v) => commas(Math.round(v));
     const diffs = DAY_STEPS.map((s) => {
@@ -12110,9 +12155,15 @@
     const R0 = pagePeriod();
     const many = reads.length > 1;
     const worst = reads.slice().sort((a, b) => a.now - b.now)[0];
-    const said = worst && worst.word.rank >= 2
-      ? 'The <b>' + esc(worst.t.name) + '</b>\u2019s score ' + (worst.move < 0 ? 'dropped ' + commas(-worst.move) : 'rose ' + commas(worst.move)) +
-        ' points this week, to ' + commas(worst.now) + '.'
+    /* The same rule as the rail's card (teamsSay): a team down 3 or more
+       since last week is named first, then one whose score needs the
+       manager, then one up 3 or more; "fine" only when none of those. */
+    const down = reads.slice().sort((a, b) => a.move - b.move)[0];
+    const up = reads.slice().sort((a, b) => b.move - a.move)[0];
+    const named = down && down.move <= -3 ? down : worst && worst.word.rank >= 2 ? worst : up && up.move >= 3 ? up : null;
+    const said = named
+      ? 'The <b>' + esc(named.t.name) + '</b>\u2019s score ' + (named.move < 0 ? 'dropped ' + commas(-named.move) + ' points' :
+          named.move > 0 ? 'rose ' + commas(named.move) + ' points' : 'held') + ' this week, to ' + commas(named.now) + '.'
       : (many ? 'All your teams are' : 'Your team is') + ' doing fine this week.';
     return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' +
@@ -12298,7 +12349,7 @@
       well.push('<b>' + esc(plural(x.d.meets, 'meeting')) + '</b> booked, the most in the ' + esc(t.name));
     }
     if (!well.length && x.d.secs >= FORM[id].secs * 0.95) {
-      well.push('Calls that land last as long as usual, <b>' + callLen(x.d.secs) + '</b> on average');
+      well.push('Calls ' + (by ? 'today' : 'that day') + ' last as long as usual, <b>' + callLen(x.d.secs) + '</b> on average');
     }
     /* And when nothing is, it says so plainly rather than inventing praise. */
     if (!well.length) well.push('nothing stands out yet ' + (by ? 'today' : 'that day'));
@@ -12426,7 +12477,7 @@
       list.push({ k: 'len', shorter: at - a >= 10, ex: at - a >= 10 ? shortest : longest,
         act: (at - a >= 10 ? fixBtn(t.id, id, 'talks', 'row') : a - at >= 10 ? fixBtn(t.id, 'all', 'talks', 'row', id) : '') +
           callBtn(at - a >= 10 ? shortest : longest, at - a >= 10 ? 'Read the shortest one' : 'Read the longest one'),
-        say: 'Calls that get through last <b>' + callLen(a) + '</b> on average' + (Math.abs(a - at) >= 10
+        say: 'Logged calls that got through last <b>' + callLen(a) + '</b> on average' + (Math.abs(a - at) >= 10
           ? ', ' + (a > at ? 'longer' : 'shorter') + ' than the team’s ' + callLen(at) + '.' : ', about the same as the team.'),
         ev: commas(mine.length) + ' calls that got through' });
     }
@@ -12786,7 +12837,10 @@
          recording strip, the same summary and transcript (histCallRow). */
       '<section class="s-block s-block-wide" aria-label="Calls">' + headH('Calls') +
         (!calls.length ? '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' ' + (R ? esc(R.words) : 'yet') + '.</p>'
-          : aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> recorded ' +
+          /* These are the calls logged on a contact, with notes and a
+             recording; the day's figures above count every number dialled,
+             so the two are never the same count (and never claim to be). */
+          : aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> logged on a contact ' +
               (R ? esc(R.words) : 'since ' + esc(sayDay(calls[calls.length - 1].at))) +
               ', and <b>' + esc(commas(got)) + '</b> got through.' }, true) +
             '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call')) +
