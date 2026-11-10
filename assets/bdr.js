@@ -13065,14 +13065,13 @@
     const w = weekScores(id);
     const on = onCallNow([id]).length;
     const note = personNote(t, id);
-    /* The period from the date picker, or none: then the figures are today's
-       and the patterns and calls are everything on record. */
+    /* The period from the date picker, for the picker itself. The board and
+       the calls follow it; What AiMY noticed, Coaching and the 1:1 agenda
+       read the whole record whatever is picked (Nour, 10 Nov: "keep whole
+       record"), since a pattern or a coaching history is not about a day. */
     const R = S.from ? { from: S.from, to: S.to || S.from } : null;
-    if (R) R.words = R.from === R.to ? 'on ' + dateSay(R.from) : 'from ' + dateSay(R.from) + ' to ' + dateSay(R.to);
-    const inR = (x) => { if (!R) return true; const iso = isoDay(new Date(x.at)); return iso >= R.from && iso <= R.to; };
-    const pats = personPatterns(t, id, R ? inR : () => true);
-    /* The agenda reads the whole record: the next 1:1 is not about a period. */
-    const agendaPats = R ? personPatterns(t, id, () => true) : pats;
+    const pats = personPatterns(t, id, () => true);
+    const agendaPats = pats;
     const acts = note.short ? ['msg', 'book'] : ['share', 'thanks'];
     const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
     const moved = w.was == null ? 0 : w.now - w.was;
@@ -13112,21 +13111,22 @@
         noteHtml +
       '</section>' +
       (agenda ? '<section class="s-block s-block-wide" aria-label="Next 1:1">' + agenda + '</section>' : '') +
-      /* Everything under this row follows the period chosen in it. */
+      /* The board and the calls under this row follow the period chosen in
+         it; what AiMY noticed and the coaching read the whole record. */
       '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
       /* No Today section: the board reads today by default (Nour, 10 Nov). */
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
-        (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through ' + (R ? esc(R.words) : 'yet') + ' to see a pattern.</p>'
+        (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through yet to see a pattern.</p>'
           : pats.list.map((x) => '<div class="b-pf-pat"><svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg><span class="b-pf-pats">' + x.say + '</span><span class="b-pf-pate">' + esc(x.ev) + '</span>' +
             (x.act ? '<span class="b-pf-patg">' + x.act + '</span>' : '') + '</div>').join('')) +
       '</section>' +
       /* Coaching after what AiMY noticed (Nour): the record first, then what
          was done about it. */
-      '<section class="s-block s-block-wide" aria-label="Coaching">' + personCoaching(t, id, R) + '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Coaching">' + personCoaching(t, id, null) + '</section>' +
       /* Every call, the history page's way: the same rows, the same
          recording strip, the same summary and transcript (histCallRow). */
       /* Open by default (CALLS_OPEN) and foldable; the heading says how many
