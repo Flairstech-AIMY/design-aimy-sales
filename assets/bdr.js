@@ -3097,8 +3097,10 @@
     const MISSED_NOTE = [
       'They called. Nobody picked up.',
       'Missed their call.',
-      'They called in while you were out.',
-      'Called twice. No answer this end.',
+      /* Nobody wrote these, so they say no "you" and no "this end": a
+         manager reading a caller's calls is not the one who was out (10 Nov). */
+      'They called while the line was busy.',
+      'They called twice. Nobody picked up.',
     ];
     /* ══ AND TWO IN FIVE OF THEM LEFT A MESSAGE ══════════════════
        Which changes what the row can say. `ringRead` INFERS why somebody was
@@ -12803,6 +12805,8 @@
       '</div></div></div>';
   }
   let COACH_OPEN = true;
+  /* The profile's calls list, shut until opened; kept as left for the visit. */
+  let CALLS_OPEN = false;
   /* ══ THE DATE PICKER (5 Nov 2026) ═══════════════════════════════════════
      The UI library's DatePicker and Calendar (aimy ui lib, registry/aimy/ui/
      date-picker.tsx and calendar.tsx, themselves Knowledge's .k-date), in
@@ -13005,15 +13009,25 @@
       '<section class="s-block s-block-wide" aria-label="Coaching">' + personCoaching(t, id, R) + '</section>' +
       /* Every call, the history page's way: the same rows, the same
          recording strip, the same summary and transcript (histCallRow). */
-      '<section class="s-block s-block-wide" aria-label="Calls">' + headH('Calls') +
-        (!calls.length ? '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' ' + (R ? esc(R.words) : 'yet') + '.</p>'
+      /* Folded by default (10 Nov: the profile ran to 5,000px, most of it
+         this list); the heading says how many and how recent, so a closed
+         section still answers "when did they last log a call?". */
+      '<section class="s-block s-block-wide" aria-label="Calls">' +
+        (!calls.length ? headH('Calls') + '<p class="b-vfoot">No calls recorded for ' + esc(firstName(id)) + ' ' + (R ? esc(R.words) : 'yet') + '.</p>'
+          : '<div class="b-pf-fold' + (CALLS_OPEN ? ' is-open' : '') + '">' +
+            '<div class="s-camp-list-head"><h2 class="s-block-h"><button class="b-pf-foldb" type="button" data-callsfold ' +
+              'aria-controls="pfCalls" aria-expanded="' + CALLS_OPEN + '"><span>Calls</span>' +
+              '<span class="b-pf-folds">' + esc(plural(calls.length, 'call') + ', the latest on ' + sayDay(calls[0].at)) + '</span>' +
+              DAY_FOLD_CHEV + '</button></h2></div>' +
+            '<div class="b-pf-foldp" id="pfCalls"><div class="b-pf-foldi">' +
           /* These are the calls logged on a contact, with notes and a
              recording; the day's figures above count every number dialled,
              so the two are never the same count (and never claim to be). */
-          : aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> logged on a contact ' +
+          aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> logged on a contact ' +
               (R ? esc(R.words) : 'since ' + esc(sayDay(calls[calls.length - 1].at))) +
               ', and <b>' + esc(commas(got)) + '</b> got through.' }, true) +
-            '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call')) +
+            '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call') +
+            '</div></div></div>') +
       '</section>' +
     '</div>';
   }
@@ -39543,6 +39557,13 @@
       COACH_OPEN = !COACH_OPEN;
       coachFold.closest('.b-pf-fold').classList.toggle('is-open', COACH_OPEN);
       coachFold.setAttribute('aria-expanded', String(COACH_OPEN));
+      return;
+    }
+    const callsFold = t.closest('[data-callsfold]');
+    if (callsFold) {
+      CALLS_OPEN = !CALLS_OPEN;
+      callsFold.closest('.b-pf-fold').classList.toggle('is-open', CALLS_OPEN);
+      callsFold.setAttribute('aria-expanded', String(CALLS_OPEN));
       return;
     }
     const goEl = t.closest('[data-go]');
