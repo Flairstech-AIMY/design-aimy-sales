@@ -8697,15 +8697,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-wd.is-ok .b-wd-st, .b-wd.is-ahead .b-wd-st, .b-wd.is-live .b-wd-st { color: var(--ok-text); }
 .b-wd-sub { margin-top: 4px; font-size: var(--fs-xs); line-height: 1.4; color: var(--d100); }
 .b-wd-sub b { font-weight: var(--fw-semibold); color: var(--d50); }
-/* Each team's share of a figure, on Your teams: the team, then its number
-   in its own state colour. */
-.b-wd-split { display: grid; gap: 4px; margin-top: 10px; }
-.b-wd-srow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: var(--fs-xs); line-height: 1.35; }
-.b-wd-sname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--fw-medium); color: var(--d50); }
-.b-wd-srow b { flex: none; font-weight: var(--fw-bold); color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-wd-srow b.is-short { color: var(--warn-text); }
-.b-wd-srow b.is-low { color: var(--err-text); }
-.b-wd-srow b.is-ok, .b-wd-srow b.is-ahead, .b-wd-srow b.is-live { color: var(--ok-text); }
 /* The foot: who the figure comes down to on its own line, then the verb
    and "Ask AiMY" as pills. */
 .b-wd-do { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); }

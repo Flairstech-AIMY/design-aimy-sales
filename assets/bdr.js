@@ -10916,7 +10916,6 @@
         (o.unit ? '<small>' + esc(o.unit) + '</small>' : '') + '</span>' +
       (o.chip ? '<span class="b-wd-st">' + esc(o.chip) + '</span>' : '') +
       (o.sub ? '<span class="b-wd-sub">' + o.sub + '</span>' : '') +
-      (o.split ? '<span class="b-wd-split">' + o.split + '</span>' : '') +
       (o.chart ? '<span class="b-wd-ch">' + o.chart + '</span>' : '') +
       /* The foot: who it comes down to, then the verb and AiMY's question as
          a labelled pill (Nour, 9 Nov: a bare mark in the corner was not
@@ -11107,12 +11106,11 @@
     const usualCalls = Math.round(ids.reduce((a, id) => a + FORM[id].calls, 0) / r.n);
     const usualSecs = Math.round(ids.reduce((a, id) => a + FORM[id].secs, 0) / r.n);
     /* Several teams at once (Your teams): each card's number is the teams
-       together, so it says how much is each team's (Nour, 9 Nov: "the
-       numbers too"), in that team's own state colour. */
+       together, and its state is the worst team's, named (wWorst). Each
+       team's own number is on its team card, so the cards here no longer
+       split by team (Nour, 10 Nov: the split repeated the team cards). */
     const parts = one || only ? [] : TEAMS.filter((t) => t.members.length < ids.length && t.members.every((id) => ids.indexOf(id) > -1));
     const reads = parts.map((t) => ({ t, r: dayRead(t.members) }));
-    const splitRow = (name, txt, st) => '<span class="b-wd-srow"><span class="b-wd-sname">' + esc(name) + '</span><b class="' + W_ST[st || 'eq'] + '">' + txt + '</b></span>';
-    const split = (fn) => (reads.length > 1 ? reads.map((x, i) => { const o = fn(x, i); return splitRow(x.t.name, o[0], o[1]); }).join('') : '');
     /* A team's usual calls a day for each person. */
     const tU = (x) => Math.round(x.t.members.reduce((a, id) => a + FORM[id].calls, 0) / x.t.members.length);
     /* Who Worth your time names on this page (it sits on the team page and
@@ -11134,7 +11132,6 @@
           ? '<b>' + per100(r.t[s.k], r.t.calls) + ' in 100</b> calls, usually ' + per100(r.u[s.k], r.u.calls)
           : s.k === 'meets' ? '<b>' + per100(r.t.meets, r.t.talks) + ' in 100</b> conversations, usually ' + per100(r.u.meets, r.u.talks) : '';
         return wid({ size: 'big', st: w.st, chip: w.chip, cap: cap1(s.noun), val: commas(r.t[s.k]), unit: today ? 'usually ' + commas(r.u[s.k]) + ' by now' : 'usually ' + commas(r.u[s.k]), sub,
-          split: split((x, i) => [esc(commas(x.r.t[s.k])), tw[i].w.st]),
           do: one ? null : wDo(r.by.map((x) => ({ id: x.id, n: x.d[s.k], u: x.u[s.k] })),
             (x, sh) => (sh ? commas(x.u - x.n) + ' short' : 'leads with ' + commas(x.n)), w.st, dayLever(s.k), skip) });
       }).join('');
@@ -11168,14 +11165,11 @@
          team's name says it, and opens to who is on a call (onCallPop). */
       return steps +
         (noMonth ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip,
-          split: split((x, i) => [esc(commas(x.r.month)), mt[i].w.st]),
           chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm })) +
         (noAvg ? '' : wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip,
-          split: split((x, i) => [esc(commas(x.r.avg)), at[i].w.st]),
           chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa })) +
         /* On a page with a board, An average call is a tile there (secsTile). */
         (noSecs ? '' : wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip,
-          split: split((x) => [esc(callLen(x.r.secs)), 'eq']),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
             { line: usualSecs, cls: ss.st === 'short' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + callLen(usualSecs) }), do: ws }));
     };
@@ -12312,20 +12306,6 @@
     '</div>';
   }
 
-  /* Your teams' questions for the chat, under the cards: the longer view,
-     who is short on calls, and the team with most steps short today. */
-  function teamsAsks(reads, ppl, P) {
-    const now = P.day === TODAY_ISO || P.end >= TODAY_ISO;
-    const when = P.day === TODAY_ISO ? 'today' : P.when;
-    const asks = [(now ? 'Who is short on calls ' : 'Who was short on calls ') + when + '?'];
-    if (reads.length > 1 && P.day === TODAY_ISO) {
-      const tr = reads.map((x) => ({ t: x.t, s: dayShort(dayRead(x.t.members).t, dayRead(x.t.members).u).length })).sort((a, b) => b.s - a.s)[0];
-      if (tr && tr.s) asks.push('How is the ' + tr.t.name + ' doing today?');
-    }
-    return '<div class="b-day-asks b-pl-asks">' +
-      '<button class="s-sec-ask b-day-span" type="button" data-ask="' + esc(spanAsk(ppl)) + '">' + aiMark() + 'Week, month and quarter</button>' +
-      asks.map((q) => '<button class="s-sec-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + esc(q) + '</button>').join('') + '</div>';
-  }
   function teamsPage() {
     const tm = S.team && teamsOf().filter((x) => x.id === S.team)[0];
     if (tm) return teamPage(tm);
@@ -12333,6 +12313,7 @@
     const ppl = peopleOf(teamsOf());
     const live = onCallNow(ppl);
     const P = planSpan();
+    const R0 = pagePeriod();
     const many = reads.length > 1;
     const worst = reads.slice().sort((a, b) => a.now - b.now)[0];
     /* The same rule as the rail's card (teamsSay): a team down 3 or more
@@ -12348,15 +12329,18 @@
     return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', 'Back to Today') + '</div>' +
-      /* No day row (Nour, 10 Nov): the period is today by default, so each
-         team's card already is its day; the cards follow the picker, and the
-         day row's chat questions sit under them. */
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
         '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
           datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
+        /* The day's figures first, as widgets; the plan and its charts live on
+           each team's page and each person's profile (Nour). */
+        teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
+          many ? 'have' : 'has', false, R0, 'month') +
+      '</section>' +
+      /* No second heading: the page is already "Your teams" (Nour). */
+      '<section class="s-block s-block-wide" aria-label="Each team">' +
         aimyBlock({ text: said, from: 'compared with last week' }) +
         cardGrid(reads, (r, i) => teamCard(r, i, live, P, worst && worst.t.id)) +
-        teamsAsks(reads, ppl, P) +
       '</section>' +
       /* Who needs the manager, across the teams, named once (10 Nov), under
          the teams (Nour: the people below the teams). */
