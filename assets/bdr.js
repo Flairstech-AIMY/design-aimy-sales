@@ -11748,6 +11748,20 @@
      the team or a person's id; `src` (optional) is whose practice is copied;
      `give` words it from the side that has it. */
   function fixBtn(tid, who, lev, cls, src, give, named, lab) {
+    /* One person short on calls has no setting to change: the wait between
+       calls is set per campaign, for everyone on it. So their fix is a
+       conversation (Nour, 10 Nov: "Book 15 minutes"), the same 15 minutes
+       Worth your time and the plan board book, done in one place for all. */
+    if (lev === 'calls' && who !== 'all' && !src) {
+      const bk = tid + ':' + who + ':book';
+      const bl = 'Book 15 minutes with ' + firstName(who);
+      if (cls === 'row') {
+        return TACTS[bk] ? '<span class="b-fix is-done">' + FIX_DONE + '<span>' + esc(TEAM_ACT.book.done) + '</span></span>'
+          : '<button class="s-sec-ask b-fix" type="button" data-tact="' + esc(bk) + '">' + aiMark() + '<span>' + esc(bl) + '</span></button>';
+      }
+      return TACTS[bk] ? '<span class="b-wt-done">' + esc(TEAM_ACT.book.done) + '</span>'
+        : '<button class="' + cls + '" type="button" data-tact="' + esc(bk) + '">' + esc(bl) + '</button>';
+    }
     const key = tid + ':' + who + ':' + lev + (src ? ':' + src : '');
     const t = TEAMS.filter((x) => x.id === tid)[0];
     const label = src ? (give ? 'Give ' + srcName(tid) + ' your ' + THING[lev] : 'Use ' + poss(srcName(src)) + ' ' + THING[lev] + (named ? ' for ' + srcName(tid) : ''))
@@ -11797,13 +11811,16 @@
         esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: tg.t.id, from: S.from, to: S.to }))) + '">Open the ' + esc(tg.t.name) + '</button>';
     } else if (r.el && p.short) {
       const t = ctx.teams[0] || teamWith(r.by[0].id);
-      out = fixBtn(t.id, ctx.one ? ctx.ids[0] : 'all', leverFor(R, k), 's-insight-lnk primary');
+      /* On a profile short on calls, the fix IS the 15 minutes below, so it
+         is drawn once, as the primary. */
+      const lev = leverFor(R, k);
+      out = ctx.one && lev === 'calls' ? '' : fixBtn(t.id, ctx.one ? ctx.ids[0] : 'all', lev, 's-insight-lnk primary');
       const tot = r.by.reduce((a, x) => a + Math.max(0, x.gap), 0);
       const top = r.by.slice().sort((a, b) => b.gap - a.gap)[0];
       if (top && (ctx.one || (tot >= 1 && top.gap / tot >= 0.5))) {
         const key = teamWith(top.id).id + ':' + top.id + ':book';
         out += TACTS[key] ? '<span class="b-wt-done">' + esc(TEAM_ACT.book.done) + ' with ' + esc(firstName(top.id)) + '</span>'
-          : '<button class="s-insight-lnk" type="button" data-tact="' + esc(key) + '">Book 15 minutes with ' + esc(firstName(top.id)) + '</button>';
+          : '<button class="s-insight-lnk' + (out ? '' : ' primary') + '" type="button" data-tact="' + esc(key) + '">Book 15 minutes with ' + esc(firstName(top.id)) + '</button>';
       }
     } else if (r.el) {
       const best = r.by.slice().sort((a, b) => a.gap - b.gap)[0];
@@ -12335,24 +12352,36 @@
     const teams = [].concat(tt);
     const many = teams.length > 1;
     const r = dayRead(peopleOf(teams));
-    const when = dayWhen(r).replace(/^B/, 'b').replace(/^O/, 'o');
     const day = r.day === TODAY_ISO ? 'today' : 'that day';
     const picks = [];
     /* Behind: the calls, then where their chain drops, then the week. The
        verbs are the 1:1 (the calls are a conversation, not a setting) and,
        when a rate dropped, AiMY's fix for that step for them. */
+    /* In plain sentences (Nour, 10 Nov: "make those human readable"): what
+       is happening first, with the gap as the one bold figure; then, in one
+       more sentence, where the calls stop going well and how the week went. */
+    const inProg = r.day === TODAY_ISO && r.p < 1;
+    const FEWER = { reached: 'Fewer of them reach a decision maker', talks: 'Fewer of them turn into a conversation',
+      meets: 'Fewer conversations end in a meeting' };
     worthBehind(teams).forEach((b) => {
       const x = b.x, w = weekScores(b.id), drop = rateDrop(x), up = drop && RATE_OF[drop];
+      const fn = esc(firstName(b.id));
+      const fell = w.was != null && w.now < w.was ? 'the score fell from ' + commas(w.was) + ' to ' + commas(w.now) + ' this week' : '';
+      const rate = drop ? per100(x.d[drop], x.d[up]) + ' in every 100, usually ' + per100(x.u[drop], x.u[up]) : '';
       picks.push({ id: b.id, t: b.t, w, acts: ['book'], fix: drop || null,
-        why: 'Only <b>' + esc(commas(x.d.calls)) + ' calls</b> ' + when + ', when ' + esc(commas(x.u.calls)) + ' is normal' +
-          (drop ? ', and ' + RATE_SAY[drop] + ': <b>' + per100(x.d[drop], x.d[up]) + ' in 100</b>, usually ' + per100(x.u[drop], x.u[up]) : '') + '.' +
-          (w.was != null && w.now < w.was ? ' The score dropped ' + commas(w.was - w.now) + ' points this week, to ' + commas(w.now) + '.' : '') });
+        why: fn + (r.day === TODAY_ISO ? ' has made ' + esc(commas(x.d.calls)) + ' calls ' + (inProg ? 'so far today' : 'today')
+            : ' made ' + esc(commas(x.d.calls)) + ' calls that day') +
+          ', <b>' + esc(commas(x.u.calls - x.d.calls)) + ' fewer than usual</b>' + (inProg ? ' by this time.' : '.') +
+          (drop && fell ? ' ' + FEWER[drop] + ' too (' + rate + '), and ' + fell + '.'
+            : drop ? ' ' + FEWER[drop] + ' too: ' + rate + '.'
+            : fell ? ' ' + cap1(fell) + '.' : '') });
     });
     const best = worthBest(teams);
     if (best) {
       picks.push({ id: best.id, t: teamWith(best.id), w: weekScores(best.id), acts: ['share', 'thanks'],
-        why: 'Booked <b>' + esc(plural(best.d.meets, 'meeting')) + '</b> from ' + esc(plural(best.d.talks, 'conversation')) + ' ' + day +
-          ', more than anyone ' + (many ? 'in your teams' : 'else') + '. Worth sharing how.' });
+        why: esc(firstName(best.id)) + (r.day === TODAY_ISO ? ' has booked ' : ' booked ') + '<b>' + esc(plural(best.d.meets, 'meeting')) + '</b> ' + day +
+          ', the most ' + (many ? 'across your teams' : 'in the team') + ', from ' + esc(plural(best.d.talks, 'conversation')) +
+          '. The best of those calls is worth sharing.' });
     }
     if (!picks.length) return aimyBlock({ text: 'Nobody needs you ' + day + ': everyone is having a normal day.' });
     return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> ' + (many ? 'across your teams' : 'in this team') + ' ' +
