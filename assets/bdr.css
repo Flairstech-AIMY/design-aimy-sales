@@ -8930,20 +8930,16 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-ro-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .b-ro-card .b-aimy { margin-bottom: 12px; }
 
-/* The team against the others: each step, each team's share of the plan. */
-.b-cmp { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-@media (max-width: 900px) { .b-cmp { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.b-cmp-step { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 14px 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); }
-.b-cmp-cap { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
-.b-cmp-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.b-cmp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--d100); }
-.b-cmp-row.is-me .b-cmp-name { font-weight: var(--fw-semibold); color: var(--d50); }
-.b-cmp-val { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); font-variant-numeric: tabular-nums; }
-.b-cmp-row.is-me .b-cmp-val { font-size: 20px; }
-.b-cmp-val.is-up { color: var(--ok-text); }
-.b-cmp-val.is-dn { color: var(--warn-text); }
-.b-cmp-val.is-err { color: var(--err-text); }
-.b-cmp-key { margin: 10px 0 0; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+/* The team against the others, inside the board (10 Nov): a line on each
+   step tile in the gap's colour, and under the tiles the selected step's gap
+   with its next step, on one row. */
+.b-pl-tcmp { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--card-border);
+  font-size: var(--fs-xs); font-weight: var(--fw-medium); line-height: 1.35; color: var(--d100); font-variant-numeric: tabular-nums; }
+.b-pl-tcmp b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-pl-tcmp.is-behind b:first-child { color: var(--warn-text); }
+.b-pl-tcmp.is-ahead b:first-child { color: var(--ok-text); }
+.b-cmp-do.b-pl-cmp { flex-direction: row; flex-wrap: wrap; align-items: center; margin-top: 12px; padding-top: 0; border-top: 0; }
+.b-cmp-do.b-pl-cmp .b-cmp-gap { align-self: auto; flex: 1 1 22rem; }
 /* What the gap is worth, and the call to share. */
 .b-cmp-do { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--card-border); }
 /* The gap, highlighted (Nour, 9 Nov): a tinted strip in the state's colour
@@ -9001,7 +8997,7 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-tmp .b-wd-cap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
 .b-tmp .b-wd-val { font-weight: var(--fw-bold); letter-spacing: -0.02em; }
 /* Panels and cards: the tile. */
-.b-tmp .b-wt-row, .b-tmp .b-cmp-step, .b-tmp .b-ro-card, .b-tmp .b-team-card {
+.b-tmp .b-wt-row, .b-tmp .b-ro-card, .b-tmp .b-team-card {
   border-color: transparent; border-radius: var(--tl-r); box-shadow: inset 0 0 0 1px var(--card-border);
 }
 .b-tmp .b-ro-card:hover, .b-tmp .b-team-card:hover { box-shadow: inset 0 0 0 1px var(--card-border-hover, var(--card-border)); }
@@ -9012,11 +9008,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-tmp .b-team-card .b-qcard-foot, .b-tmp .b-ro-card .b-qcard-foot { padding: 12px 18px 16px; }
 .b-tmp .b-ro-card .tc-title { font-size: 18px; letter-spacing: -0.01em; }
 .b-tmp .b-pl-figs { gap: 16px; margin: 18px 18px 6px; }
-.b-tmp .b-pl-fcap, .b-tmp .b-cmp-cap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--d100); }
+.b-tmp .b-pl-fcap { font-size: 12px; font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--d100); }
 .b-tmp .b-pl-fval { margin-top: 2px; font-size: 24px; letter-spacing: -0.01em; line-height: 1.1; }
 .b-tmp .b-ro-card .b-aimy, .b-tmp .b-team-card .b-aimy { margin-left: 14px; margin-right: 14px; }
-.b-tmp .b-cmp { gap: var(--tl-gap); }
-.b-tmp .b-cmp-step { gap: 10px; padding: 18px 20px; }
-.b-tmp .b-cmp-val { font-size: 20px; letter-spacing: -0.01em; }
-/* On a phone each step of the comparison takes the full width. */
-@media (max-width: 600px) { .b-tmp .b-cmp { grid-template-columns: minmax(0, 1fr); } }

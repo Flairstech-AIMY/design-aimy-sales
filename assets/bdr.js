@@ -11062,7 +11062,9 @@
       if (!WIDE_ALL) row.querySelector('.b-wscroll').scrollLeft = 0;
     });
   });
-  function teamDayBlock(ids, who, has, fold, R) {
+  /* `lean`: the page already shows the month (a team's board), so This month
+     and A working day are left out rather than said twice. */
+  function teamDayBlock(ids, who, has, fold, R, lean) {
     if (R) return periodDayBlock(ids, who, has, fold, R);
     const r = dayRead(ids);
     const one = ids.length === 1;
@@ -11134,8 +11136,10 @@
       const ys = wWorst(wState(r.yest, usualCalls), yt), ms = wWorst(wState(r.month, Math.round(planM), true), mt),
         as = wWorst(wState(r.avg, usualCalls, true), at);
       const wy = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.y, u: FORM[x.id].calls })), lead, ys.st, 'calls', skip);
-      const wm = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
-      const wa = one ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
+      /* Not drawn, not asked: wDo names people, and a card that is not on
+         the page must not use up a name. */
+      const wm = one || lean ? null : wDo(pm.map((x) => ({ id: x.id, n: x.m, u: Math.round(FORM[x.id].calls * mDays) })), lead, ms.st, 'calls', skip);
+      const wa = one || lean ? null : wDo(pm.map((x) => ({ id: x.id, n: mDays ? Math.round(x.m / mDays) : 0, u: FORM[x.id].calls })), (x, sh) => lead(x, sh, ' a day'),
         as.st, 'calls', skip);
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
@@ -11155,12 +11159,12 @@
           split: split((x, i) => [esc(commas(x.r.yest)), yt[i].w.st]),
           chart: wLine(workDaysBefore(r.day, 8).map((d) => sumDay(ids, d, 'calls') / r.n),
             { line: usualCalls, cls: ys.st === 'short' || ys.st === 'low' ? 'is-dn' : '', label: 'Last 8 working days, usual ' + usualCalls }), do: wy }) +
-        wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
+        (lean ? '' : wid({ cap: 'This month', val: commas(r.month), unit: 'calls' + each, st: ms.st, chip: ms.chip, q: ask('month'),
           split: split((x, i) => [esc(commas(x.r.month)), mt[i].w.st]),
           chart: wTrack(r.month, Math.round(planM), '<span>Usual by now <b>' + esc(commas(Math.round(planM))) + '</b></span>', ms.st), do: wm }) +
         wid({ cap: 'A working day', val: commas(r.avg), unit: 'calls' + each, st: as.st, chip: as.chip, q: ask('avg'),
           split: split((x, i) => [esc(commas(x.r.avg)), at[i].w.st]),
-          chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa }) +
+          chart: wTrack(r.avg, usualCalls, '<span>Usual <b>' + usualCalls + '</b></span>', as.st), do: wa })) +
         wid({ cap: 'An average call', val: callLen(r.secs), st: ss.st, chip: ss.chip, q: ask('secs'),
           split: split((x) => [esc(callLen(x.r.secs)), 'eq']),
           chart: wLine(workDaysBefore(r.day, 7).concat(r.day).map((d) => secsDay(ids, d)),
@@ -11184,7 +11188,7 @@
     return '<div class="b-day">' +
       aimyBlock({ text: daySay(r, who, has, TEAMS.filter((t) => ids.length > t.members.length &&
         t.members.every((id) => ids.indexOf(id) > -1))), from: 'compared with a normal day' }) +
-      wRow(dayWidgets(), today ? 5 + DAY_STEPS.length : 4 + DAY_STEPS.length,
+      wRow(dayWidgets(), (today ? 5 : 4) - (lean ? 2 : 0) + DAY_STEPS.length,
         today ? 'Most behind first, against a usual day by now' : 'Most behind first, against a usual day') +
       '<div class="b-day-asks">' +
         /* ONE DOOR TO THE LONGER VIEW (Nour, 5 Nov): the week, the month
@@ -12009,6 +12013,8 @@
     const tone = pace(r).tone;
     const open = !!UI.planOpen;
     const fid = 'plFold-' + (++PL_N);
+    /* On a team's page, the other teams on each tile (`ctx.cmp` is the team). */
+    const C = ctx.cmp ? cmpRead(ctx.cmp, P) : null;
     return '<div class="b-pl" data-fold="' + open + '">' +
       '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against their usual</h3><span class="b-pl-sub">' + esc(sub) + '</span></div></div>' +
       '<div class="b-pl-tabs">' + DAY_STEPS.map((s) => {
@@ -12016,8 +12022,9 @@
         return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
           '<span class="b-pl-tcap">' + esc(cap1(s.noun)) + '</span>' +
           '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>usually ' + esc(commas(Math.round(x.byNow))) + '</small></span>' +
-          '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span></button>';
+          '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span>' + (C ? cmpLine(C(s.k), s.k) : '') + '</button>';
       }).join('') + '</div>' +
+      (C ? cmpGap(C(k), k) : '') +
       '<div class="b-pl-read' + (st.facts ? '' : ' is-solo') + '">' + st.line + st.facts + '</div>' +
       /* The charts, folded (Nour, 9 Nov), as AiMY QA keeps its trend: the
          evidence opened on demand, not the fold spent on it. One press opens
@@ -12108,75 +12115,47 @@
       '<div class="tc-gov b-qcard-foot"><span></span><button class="s-insight-lnk" type="button" data-go="' + go + '">Open the profile</button></div>' +
     '</article>';
   }
-  /* The team against the manager's other teams: each step as a bar per team,
-     the share of the plan by now, the plan as the line all of them aim at. */
-  function teamCompare(t, P) {
+  /* ══ THE TEAM AGAINST THE OTHER TEAMS, INSIDE THE BOARD (10 Nov 2026) ═══
+     It was a section of its own ("Against your other teams") that told the
+     month again. Now each step tile on a team's board carries the line, and
+     the selected step's gap and its next step sit under the tiles (Nour:
+     "cut repeats", nothing folded away). The teams on the same measures:
+     calls a day for each person, the rest in 100 of the step before, so a
+     bigger team does not win by size. Rounded once, so the figures and the
+     gap between them are the same numbers (22 against 25 is 3 fewer). */
+  const CMP_UNIT = { calls: ' a day each', reached: ' in 100 calls', talks: ' in 100 calls', meets: ' in 100 conversations' };
+  const CMP_GAP = { calls: ' calls a day each', reached: ' decision makers in 100 calls', talks: ' conversations in 100 calls',
+    meets: ' meetings in 100 conversations' };
+  function cmpRead(t, P) {
     const reads = teamsOf().map((x) => ({ t: x, R: planRead(x.members, P), n: x.members.length }));
     const mine = reads.filter((x) => x.t.id === t.id)[0];
-    if (!mine.R.calls.el) return '<p class="b-vfoot">Nothing to compare yet ' + esc(P.when) + '.</p>';
-    /* No plan (Nour, 9 Nov): the teams side by side on the same measures.
-       Calls are a day for each person; the rest are in 100 of the step
-       before, so a bigger team does not win by size. */
-    const UNIT = { calls: 'calls a day each', reached: 'in 100 calls', talks: 'in 100 calls', meets: 'in 100 conversations' };
-    /* Rounded here, once, so the sentence, the tiles' figures and the gap
-       between them are the same numbers: 22 against 25 is 3 fewer, and a
-       step the tiles call behind is counted behind in the sentence. */
+    if (!mine || !mine.R.calls.el || reads.length < 2) return null;
     const val = (x, k) => {
       const R = x.R;
       if (k === 'calls') return R.calls.el ? Math.round(R.calls.cum / x.n / R.calls.el) : 0;
       const up = k === 'meets' ? R.talks.cum : R.calls.cum;
       return up ? Math.round((100 * R[k].cum) / up) : 0;
     };
-    const fmt = (v) => commas(Math.round(v));
-    const diffs = DAY_STEPS.map((s) => {
-      const best = reads.filter((x) => x !== mine).sort((a, b) => val(b, s.k) - val(a, s.k))[0];
-      const bv = val(best, s.k), mv = val(mine, s.k);
-      return { s, best, d: mv - bv, rel: bv ? (mv - bv) / bv : 0 };
-    });
-    const lead = diffs.filter((x) => x.d >= 1).length;
-    const trail = diffs.filter((x) => x.d <= -1).length;
-    const w = diffs.slice().sort((a, b) => a.rel - b.rel)[0];
-    const b = diffs.slice().sort((a, b2) => b2.rel - a.rel)[0];
-    const others = reads.length > 2 ? 'your other teams' : 'the ' + esc(reads.filter((x) => x !== mine)[0].t.name);
-    const tn = 'The <b>' + esc(t.name) + '</b> ';
-    /* One step in words a manager would say: "22 in every 100 calls reach a
-       decision maker, against 25 for the Enterprise Team". */
-    const SAYS = { calls: (v) => v + ' calls a day each', reached: (v) => v + ' in every 100 calls reach a decision maker',
-      talks: (v) => v + ' in every 100 calls become a conversation', meets: (v) => v + ' in every 100 conversations end in a meeting' };
-    const said = (lead === 0 ? (trail === 0 ? tn + 'is level with ' + others + '.'
-        : tn + 'is behind ' + others + (trail === 4 ? ' on every step.' : ' on ' + trail + ' of the 4 steps.'))
-      : lead === 4 ? tn + 'is ahead of ' + others + ' on every step.'
-      : tn + 'is ahead of ' + others + ' on ' + lead + ' of the 4 steps.') +
-      (w.d <= -1 ? ' The biggest gap is <b>' + esc(w.s.noun) + '</b>: ' + SAYS[w.s.k](fmt(val(mine, w.s.k))) + ', against ' +
-        fmt(val(w.best, w.s.k)) + ' for the ' + esc(w.best.t.name) + '.'
-        : lead ? ' Most of all on <b>' + esc(b.s.noun) + '</b>: ' + SAYS[b.s.k](fmt(val(mine, b.s.k))) + '.' : '');
-    const order = [mine].concat(reads.filter((x) => x !== mine));
-    /* Each step: both teams' figure, what the gap is in the step's own
-       measure, highlighted, and the next step that closes it (behind, take
-       what the team ahead does; ahead, give it to the team behind). */
-    const step = (s) => {
-      const best = order.slice(1).sort((a, b) => val(b, s.k) - val(a, s.k))[0];
-      const d = best ? val(mine, s.k) - val(best, s.k) : 0;
-      const n = Math.round(Math.abs(d));
-      const word = s.k === 'calls' ? ' calls a day each' : ' in 100';
-      const gap = !best || n < 1 ? 'Level with the ' + esc(best ? best.t.name : 'others')
-        : '<b>' + esc(commas(n)) + (d < 0 ? ' fewer' : ' more') + word + '</b> than the ' + esc(best.t.name);
-      const act = n < 1 || !best ? '' : d < 0 ? fixBtn(mine.t.id, 'all', s.k, 'row', best.t.id)
-        : fixBtn(best.t.id, 'all', s.k, 'row', mine.t.id, true);
-      const tone = (x) => {
-        const o = x === mine ? best : mine;
-        if (!o) return 'eq';
-        const dd = val(x, s.k) - val(o, s.k);
-        return dd >= 1 ? 'up' : dd <= -1 ? 'dn' : 'eq';
-      };
-      return '<div class="b-cmp-step"><span class="b-cmp-cap">' + esc(cap1(s.noun)) + '</span>' +
-        order.map((x) => '<div class="b-cmp-row' + (x === mine ? ' is-me' : '') + '"><span class="b-cmp-name">' + esc(x.t.name) + '</span>' +
-          '<span class="b-cmp-val is-' + tone(x) + '">' + fmt(val(x, s.k)) + '</span></div>').join('') +
-        '<div class="b-cmp-do"><span class="b-cmp-gap ' + (!best || n < 1 ? 'is-level' : d < 0 ? 'is-behind' : 'is-ahead') + '"><span>' + gap + '</span></span>' + act + '</div></div>';
+    return (k) => {
+      const best = reads.filter((x) => x !== mine).sort((a, b) => val(b, k) - val(a, k))[0];
+      const mv = val(mine, k), bv = val(best, k);
+      return { mine, best, mv, bv, d: mv - bv };
     };
-    return aimyBlock({ text: said, from: 'both teams, ' + P.when }) +
-      '<div class="b-cmp">' + DAY_STEPS.map(step).join('') + '</div>' +
-      '<p class="b-cmp-key">Calls are a day for each person. Decision makers and conversations are in 100 calls, meetings in 100 conversations.</p>';
+  }
+  const cmpTone = (c) => (c.d <= -1 ? 'is-behind' : c.d >= 1 ? 'is-ahead' : 'is-level');
+  /* A tile's line: this team's figure on the shared measure, then the best
+     other team's, in the gap's colour. */
+  const cmpLine = (c, k) => '<span class="b-pl-tcmp ' + cmpTone(c) + '"><b>' + esc(commas(c.mv)) + '</b>' + esc(CMP_UNIT[k]) +
+    ', the ' + esc(c.best.t.name) + ' <b>' + esc(commas(c.bv)) + '</b></span>';
+  /* Under the tiles, for the selected step: the gap in its own count and the
+     next step (behind, take what the team ahead does; ahead, give it). */
+  function cmpGap(c, k) {
+    const n = Math.abs(c.d);
+    const gap = n < 1 ? 'Level with the ' + esc(c.best.t.name) + ' on ' + esc(DAY_STEPS.filter((s) => s.k === k)[0].noun)
+      : '<b>' + esc(commas(n)) + (c.d < 0 ? ' fewer' : ' more') + esc(CMP_GAP[k]) + '</b> than the ' + esc(c.best.t.name);
+    const act = n < 1 ? '' : c.d < 0 ? fixBtn(c.mine.t.id, 'all', k, 'row', c.best.t.id)
+      : fixBtn(c.best.t.id, 'all', k, 'row', c.mine.t.id, true);
+    return '<div class="b-cmp-do b-pl-cmp"><span class="b-cmp-gap ' + cmpTone(c) + '"><span>' + gap + '</span></span>' + act + '</div>';
   }
   function teamPage(t) {
     const r = teamRead(t);
@@ -12194,15 +12173,15 @@
             '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
               '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span></div></div>' +
           datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
-        planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false }) +
+        planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false, cmp: others ? t : null }) +
       '</section>' +
+      /* The day without its month figures: the board above is the month
+         (10 Nov, cut repeats). */
       '<section class="s-block s-block-wide" aria-label="' + esc(R0 ? dateRange(R0.from, R0.to) : 'Today') + '">' +
-        headH(R0 ? dateRange(R0.from, R0.to) : 'Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0) + '</section>' +
+        headH(R0 ? dateRange(R0.from, R0.to) : 'Today') + teamDayBlock(t.members, 'the ' + esc(t.name), 'has', false, R0, true) + '</section>' +
       '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(t) + '</section>' +
       '<section class="s-block s-block-wide" aria-label="The people">' + headH('The people') +
         cardGrid(t.members, (id, i) => rosterCard(t, id, i, P)) + '</section>' +
-      (others ? '<section class="s-block s-block-wide" aria-label="Against your other teams">' + headH('Against your other teams') +
-        teamCompare(t, P) + '</section>' : '') +
     '</div>';
   }
 
