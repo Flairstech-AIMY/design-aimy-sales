@@ -11718,6 +11718,8 @@
       say: (who) => 'AiMY is finding direct numbers on the lists ' + who + ' calls, so more calls reach the decision maker' },
     talks: { label: 'Try a shorter opener', done: 'Shorter opener on half the calls',
       say: (who) => 'AiMY wrote a shorter opener; it runs on half of ' + who + '’s calls, and AiMY says which keeps people talking' },
+    talk2: { label: 'Try a shorter opener', done: 'Shorter opener on half the calls',
+      say: (who) => 'AiMY wrote a shorter opener; it runs on half of ' + who + '’s calls, and AiMY says which keeps people talking' },
     obj: { label: 'Coach the team on objections', done: 'Coaching objections',
       say: (who) => 'AiMY now suggests an answer in runs for ' + who + ' when an objection comes up' },
     meets: { label: 'Coach the close', done: 'Coaching the close',
@@ -11749,12 +11751,16 @@
       say: (n) => 'AiMY is finding direct numbers on ' + n + '’s lists, so more calls reach the decision maker' },
     talks: { label: (n) => 'Coach ' + n + '’s opener', done: 'Coaching the opener',
       say: (n) => 'AiMY now coaches ' + n + '’s opener in runs: one tip after a call that ends in the first minute' },
+    /* Once a talk about the opener did not move it (coachFailed), the other
+       way: AiMY writes a shorter one and tries it on half the calls. */
+    talk2: { label: (n) => 'Try a shorter opener for ' + n, done: 'Shorter opener on half the calls',
+      say: (n) => 'AiMY wrote ' + n + ' a shorter opener; it runs on half of ' + n + '’s calls, and AiMY says which keeps people talking' },
     obj: { label: (n) => 'Coach ' + n + ' on objections', done: 'Coaching the answer',
       say: (n) => 'AiMY now suggests an answer in ' + n + '’s runs when this objection comes up' },
     meets: { label: (n) => 'Coach ' + n + '’s close', done: 'Coaching the close',
       say: (n) => 'AiMY now coaches ' + n + '’s close in runs: one tip after a conversation that ends without a meeting' },
   };
-  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', meets: 'close', obj: 'answers to objections' };
+  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', talk2: 'opener', meets: 'close', obj: 'answers to objections' };
   const srcName = (src) => { const t = TEAMS.filter((x) => x.id === src)[0]; return t ? 'the ' + t.name : REP[src] ? firstName(src) : src; };
   const poss = (n) => n + '’s';
   /* The lever as a button, or what it did once pressed. `who` is 'all' for
@@ -11775,6 +11781,9 @@
       return TACTS[bk] ? '<span class="b-wt-done">' + esc(TEAM_ACT.book.done) + '</span>'
         : '<button class="' + cls + '" type="button" data-tact="' + esc(bk) + '">' + esc(bl) + '</button>';
     }
+    /* Memory (10 Nov): a talk about this person's opener that did not move
+       it is not suggested again; the other way is. */
+    if (lev === 'talks' && who !== 'all' && !src && !lab && coachFailed(who, 'talks')) lev = 'talk2';
     const key = tid + ':' + who + ':' + lev + (src ? ':' + src : '');
     const t = TEAMS.filter((x) => x.id === tid)[0];
     const label = src ? (give ? 'Give ' + srcName(tid) + ' your ' + THING[lev] : 'Use ' + poss(srcName(src)) + ' ' + THING[lev] + (named ? ' for ' + srcName(tid) : ''))
@@ -12716,14 +12725,16 @@
      each earlier one is read off the record: the step it was about, the
      week before against the week after. */
   const COACH_LOG = {
-    karim: [{ d: -15, what: 'You talked about openers', said: 'Agreed to open on the prospect’s last order, not the product.', step: 'talks' },
-      { d: -29, what: 'Message: a check-in', said: '“How is the Gulf list going? Anything in the way?”', step: 'calls' }],
-    salma: [{ d: -9, what: 'You talked about the morning block', said: 'Agreed to keep 9:00 to 11:00 for calls only.', step: 'calls' }],
-    tarek: [{ d: -22, what: 'Shared Rana’s best call', said: 'The Tidewater opener, 4 minutes.', step: 'reached' }],
+    /* `coach`: it tried to change how they work, so it gets a verdict; a well
+       done or a shared call for the team does not. */
+    karim: [{ d: -15, what: 'You talked about openers', said: 'Agreed to open on the prospect’s last order, not the product.', step: 'talks', coach: true },
+      { d: -29, what: 'Message: a check-in', said: '“How is the Gulf list going? Anything in the way?”', step: 'calls', coach: true }],
+    salma: [{ d: -9, what: 'You talked about the morning block', said: 'Agreed to keep 9:00 to 11:00 for calls only.', step: 'calls', coach: true }],
+    tarek: [{ d: -22, what: 'Shared Rana’s best call', said: 'The Tidewater opener, 4 minutes.', step: 'reached', coach: true }],
     rana: [{ d: -6, what: 'Said well done', said: 'For three meetings in a day.', step: 'meets' }],
     engy: [{ d: -8, what: 'Said well done', said: 'For the Northgate meeting.', step: 'meets' },
       { d: -22, what: 'Shared the best call with the team', said: 'The Northgate opener, 5 minutes.', step: 'reached' }],
-    omar: [{ d: -12, what: 'You talked about decision makers', said: 'Agreed to ask for the person by role, not by name.', step: 'reached' }],
+    omar: [{ d: -12, what: 'You talked about decision makers', said: 'Agreed to ask for the person by role, not by name.', step: 'reached', coach: true }],
     mariam: [], youssef: [],
   };
   function stepMoved(id, at, step) {
@@ -12743,8 +12754,18 @@
     const a = step === 'calls' ? Math.round(before.s.t.calls / before.days) : step === 'meets' ? meet100(before) : per100(before, step);
     const b = step === 'calls' ? Math.round(after.s.t.calls / after.days) : step === 'meets' ? meet100(after) : per100(after, step);
     const unit = step === 'calls' ? ' a day' : step === 'meets' ? ' in 100 conversations' : ' in 100 calls';
-    return { up: b > a, same: a === b,
+    /* The verdict (10 Nov, the plan's memory: "the manager sees whether
+       their coaching worked"): a move of under 8% either way is no change. */
+    const rel = a ? (b - a) / a : 0;
+    const verdict = rel >= 0.08 ? 'worked' : rel <= -0.08 ? 'fell' : 'same';
+    return { up: verdict === 'worked', same: verdict === 'same', verdict,
       say: a === b ? name + ' held at ' + a + unit + ' the week after.' : name + ' went from ' + a + ' to ' + b + unit + ' the week after.' };
+  }
+  /* Coaching on a step that did not move it, in the last six weeks: AiMY
+     does not suggest the same thing again (fixBtn swaps in another way). */
+  function coachFailed(id, step) {
+    return (COACH_LOG[id] || []).filter((c) => c.coach && c.step === step && c.d >= -42)
+      .map((c) => ({ c, m: stepMoved(id, dayAdd(c.d), c.step) })).filter((x) => x.m && x.m.verdict !== 'worked')[0] || null;
   }
   function personCoaching(t, id, R) {
     const rows = [];
@@ -12754,7 +12775,7 @@
     });
     (COACH_LOG[id] || []).forEach((c) => {
       const at = dayAdd(c.d);
-      if (inDays(at)) rows.push({ when: sayDay(at), what: c.what, said: c.said, moved: stepMoved(id, at, c.step) });
+      if (inDays(at)) rows.push({ when: sayDay(at), what: c.what, said: c.said, moved: stepMoved(id, at, c.step), coach: c.coach, step: c.step });
     });
     if (!rows.length) return headH('Coaching') + (R ? '<p class="b-vfoot">No coaching with ' + esc(firstName(id)) + ' ' + esc(R.words) + '.</p>'
       : '<p class="b-vfoot">Nothing yet. What you do from the rail or from this page lands here, with what moved after.</p>');
@@ -12773,7 +12794,11 @@
       '<div class="b-pf-cob"><div class="b-pf-cot">' + esc(r.what) + '</div><div class="b-pf-cos">' + esc(r.said) + '</div>' +
         (r.moved ? '<div class="b-pf-com' + (r.moved.same ? '' : r.moved.up ? ' is-up' : ' is-dn') + '">' +
           '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          esc(r.moved.say) + '</div>' : '') +
+          /* Coaching gets its verdict first, in words; when it did not move
+             the step, AiMY says it will not suggest the same again. */
+          (r.coach ? '<span><b>' + (r.moved.verdict === 'worked' ? 'It worked.' : r.moved.verdict === 'fell' ? 'It did not help.' : 'No change.') + '</b> ' +
+            esc(r.moved.say) + (r.moved.verdict !== 'worked' && r.step === 'talks' ? ' AiMY now suggests a shorter opener instead of the same talk.' : '') + '</span>'
+            : esc(r.moved.say)) + '</div>' : '') +
       '</div></div>').join('') + '</div>' +
       '</div></div></div>';
   }
