@@ -12478,8 +12478,12 @@
       say: (n) => n + ' gets: “How is today going? Anything in the way?”' },
     book: { label: () => 'Book 15 minutes', done: 'Asked for 15 minutes',
       say: (n) => n + ' is asked for 15 minutes with you today' },
-    share: { label: () => 'Share the best call', done: 'Shared with the team',
-      say: (n, team) => n + '’s best call today is shared with the ' + team },
+    /* Was "Share the best call". Nour (11 Nov): "what do anybody do with
+       sharing a call?" A shared call changes nobody's next call. The habit
+       behind the best caller's meetings goes into every call brief instead,
+       where each caller reads it before dialling (`habitsFor`, `callPrep`). */
+    habit: { label: () => 'Make it the team’s habit', done: 'In every call brief',
+      say: (n, team, id) => 'Every call brief in the ' + team + ' now says: “' + habitOf(id).brief + ', the way ' + n + ' does.”' },
     thanks: { label: () => 'Say well done', done: 'Well done sent',
       say: (n) => '“Well done today” sent to ' + n },
   };
@@ -12487,9 +12491,63 @@
     const [tid, id, k] = key.split(':');
     const t = TEAMS.filter((x) => x.id === tid)[0];
     if (!t || !TEAM_ACT[k] || !REP[id]) return;
+    if (k === 'habit') {
+      /* Kept on the record, not for the session: briefs read it. */
+      if (!habitAdd('team:' + tid, id)) return;
+      paint();
+      toast(TEAM_ACT.habit.say(firstName(id), t.name, id), () => { habitDrop('team:' + tid, id); paint(); });
+      return;
+    }
     TACTS[key] = true;
     paint();
-    toast(TEAM_ACT[k].say(firstName(id), t.name), () => { delete TACTS[key]; paint(); });
+    toast(TEAM_ACT[k].say(firstName(id), t.name, id), () => { delete TACTS[key]; paint(); });
+  }
+  /* Done is the session's for a word or a thanks, the record's for a habit. */
+  const tactOn = (key) => {
+    if (TACTS[key]) return true;
+    const [tid, id, k] = key.split(':');
+    return k === 'habit' && habitIn('team:' + tid, id);
+  };
+
+  /* ══ THE BEST CALLER'S HABIT, IN EVERY BRIEF (11 Nov) ══════════════════
+     What the best caller does differently on the calls that book. In this
+     build it is dealt off the caller's id (the transcripts are fixtures);
+     in a real build AiMY reads it off their transcripts that ended in a
+     meeting. Added on a campaign (Analyse) or a team (the team pages), it
+     shows in the brief of every call on that campaign or by that team, and
+     the next read says whether it worked. */
+  const HABITS = [
+    { k: 'early', does: 'asks for the meeting in the first two minutes', brief: 'Ask for the meeting in the first two minutes' },
+    { k: 'date', does: 'asks when they need it live, then works back from that date', brief: 'Ask when they need it live, and work back from that date' },
+    { k: 'short', does: 'keeps the opener to one sentence, then asks a question', brief: 'Keep the opener to one sentence, then ask a question' },
+    { k: 'peer', does: 'names a company like theirs that already works with us', brief: 'Name a company like theirs that already works with us' },
+    { k: 'next', does: 'books the next step before hanging up', brief: 'Book the next step before you hang up' },
+  ];
+  const habitOf = (id) => HABITS[Math.abs(hash(id + ':habit')) % HABITS.length];
+  const habitIn = (scope, id) => (DELTA.habits || []).some((h) => h.by === id && h.scope === scope);
+  function habitAdd(scope, id) {
+    if (habitIn(scope, id)) return null;
+    if (!DELTA.habits) DELTA.habits = [];
+    const h = { by: id, k: habitOf(id).k, scope: scope, at: TODAY_ISO, from: me().id };
+    DELTA.habits.push(h);
+    saveNow();
+    return h;
+  }
+  function habitDrop(scope, id) {
+    DELTA.habits = (DELTA.habits || []).filter((h) => !(h.by === id && h.scope === scope));
+    saveNow();
+  }
+  /* The habits that reach one call's brief: added on its campaign, or on the
+     caller's team. Nobody is told to copy themselves. */
+  function habitsFor(campId, callerId) {
+    const t = REP[callerId] ? teamWith(callerId) : null;
+    const seen = Object.create(null);
+    return (DELTA.habits || []).filter((h) => {
+      if (h.by === callerId || seen[h.by + h.k]) return false;
+      const on = (campId && h.scope === 'camp:' + campId) || (t && h.scope === 'team:' + t.id);
+      if (on) seen[h.by + h.k] = 1;
+      return on;
+    });
   }
   const headH = (h) => '<div class="s-camp-list-head"><h2 class="s-block-h">' + esc(h) + '</h2></div>';
   /* Who in this team needs the manager today: the one furthest short of a
@@ -12553,17 +12611,17 @@
     });
     const best = worthBest(teams);
     if (best) {
-      picks.push({ id: best.id, t: teamWith(best.id), w: weekScores(best.id), acts: ['share', 'thanks'],
+      picks.push({ id: best.id, t: teamWith(best.id), w: weekScores(best.id), acts: ['habit', 'thanks'],
         why: esc(firstName(best.id)) + (r.day === TODAY_ISO ? ' has booked ' : ' booked ') + '<b>' + esc(plural(best.d.meets, 'meeting')) + '</b> ' + day +
           ', the most ' + (many ? 'across your teams' : 'in the team') + ', from ' + esc(plural(best.d.talks, 'conversation')) +
-          '. The best of those calls is worth sharing.' });
+          '. ' + esc(firstName(best.id)) + ' <b>' + esc(habitOf(best.id).does) + '</b>.' });
     }
     if (!picks.length) return aimyBlock({ text: 'Nobody needs you ' + day + ': everyone is having a normal day.' });
     return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> ' + (many ? 'across your teams' : 'in this team') + ' ' +
         (picks.length === 1 ? 'is' : 'are') + ' worth your time ' + day + '.' }, true) +
       '<div class="b-wt-rows">' + picks.map((k) => {
         const id = k.id, tid = k.t.id;
-        const done = k.acts.filter((a) => TACTS[tid + ':' + id + ':' + a])[0];
+        const done = k.acts.filter((a) => tactOn(tid + ':' + id + ':' + a))[0];
         const btns = k.acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
           esc(tid + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('');
         return '<div class="b-wt-row' + (done ? ' is-done' : '') + '">' + faceOf(id, 40) +
@@ -12643,8 +12701,8 @@
     const x = n.x;
     /* The actions the note calls for: a word when something is worth one,
        a thanks and a lesson for the others when it is not. */
-    const acts = n.short ? ['msg', 'book'] : ['share', 'thanks'];
-    const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+    const acts = n.short ? ['msg', 'book'] : ['habit', 'thanks'];
+    const done = acts.filter((a) => tactOn(t.id + ':' + id + ':' + a))[0];
     const moved = w.was == null ? 0 : w.now - w.was;
     const move = Math.abs(moved) < 3 ? ''
       : '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' +
@@ -12794,8 +12852,9 @@
       pts.push({ say: 'Ask what is in the way of the calls.', ev: x.d.calls + ' calls ' + (note.by ? 'by now' : 'that day') + ', usually ' + x.u.calls,
         go: '<button class="s-insight-lnk" type="button" data-ask="' + esc('How did ' + first + ' do week by week this quarter?') + '">Week by week</button>' });
     } else {
-      pts.push({ say: 'Say what is working, so it stays.', ev: note.well.replace(/<[^>]+>/g, ''),
-        go: '<button class="s-insight-lnk" type="button" data-tact="' + esc(t.id + ':' + id + ':share') + '">Share the best call</button>' });
+      pts.push({ say: 'Make what works the team’s habit: ' + habitOf(id).does + '.', ev: note.well.replace(/<[^>]+>/g, ''),
+        go: tactOn(t.id + ':' + id + ':habit') ? '<span class="b-wt-done">' + esc(TEAM_ACT.habit.done) + '</span>'
+          : '<button class="s-insight-lnk" type="button" data-tact="' + esc(t.id + ':' + id + ':habit') + '">' + esc(TEAM_ACT.habit.label()) + '</button>' });
     }
     const obj = pats.list.filter((p) => p.k === 'obj')[0];
     if (obj) {
@@ -12876,8 +12935,8 @@
   function personCoaching(t, id, R) {
     const rows = [];
     const inDays = (iso) => !R || (iso >= R.from && iso <= R.to);
-    ['msg', 'book', 'share', 'thanks'].forEach((k) => {
-      if (TACTS[t.id + ':' + id + ':' + k] && inDays(TODAY_ISO)) rows.push({ when: 'Today', what: TEAM_ACT[k].done, said: TEAM_ACT[k].say(firstName(id), t.name), moved: null });
+    ['msg', 'book', 'habit', 'thanks'].forEach((k) => {
+      if (tactOn(t.id + ':' + id + ':' + k) && inDays(TODAY_ISO)) rows.push({ when: 'Today', what: TEAM_ACT[k].done, said: TEAM_ACT[k].say(firstName(id), t.name, id), moved: null });
     });
     (COACH_LOG[id] || []).forEach((c) => {
       const at = dayAdd(c.d);
@@ -13072,8 +13131,8 @@
     const R = S.from ? { from: S.from, to: S.to || S.from } : null;
     const pats = personPatterns(t, id, () => true);
     const agendaPats = pats;
-    const acts = note.short ? ['msg', 'book'] : ['share', 'thanks'];
-    const done = acts.filter((a) => TACTS[t.id + ':' + id + ':' + a])[0];
+    const acts = note.short ? ['msg', 'book'] : ['habit', 'thanks'];
+    const done = acts.filter((a) => tactOn(t.id + ':' + id + ':' + a))[0];
     const moved = w.was == null ? 0 : w.now - w.was;
     /* The calls follow the period picker, whose default is today (Nour,
        10 Nov: "calls should follow the period filter"), so the list and the
@@ -21245,15 +21304,17 @@
         l: 'Most reasons buyers give are ' + esc(((OBJECTION[most] || {}).label || 'timing').toLowerCase()) + ', not what we sell.', c: '' });
     }
 
-    /* Who calls best. The habit behind it is the team's to copy, so the
-       action shares the call rather than praising the caller. */
+    /* Who calls best. What they do differently is the team's to copy, so
+       the action puts it in every call brief on this campaign: sharing their
+       call changed nobody's next call (Nour, 11 Nov). */
     const rep = lead(by((t) => (REP[t.by] ? t.by : null)));
     if (rep) {
-      const best = here.filter((t) => t.by === rep[0] && meet(t)).pop();
+      const hb = habitOf(rep[0]);
       qs.push({ k: 'caller', ic: 'user', q: 'Who calls best?', v: esc(actor(rep[0]).name),
-        l: 'Books <b>' + plural(per100(rep[1]), 'meeting') + '</b> in every 100 calls.',
-        c: 'Have the team hear their best call.', worth: worth(rep[1]),
-        act: 'caller', best: best, who: rep[0], done: 'Shared with the team', give: owner });
+        l: cap1(esc(hb.does)) + '. Books <b>' + plural(per100(rep[1]), 'meeting') + '</b> in every 100 calls.',
+        c: 'Make it the team’s habit.', worth: worth(rep[1]),
+        act: 'caller', who: rep[0], brief: hb.brief, made: habitIn('camp:' + k.id, rep[0]),
+        done: 'In every call brief', give: owner });
     } else {
       qs.push({ k: 'caller', ic: 'user', q: 'Who calls best?', v: 'Too early',
         l: 'No two callers have ' + AN_MIN + ' calls here and a clear lead yet.', c: '' });
@@ -21288,13 +21349,13 @@
     const ceo = isWhole();
     /* Done is read off the record where the action changed it, and off the
        note the action left where it only sent something. */
-    const made = ceo ? !!st[q.k] : q.k === 'pitch' ? q.made : !!st[q.k];
+    const made = ceo ? !!st[q.k] : (q.k === 'pitch' || q.k === 'caller') ? q.made : !!st[q.k];
     const verb = !q.act ? ''
       : ceo ? (q.give ? 'Give to ' + firstOf(q.give) : '')
       : q.act === 'opener' ? 'Make it the opener'
       : q.act === 'icp' ? 'Update the ICP'
       : q.act === 'offer' ? 'Send to ' + (lineOwnerOf((k.sells || [])[0]) ? firstOf(actor(lineOwnerOf((k.sells || [])[0]))) : 'the product team')
-      : q.act === 'caller' ? 'Share their best call'
+      : q.act === 'caller' ? 'Add it to every call brief'
       : q.act === 'edit' ? 'Add a pitch' : '';
     const doneSay = ceo ? 'Given to ' + (q.give ? firstOf(q.give) : '') : q.done;
     const btn = !verb ? ''
@@ -21359,14 +21420,15 @@
       });
       return;
     }
-    st[key] = 1; saveNow(); paint();
-    if (q.act === 'offer') {
-      toast('Sent to ' + q.give.name + ', with the reasons buyers gave behind it', () => { delete st[key]; saveNow(); paint(); });
-    } else {
-      const c = q.best && DB.byCon[q.best.con];
-      toast('Shared with the team: ' + firstOf(actor(q.who)) + '’s call' + (c ? ' with ' + c.name + ' on ' + sayDay(q.best.at.slice(0, 10)) : ''),
-        () => { delete st[key]; saveNow(); paint(); });
+    if (q.act === 'caller') {
+      if (!habitAdd('camp:' + k.id, q.who)) return;
+      paint();
+      toast('Every call brief on this campaign now says: “' + q.brief + ', the way ' + firstOf(actor(q.who)) + ' does.”',
+        () => { habitDrop('camp:' + k.id, q.who); paint(); });
+      return;
     }
+    st[key] = 1; saveNow(); paint();
+    toast('Sent to ' + q.give.name + ', with the reasons buyers gave behind it', () => { delete st[key]; saveNow(); paint(); });
   }
   /* Open or shut, per person, and in place: the page is not redrawn, so
      the card grows out of the header instead of the page jumping. */
@@ -36988,6 +37050,12 @@
       know.push(['What changed', esc(a.name + ' ' + sig.text + ' · ' + sayWhen(sig.at)) + ' — ' +
         signalMeans(sig, hist) + ' <span class="s-callp-who">— ' + esc(sig.src) + '</span>']);
     }
+    /* The habit a manager made the team's, from the best caller's meetings
+       (Analyse on this campaign, or the team pages). */
+    habitsFor(camp && camp.id, me().id).forEach((h) => {
+      const hb = HABITS.filter((x) => x.k === h.k)[0];
+      if (hb) know.push(['From the best calls', esc(hb.brief) + ', the way ' + esc(firstName(h.by)) + ' does.']);
+    });
     /* What the caller added to the brief from the company's news. */
     if (a) {
       newsFeed(a).filter((x) => x.brief && !x.pending).forEach((x) => {
