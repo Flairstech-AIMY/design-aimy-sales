@@ -21462,7 +21462,7 @@
        says the count, so a thin answer reads as thin. */
     if (gave < 5) {
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Too early',
-        l: 'Buyers have raised a reason ' + plural(gave, 'time') + ' so far.', c: '' });
+        l: 'Too few reasons on the calls to tell yet.', c: '' });
     } else if (top && onOffer * 2 >= gave) {
       /* The biggest reason, said as the biggest (Nour, 11 Nov: "show the
          biggest reason not one of the reasons"), and every reason a press
@@ -21472,17 +21472,18 @@
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Not yet', tone: 'warn',
         /* A reason and the times it was raised are two counts (Nour, 11 Nov:
            "those are 3 reasons only … this is not 11 reasons"). */
-        l: '<b>' + esc(OBJECTION[top].label) + '</b> is the biggest reason' + (first === top ? '' : ' about what we sell') +
-          ', raised <b>' + said[top] + ' of the ' + gave + '</b> times buyers gave one.',
-        all: anReasons(said, offer),
-        c: FIX[top], stopped: onOffer, act: open ? 'offer' : null,
-        done: 'Sent to ' + (lineName ? firstOf(actor(lineId)) : 'the product team'),
+        /* Reasons only, no counts (Nour, 11 Nov: "this is too much, remove
+           the number of times, we only want reasons"). */
+        /* The biggest reason alone, made to stand out (Nour, 11 Nov: "remove
+           see all reasons. the biggest one is enough, just emphasize it"). */
+        l: '<b class="b-an-big">' + esc(OBJECTION[top].label) + '</b> is the biggest reason buyers give' + (first === top ? '' : ' about what we sell') + '.',
+        c: FIX[top], act: open ? 'offer' : null,
+        done: lineName ? 'Sent to ' + firstOf(actor(lineId)) : 'Product team told',
         give: lineId ? actor(lineId) : owner });
     } else {
       const most = Object.keys(said).sort((a, b) => said[b] - said[a])[0];
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Yes', tone: 'ok',
-        l: 'Most reasons buyers give are ' + esc(((OBJECTION[most] || {}).label || 'timing').toLowerCase()) + ', not what we sell.', c: '',
-        all: anReasons(said, offer) });
+        l: 'Most reasons buyers give are ' + esc(((OBJECTION[most] || {}).label || 'timing').toLowerCase()) + ', not what we sell.', c: '' });
     }
 
     /* Who calls best. What they do differently is the team's to copy, so
@@ -21511,10 +21512,6 @@
       held: camp.filter((t) => t.outcome === 'phase').length };
   }
 
-  /* Every reason buyers gave on this campaign, most first, each marked if it
-     is about what we sell. */
-  const anReasons = (said, offer) => Object.keys(said).sort((a, b) => said[b] - said[a])
-    .map((kk) => ({ name: (OBJECTION[kk] || {}).label || kk, n: said[kk], ours: offer.indexOf(kk) > -1 }));
   const AN_NAME = { pitch: 'the pitch', icp: 'the ICP', caller: 'how the team asks' };
   function anVerdict(k, a) {
     if (!a.open) return 'This campaign has closed. Carry these into the next one.';
@@ -21545,7 +21542,8 @@
       : q.act === 'opener' ? 'Make it the opener'
       /* The line names what to change; the button says where it is done. */
       : q.act === 'icp' ? 'Open the ICP'
-      : q.act === 'offer' ? 'Send to ' + (lineOwnerOf((k.sells || [])[0]) ? firstOf(actor(lineOwnerOf((k.sells || [])[0]))) : 'the product team')
+      /* Short enough to stay on one line in a column (it wrapped, 11 Nov). */
+      : q.act === 'offer' ? (lineOwnerOf((k.sells || [])[0]) ? 'Send to ' + firstOf(actor(lineOwnerOf((k.sells || [])[0]))) : 'Tell the product team')
       : q.act === 'caller' ? 'Add it to every call brief'
       : q.act === 'edit' ? 'Add a pitch' : '';
     const doneSay = ceo ? 'Given to ' + (q.give ? firstOf(q.give) : '') : q.done;
@@ -21560,15 +21558,11 @@
       : '<button class="b-an-go" type="button" data-ango="' + esc(k.id) + ':' + q.k + '">' +
           (ceo ? chIcon('send', 14) : '') + '<span>' + esc(verb) + '</span></button>';
     const worth = q.worth > 0 ? '<span class="b-an-w"><b>+' + q.worth + '</b> ' + (q.worth === 1 ? 'meeting' : 'meetings') +
-        ' by ' + esc(sayDay(k.to)) + '</span>'
-      : q.stopped ? '<span class="b-an-w is-warn">Raised <b>' + q.stopped + '</b> ' + (q.stopped === 1 ? 'time' : 'times') + ' about what we sell</span>' : '';
+        ' by ' + esc(sayDay(k.to)) + '</span>' : '';
     return '<section class="b-an-a" aria-label="' + esc(q.q) + '" style="--i:' + (q.i || 0) + '">' +
       '<span class="b-an-q">' + chIcon(q.ic, 15) + esc(q.q) + '</span>' +
       '<p class="b-an-v' + (q.tone ? ' is-' + q.tone : '') + '">' + q.v + '</p>' +
       '<div class="b-an-l"><p>' + q.l + '</p>' +
-        (q.all && q.all.length > 1 ? '<details class="b-an-all"><summary>See all ' + q.all.length + ' reasons' +
-          chIcon('chev-down', 14) + '</summary><ul>' + q.all.map((x) => '<li><span>' + esc(x.name) +
-            (x.ours ? '<small>About what we sell</small>' : '') + '</span><b>' + esc(plural(x.n, 'time')) + '</b></li>').join('') + '</ul></details>' : '') +
         (q.habit ? '<figure class="b-an-hb"><figcaption>What ' + esc(q.habit.who) + ' does differently</figcaption>' +
           '<blockquote>“' + esc(q.habit.does) + '”</blockquote></figure>' : '') + '</div>' +
       (q.c || worth || btn ? '<div class="b-an-do' + (q.c ? '' : ' is-bare') + '">' + (q.c ? '<p class="b-an-c">' + q.c + '</p>' : '') +

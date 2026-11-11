@@ -9119,25 +9119,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-an-l b { color: var(--d50); font-weight: var(--fw-semibold); }
 /* The best caller's habit: its own labelled quote, so it reads as the thing
    to copy, apart from the result above it and the action under it. */
-/* Every reason, a press away in the card: a list of rows, most first, each
-   count beside its name; the ones about what we sell are marked. Native
-   <details>, so the keyboard and screen readers get it for free. */
-.b-an-all { margin-top: 12px; }
-.b-an-all summary { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: var(--fw-semibold); color: var(--accent-text); cursor: pointer; list-style: none; }
-.b-an-all summary::-webkit-details-marker { display: none; }
-.b-an-all summary svg { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
-.b-an-all[open] summary svg { transform: scaleY(-1); }
-.b-an-all summary:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 4px; }
-.b-an-all ul { list-style: none; margin: 10px 0 0; padding: 0; }
-.b-an-all li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--card-border); font-size: 14px; line-height: 1.4; color: var(--d50); }
-.b-an-all li:first-child { border-top: 0; padding-top: 0; }
-/* One line a row: the mark rides beside its reason, so every row is the same
-   height and every count sits on the same baseline (Nour, 11 Nov). */
-.b-an-all li span { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
-.b-an-all li small { font-size: 13px; font-weight: var(--fw-medium); line-height: 1.4; color: var(--warn-text); }
-/* The count never breaks: "2 / times" on two lines (Nour, 11 Nov). */
-.b-an-all li b { flex: none; white-space: nowrap; font-size: 15px; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
-@media (prefers-reduced-motion: reduce) { .b-an-all summary svg { transition: none; } }
+/* The biggest reason, emphasised: its name a step up and in the amber of
+   "Not yet" (Nour, 11 Nov: the biggest one is enough). */
+.b-an-l .b-an-big { font-size: 18px; font-weight: var(--fw-bold); color: var(--warn-text); letter-spacing: -0.01em; }
 .b-an-hb { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(var(--accent-rgb), 0.08); }
 .b-an-hb figcaption { font-size: 13px; font-weight: var(--fw-semibold); color: var(--accent-text); }
 .b-an-hb blockquote { margin: 4px 0 0; font-size: 15px; line-height: 1.45; font-weight: var(--fw-medium); color: var(--d50); text-wrap: pretty; }
@@ -9151,12 +9135,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    its share and the text above ran into the divider (11 Nov). */
 .b-an-w { display: inline-block; max-width: 100%; line-height: 1.45; border-radius: 12px; }
 .b-an-w b { font-size: 15px; font-weight: var(--fw-bold); letter-spacing: -0.01em; }
-.b-an-w.is-warn { color: var(--warn-text); background: rgba(247, 201, 92, 0.14); }
-:root[data-theme="light"] .b-an-w.is-warn { background: rgba(176, 116, 0, 0.1); }
 /* The button keeps the product pill's size; if its label has to wrap, it
    grows in height only, with the same padding and a radius that still reads
    as a pill rather than a capsule twice its height. */
-.b-an-go { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 32px; padding: 7px 14px;
+.b-an-go { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 32px; padding: 7px 14px; white-space: nowrap;
   font: inherit; font-size: 14px; line-height: 18px; font-weight: var(--fw-semibold); text-align: left;
   color: #fff; border: 0; border-radius: 16px; cursor: pointer; background: var(--accent); box-shadow: 0 4px 12px -4px rgba(var(--accent-rgb), 0.55);
   transition: background-color 150ms ease, transform 160ms ease-out; }
@@ -9169,8 +9151,11 @@ a.b-an-go, a.b-an-go:hover, a.b-an-go:focus-visible { text-decoration: none; }
 .b-an-go.is-done:active { transform: none; }
 .b-an.is-opening .b-an-a { animation: b-an-rise 400ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 40ms + 120ms); }
 @keyframes b-an-rise { from { opacity: 0; transform: translateY(8px); filter: blur(2px); } }
-/* When four do not fit: two by two, then one under another. Nothing hides. */
-@media (max-width: 1100px) {
+/* When four do not fit: two by two, then one under another. Nothing hides.
+   Below 1460px a column is too narrow for its one-line button (at 1180 it was
+   122px inside; at 1400 the longest still ran 4px into its gutter), so the
+   card changes form there; 1536 keeps four across. */
+@media (max-width: 1459.98px) {
   .b-an-ans { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 22px; }
   .b-an-a:nth-child(odd) { padding-left: 0; border-left: 0; }
   .b-an-a:nth-child(even) { padding-right: 0; }
