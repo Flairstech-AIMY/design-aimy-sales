@@ -163,3 +163,70 @@
   }
   :root .topnav-tabs-inner::-webkit-scrollbar { display: none; }
 }
+
+/* ── 5. THE PHONE'S OWN BARS NEVER COVER THE APP ─────────────────────────
+   Nour, 11 Nov: "take care of the bottom and top native mobile navigation
+   bars so the composer or the ui not get hidden by them". viewport-fit=cover
+   hands the page the whole glass: the status bar and notch at the top, the
+   home indicator or Android's gesture/button bar at the foot, and the notch
+   at the side in landscape. env(safe-area-inset-*) says how much each takes.
+   On a laptop every inset is 0, so nothing here moves at 1536.
+
+   TOP: the masthead grows by the status bar and pads it out, so its own row
+   stays 60px under it. Every fixed surface already hangs off
+   --topbar-height (the canvas, the rail drawer, its scrim, the tips), so
+   they follow without a rule each.
+   BOTTOM: the canvas used to stop short of the home indicator (§3), which
+   left a strip of unblurred page under the glass. It now runs to the
+   keyboard and pads its composer up instead; the float bar already rises
+   by the inset (§3), and the page reserves the same room under its last row.
+   SIDES: the shell, the canvas and the float bar keep out of a landscape
+   notch. */
+:root:root {
+  --safe-top:   calc(env(safe-area-inset-top, 0px)   / var(--ui-scale));
+  --safe-left:  calc(env(safe-area-inset-left, 0px)  / var(--ui-scale));
+  --safe-right: calc(env(safe-area-inset-right, 0px) / var(--ui-scale));
+  --topbar-height: calc(60px + var(--safe-top));
+}
+:root .app-topnav { padding-top: var(--safe-top); }
+:root body { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+
+:root .aimy-overlay {
+  bottom: var(--kb-inset);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+:root .overlay-main { padding-bottom: calc(24px + var(--safe-inset)); }
+:root .page-scroll { padding-bottom: calc(96px + var(--safe-inset)); }
+/* A border, not padding: the rail's padding changes with the width and a
+   padding-left here would overwrite it. The drawer's ground shows through. */
+:root .app-rail { border-left: var(--safe-left) solid transparent; }
+
+/* The canvas's chats door and drawer are placed against the canvas's own
+   edge, so its padding does not move them; they step out of the notch here. */
+:root .ov-chats-toggle { left: calc(16px + var(--safe-left)); }
+@media (max-width: 899.98px) {
+  :root .overlay-chats { border-left: var(--safe-left) solid transparent; }
+}
+
+/* The prototype's settings button rises with the bars it sits above, or it
+   lands on the send button. */
+:root .proto { right: calc(16px + var(--safe-right)); bottom: calc(16px + var(--safe-inset)); }
+@media (max-width: 899.98px) {
+  :root .proto { bottom: calc(76px + var(--safe-inset)); }
+}
+
+/* The float bar's own clamp (sales.css, .aimy-float-wrap) with the side
+   insets added to its width and to its left bound. Both are 0 off a phone,
+   so this resolves to the expression it repeats. */
+:root .aimy-float-wrap {
+  --fb-w: min(760px, calc(var(--vp-w) - var(--rail-w) - var(--fb-reserve) - 48px
+                          - var(--safe-left) - var(--safe-right)));
+  left: max(
+    calc(var(--rail-w) + 24px + var(--safe-left)),
+    min(
+      calc((var(--vp-w) - var(--fb-w)) / 2),
+      calc(var(--vp-w) - var(--fb-reserve) - 24px - var(--safe-right) - var(--fb-w))
+    )
+  );
+}

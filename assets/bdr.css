@@ -5667,6 +5667,30 @@ textarea::placeholder,
   .chat-msg.aimy:not(.is-thinking) .msg-avatar { transition: none; }
 }
 
+/* ══ AiMY'S TURNS HAVE NO MARK AND TAKE THE COLUMN ════════════════════
+   Nour, 11 Nov. turnHtml no longer draws a mark beside AiMY, so an answer
+   starts at the column's left edge and the bubble may run the whole
+   column instead of stopping at 540px. Your turns keep their face and
+   their 540px. The shell's 640px cap on a turn comes off AiMY's turns.
+
+   The column itself widens from 672 to 848 (the thread's padding rule in
+   §THE CANVAS SCROLLS), and the composer under it widens with it, so the
+   bubbles and the bar share both edges: 848 less the turn's 4px sides is
+   840, which is the bar's width inside the wrap's 12px sides. */
+.chat-msg.aimy { max-width: none; }
+/* And it takes 95% of the column rather than shrinking to its words
+   (Nour, 11 Nov, on the Gulf Team's week/month/quarter answer, which
+   stopped 210px short of the bar's right edge; first full width, then
+   "make it 95% width"). Every AiMY turn starts on the bar's left edge and
+   ends at the same point, leaving a sliver that says it is a reply. */
+.chat-msg.aimy .msg-bubble { max-width: none; min-width: 0; flex: 0 1 95%; }
+.aimy-overlay:not(.is-meeting) .overlay-input-wrap { max-width: 864px; }
+/* On a phone the follow-up questions under an answer were one line each and
+   ran out of the bubble, under the canvas's close button (measured: 402px
+   wide in a 302px bubble at 375). They wrap inside the bubble instead. */
+.chat-msg.aimy .b-cuts { min-width: 0; flex-wrap: wrap; }
+.chat-msg.aimy .b-cuts .s-insight-lnk { white-space: normal; max-width: 100%; text-align: left; }
+
 /* ══ 93. THE PHONE RINGING ═══════════════════════════════════════════
    The one surface in this build that the user did not ask for and cannot
    defer. Everything else here appears because somebody pressed something;
@@ -6244,8 +6268,13 @@ textarea::placeholder,
      the prose actually had was 672 — and a padding calc written off 720 gave
      it 43px more and moved every line. The column is identical to what it
      was; only the bar it is scrolled by has moved. */
-  padding-left: max(24px, calc((100% - 672px) / 2));
-  padding-right: max(24px, calc((100% - 672px) / 2));
+  /* 848 since 11 Nov (Nour: the messages take more of the screen); the
+     composer widens to match, see "AiMY'S TURNS HAVE NO MARK". */
+  /* 8px, not 24, once the column runs out of room: the composer's wrap
+     keeps 12px sides, and 8 plus a turn's own 4 puts the bubbles on the
+     bar's edges at phone and tablet widths too (Nour, 11 Nov). */
+  padding-left: max(8px, calc((100% - 848px) / 2));
+  padding-right: max(8px, calc((100% - 848px) / 2));
 }
 
 /* Its APPEARANCE is left alone on purpose. `.ntf-panel`'s treatment was the

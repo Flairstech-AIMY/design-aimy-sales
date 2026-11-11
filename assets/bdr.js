@@ -32947,12 +32947,12 @@
     '<svg viewBox="0 0 18 20" width="13" height="14" aria-hidden="true">' +
       '<use href="#aimy-logo-small"/></svg>';
 
-  /* EVERY TURN HAS A FACE. Yours on yours, the mark on AiMY's — which is
-     the thing that makes a bubble AiMY speaking rather than the product
-     printing. Mine had none at all. */
-  const msgAvatar = (who) => (who === 'you'
-    ? '<div class="msg-avatar user-av">' + faceOf(me().id, 28) + '</div>'
-    : '<div class="msg-avatar aimy-av">' + aiMark() + '</div>');
+  /* YOUR TURNS HAVE A FACE; AiMY'S DON'T. Nour, 11 Nov: the mark beside
+     every answer took 40px off each line for something the thread already
+     says (it is AiMY's canvas), so AiMY's turns start at the column's edge
+     and the bubble fills the column. Yours keep your face on the right. */
+  const msgAvatar = () =>
+    '<div class="msg-avatar user-av">' + faceOf(me().id, 28) + '</div>';
 
   /* A turn is a face and a bubble. A turn that ASKS something carries its
      hint and its shortcuts inside that bubble — and an answered turn keeps
@@ -32976,7 +32976,7 @@
        rebuilt to gain one when the answer lands. AiMY Knowledge's
        arrangement, and §92 lifts the rules that go with it. */
     if (t.thinking) {
-      return '<div class="chat-msg aimy is-thinking">' + msgAvatar('aimy') +
+      return '<div class="chat-msg aimy is-thinking">' +
         '<div class="msg-bubble">' + t.html + '</div></div>';
     }
     /* A curation is AiMY working, not AiMY saying something: her mark and
@@ -32984,14 +32984,14 @@
        the run's own record, because it changes after the turn is written. */
     /* AIMY-2990/2992: adding contacts is one turn, redrawn in place (8e). */
     if (t.addc) {
-      return '<div class="chat-msg aimy b-ac-msg">' + msgAvatar('aimy') +
+      return '<div class="chat-msg aimy b-ac-msg">' +
         '<div class="msg-bubble">' + acTurn(t) + '</div></div>';
     }
     if (t.cur) {
-      return '<div class="chat-msg aimy b-cur-msg">' + msgAvatar('aimy') +
+      return '<div class="chat-msg aimy b-cur-msg">' +
         '<div class="b-cur-wrap">' + curStepper(t.cur) + '</div></div>';
     }
-    return '<div class="chat-msg aimy">' + msgAvatar('aimy') +
+    return '<div class="chat-msg aimy">' +
       '<div class="msg-bubble">' + t.html +
         (t.hint ? '<p class="s-cb-hint">' + kbdify(t.hint) + '</p>' : '') +
         /* A QUESTION MAY SHOW ITS WORKING. The read-back asks whether a set
