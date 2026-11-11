@@ -3262,6 +3262,72 @@
       ans.slice(0, PLAN.length).forEach((t, i) => { t.objections = [PLAN[i]]; });
     }
 
+    /* ══ MOST CAMPAIGNS ANSWER ALL FOUR, AND SOME STILL CANNOT (11 Nov) ═════
+       Nour: "i want the analysis data for all to be seeded in the live
+       version", then "we don't need every campaign to answer, we need empty
+       state campaigns too". So the seed fills the gaps on most campaigns and
+       leaves three as they were: AiMY QA — Benelux (c10) answers nothing, as
+       it was handed over rather than called; Nordics software (c2) and
+       Energy & utilities, Benelux (c5) answer some questions and are still
+       too early on the rest. Everything is chosen by hash order, never by
+       the seed cursor, so nothing else in the corpus moves.
+
+       Who calls best needs two callers with twenty calls each, and most
+       campaigns were called by one. A share of the lead caller's people,
+       chosen per person, were called by a second member of the crew. Only
+       calls more than a fortnight old move, so today's desk and the last two
+       weeks of anybody's work read as they did. Benelux manufacturing had a
+       crew of one, so Omar joins it. */
+    {
+      const CALL = { reached: 1, callback: 1, 'no-answer': 1, gatekeeper: 1, 'not-interested': 1, 'wrong-number': 1, 'do-not-call': 1 };
+      const isCall = (t) => CALL[t.outcome] && t.dir !== 'in';
+      const isBdr = (id) => !!REP[id] && REP[id].fn === 'bdr';
+      const cut = dayAdd(-14);
+      const TWO = { c0: 'tarek', c1: 'salma', c3: 'omar', c4: 'omar' };
+      camp.filter((k) => TWO[k.id]).forEach((k) => {
+        const n = Object.create(null);
+        touch.forEach((t) => { if (t.camp === k.id && isCall(t)) n[t.by] = (n[t.by] || 0) + 1; });
+        const lead = Object.keys(n).filter(isBdr).sort((a, b) => n[b] - n[a])[0];
+        const two = TWO[k.id];
+        if (!lead || lead === two) return;
+        if (k.crew.indexOf(two) < 0) k.crew.push(two);
+        touch.forEach((t) => {
+          if (t.camp === k.id && t.by === lead && t.dir !== 'in' && t.at.slice(0, 10) < cut &&
+            Math.abs(hash(t.con + ':' + k.id + ':two')) % 100 < 45) t.by = two;
+        });
+      });
+
+      /* Is the ICP up to date needs two kinds of role with twenty calls each.
+         On DACH public & education the technology roles it names had
+         nineteen, so one person whose title fitted no kind of role is an IT
+         Director. */
+      {
+        const fits = /support|service|care|contact centre|quality|qa|technolog|engineering|cto|cio|it director|digital|operations|coo|shared services|back office/i;
+        const n = Object.create(null);
+        touch.forEach((t) => { if (t.camp === 'c8' && isCall(t)) n[t.con] = (n[t.con] || 0) + 1; });
+        const odd = con.filter((c) => n[c.id] && !fits.test(c.title || ''))
+          .sort((a, b) => n[b.id] - n[a.id] || a.id.localeCompare(b.id))[0];
+        if (odd) odd.title = 'IT Director';
+      }
+
+      /* Does the offering work needs five reasons buyers gave. Three
+         campaigns get them: two where timing is what stops buyers (the
+         offering holds) and one where it is a service we do not offer. */
+      const SAID = {
+        c1: ['timing', 'timing', 'timing', 'pricing', 'timing', 'other'],
+        c7: ['timing', 'timing', 'service', 'timing', 'timing', 'pricing'],
+        c9: ['service', 'service', 'timing', 'service', 'feature', 'service'],
+      };
+      Object.keys(SAID).forEach((id) => {
+        const plan = SAID[id];
+        const here = touch.filter((t) => t.camp === id && isCall(t));
+        here.forEach((t) => { t.objections = []; });
+        here.filter((t) => t.outcome === 'reached' || t.outcome === 'callback')
+          .sort((a, b) => (Math.abs(hash(a.id + ':said')) - Math.abs(hash(b.id + ':said'))))
+          .slice(0, plan.length).forEach((t, i) => { t.objections = [plan[i]]; });
+      });
+    }
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
@@ -21413,8 +21479,11 @@
     /* Whether the ICP holds. The campaign's persona is what it aims at; the
        roles that actually book are read off the people on its calls. */
     const P = (k.persona || {}).who || '';
-    const band = lead(by((t) => { const c = DB.byCon[t.con]; return c ? titleBand(c.title || '') : null; }));
-    const bb = band && band[0] !== 'other' ? band[0] : null;
+    /* Titles that fit no kind of role are left out, rather than allowed to
+       win: "other" leading said "Too early" on a campaign whose named roles
+       had a clear answer (Benelux healthcare, 11 Nov). */
+    const band = lead(by((t) => { const c = DB.byCon[t.con]; const b = c ? titleBand(c.title || '') : 'other'; return b === 'other' ? null : b; }));
+    const bb = band ? band[0] : null;
     /* A persona often names several titles ("VP Engineering, Head of
        Quality, Engineering Manager"); it holds if any of them is the band
        that books. */
@@ -42348,6 +42417,8 @@
     },
     reset: reset,
     go: go,
+    /* Each campaign's Analyse answers, so a check can read all eleven at once. */
+    analyse: (id) => { const k = DB.camp.filter((c) => c.id === id)[0]; return k ? anRead(k) : null; },
     /* Each fixture with each coaching habit in it, read back, so a check
        can show the habit lines change nothing the reader takes from a call. */
     coachReads: () => SCENARIOS.map((sc) => {
