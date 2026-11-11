@@ -21215,15 +21215,18 @@
      each change to whoever makes it. No other desk draws the door. */
   const anSees = (k) => !!k && !isDraft(k) && (isWhole() || campMine(k));
   const AN_BAND = { support: 'Support and service', quality: 'Quality', tech: 'Technology', ops: 'Operations' };
-  /* The ICP a campaign answers to is a document in AiMY Knowledge (its ids
-     below are Knowledge's own, `knowledge.js`). Healthcare campaigns answer
-     to the regulated healthcare ICP, voice campaigns to retail voice, and
-     the rest to mid-market BPO in EMEA, the one Knowledge recommends. A
-     document opens on `console.html?doc=` with its own Edit; Knowledge has
-     no edit link (`mode=edit` is ignored there). */
+  /* The ICP a campaign answers to is a document in AiMY Knowledge: one per
+     campaign Sales seeds, `icp-sales-<camp>`, written there from the
+     campaign's own market, size, roles and reason to buy, and pointing back
+     here (Nour, 11 Nov: "make sure all links open real icps … add them in
+     knowledge to make everything connected"). It opens on
+     `console.html?doc=` with its own Edit; Knowledge has no edit link
+     (`mode=edit` is ignored there). A campaign made since has no ICP there
+     yet, so it opens Knowledge's ICPs to pick or write one. */
   const KNOW_ORIGIN = 'https://design-aimy-knolwedge.aimy.flairstech.com/';
-  const icpDoc = (k) => k.industry === 'health' ? 'icp-healthcare'
-    : (k.sells || []).indexOf('voice') > -1 ? 'icp-retail-voice' : 'icp-bpo';
+  const ICP_IN_KNOW = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10'];
+  const icpHref = (k) => KNOW_ORIGIN + 'console.html?' +
+    (ICP_IN_KNOW.indexOf(k.id) > -1 ? 'doc=icp-sales-' + k.id : 'type=icp');
   const lineOwnerOf = (sell) => Object.keys(REP).filter((id) => REP[id].fn === 'stakeholder' && REP[id].sell === sell)[0];
 
   function anRead(k) {
@@ -21313,7 +21316,7 @@
         l: '<b>' + AN_BAND[bb] + '</b> roles book the most meetings' +
           (named.length > 1 ? ', not the roles it names.' : P ? ', not the ' + esc(P) + ' it names.' : '.'),
         c: 'Update the ICP to name ' + esc(to) + '.', worth: worth(band[1]),
-        act: 'icp', to: to, doc: icpDoc(k), give: owner });
+        act: 'icp', to: to, give: owner });
     } else {
       qs.push({ k: 'icp', ic: 'target', q: 'Is the ICP up to date?', v: bb ? 'Yes' : 'Too early', tone: bb ? 'ok' : '',
         l: bb ? '<b>' + AN_BAND[bb] + '</b> roles book the most meetings, as it says.'
@@ -21420,7 +21423,7 @@
       /* The ICP is Knowledge's, so the manager's button is a door to it, not
          a change made here (Nour, 11 Nov). It opens the ICP document in AiMY
          Knowledge, where it is edited and its owner approves. */
-      : q.act === 'icp' && !ceo ? '<a class="b-an-go" href="' + esc(KNOW_ORIGIN + 'console.html?doc=' + q.doc) + '" target="_blank" rel="noopener">' +
+      : q.act === 'icp' && !ceo ? '<a class="b-an-go" href="' + esc(icpHref(k)) + '" target="_blank" rel="noopener">' +
           '<span>' + verb + '</span>' + chIcon('external', 14) + '</a>'
       : '<button class="b-an-go" type="button" data-ango="' + esc(k.id) + ':' + q.k + '">' +
           (ceo ? chIcon('send', 14) : '') + '<span>' + esc(verb) + '</span></button>';

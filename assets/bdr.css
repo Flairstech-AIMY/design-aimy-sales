@@ -9131,6 +9131,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
   transition: background-color 150ms ease, transform 160ms ease-out; }
 .b-an-go svg { flex: none; }
 .b-an-go:hover { background: color-mix(in srgb, var(--accent) 88%, #fff); }
+/* Update the ICP is a link into Knowledge; it reads as the other buttons, no underline. */
+a.b-an-go, a.b-an-go:hover, a.b-an-go:focus-visible { text-decoration: none; }
 .b-an-go:active { transform: scale(0.97); }
 .b-an-go.is-done { cursor: default; color: var(--ok-text); background: rgba(var(--ok-rgb), 0.12); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), 0.45); }
 .b-an-go.is-done:active { transform: none; }
