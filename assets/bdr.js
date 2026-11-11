@@ -12796,6 +12796,73 @@
   const callsBy = (ids) => DB.touch.filter((x) => ids.indexOf(x.by) > -1 && x.outcome !== 'phase' && OUTCOME[x.outcome])
     .sort((a, b) => (a.at > b.at ? -1 : 1));
   const gotThrough = (x) => !!(OUTCOME[x.outcome] || {}).writes && !wasMissed(x);
+
+  /* ══ A PERSON'S CALLS, THE SAME ONES THE BOARD COUNTS (11 Nov) ══════════
+     The board reads each person's day off their day model (`repDay`); the
+     Calls list read the seeded record, which ends on 8 Nov. So Salma's board
+     said 112 calls today over a list that said none (Nour: "calls section
+     should have calls"). The list is now drawn from the same model: for each
+     working day, exactly the calls, decision makers, conversations and
+     meetings `repDay` gives, on contacts this person has called before,
+     spread across the working day (up to now, today). Fixed per person and
+     day, so a reload shows the same calls; indexed in TOUCH so the
+     transcript opens. Calls made live in this session are added on top. */
+  const DAYCALLS = Object.create(null);
+  const POOL = Object.create(null);
+  function callPool(id) {
+    if (!POOL[id]) {
+      const seen = Object.create(null);
+      POOL[id] = callsBy([id]).map((t) => t.con).filter((c) => DB.byCon[c] && !seen[c] && (seen[c] = 1));
+    }
+    return POOL[id];
+  }
+  function dayCalls(id, iso) {
+    const key = id + ':' + iso;
+    if (DAYCALLS[key]) return DAYCALLS[key];
+    const d = repDay(id, iso);
+    const pool = callPool(id);
+    const out = [];
+    if (!d.calls || !pool.length) return (DAYCALLS[key] = out);
+    const meets = Math.min(d.meets, d.calls);
+    const talks = Math.min(Math.max(0, d.talks - meets), d.calls - meets);
+    const short = Math.min(Math.max(0, d.reached - d.talks), d.calls - meets - talks);
+    /* Dealt across the day rather than in blocks: each call's kind is placed
+       by a hash of its own index. */
+    const kinds = [];
+    for (let i = 0; i < d.calls; i++) kinds.push(i < meets ? 'meet' : i < meets + talks ? 'talk' : i < meets + talks + short ? 'short' : 'none');
+    kinds.splice(0, kinds.length, ...kinds.map((kd, i) => ({ kd, h: hx(id + iso + i, 'ord', 99991) }))
+      .sort((a, b) => a.h - b.h).map((x) => x.kd));
+    const start = new Date(iso + 'T09:00:00').getTime();
+    const end = iso === TODAY_ISO ? Math.min(Date.now(), new Date(iso + 'T17:30:00').getTime()) : new Date(iso + 'T17:30:00').getTime();
+    const span = Math.max(60000, end - start);
+    kinds.forEach((kd, i) => {
+      const tid = 'd-' + id + '-' + iso + '-' + i;
+      const con = pool[hx(tid, 'con', pool.length)];
+      const at = new Date(start + span * (i + 0.5) / kinds.length).toISOString();
+      const r = hx(tid, 'r', 100);
+      const t = {
+        id: tid, con: con, camp: campFor(DB.byCon[con]), by: id, at: at, dir: 'out',
+        outcome: kd === 'meet' ? 'reached' : kd === 'talk' ? (r % 3 ? 'reached' : 'callback') : kd === 'short' ? 'not-interested'
+          : r % 4 === 0 ? 'gatekeeper' : 'no-answer',
+        called: kd === 'meet' ? 'meeting-set' : kd === 'talk' ? 'answered' : kd === 'short' ? 'answered' : 'no-answer',
+        secs: kd === 'meet' ? 240 + r * 2 : kd === 'talk' ? 120 + r * 2 : kd === 'short' ? 50 + Math.round(r * 0.6) : 15 + Math.round(r * 0.3),
+        proposals: kd === 'meet' ? ['meeting'] : [], objections: kd === 'short' ? [['pricing', 'timing', 'feature'][r % 3]] : [],
+        openings: [], note: '', lines: [], next: null, moved: null,
+      };
+      indexTouch(t);
+      out.push(t);
+    });
+    return (DAYCALLS[key] = out);
+  }
+  function profileCalls(id, from, to) {
+    const out = [];
+    for (let iso = from; iso <= to; iso = isoAdd(iso, 1)) out.push.apply(out, dayCalls(id, iso));
+    (DELTA.touch || []).forEach((t) => {
+      const day = isoDay(new Date(t.at));
+      if (t.by === id && OUTCOME[t.outcome] && day >= from && day <= to) out.push(t);
+    });
+    return out.sort((a, b) => (a.at > b.at ? -1 : 1));
+  }
   /* What AiMY noticed, over everything recorded for them against their team:
      the objection that comes up most, how long the calls that get through
      last, and how often a call ends in a callback asked for. Nothing is said
@@ -13177,7 +13244,7 @@
        board above it always read the same days. */
     const CP = planSpan(), cpTo = CP.end < TODAY_ISO ? CP.end : TODAY_ISO;
     const inCP = (x) => { const iso = isoDay(new Date(x.at)); return iso >= CP.from && iso <= cpTo; };
-    const calls = callsBy([id]).filter(inCP);
+    const calls = profileCalls(id, CP.from, cpTo);
     const pg = paged(calls);
     const got = calls.filter(gotThrough).length;
     const agenda = personAgenda(t, id, note, agendaPats, moved);
