@@ -10794,6 +10794,9 @@
   const callLen = (s) => Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2, '0') + 's';
   /* Off a working day, or before nine, the day being read is the last one
      that had calls in it, and the block says so. */
+  /* A count and its step's noun, singular for one ("1 meetings above usual"
+     read on the board, 11 Nov). The nouns are plurals ending in s. */
+  function stepN(n, s) { return commas(n) + ' ' + (Math.abs(n) === 1 ? s.noun.replace(/s$/, '') : s.noun); }
   function dayRead(ids) {
     const day = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
     const p = dayPart(day);
@@ -10844,7 +10847,7 @@
     const all = dayShort(r.t, r.u);
     const short = all.filter((x) => x.i === 0).concat(all.filter((x) => x.i > 0)).slice(0, 2)
       .sort((a, b) => a.i - b.i);
-    return short.map((x, j) => x.s.verb + ' <b>' + esc(commas(x.n) + ' ' + x.s.noun) + '</b>, ' +
+    return short.map((x, j) => x.s.verb + ' <b>' + esc(stepN(x.n, x.s)) + '</b>, ' +
       esc(commas(x.u - x.n)) + ' fewer than usual' + (j ? '' : ' by this time')).join(', and ');
   }
   /* `parts` are the teams inside a set of several, so a team that is short
@@ -11324,7 +11327,7 @@
     const stepLine = (x) => {
       const sh = dayShort(x.d, x.u).map((s) => s.s.k);
       return DAY_STEPS.map((s) => {
-        const v = esc(commas(x.d[s.k]) + ' ' + s.noun);
+        const v = esc(stepN(x.d[s.k], s));
         return sh.indexOf(s.k) > -1 ? '<b class="b-door-warn">' + v + '</b> (usually ' + esc(commas(x.u[s.k])) + ')' : v;
       }).join(', ');
     };
@@ -11390,7 +11393,7 @@
       if (!r.el) return 'Nothing to read yet: ' + esc(P.unit) + ' starts on its first working day.';
       const why = planWhy(R, st.k);
       const head = esc(upper(w.name)) + ' ' + (w.who1 || w.tm || teams.length === 1 ? 'has' : 'have') + ' ' + st.verb + ' <b>' +
-        esc(commas(r.cum) + ' ' + st.noun) + '</b> ' + esc(P.when) + ', against a usual ' + esc(commas(Math.round(r.byNow))) +
+        esc(stepN(r.cum, st)) + '</b> ' + esc(P.when) + ', against a usual ' + esc(commas(Math.round(r.byNow))) +
         ' by now: ' + esc(pace(r).say.toLowerCase()) + '.' + (why ? ' ' + why : '');
       if (w.who1) return head + next(['How is ' + firstName(w.who1) + ' doing today?']);
       const rows = r.by.slice().sort((a, b) => b.gap - a.gap);
@@ -11723,7 +11726,7 @@
     /* Within 3% of a usual month is a usual month, as the step's own words say. */
     if (Math.abs(d) < Math.max(1, r.target * 0.03)) return 'If this pace holds, ' + P.unit + ' ends about normal.';
     return d > 0 ? 'If this pace holds, ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' with about <b>' + esc(commas(d) + ' more ' + r.s.noun) + '</b> than usual.'
-      : 'If nothing changes, ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' about <b>' + esc(commas(-d) + ' ' + r.s.noun) + ' short</b> of normal, with ' +
+      : 'If nothing changes, ' + ctx.who + ' ' + v('ends', 'end') + ' ' + P.unit + ' about <b>' + esc(stepN(-d, r.s)) + ' short</b> of normal, with ' +
         esc(plural(r.leftDays, 'working day')) + ' left.';
   }
   const PL_DOWN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -11915,7 +11918,8 @@
       say.push('Nothing to read yet: ' + P.unit + ' starts on its first working day.');
     } else {
       const gap = Math.round(r.byNow - r.cum);
-      head = p.short ? commas(gap) + ' ' + r.s.noun + ' below usual' : r.ratio >= 1.03 ? commas(-gap) + ' ' + r.s.noun + ' above usual' : 'As usual';
+      /* A difference that rounds to nothing reads as usual, not "0 meetings above usual". */
+      head = p.short && gap >= 1 ? stepN(gap, r.s) + ' below usual' : r.ratio >= 1.03 && -gap >= 1 ? stepN(-gap, r.s) + ' above usual' : 'As usual';
       if (p.short) {
         const why = planWhy(R, k);
         if (why) say.push(why);
@@ -21460,15 +21464,23 @@
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Too early',
         l: 'Buyers have given ' + plural(gave, 'reason') + ' so far.', c: '' });
     } else if (top && onOffer * 2 >= gave) {
+      /* The biggest reason, said as the biggest (Nour, 11 Nov: "show the
+         biggest reason not one of the reasons"), and every reason a press
+         away in the card (`all`, drawn as a disclosure under the line). When
+         timing outweighs it, it is the biggest about what we sell. */
+      const first = Object.keys(said).sort((a, b) => said[b] - said[a])[0];
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Not yet', tone: 'warn',
-        l: '<b>' + esc(OBJECTION[top].label) + '</b> is ' + said[top] + ' of the ' + gave + ' reasons buyers gave.',
+        l: '<b>' + esc(OBJECTION[top].label) + '</b> is the biggest reason' + (first === top ? '' : ' about what we sell') +
+          ', <b>' + said[top] + ' of the ' + gave + '</b> buyers gave.',
+        all: anReasons(said, offer),
         c: FIX[top], stopped: onOffer, act: open ? 'offer' : null,
         done: 'Sent to ' + (lineName ? firstOf(actor(lineId)) : 'the product team'),
         give: lineId ? actor(lineId) : owner });
     } else {
       const most = Object.keys(said).sort((a, b) => said[b] - said[a])[0];
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Yes', tone: 'ok',
-        l: 'Most reasons buyers give are ' + esc(((OBJECTION[most] || {}).label || 'timing').toLowerCase()) + ', not what we sell.', c: '' });
+        l: 'Most reasons buyers give are ' + esc(((OBJECTION[most] || {}).label || 'timing').toLowerCase()) + ', not what we sell.', c: '',
+        all: anReasons(said, offer) });
     }
 
     /* Who calls best. What they do differently is the team's to copy, so
@@ -21497,6 +21509,10 @@
       held: camp.filter((t) => t.outcome === 'phase').length };
   }
 
+  /* Every reason buyers gave on this campaign, most first, each marked if it
+     is about what we sell. */
+  const anReasons = (said, offer) => Object.keys(said).sort((a, b) => said[b] - said[a])
+    .map((kk) => ({ name: (OBJECTION[kk] || {}).label || kk, n: said[kk], ours: offer.indexOf(kk) > -1 }));
   const AN_NAME = { pitch: 'the pitch', icp: 'the ICP', caller: 'how the team asks' };
   function anVerdict(k, a) {
     if (!a.open) return 'This campaign has closed. Carry these into the next one.';
@@ -21548,6 +21564,9 @@
       '<span class="b-an-q">' + chIcon(q.ic, 15) + esc(q.q) + '</span>' +
       '<p class="b-an-v' + (q.tone ? ' is-' + q.tone : '') + '">' + q.v + '</p>' +
       '<div class="b-an-l"><p>' + q.l + '</p>' +
+        (q.all && q.all.length > 1 ? '<details class="b-an-all"><summary>See all ' + q.all.reduce((x, y) => x + y.n, 0) + ' reasons' +
+          chIcon('chev-down', 14) + '</summary><ul>' + q.all.map((x) => '<li><span>' + esc(x.name) +
+            (x.ours ? '<small>About what we sell</small>' : '') + '</span><b>' + x.n + '</b></li>').join('') + '</ul></details>' : '') +
         (q.habit ? '<figure class="b-an-hb"><figcaption>What ' + esc(q.habit.who) + ' does differently</figcaption>' +
           '<blockquote>“' + esc(q.habit.does) + '”</blockquote></figure>' : '') + '</div>' +
       (q.c || worth || btn ? '<div class="b-an-do' + (q.c ? '' : ' is-bare') + '">' + (q.c ? '<p class="b-an-c">' + q.c + '</p>' : '') +
