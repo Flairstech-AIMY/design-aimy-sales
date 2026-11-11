@@ -12685,6 +12685,9 @@
       well: cap(well.join(', and ')) + '.',
       word: word.length ? cap(word.slice(0, 2).join(', and ')) + '.' : 'Nothing today. A word of thanks keeps it going.',
       short: word.length > 0,
+      /* The most meetings in the team: the one finding that earns making
+         their habit everyone's. */
+      best: x.d.meets > 0 && top('meets'),
       x, by,
     };
   }
@@ -12694,7 +12697,14 @@
      and a full dot (Nour, 5 Nov: the 13px one read as a speck). */
   const NOTE_WORD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v9"/><path d="M12 19h.01"/></svg>';
-  function personSide(t, id) {
+  /* The actions on one note line, done in place once pressed. */
+  function noteActs(t, id, acts) {
+    const done = acts.filter((a) => tactOn(t.id + ':' + id + ':' + a))[0];
+    return '<span class="b-ps-do">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
+      : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+        esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</span>';
+  }
+  function personSide(t, id, noBook) {
     const w = weekScores(id);
     const on = onCallNow([id]).length;
     const n = personNote(t, id);
@@ -12721,11 +12731,20 @@
           '<div class="b-ps-sub">' + scoreTag(w.now, { id }) + move +
             (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div></div>' +
       '</div>' +
+      /* Each action sits on the line it answers, never in the head without
+         its reason (Nour, 11 Nov: "what is the data that those actions came
+         from?"). The habit only where they booked the most meetings in the
+         team; a thanks where there is nothing to put right; a word and the
+         15 minutes where something is short (Book lives on the 1:1 block
+         when there is one). */
       '<div class="b-ps-note">' +
         '<div class="b-ps-line"><span class="b-ps-ico is-ok">' + NOTE_OK + '</span>' +
-          '<span class="b-ps-cap">Going well</span><span class="b-ps-say">' + n.well + '</span></div>' +
+          '<span class="b-ps-cap">Going well</span><span class="b-ps-say">' + n.well +
+            (n.best ? ' ' + esc(firstName(id)) + ' ' + esc(habitOf(id).does) + '.' : '') + '</span>' +
+          (n.best ? noteActs(t, id, ['habit']) : '') + '</div>' +
         '<div class="b-ps-line"><span class="b-ps-ico ' + (n.short ? 'is-warn' : 'is-ok') + '">' + (n.short ? NOTE_WORD : NOTE_OK) + '</span>' +
-          '<span class="b-ps-cap">Worth a word</span><span class="b-ps-say">' + n.word + '</span></div>' +
+          '<span class="b-ps-cap">Worth a word</span><span class="b-ps-say">' + n.word + '</span>' +
+          noteActs(t, id, n.short ? (noBook ? ['msg'] : ['msg', 'book']) : ['thanks']) + '</div>' +
       '</div>' +
       '<div class="b-ps-acts">' + (done ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
         : acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
@@ -12852,9 +12871,9 @@
       pts.push({ say: 'Ask what is in the way of the calls.', ev: x.d.calls + ' calls ' + (note.by ? 'by now' : 'that day') + ', usually ' + x.u.calls,
         go: '<button class="s-insight-lnk" type="button" data-ask="' + esc('How did ' + first + ' do week by week this quarter?') + '">Week by week</button>' });
     } else {
-      pts.push({ say: 'Make what works the team’s habit: ' + habitOf(id).does + '.', ev: note.well.replace(/<[^>]+>/g, ''),
-        go: tactOn(t.id + ':' + id + ':habit') ? '<span class="b-wt-done">' + esc(TEAM_ACT.habit.done) + '</span>'
-          : '<button class="s-insight-lnk" type="button" data-tact="' + esc(t.id + ':' + id + ':habit') + '">' + esc(TEAM_ACT.habit.label()) + '</button>' });
+      /* A point to talk through, not a second copy of the button on Going
+         well, which is where the habit is made the team's. */
+      pts.push({ say: 'Ask what they do on the calls that book, so the team can do it too.', ev: note.well.replace(/<[^>]+>/g, ''), go: '' });
     }
     const obj = pats.list.filter((p) => p.k === 'obj')[0];
     if (obj) {
@@ -13131,8 +13150,6 @@
     const R = S.from ? { from: S.from, to: S.to || S.from } : null;
     const pats = personPatterns(t, id, () => true);
     const agendaPats = pats;
-    const acts = note.short ? ['msg', 'book'] : ['habit', 'thanks'];
-    const done = acts.filter((a) => tactOn(t.id + ':' + id + ':' + a))[0];
     const moved = w.was == null ? 0 : w.now - w.was;
     /* The calls follow the period picker, whose default is today (Nour,
        10 Nov: "calls should follow the period filter"), so the list and the
@@ -13144,9 +13161,9 @@
     const got = calls.filter(gotThrough).length;
     /* The side rail's person view, reused for the head of this page: the
        same note, the same figures, the same actions. */
-    const side = personSide(t, id);
-    const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
     const agenda = personAgenda(t, id, note, agendaPats, moved);
+    const side = personSide(t, id, !!agenda);
+    const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name, true) +
@@ -13160,10 +13177,6 @@
               (Math.abs(moved) >= 3 ? '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' + (moved < 0 ? 'Down ' : 'Up ') +
                 commas(Math.abs(moved)) + ' this week</span>' : '') +
               (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div>' : '') + '</div>' +
-          /* Booking lives on the 1:1 block when there is one, not twice. */
-          '<div class="b-pf-acts">' + (done && !(agenda && done === 'book') ? '<span class="b-wt-done">' + esc(TEAM_ACT[done].done) + '</span>'
-            : acts.filter((a) => !(agenda && a === 'book')).map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
-              esc(t.id + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('')) + '</div>' +
         '</div>' +
         /* Today's coach's note, under the head where it is read first (Nour);
            it is about today whatever period is chosen below. */

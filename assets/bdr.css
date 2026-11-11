@@ -8418,6 +8418,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-ps-cap { align-self: center; font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
 .b-ps-say { grid-column: 2; font-size: var(--fs-sm); line-height: 1.5; color: var(--d100); }
 .b-ps-say b { font-weight: var(--fw-semibold); color: var(--d50); }
+/* The line's own action, under what it says, on the same left edge. */
+.b-ps-do { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .b-ps-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .b-side-sec > .b-aimy { margin: 0 0 12px; }
 /* Today's four figures, A's: a quiet two by two on hairlines, each with its
@@ -8485,13 +8487,13 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    rows (§ the call log); this is the head, the next 1:1, the coaching
    history and the patterns. */
 .b-pf .s-back { margin: 0 0 18px; }
-.b-pf-mh { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 20px; align-items: center; }
-@media (max-width: 759.98px) { .b-pf-mh { grid-template-columns: auto minmax(0, 1fr); } .b-pf-acts { grid-column: 1 / -1; justify-content: flex-start !important; } }
+/* Face and name only: the actions moved onto the note lines they answer
+   (11 Nov). */
+.b-pf-mh { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 20px; align-items: center; }
 .b-pf-name { margin: 0; font-size: 28px; font-weight: var(--fw-bold); letter-spacing: -0.01em; line-height: 1.15; color: var(--d50); }
 .b-pf-nrow { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
 .b-pf-role { margin: 4px 0 0; font-size: 15px; font-weight: var(--fw-medium); line-height: 1.4; color: var(--d100); }
 .b-pf-sub { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; margin-top: 12px; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100); }
-.b-pf-acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 /* The next 1:1, prepared: the page's one tinted block, because it is the
    thing to do with everything under it. */
 .b-pf-agenda {
