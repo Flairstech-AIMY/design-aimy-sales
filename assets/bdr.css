@@ -9103,8 +9103,14 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-an-v { margin: 10px 0 0; font-size: 30px; line-height: 1.2; font-weight: var(--fw-bold); color: var(--d50); letter-spacing: -0.02em; text-wrap: balance; }
 .b-an-v.is-warn { color: var(--warn-text); }
 .b-an-v.is-ok { color: var(--ok-text); }
-.b-an-l { margin: 8px 0 0; font-size: 15px; line-height: 1.5; color: var(--d100); text-wrap: pretty; }
+.b-an-l { margin-top: 8px; font-size: 15px; line-height: 1.5; color: var(--d100); text-wrap: pretty; }
+.b-an-l > p { margin: 0; }
 .b-an-l b { color: var(--d50); font-weight: var(--fw-semibold); }
+/* The best caller's habit: its own labelled quote, so it reads as the thing
+   to copy, apart from the result above it and the action under it. */
+.b-an-hb { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(var(--accent-rgb), 0.08); }
+.b-an-hb figcaption { font-size: 13px; font-weight: var(--fw-semibold); color: var(--accent-text); }
+.b-an-hb blockquote { margin: 4px 0 0; font-size: 15px; line-height: 1.45; font-weight: var(--fw-medium); color: var(--d50); text-wrap: pretty; }
 /* The conclusion: under a hairline, not in a box of its own. */
 .b-an-do { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--card-border); }
 .b-an-c { margin: 0; font-size: 16px; line-height: 1.4; font-weight: var(--fw-semibold); color: var(--d50); text-wrap: balance; }

@@ -21311,8 +21311,13 @@
     if (rep) {
       const hb = habitOf(rep[0]);
       qs.push({ k: 'caller', ic: 'user', q: 'Who calls best?', v: esc(actor(rep[0]).name),
-        l: cap1(esc(hb.does)) + '. Books <b>' + plural(per100(rep[1]), 'meeting') + '</b> in every 100 calls.',
-        c: 'Make it the team’s habit.', worth: worth(rep[1]),
+        /* Three things, three places (Nour, 11 Nov: "i couldn't tell which
+           is the habit and which is the outcome and which is the action"):
+           the result on its line, the habit as its own labelled quote, and
+           the conclusion with its button in the box. */
+        l: 'Books <b>' + plural(per100(rep[1]), 'meeting') + '</b> in every 100 calls.',
+        habit: { who: firstOf(actor(rep[0])), does: cap1(hb.does) + '.' },
+        c: 'Have every caller do the same.', worth: worth(rep[1]),
         act: 'caller', who: rep[0], brief: hb.brief, made: habitIn('camp:' + k.id, rep[0]),
         done: 'In every call brief', give: owner });
     } else {
@@ -21369,7 +21374,9 @@
     return '<section class="b-an-a" aria-label="' + esc(q.q) + '" style="--i:' + (q.i || 0) + '">' +
       '<span class="b-an-q">' + chIcon(q.ic, 15) + esc(q.q) + '</span>' +
       '<p class="b-an-v' + (q.tone ? ' is-' + q.tone : '') + '">' + q.v + '</p>' +
-      '<p class="b-an-l">' + q.l + '</p>' +
+      '<div class="b-an-l"><p>' + q.l + '</p>' +
+        (q.habit ? '<figure class="b-an-hb"><figcaption>What ' + esc(q.habit.who) + ' does differently</figcaption>' +
+          '<blockquote>“' + esc(q.habit.does) + '”</blockquote></figure>' : '') + '</div>' +
       (q.c ? '<div class="b-an-do"><p class="b-an-c">' + q.c + '</p>' +
         (worth || btn ? '<div class="b-an-row">' + worth + btn + '</div>' : '') + '</div>' : '<div></div>') +
     '</section>';
