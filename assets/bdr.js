@@ -11869,7 +11869,23 @@
           : '<button class="s-insight-lnk primary" type="button" data-tact="' + esc(key) + '">Say well done to ' + esc(firstName(best.id)) + '</button>';
       }
     }
+    const hb = planHabit(ctx, k);
+    if (hb) {
+      out = (tactOn(hb.key) ? '<span class="b-wt-done">' + esc(TEAM_ACT.habit.done) + '</span>'
+        : '<button class="s-insight-lnk primary" type="button" data-tact="' + esc(hb.key) + '">' + esc(TEAM_ACT.habit.label()) + '</button>') +
+        out.replace(' primary"', '"');
+    }
     return out + '<button class="b-pl-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + '<span>Ask AiMY why</span></button>';
+  }
+  /* On a profile's Meetings step, when they booked the most meetings in the
+     team: what they do differently, and the button that makes it the team's
+     habit. It was the coach's note's alone, and moved here with it. */
+  function planHabit(ctx, k) {
+    if (!ctx.one || k !== 'meets') return null;
+    const id = ctx.ids[0], t = teamWith(id);
+    if (!t || !personNote(t, id).best) return null;
+    return { key: t.id + ':' + id + ':habit',
+      say: esc(firstName(id)) + ' booked the most meetings in the ' + esc(t.name) + ' and <b>' + esc(habitOf(id).does) + '</b>.' };
   }
   /* The story (redesigned with the board, Nour 5 Nov): where it stands in
      a few words in its colour, then AiMY's why, who and where the pace
@@ -11891,6 +11907,8 @@
       }
       const who = planWho(ctx, R, k);
       if (who) say.push(who);
+      const hb = planHabit(ctx, k);
+      if (hb) say.push(hb.say);
       /* A day: the Today section's sentence leads (it was the day's AiMY
          line, Nour 10 Nov), and nothing projects to "the end of the day". */
       if (P.day) {
@@ -13159,11 +13177,7 @@
     const calls = callsBy([id]).filter(inCP);
     const pg = paged(calls);
     const got = calls.filter(gotThrough).length;
-    /* The side rail's person view, reused for the head of this page: the
-       same note, the same figures, the same actions. */
     const agenda = personAgenda(t, id, note, agendaPats, moved);
-    const side = personSide(t, id, !!agenda);
-    const noteHtml = side.slice(side.indexOf('<div class="b-ps-note">'), side.indexOf('<div class="b-ps-acts">'));
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
         backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name, true) +
@@ -13178,17 +13192,25 @@
                 commas(Math.abs(moved)) + ' this week</span>' : '') +
               (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div>' : '') + '</div>' +
         '</div>' +
-        /* Today's coach's note, under the head where it is read first (Nour);
-           it is about today whatever period is chosen below. */
-        noteHtml +
+        /* The coach's note (Going well, Worth a word) is gone (Nour, 11 Nov:
+           "if this block is already covered by the against usual block,
+           let's remove it"). The board below carries the same signals with
+           their actions (a fix and Book 15 minutes when a step is short, Say
+           well done when one is ahead), the head carries the week; the one
+           thing only the note had, the most meetings in the team and the
+           habit behind it, is on the board's Meetings step (`planStory`,
+           `planActs`). */
       '</section>' +
-      (agenda ? '<section class="s-block s-block-wide" aria-label="Next 1:1">' + agenda + '</section>' : '') +
-      /* The board and the calls under this row follow the period chosen in
-         it; what AiMY noticed and the coaching read the whole record. */
+      /* The board opens the page, right under the name, and the next 1:1 sits
+         under it (Nour, 11 Nov: "make the 1:1 block under the against usual
+         block. this against usual block should be the opener of the page").
+         The board and the calls follow the period chosen here; what AiMY
+         noticed and the coaching read the whole record. */
       '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
         datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
+      (agenda ? '<section class="s-block s-block-wide" aria-label="Next 1:1">' + agenda + '</section>' : '') +
       /* No Today section: the board reads today by default (Nour, 10 Nov). */
       '<section class="s-block s-block-wide" aria-label="What AiMY noticed">' + headH('What AiMY noticed') +
         (pats.thin ? '<p class="b-vfoot">Too few recorded calls that got through yet to see a pattern.</p>'
