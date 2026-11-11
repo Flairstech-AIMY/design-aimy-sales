@@ -9060,7 +9060,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 
 .b-an { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 350ms cubic-bezier(0.22, 1, 0.36, 1); }
 .b-an.is-open { grid-template-rows: 1fr; }
-.b-an-clip { overflow: hidden; min-height: 0; padding: 0 2px 28px; margin: 0 -2px -28px; }
+.b-an-clip { overflow: hidden; min-height: 0; }
+/* Shut, nothing of the card may show: the room its shadow needs below it
+   once lived in the clip and stayed visible as a strip when collapsed
+   (11 Nov). So the clip only lets go once the card is fully open. */
+.b-an.is-open:not(.is-opening) > .b-an-clip { overflow: visible; }
 /* A 1px edge that runs violet to blue to almost nothing, over the card's own
    ground with AiMY's wash from the top right, and a shadow with an offset so
    it sits above the page rather than glowing on it. */
