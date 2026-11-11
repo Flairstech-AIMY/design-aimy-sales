@@ -9103,7 +9103,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-an-verdict b { font-weight: var(--fw-bold); color: var(--ok-text); }
 
 .b-an-ans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--card-border); }
-.b-an-a { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0; min-width: 0; padding: 0 22px; }
+/* 32px either side of each divider: at 22 a full line of text read as
+   running into the next column (Nour, 11 Nov). */
+.b-an-a { display: grid; grid-row: span 4; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr); row-gap: 0; min-width: 0; padding: 0 32px; }
 .b-an-a:first-child { padding-left: 0; }
 .b-an-a:last-child { padding-right: 0; }
 .b-an-a + .b-an-a { border-left: 1px solid var(--card-border); }
@@ -9133,7 +9135,8 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    height and every count sits on the same baseline (Nour, 11 Nov). */
 .b-an-all li span { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
 .b-an-all li small { font-size: 13px; font-weight: var(--fw-medium); line-height: 1.4; color: var(--warn-text); }
-.b-an-all li b { font-size: 15px; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+/* The count never breaks: "2 / times" on two lines (Nour, 11 Nov). */
+.b-an-all li b { flex: none; white-space: nowrap; font-size: 15px; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .b-an-all summary svg { transition: none; } }
 .b-an-hb { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(var(--accent-rgb), 0.08); }
 .b-an-hb figcaption { font-size: 13px; font-weight: var(--fw-semibold); color: var(--accent-text); }
@@ -9143,7 +9146,10 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-an-c { margin: 0; font-size: 16px; line-height: 1.4; font-weight: var(--fw-semibold); color: var(--d50); text-wrap: balance; }
 .b-an-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: auto; }
 .b-an-w { display: inline-flex; align-items: baseline; gap: 4px; padding: 4px 10px; font-size: 13px; font-weight: var(--fw-semibold);
-  color: var(--ok-text); border-radius: 999px; background: rgba(var(--ok-rgb), 0.12); white-space: nowrap; }
+  color: var(--ok-text); border-radius: 999px; background: rgba(var(--ok-rgb), 0.12); }
+/* It may wrap: held on one line, a long one pushed its whole column past
+   its share and the text above ran into the divider (11 Nov). */
+.b-an-w { display: inline-block; max-width: 100%; line-height: 1.45; border-radius: 12px; }
 .b-an-w b { font-size: 15px; font-weight: var(--fw-bold); letter-spacing: -0.01em; }
 .b-an-w.is-warn { color: var(--warn-text); background: rgba(247, 201, 92, 0.14); }
 :root[data-theme="light"] .b-an-w.is-warn { background: rgba(176, 116, 0, 0.1); }

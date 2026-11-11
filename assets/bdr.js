@@ -21636,11 +21636,15 @@
      every campaign … the loading state should be triggered for the first
      time of each campaign"). `AN_OPEN` is the one campaign whose analysis is
      open now; it is not saved, so every campaign is reached collapsed and a
-     repaint of the same campaign keeps it open. `UI.anSeen` (saved) names
+     repaint of the same campaign keeps it open. `AN_SEEN` (this page load only) names
      the campaigns already read once, so the wait runs once for each. */
   let AN_BUSY = null;
   let AN_OPEN = null;
-  const anSeenOn = (id) => !!(UI.anSeen && typeof UI.anSeen === 'object' && UI.anSeen[id]);
+  /* Read once per campaign per page load: a refresh resets it (Nour, 11 Nov:
+     "when i refresh the page the analyze loading should reset"), so it is
+     held here and not saved. */
+  const AN_SEEN = Object.create(null);
+  const anSeenOn = (id) => !!AN_SEEN[id];
   function anToggle(id) {
     if (AN_BUSY) return;
     const open = AN_OPEN === id;
@@ -21683,8 +21687,7 @@
     setTimeout(() => {
       stopThinking();
       AN_BUSY = null;
-      UI.anSeen = Object.assign({}, typeof UI.anSeen === 'object' ? UI.anSeen : null, { [id]: 1 });
-      saveUI();
+      AN_SEEN[id] = 1;
       if (cv.isConnected && mark) cv.replaceWith(mark);
       if (lb) lb.textContent = 'Analyse';
       btn.removeAttribute('aria-busy');
