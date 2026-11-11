@@ -12057,7 +12057,10 @@
     /* On a team's page, the other teams on each tile (`ctx.cmp` is the team). */
     const C = ctx.cmp ? cmpRead(ctx.cmp, P) : null;
     return '<div class="b-pl" data-fold="' + open + '">' +
-      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against their usual</h3><span class="b-pl-sub">' + esc(sub) + '</span></div></div>' +
+      /* A page can hand its period picker to the board's own title row, so
+         the period sits on the line it governs (a profile, 11 Nov). */
+      '<div class="b-pl-head"><div class="b-pl-hl"><h3 class="b-pl-h">Against their usual</h3><span class="b-pl-sub">' + esc(sub) + '</span></div>' +
+        (ctx.picker || '') + '</div>' +
       '<div class="b-pl-tabs">' + DAY_STEPS.map((s) => {
         const x = R[s.k], pc = pace(x);
         return '<button class="b-pl-tab' + (s.k === k ? ' is-on' : '') + '" type="button" data-bstep="' + s.k + '" aria-pressed="' + (s.k === k) + '">' +
@@ -13191,6 +13194,9 @@
               (Math.abs(moved) >= 3 ? '<span class="b-tp-move ' + (moved < 0 ? 'is-down' : 'is-up') + '">' + (moved < 0 ? 'Down ' : 'Up ') +
                 commas(Math.abs(moved)) + ' this week</span>' : '') +
               (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div>' : '') + '</div>' +
+          /* The period, at the page's top right: it governs the board and the
+             calls below, not one block. */
+          '<div class="b-pf-when">' + datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
         '</div>' +
         /* The coach's note (Going well, Worth a word) is gone (Nour, 11 Nov:
            "if this block is already covered by the against usual block,
@@ -13204,10 +13210,11 @@
       /* The board opens the page, right under the name, and the next 1:1 sits
          under it (Nour, 11 Nov: "make the 1:1 block under the against usual
          block. this against usual block should be the opener of the page").
-         The board and the calls follow the period chosen here; what AiMY
-         noticed and the coaching read the whole record. */
-      '<div class="b-pf-period"><h2 class="s-block-h">' + esc(firstName(id)) + '\u2019s record</h2>' +
-        datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
+         The board and the calls follow the period picked at the page's top
+         right; the "<Name>\u2019s record" row that held it is gone (Nour, 11 Nov:
+         "this is a big gap \u2026 or maybe the period picker move to the top
+         right of the page"). What AiMY noticed and the coaching read the
+         whole record. */
       '<section class="s-block s-block-wide" aria-label="Against their usual">' +
         planBoard({ ids: [id], who: firstName(id), ask: firstName(id), teams: [t], one: true, pl: false }) + '</section>' +
       (agenda ? '<section class="s-block s-block-wide" aria-label="Next 1:1">' + agenda + '</section>' : '') +

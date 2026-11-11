@@ -8487,9 +8487,11 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    rows (§ the call log); this is the head, the next 1:1, the coaching
    history and the patterns. */
 .b-pf .s-back { margin: 0 0 18px; }
-/* Face and name only: the actions moved onto the note lines they answer
-   (11 Nov). */
-.b-pf-mh { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 20px; align-items: center; }
+/* Face, name, and the period at the top right (11 Nov): the actions left
+   the head, and the period picker governs the board and calls below. */
+.b-pf-mh { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 20px; align-items: center; }
+.b-pf-when { align-self: start; justify-self: end; }
+@media (max-width: 759.98px) { .b-pf-mh { grid-template-columns: auto minmax(0, 1fr); } .b-pf-when { grid-column: 1 / -1; justify-self: start; } }
 .b-pf-name { margin: 0; font-size: 28px; font-weight: var(--fw-bold); letter-spacing: -0.01em; line-height: 1.15; color: var(--d50); }
 .b-pf-nrow { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
 .b-pf-role { margin: 4px 0 0; font-size: 15px; font-weight: var(--fw-medium); line-height: 1.4; color: var(--d100); }
@@ -8557,8 +8559,6 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
    outlined, the chosen days in the accent, the days between on its wash.
    The panel is a `.b-menu`, so it opens, leaves and flips like every menu
    here. Days outside the month are --d200, never fainter. */
-.b-pf-period { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
-.b-pf-period .s-block-h { margin: 0; }
 .b-date-btn {
   display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 8px 4px 12px; font: inherit;
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); white-space: nowrap; cursor: pointer;
