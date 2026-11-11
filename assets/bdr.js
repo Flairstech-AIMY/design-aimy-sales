@@ -21462,7 +21462,7 @@
        says the count, so a thin answer reads as thin. */
     if (gave < 5) {
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Too early',
-        l: 'Buyers have given ' + plural(gave, 'reason') + ' so far.', c: '' });
+        l: 'Buyers have raised a reason ' + plural(gave, 'time') + ' so far.', c: '' });
     } else if (top && onOffer * 2 >= gave) {
       /* The biggest reason, said as the biggest (Nour, 11 Nov: "show the
          biggest reason not one of the reasons"), and every reason a press
@@ -21470,8 +21470,10 @@
          timing outweighs it, it is the biggest about what we sell. */
       const first = Object.keys(said).sort((a, b) => said[b] - said[a])[0];
       qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Not yet', tone: 'warn',
+        /* A reason and the times it was raised are two counts (Nour, 11 Nov:
+           "those are 3 reasons only … this is not 11 reasons"). */
         l: '<b>' + esc(OBJECTION[top].label) + '</b> is the biggest reason' + (first === top ? '' : ' about what we sell') +
-          ', <b>' + said[top] + ' of the ' + gave + '</b> buyers gave.',
+          ', raised <b>' + said[top] + ' of the ' + gave + '</b> times buyers gave one.',
         all: anReasons(said, offer),
         c: FIX[top], stopped: onOffer, act: open ? 'offer' : null,
         done: 'Sent to ' + (lineName ? firstOf(actor(lineId)) : 'the product team'),
@@ -21559,14 +21561,14 @@
           (ceo ? chIcon('send', 14) : '') + '<span>' + esc(verb) + '</span></button>';
     const worth = q.worth > 0 ? '<span class="b-an-w"><b>+' + q.worth + '</b> ' + (q.worth === 1 ? 'meeting' : 'meetings') +
         ' by ' + esc(sayDay(k.to)) + '</span>'
-      : q.stopped ? '<span class="b-an-w is-warn"><b>' + q.stopped + '</b> reasons were about what we sell</span>' : '';
+      : q.stopped ? '<span class="b-an-w is-warn">Raised <b>' + q.stopped + '</b> ' + (q.stopped === 1 ? 'time' : 'times') + ' about what we sell</span>' : '';
     return '<section class="b-an-a" aria-label="' + esc(q.q) + '" style="--i:' + (q.i || 0) + '">' +
       '<span class="b-an-q">' + chIcon(q.ic, 15) + esc(q.q) + '</span>' +
       '<p class="b-an-v' + (q.tone ? ' is-' + q.tone : '') + '">' + q.v + '</p>' +
       '<div class="b-an-l"><p>' + q.l + '</p>' +
-        (q.all && q.all.length > 1 ? '<details class="b-an-all"><summary>See all ' + q.all.reduce((x, y) => x + y.n, 0) + ' reasons' +
+        (q.all && q.all.length > 1 ? '<details class="b-an-all"><summary>See all ' + q.all.length + ' reasons' +
           chIcon('chev-down', 14) + '</summary><ul>' + q.all.map((x) => '<li><span>' + esc(x.name) +
-            (x.ours ? '<small>About what we sell</small>' : '') + '</span><b>' + x.n + '</b></li>').join('') + '</ul></details>' : '') +
+            (x.ours ? '<small>About what we sell</small>' : '') + '</span><b>' + esc(plural(x.n, 'time')) + '</b></li>').join('') + '</ul></details>' : '') +
         (q.habit ? '<figure class="b-an-hb"><figcaption>What ' + esc(q.habit.who) + ' does differently</figcaption>' +
           '<blockquote>“' + esc(q.habit.does) + '”</blockquote></figure>' : '') + '</div>' +
       (q.c || worth || btn ? '<div class="b-an-do' + (q.c ? '' : ' is-bare') + '">' + (q.c ? '<p class="b-an-c">' + q.c + '</p>' : '') +
