@@ -12399,19 +12399,48 @@
   /* Kept on screen: before it shows, a popover that would cross the right
      edge is moved left by that much (rects are visual px and the body may be
      zoomed, so the shift is divided back into CSS px). */
-  const scFit = (e) => {
-    const sc = e.target.closest && e.target.closest('.b-sc, .b-oc');
-    if (!sc) return;
-    const p = sc.querySelector('.b-sc-pop, .b-oc-pop');
-    p.style.left = '';
-    const r = p.getBoundingClientRect();
+  /* ══ A HOVER POPOVER IS NEVER CUT BY ITS CARD (11 Nov) ══════════════════
+     Shifting it left kept it inside the screen but not inside its card, and a
+     card that clips (the roster's `.b-ro-card`, `overflow: hidden` for its
+     corners) cut a score popover in half (Nour: "popover is cut off. this is
+     repeatable"). So every popover of this family (`.b-wait-info` >
+     `.b-wait-pop`: scores, who is on a call, a list's held wait) is placed
+     against the viewport when it opens: `position: fixed` under its trigger,
+     above it when there is no room below, 16px inside the screen either way.
+     Rects are visual px and the body may be zoomed, so the target is divided
+     back into CSS px; then the real rect is read and any offset a transformed
+     ancestor adds is taken out. A scroll while one is open moves it with its
+     trigger. */
+  let POP_ON = null;
+  const popFit = (e) => {
+    const box = (e && e.target && e.target.closest) ? e.target.closest('.b-wait-info') : POP_ON;
+    if (!box) return;
+    const p = box.querySelector('.b-wait-pop');
+    if (!p) return;
+    POP_ON = box;
     const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
-    /* Its width from layout, not the rect: shut, it is scaled to 98%. */
-    const over = r.left + p.offsetWidth * z - (document.documentElement.clientWidth - 16);
-    if (over > 0) p.style.left = -Math.round(Math.min(over, r.left - 16) / z) + 'px';
+    const r = box.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth / z, vh = document.documentElement.clientHeight / z;
+    /* Its size from layout, not the rect: shut, it is scaled to 98%. */
+    const w = p.offsetWidth, h = p.offsetHeight;
+    const below = r.bottom / z + 8, above = r.top / z - 8 - h;
+    const up = below + h > vh - 16 && above >= 16;
+    const left = Math.max(16, Math.min(r.left / z, vw - w - 16));
+    const top = up ? above : Math.max(16, Math.min(below, vh - h - 16));
+    p.classList.add('is-fixed');
+    p.classList.toggle('is-up', up);
+    p.style.left = left + 'px'; p.style.top = top + 'px';
+    const got = p.getBoundingClientRect();
+    const dx = got.left / z - left, dy = got.top / z - top;
+    /* Shut it sits 4px up and at 98%: read the offset only from the open state. */
+    if (Math.abs(dx) > 6) p.style.left = (left - dx) + 'px';
+    if (Math.abs(dy) > 12) p.style.top = (top - dy) + 'px';
   };
-  document.addEventListener('mouseover', scFit);
-  document.addEventListener('focusin', scFit);
+  document.addEventListener('mouseover', popFit);
+  document.addEventListener('focusin', popFit);
+  document.addEventListener('scroll', () => {
+    if (POP_ON && POP_ON.isConnected && POP_ON.matches(':hover, :focus-within')) popFit(null);
+  }, true);
   const SCORE_PART = { calls: 'Calls made', reach: 'Reach a decision maker', talk: 'Become a conversation',
     meet: 'End in a meeting', qa: 'Call quality, from AiMY QA' };
   const SCORE_GAP = { calls: 'the number of calls', reach: 'reaching the decision maker', talk: 'turning calls into conversations',
@@ -21511,7 +21540,7 @@
   function anBlock(k) {
     if (!anSees(k)) return '';
     const a = anRead(k);
-    const open = !!UI.anOpen;
+    const open = AN_OPEN === k.id;
     return '<div class="b-an' + (open ? ' is-open' : '') + '" id="an-' + esc(k.id) + '"' + (open ? '' : ' inert') + '>' +
       '<div class="b-an-clip"><div class="b-an-card">' +
         '<div class="b-an-head"><span class="b-an-mark"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
@@ -21559,23 +21588,31 @@
      the card grows out of the header instead of the page jumping. */
   /* Not a drop-down (Nour, 11 Nov): a button that shows the analysis or puts
      it away, so it says pressed rather than expanded, and has no chevron. */
+  /* Per campaign, not per person (Nour, 11 Nov: "collapsed by default in
+     every campaign … the loading state should be triggered for the first
+     time of each campaign"). `AN_OPEN` is the one campaign whose analysis is
+     open now; it is not saved, so every campaign is reached collapsed and a
+     repaint of the same campaign keeps it open. `UI.anSeen` (saved) names
+     the campaigns already read once, so the wait runs once for each. */
   let AN_BUSY = null;
+  let AN_OPEN = null;
+  const anSeenOn = (id) => !!(UI.anSeen && typeof UI.anSeen === 'object' && UI.anSeen[id]);
   function anToggle(id) {
     if (AN_BUSY) return;
-    if (!UI.anOpen && !UI.anSeen) { anReading(id); return; }
-    UI.anOpen = !UI.anOpen;
-    saveUI();
-    document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-pressed', String(UI.anOpen)));
-    anShow(id);
-    if (!UI.anOpen) { const b = document.querySelector('.b-an-btn'); if (b) b.focus(); }
+    const open = AN_OPEN === id;
+    if (!open && !anSeenOn(id)) { anReading(id); return; }
+    AN_OPEN = open ? null : id;
+    document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-pressed', String(!open)));
+    anShow(id, !open);
+    if (open) { const b = document.querySelector('.b-an-btn'); if (b) b.focus(); }
   }
-  function anShow(id) {
+  function anShow(id, on) {
     const box = byId('an-' + id);
     if (!box) return;
-    box.classList.toggle('is-open', UI.anOpen); box.toggleAttribute('inert', !UI.anOpen);
+    box.classList.toggle('is-open', on); box.toggleAttribute('inert', !on);
     /* The columns rise in on this opening only, not on every repaint. */
-    box.classList.toggle('is-opening', UI.anOpen);
-    if (UI.anOpen) setTimeout(() => box.classList.remove('is-opening'), 900);
+    box.classList.toggle('is-opening', on);
+    if (on) setTimeout(() => box.classList.remove('is-opening'), 900);
   }
   /* ══ THE FIRST TIME, THE BUTTON READS (11 Nov) ═══════════════════════════
      An answer that is simply there the instant you press reads as a lookup,
@@ -21584,7 +21621,8 @@
      chat's thinking mark (scattering into an orbit and gathering back) and
      it says "Analysing…". Only then does the card open, and the answers rise
      in. Nour put the wait in the button, not the card: the card appears when
-     there is something to read. Every press after the first is instant. */
+     there is something to read. It runs once for each campaign (Nour, 11 Nov),
+     and every press after that campaign's first is instant. */
   const AN_WAIT = 2000;
   function anReading(id) {
     const btn = document.querySelector('.b-an-btn');
@@ -21601,14 +21639,16 @@
     setTimeout(() => {
       stopThinking();
       AN_BUSY = null;
-      UI.anSeen = true;
-      UI.anOpen = true;
+      UI.anSeen = Object.assign({}, typeof UI.anSeen === 'object' ? UI.anSeen : null, { [id]: 1 });
       saveUI();
       if (cv.isConnected && mark) cv.replaceWith(mark);
       if (lb) lb.textContent = 'Analyse';
       btn.removeAttribute('aria-busy');
+      /* Left the campaign mid-read: it is read, but nothing here opens. */
+      if (!btn.isConnected) return;
+      AN_OPEN = id;
       document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-pressed', 'true'));
-      anShow(id);
+      anShow(id, true);
     }, AN_WAIT);
   }
 
@@ -22330,7 +22370,7 @@
            end: Nour asked for it first, before Edit. */
         (anSees(k)
           ? '<button class="b-an-btn" type="button" data-anopen="' + esc(k.id) + '" aria-controls="an-' + esc(k.id) +
-            '" aria-pressed="' + !!UI.anOpen + '"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+            '" aria-pressed="' + (AN_OPEN === k.id) + '"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
             '<use href="#aimy-logo-small"/></svg><span class="b-an-lb">Analyse</span></button>'
           : '') +
         (campMine(k)

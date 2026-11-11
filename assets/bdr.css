@@ -7185,6 +7185,13 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* The 8px between the pill and the popover is bridged, so the pointer can
    cross to the link without the popover closing under it. */
 .b-wait-pop::before { content: ''; position: absolute; left: 0; right: 0; top: -9px; height: 9px; }
+/* Placed against the viewport when it opens (popFit), so no card that clips
+   can cut it; above its trigger when there is no room below, with the
+   bridge on that side. */
+/* Above the chat bar (200), below the AiMY canvas (500). */
+.b-wait-pop.is-fixed { position: fixed; z-index: 300; }
+.b-wait-pop.is-up { transform-origin: bottom left; }
+.b-wait-pop.is-up::before { top: auto; bottom: -9px; }
 .b-wait-pop b { color: var(--d50); font-weight: var(--fw-semibold); }
 .b-wait-pop .s-inline-btn { display: inline-flex; margin-top: 8px; }
 /* In after a short intent delay, out at once: the tooltip timing. */
