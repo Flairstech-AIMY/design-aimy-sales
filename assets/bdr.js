@@ -21173,6 +21173,15 @@
      each change to whoever makes it. No other desk draws the door. */
   const anSees = (k) => !!k && !isDraft(k) && (isWhole() || campMine(k));
   const AN_BAND = { support: 'Support and service', quality: 'Quality', tech: 'Technology', ops: 'Operations' };
+  /* The ICP a campaign answers to is a document in AiMY Knowledge (its ids
+     below are Knowledge's own, `knowledge.js`). Healthcare campaigns answer
+     to the regulated healthcare ICP, voice campaigns to retail voice, and
+     the rest to mid-market BPO in EMEA, the one Knowledge recommends. A
+     document opens on `console.html?doc=` with its own Edit; Knowledge has
+     no edit link (`mode=edit` is ignored there). */
+  const KNOW_ORIGIN = 'https://design-aimy-knolwedge.aimy.flairstech.com/';
+  const icpDoc = (k) => k.industry === 'health' ? 'icp-healthcare'
+    : (k.sells || []).indexOf('voice') > -1 ? 'icp-retail-voice' : 'icp-bpo';
   const lineOwnerOf = (sell) => Object.keys(REP).filter((id) => REP[id].fn === 'stakeholder' && REP[id].sell === sell)[0];
 
   function anRead(k) {
@@ -21261,8 +21270,8 @@
       qs.push({ k: 'icp', ic: 'target', q: 'Is the ICP up to date?', v: P ? 'No' : 'Not set', tone: 'warn',
         l: '<b>' + AN_BAND[bb] + '</b> roles book the most meetings' +
           (named.length > 1 ? ', not the roles it names.' : P ? ', not the ' + esc(P) + ' it names.' : '.'),
-        c: 'Aim it at ' + esc(to) + ', and update the ICP.', worth: worth(band[1]),
-        act: open ? 'icp' : null, to: to, done: 'Aimed at ' + to, give: owner });
+        c: 'Update the ICP to name ' + esc(to) + '.', worth: worth(band[1]),
+        act: 'icp', to: to, doc: icpDoc(k), give: owner });
     } else {
       qs.push({ k: 'icp', ic: 'target', q: 'Is the ICP up to date?', v: bb ? 'Yes' : 'Too early', tone: bb ? 'ok' : '',
         l: bb ? '<b>' + AN_BAND[bb] + '</b> roles book the most meetings, as it says.'
@@ -21354,7 +21363,7 @@
     const ceo = isWhole();
     /* Done is read off the record where the action changed it, and off the
        note the action left where it only sent something. */
-    const made = ceo ? !!st[q.k] : (q.k === 'pitch' || q.k === 'caller') ? q.made : !!st[q.k];
+    const made = ceo ? !!st[q.k] : (q.k === 'pitch' || q.k === 'caller') ? q.made : q.k === 'icp' ? false : !!st[q.k];
     const verb = !q.act ? ''
       : ceo ? (q.give ? 'Give to ' + firstOf(q.give) : '')
       : q.act === 'opener' ? 'Make it the opener'
@@ -21366,6 +21375,11 @@
     const btn = !verb ? ''
       : made ? '<button class="b-an-go is-done" type="button" disabled>' + chIcon('check', 14) + '<span>' + esc(doneSay) + '</span></button>'
       : q.act === 'edit' && !ceo ? '<button class="b-an-go" type="button" data-cedit="' + esc(k.id) + '"><span>' + verb + '</span></button>'
+      /* The ICP is Knowledge's, so the manager's button is a door to it, not
+         a change made here (Nour, 11 Nov). It opens the ICP document in AiMY
+         Knowledge, where it is edited and its owner approves. */
+      : q.act === 'icp' && !ceo ? '<a class="b-an-go" href="' + esc(KNOW_ORIGIN + 'console.html?doc=' + q.doc) + '" target="_blank" rel="noopener">' +
+          '<span>' + verb + '</span>' + chIcon('external', 14) + '</a>'
       : '<button class="b-an-go" type="button" data-ango="' + esc(k.id) + ':' + q.k + '">' +
           (ceo ? chIcon('send', 14) : '') + '<span>' + esc(verb) + '</span></button>';
     const worth = q.worth > 0 ? '<span class="b-an-w"><b>+' + q.worth + '</b> ' + (q.worth === 1 ? 'meeting' : 'meetings') +
@@ -21417,14 +21431,6 @@
       const was = k.opener || null;
       campSet(k, { opener: { id: q.pid, at: new Date().toISOString() } }); paint();
       toast('Every call on this campaign now opens with ' + q.v.replace(/<[^>]+>/g, ''), () => { campSet(k, { opener: was }); paint(); });
-      return;
-    }
-    if (q.act === 'icp') {
-      const was = k.persona || null;
-      campSet(k, { persona: Object.assign({}, k.persona || {}, { who: q.to }) }); st.icp = 1; paint();
-      toast('This campaign now aims at ' + q.to + '. Sent to AiMY Knowledge to update the ICP.', () => {
-        campSet(k, { persona: was }); delete st.icp; saveNow(); paint();
-      });
       return;
     }
     if (q.act === 'caller') {
