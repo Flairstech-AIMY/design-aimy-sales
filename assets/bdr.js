@@ -3247,6 +3247,21 @@
       });
     }
 
+    /* ══ ONE CAMPAIGN THAT ANSWERS "DOES THE OFFERING WORK?" (11 Nov) ═══════
+       The corpus files one to nine reasons per campaign, so Analyse said
+       "Too early" on the offering almost everywhere. Nour asked for DACH
+       public & education (c8, Data annotation) to have an answer. Its
+       answered calls carry ten reasons, mostly price: Analyse reads "Not
+       yet", "Pricing is 6 of the 10 reasons buyers gave". Written by hash
+       order, not the seed cursor, so nothing else in the corpus moves. */
+    {
+      const PLAN = ['pricing', 'pricing', 'pricing', 'pricing', 'pricing', 'pricing', 'timing', 'timing', 'service', 'service'];
+      const ans = touch.filter((t) => t.camp === 'c8' && t.outcome === 'reached')
+        .sort((a, b) => (Math.abs(hash(a.id + ':obj8')) - Math.abs(hash(b.id + ':obj8'))));
+      ans.forEach((t) => { t.objections = []; });
+      ans.slice(0, PLAN.length).forEach((t, i) => { t.objections = [PLAN[i]]; });
+    }
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
