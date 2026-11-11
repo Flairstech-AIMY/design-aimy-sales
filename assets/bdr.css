@@ -9084,9 +9084,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 /* Visual, not geometric. The mark is taller than the capitals beside it,
    and centred on the line box it hung four times further below the
    baseline than it rose above the cap line, which reads as low (Nour,
-   11 Nov). Judged by eye at 5x, it sits right with equal overhang above
-   the capitals and below the baseline. */
-.b-an-mark { transform: translateY(-1px); }
+   11 Nov). Its top meets the top of the capital beside it: 2px up, the
+   second pixel at Nour's eye. */
+.b-an-mark { transform: translateY(-2px); }
 .b-an-t { font-size: 15px; font-weight: var(--fw-semibold); color: var(--d50); }
 .b-an-when { flex: 1; min-width: 0; padding-left: 10px; border-left: 1px solid var(--card-border); font-size: 14px; color: var(--d100); }
 .b-an-x { display: grid; place-items: center; width: 32px; height: 32px; flex: none; color: var(--d50); background: none; border: 0; border-radius: 10px; cursor: pointer;
