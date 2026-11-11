@@ -21010,9 +21010,16 @@
     if (Array.isArray(k.pitches) && k.pitches.length) return k.pitches;
     if (!k.pitch) return [];
     const n = isDraft(k) || Array.isArray(k.pitches) ? 1
-      : [3, 2, 3, 1][Math.abs(hash(k.id + ':pitches')) % 4];
+      /* Two or three, never one (11 Nov): Nour wanted most campaigns to
+         carry several pitches, so Analyse has a winner to find. */
+      : [3, 2, 3, 2][Math.abs(hash(k.id + ':pitches')) % 4];
+    /* No date on a pitch the seed deals: it was there from the first call.
+       Dating them `k.from` shut every pitch out of the seed's calls from
+       before that day (most of them, back to June), and `pitchOf` then
+       handed all of those to pitch 1, so the second pitch showed two calls
+       against a hundred and seventy (11 Nov). */
     return PITCH_ANGLES.slice(0, n).map((f, i) =>
-      Object.assign({ id: 'p' + (i + 1), at: k.from }, f(k)));
+      Object.assign({ id: 'p' + (i + 1), at: null }, f(k)));
   }
   const livePitches = (k) => campPitches(k).filter((p) => (p.words || '').trim());
   function pitchesSet(k, list) {
@@ -21040,6 +21047,14 @@
      month of somebody else's. */
   function pitchOf(con, k, at, list) {
     list = list || livePitches(k);
+    /* The opener, once a manager makes one from Analyse, wins every call
+       made after it was set; the calls before it keep the pitch they were
+       dealt, so the numbers that crowned it do not rewrite themselves. */
+    const op = k && k.opener;
+    if (op && (!at || at >= op.at)) {
+      const o = list.filter((p) => p.id === op.id)[0];
+      if (o) return o;
+    }
     let best = null;
     let top = -1;
     list.forEach((p) => {
@@ -21077,6 +21092,297 @@
     return fair.length > 1 && fair[0].r > fair[1].r ? fair[0].i : -1;
   }
   const lowFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+
+  /* ══ ANALYSE: FOUR ANSWERS, AND WHAT TO DO ABOUT EACH (11 Nov) ═════════
+     A manager asks three things of a running campaign — which pitch works,
+     whether the ICP still holds, whether the offering holds — and the team
+     lead added a fourth: who calls best. Each is answered AS the answer: a
+     winner, a yes or a no. Nour cut the bars, the losing pitches and every
+     comparison ("the pitch thing is simple, no comparison, just a winner,
+     the icp is just an insight of yes or no"), then asked for the outcome
+     and the conclusion with its action to carry the weight.
+
+     Everything is read off this campaign's own record: its calls, its
+     checkpoints and its meetings. What a change is worth is the gap between
+     the best and the campaign's own meetings per call, times the calls this
+     pace still makes before it closes — no target anybody set. A reading
+     needs `AN_MIN` calls behind each side, the floor `pitchBest` and
+     `hourOf` already ask; under it the answer says it is too early. */
+  const AN_MIN = 20;
+  const anD = (id) => { if (!DELTA.an) DELTA.an = {}; return DELTA.an[id] || (DELTA.an[id] = {}); };
+  /* The manager whose campaign it is works it; the CEO reads it and gives
+     each change to whoever makes it. No other desk draws the door. */
+  const anSees = (k) => !!k && !isDraft(k) && (isWhole() || campMine(k));
+  const AN_BAND = { support: 'Support and service', quality: 'Quality', tech: 'Technology', ops: 'Operations' };
+  const lineOwnerOf = (sell) => Object.keys(REP).filter((id) => REP[id].fn === 'stakeholder' && REP[id].sell === sell)[0];
+
+  function anRead(k) {
+    const camp = DB.touch.filter((t) => t.camp === k.id);
+    const here = callsIn(camp);
+    const meet = (t) => t.called === 'meeting-set';
+    const rate = (n) => (n.calls ? n.meets / n.calls : 0);
+    const per100 = (n) => Math.round(rate(n) * 100);
+    const all = { calls: here.length, meets: here.filter(meet).length };
+    const by = (key) => {
+      const m = new Map();
+      here.forEach((t) => {
+        const g = key(t);
+        if (g == null) return;
+        const n = m.get(g) || { calls: 0, meets: 0 };
+        n.calls++;
+        if (meet(t)) n.meets++;
+        m.set(g, n);
+      });
+      return m;
+    };
+    /* A winner leads outright with enough calls behind it, and so does the
+       one it beats; a tie or a thin second is no winner. */
+    const lead = (m) => {
+      const fair = Array.from(m).filter((e) => e[1].calls >= AN_MIN).sort((a, b) => rate(b[1]) - rate(a[1]));
+      return fair.length > 1 && rate(fair[0][1]) > rate(fair[1][1]) ? fair[0] : null;
+    };
+    const open = campOpen(k);
+    const ran = Math.max(1, daysBetween(k.from, TODAY_ISO));
+    const left = Math.max(0, daysBetween(TODAY_ISO, k.to));
+    const ahead = all.calls / ran * left;
+    /* A best rate off twenty calls is mostly luck, and multiplying it by
+       two months of calls promised 38 meetings on a campaign that had made
+       78 calls. So the rate is pulled toward the campaign's own by the same
+       twenty calls before it is projected: the more calls behind it, the
+       more of its lead it keeps. */
+    const worth = (n) => {
+      if (!open) return 0;
+      const r = (n.meets + rate(all) * AN_MIN) / (n.calls + AN_MIN);
+      return Math.max(0, Math.round((r - rate(all)) * ahead));
+    };
+    const owner = actor(k.owner);
+    const sell = (k.sells || [])[0];
+    const lineId = lineOwnerOf(sell);
+    const qs = [];
+
+    /* Which pitch works. */
+    const list = livePitches(k);
+    const nums = pitchNums(k, list);
+    const bi = pitchBest(nums);
+    if (bi >= 0) {
+      const p = list[bi];
+      const on = !!(k.opener && k.opener.id === p.id);
+      qs.push({ k: 'pitch', ic: 'mic', q: 'Which pitch works?', v: '“' + esc(p.name || 'Pitch ' + (bi + 1)) + '”',
+        l: 'Books <b>' + plural(per100(nums[bi]), 'meeting') + '</b> in every 100 calls.',
+        c: open ? 'Open every call with it.' : 'Open the next campaign with it.',
+        worth: worth(nums[bi]), act: open ? 'opener' : null, made: on, pid: p.id,
+        done: 'Every call opens with it', give: owner });
+    } else {
+      qs.push({ k: 'pitch', ic: 'mic', q: 'Which pitch works?',
+        v: list.length < 2 ? 'One pitch' : 'Too early', tone: list.length < 2 ? 'warn' : '',
+        l: list.length < 2 ? 'There is nothing to find a winner against.'
+          : 'No pitch has ' + AN_MIN + ' calls and a clear lead yet.',
+        c: list.length < 2 ? 'Add a second pitch.' : '', act: list.length < 2 && open ? 'edit' : null });
+    }
+
+    /* Whether the ICP holds. The campaign's persona is what it aims at; the
+       roles that actually book are read off the people on its calls. */
+    const P = (k.persona || {}).who || '';
+    const band = lead(by((t) => { const c = DB.byCon[t.con]; return c ? titleBand(c.title || '') : null; }));
+    const bb = band && band[0] !== 'other' ? band[0] : null;
+    /* A persona often names several titles ("VP Engineering, Head of
+       Quality, Engineering Manager"); it holds if any of them is the band
+       that books. */
+    const named = P.split(/,|\band\b/).map((s) => s.trim()).filter(Boolean);
+    const pbs = named.map((s) => titleBand(s));
+    if (bb && pbs.indexOf(bb) < 0) {
+      /* The title it would aim at instead: the commonest one in that band
+         among the people who booked. */
+      const seen = Object.create(null);
+      here.filter(meet).forEach((t) => {
+        const c = DB.byCon[t.con];
+        if (c && c.title && titleBand(c.title) === bb) seen[c.title] = (seen[c.title] || 0) + 1;
+      });
+      const to = Object.keys(seen).sort((a, b) => seen[b] - seen[a])[0] || AN_BAND[bb];
+      qs.push({ k: 'icp', ic: 'target', q: 'Is the ICP up to date?', v: P ? 'No' : 'Not set', tone: 'warn',
+        l: '<b>' + AN_BAND[bb] + '</b> roles book the most meetings' +
+          (named.length > 1 ? ', not the roles it names.' : P ? ', not the ' + esc(P) + ' it names.' : '.'),
+        c: 'Aim it at ' + esc(to) + ', and update the ICP.', worth: worth(band[1]),
+        act: open ? 'icp' : null, to: to, done: 'Aimed at ' + to, give: owner });
+    } else {
+      qs.push({ k: 'icp', ic: 'target', q: 'Is the ICP up to date?', v: bb ? 'Yes' : 'Too early', tone: bb ? 'ok' : '',
+        l: bb ? '<b>' + AN_BAND[bb] + '</b> roles book the most meetings, as it says.'
+          : 'No role has ' + AN_MIN + ' calls and a clear lead yet.', c: '' });
+    }
+
+    /* Whether the offering holds: the reasons buyers give that are about what
+       we sell (price, features, services) against the ones that are not. */
+    const said = Object.create(null);
+    let gave = 0;
+    here.forEach((t) => (t.objections || []).forEach((o) => {
+      if (o === 'other') return;
+      said[o] = (said[o] || 0) + 1; gave++;
+    }));
+    const offer = ['pricing', 'feature', 'service'];
+    const top = offer.filter((x) => said[x]).sort((a, b) => said[b] - said[a])[0];
+    const onOffer = offer.reduce((s, x) => s + (said[x] || 0), 0);
+    const lineName = lineId ? actor(lineId).name : '';
+    const FIX = {
+      pricing: 'Offer a smaller first step, like a pilot.',
+      feature: 'Tell ' + (lineName ? firstOf(actor(lineId)) : 'the product team') + ' what buyers ask it to do.',
+      service: 'Tell ' + (lineName ? firstOf(actor(lineId)) : 'the product team') + ' which service buyers ask for.',
+    };
+    /* Four reasons called "Not yet" on one of them being price. Five is the
+       least this corpus can carry (campaigns hold one to nine), and the line
+       says the count, so a thin answer reads as thin. */
+    if (gave < 5) {
+      qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Too early',
+        l: 'Buyers have given ' + plural(gave, 'reason') + ' so far.', c: '' });
+    } else if (top && onOffer * 2 >= gave) {
+      qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Not yet', tone: 'warn',
+        l: '<b>' + esc(OBJECTION[top].label) + '</b> is ' + said[top] + ' of the ' + gave + ' reasons buyers gave.',
+        c: FIX[top], stopped: onOffer, act: open ? 'offer' : null,
+        done: 'Sent to ' + (lineName ? firstOf(actor(lineId)) : 'the product team'),
+        give: lineId ? actor(lineId) : owner });
+    } else {
+      const most = Object.keys(said).sort((a, b) => said[b] - said[a])[0];
+      qs.push({ k: 'offer', ic: 'sell', q: 'Does the offering work?', v: 'Yes', tone: 'ok',
+        l: 'Most reasons buyers give are ' + esc(((OBJECTION[most] || {}).label || 'timing').toLowerCase()) + ', not what we sell.', c: '' });
+    }
+
+    /* Who calls best. The habit behind it is the team's to copy, so the
+       action shares the call rather than praising the caller. */
+    const rep = lead(by((t) => (REP[t.by] ? t.by : null)));
+    if (rep) {
+      const best = here.filter((t) => t.by === rep[0] && meet(t)).pop();
+      qs.push({ k: 'caller', ic: 'user', q: 'Who calls best?', v: esc(actor(rep[0]).name),
+        l: 'Books <b>' + plural(per100(rep[1]), 'meeting') + '</b> in every 100 calls.',
+        c: 'Have the team hear their best call.', worth: worth(rep[1]),
+        act: 'caller', best: best, who: rep[0], done: 'Shared with the team', give: owner });
+    } else {
+      qs.push({ k: 'caller', ic: 'user', q: 'Who calls best?', v: 'Too early',
+        l: 'No two callers have ' + AN_MIN + ' calls here and a clear lead yet.', c: '' });
+    }
+
+    return { qs: qs, open: open, calls: all.calls,
+      checks: camp.filter((t) => t.outcome === 'checkpoint').length,
+      held: camp.filter((t) => t.outcome === 'phase').length };
+  }
+
+  const AN_NAME = { pitch: 'the pitch', icp: 'the ICP', caller: 'how the team asks' };
+  function anVerdict(k, a) {
+    if (!a.open) return 'This campaign has closed. Carry these into the next one.';
+    const gains = a.qs.filter((q) => q.worth > 0).sort((x, y) => y.worth - x.worth).slice(0, 2);
+    if (gains.length) {
+      return 'Changing ' + gains.map((q) => AN_NAME[q.k]).join(' and ') + ' adds about <b>' +
+        plural(gains.reduce((s, q) => s + q.worth, 0), 'meeting') + '</b> by ' + esc(sayDay(k.to)) + '.';
+    }
+    /* Winners with too little time left to add a whole meeting are still
+       worth acting on; saying "nothing to change" over their buttons was
+       a contradiction (c8, closing in two weeks). */
+    if (a.qs.some((q) => q.act && q.act !== 'edit')) {
+      return 'Too little time left for these to add a meeting by ' + esc(sayDay(k.to)) + '. Carry them into the next campaign.';
+    }
+    const off = a.qs.filter((q) => q.k === 'offer' && q.tone === 'warn')[0];
+    return off ? 'What stops buyers here is the offering, not the calling.'
+      : 'Nothing to change yet: what this campaign does is working.';
+  }
+
+  function anCol(k, q) {
+    const st = (DELTA.an || {})[k.id] || {};
+    const ceo = isWhole();
+    /* Done is read off the record where the action changed it, and off the
+       note the action left where it only sent something. */
+    const made = ceo ? !!st[q.k] : q.k === 'pitch' ? q.made : !!st[q.k];
+    const verb = !q.act ? ''
+      : ceo ? (q.give ? 'Give to ' + firstOf(q.give) : '')
+      : q.act === 'opener' ? 'Make it the opener'
+      : q.act === 'icp' ? 'Update the ICP'
+      : q.act === 'offer' ? 'Send to ' + (lineOwnerOf((k.sells || [])[0]) ? firstOf(actor(lineOwnerOf((k.sells || [])[0]))) : 'the product team')
+      : q.act === 'caller' ? 'Share their best call'
+      : q.act === 'edit' ? 'Add a pitch' : '';
+    const doneSay = ceo ? 'Given to ' + (q.give ? firstOf(q.give) : '') : q.done;
+    const btn = !verb ? ''
+      : made ? '<button class="b-an-go is-done" type="button" disabled>' + chIcon('check', 14) + '<span>' + esc(doneSay) + '</span></button>'
+      : q.act === 'edit' && !ceo ? '<button class="b-an-go" type="button" data-cedit="' + esc(k.id) + '"><span>' + verb + '</span></button>'
+      : '<button class="b-an-go" type="button" data-ango="' + esc(k.id) + ':' + q.k + '">' +
+          (ceo ? chIcon('send', 14) : '') + '<span>' + esc(verb) + '</span></button>';
+    const worth = q.worth > 0 ? '<span class="b-an-w"><b>+' + q.worth + '</b> ' + (q.worth === 1 ? 'meeting' : 'meetings') +
+        ' by ' + esc(sayDay(k.to)) + '</span>'
+      : q.stopped ? '<span class="b-an-w is-warn"><b>' + q.stopped + '</b> reasons were about what we sell</span>' : '';
+    return '<section class="b-an-a" aria-label="' + esc(q.q) + '" style="--i:' + (q.i || 0) + '">' +
+      '<span class="b-an-q">' + chIcon(q.ic, 15) + esc(q.q) + '</span>' +
+      '<p class="b-an-v' + (q.tone ? ' is-' + q.tone : '') + '">' + q.v + '</p>' +
+      '<p class="b-an-l">' + q.l + '</p>' +
+      (q.c ? '<div class="b-an-do"><p class="b-an-c">' + q.c + '</p>' +
+        (worth || btn ? '<div class="b-an-row">' + worth + btn + '</div>' : '') + '</div>' : '<div></div>') +
+    '</section>';
+  }
+
+  function anBlock(k) {
+    if (!anSees(k)) return '';
+    const a = anRead(k);
+    const open = !!UI.anOpen;
+    return '<div class="b-an' + (open ? ' is-open' : '') + '" id="an-' + esc(k.id) + '"' + (open ? '' : ' inert') + '>' +
+      '<div class="b-an-clip"><div class="b-an-card">' +
+        '<div class="b-an-head"><span class="b-an-mark"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg></span><span class="b-an-t">Analysis</span>' +
+          '<span class="b-an-when">Read from ' + esc([plural(a.calls, 'call'), a.checks ? plural(a.checks, 'checkpoint') : '',
+            a.held ? plural(a.held, 'meeting') : ''].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' and $1')) + ' on this campaign</span>' +
+          '<button class="b-an-x" type="button" data-anopen="' + esc(k.id) + '" aria-label="Close the analysis">' + chIcon('x', 16) + '</button></div>' +
+        '<p class="b-an-verdict">' + anVerdict(k, a) + '</p>' +
+        '<div class="b-an-ans">' + a.qs.map((q, i) => anCol(k, Object.assign({ i: i }, q))).join('') + '</div>' +
+      '</div></div></div>';
+  }
+
+  /* The four actions. Two change the campaign (the opener, who it aims at),
+     two send something (the offering to the product's owner, the best call
+     to the team); on the CEO's desk every one is given to whoever makes it.
+     Each one can be undone from its toast. */
+  function anGo(id, key) {
+    const k = DB.byCamp[id];
+    if (!k || !anSees(k)) return;
+    const q = anRead(k).qs.filter((x) => x.k === key)[0];
+    if (!q || !q.act) return;
+    const st = anD(k.id);
+    if (isWhole()) {
+      st[key] = 1; saveNow(); paint();
+      toast('Given to ' + q.give.name + ': ' + lowFirst(q.c.replace(/<[^>]+>/g, '')), () => { delete st[key]; saveNow(); paint(); });
+      return;
+    }
+    if (q.act === 'opener') {
+      const was = k.opener || null;
+      campSet(k, { opener: { id: q.pid, at: new Date().toISOString() } }); paint();
+      toast('Every call on this campaign now opens with ' + q.v.replace(/<[^>]+>/g, ''), () => { campSet(k, { opener: was }); paint(); });
+      return;
+    }
+    if (q.act === 'icp') {
+      const was = k.persona || null;
+      campSet(k, { persona: Object.assign({}, k.persona || {}, { who: q.to }) }); st.icp = 1; paint();
+      toast('This campaign now aims at ' + q.to + '. Sent to AiMY Knowledge to update the ICP.', () => {
+        campSet(k, { persona: was }); delete st.icp; saveNow(); paint();
+      });
+      return;
+    }
+    st[key] = 1; saveNow(); paint();
+    if (q.act === 'offer') {
+      toast('Sent to ' + q.give.name + ', with the reasons buyers gave behind it', () => { delete st[key]; saveNow(); paint(); });
+    } else {
+      const c = q.best && DB.byCon[q.best.con];
+      toast('Shared with the team: ' + firstOf(actor(q.who)) + '’s call' + (c ? ' with ' + c.name + ' on ' + sayDay(q.best.at.slice(0, 10)) : ''),
+        () => { delete st[key]; saveNow(); paint(); });
+    }
+  }
+  /* Open or shut, per person, and in place: the page is not redrawn, so
+     the card grows out of the header instead of the page jumping. */
+  function anToggle(id) {
+    UI.anOpen = !UI.anOpen;
+    saveUI();
+    const box = byId('an-' + id);
+    if (box) {
+      box.classList.toggle('is-open', UI.anOpen); box.toggleAttribute('inert', !UI.anOpen);
+      /* The columns rise in on this opening only, not on every repaint. */
+      box.classList.toggle('is-opening', UI.anOpen);
+      if (UI.anOpen) setTimeout(() => box.classList.remove('is-opening'), 900);
+    }
+    document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-expanded', String(UI.anOpen)));
+    if (!UI.anOpen) { const b = document.querySelector('.b-an-btn'); if (b) b.focus(); }
+  }
 
   /* ══ A PILE YOU CAN SEE THE DEPTH OF ════════════════════════════════════
      One pitch on top and the others behind it, so a reader knows there are
@@ -21792,6 +22098,13 @@
          been. */
       '<div class="b-topbar s-block-wide">' +
         backBtn('data-home', 'Back to the briefing') +
+        /* Analyse opens under the name (11 Nov), and leads the row's right
+           end: Nour asked for it first, before Edit. */
+        (anSees(k)
+          ? '<button class="b-an-btn" type="button" data-anopen="' + esc(k.id) + '" aria-controls="an-' + esc(k.id) +
+            '" aria-expanded="' + !!UI.anOpen + '"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+            '<use href="#aimy-logo-small"/></svg>Analyse' + chIcon('chev-down', 15) + '</button>'
+          : '') +
         (campMine(k)
           ? '<button class="b-ghost b-rec-edit" type="button" data-cedit="' + esc(k.id) +
             '">Edit</button>'
@@ -21820,6 +22133,7 @@
           '<span class="b-kind">' + (left > 0 ? esc(plural(left, 'day')) + ' left'
             : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
         '</div>' +
+        anBlock(k) +
         campMeta(k) +
         '<div class="s-rec-actions">' +
           (all.length && !isBuyer() && works()
@@ -40315,6 +40629,16 @@
     if (pmore) { profMore(pmore.getAttribute('data-profmore')); return; }
     const pcheck = t.closest('[data-profcheck]');
     if (pcheck) { profCheck(pcheck.getAttribute('data-profcheck')); return; }
+
+    /* Analyse on a campaign: open or shut it, and its four actions. */
+    const anopen = t.closest('[data-anopen]');
+    if (anopen) { anToggle(anopen.getAttribute('data-anopen')); return; }
+    const ango = t.closest('[data-ango]');
+    if (ango) {
+      const v = ango.getAttribute('data-ango').split(':');
+      anGo(v[0], v[1]);
+      return;
+    }
 
     const cedit = t.closest('[data-cedit]');
     if (cedit) {
