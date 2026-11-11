@@ -21370,18 +21370,72 @@
   }
   /* Open or shut, per person, and in place: the page is not redrawn, so
      the card grows out of the header instead of the page jumping. */
+  /* Not a drop-down (Nour, 11 Nov): a button that shows the analysis or puts
+     it away, so it says pressed rather than expanded, and has no chevron. */
+  let AN_BUSY = null;
   function anToggle(id) {
+    if (AN_BUSY) return;
     UI.anOpen = !UI.anOpen;
+    const first = UI.anOpen && !UI.anSeen;
     saveUI();
     const box = byId('an-' + id);
+    document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-pressed', String(UI.anOpen)));
+    if (box && first) { anReading(id, box); return; }
     if (box) {
       box.classList.toggle('is-open', UI.anOpen); box.toggleAttribute('inert', !UI.anOpen);
       /* The columns rise in on this opening only, not on every repaint. */
       box.classList.toggle('is-opening', UI.anOpen);
       if (UI.anOpen) setTimeout(() => box.classList.remove('is-opening'), 900);
     }
-    document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-expanded', String(UI.anOpen)));
     if (!UI.anOpen) { const b = document.querySelector('.b-an-btn'); if (b) b.focus(); }
+  }
+  /* ══ THE FIRST TIME, IT READS (11 Nov) ══════════════════════════════════
+     An answer that is simply there the instant you press reads as a lookup,
+     the argument the chat's own wait makes. So the first time anybody opens
+     Analyse, the card opens on the chat's thinking mark (the logo scattering
+     into an orbit and gathering back) and a line naming what it reads, for
+     two seconds, then the answers rise in. Every time after that is instant:
+     the wait has said what it had to, and repeating it would only be slow.
+     The answers are laid out under the mark the whole time, hidden, so the
+     card is its full height from the start and nothing jumps when they land. */
+  const AN_WAIT = 2000;
+  function anReading(id, box) {
+    const k = DB.byCamp[id];
+    const card = box.querySelector('.b-an-card');
+    if (!k || !card) return;
+    const a = anRead(k);
+    const steps = ['Reading ' + plural(a.calls, 'call') + '…',
+      a.checks ? 'Reading ' + plural(a.checks, 'checkpoint') + '…' : '',
+      a.held ? 'Reading ' + plural(a.held, 'meeting') + '…' : '',
+      'Weighing what to change…'].filter(Boolean);
+    AN_BUSY = id;
+    const btn = document.querySelector('.b-an-btn');
+    if (btn) btn.setAttribute('aria-busy', 'true');
+    card.classList.add('is-reading');
+    card.insertAdjacentHTML('beforeend', '<div class="b-an-load" role="status">' +
+      '<canvas class="think-mark" width="56" height="56" aria-hidden="true"></canvas>' +
+      '<span class="b-an-load-t">' + esc(steps[0]) + '</span></div>');
+    box.classList.add('is-open'); box.removeAttribute('inert');
+    startThinking(card.querySelector('.b-an-load .think-mark'));
+    const per = AN_WAIT / steps.length;
+    steps.slice(1).forEach((s, i) => setTimeout(() => {
+      const t = card.querySelector('.b-an-load-t');
+      if (!t) return;
+      t.classList.add('is-swap');
+      setTimeout(() => { t.textContent = s; t.classList.remove('is-swap'); }, 150);
+    }, per * (i + 1)));
+    setTimeout(() => {
+      stopThinking();
+      AN_BUSY = null;
+      UI.anSeen = true;
+      saveUI();
+      if (btn) btn.removeAttribute('aria-busy');
+      const l = card.querySelector('.b-an-load');
+      if (l) l.remove();
+      card.classList.remove('is-reading');
+      box.classList.add('is-opening');
+      setTimeout(() => box.classList.remove('is-opening'), 900);
+    }, AN_WAIT);
   }
 
   /* ══ A PILE YOU CAN SEE THE DEPTH OF ════════════════════════════════════
@@ -22102,8 +22156,8 @@
            end: Nour asked for it first, before Edit. */
         (anSees(k)
           ? '<button class="b-an-btn" type="button" data-anopen="' + esc(k.id) + '" aria-controls="an-' + esc(k.id) +
-            '" aria-expanded="' + !!UI.anOpen + '"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
-            '<use href="#aimy-logo-small"/></svg>Analyse' + chIcon('chev-down', 15) + '</button>'
+            '" aria-pressed="' + !!UI.anOpen + '"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+            '<use href="#aimy-logo-small"/></svg>Analyse</button>'
           : '') +
         (campMine(k)
           ? '<button class="b-ghost b-rec-edit" type="button" data-cedit="' + esc(k.id) +
