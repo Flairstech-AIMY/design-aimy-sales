@@ -21393,7 +21393,9 @@
       const on = !!(k.opener && k.opener.id === p.id);
       qs.push({ k: 'pitch', ic: 'mic', q: 'Which pitch works?', v: '“' + esc(p.name || 'Pitch ' + (bi + 1)) + '”',
         l: 'Books <b>' + plural(per100(nums[bi]), 'meeting') + '</b> in every 100 calls.',
-        c: open ? 'Open every call with it.' : 'Open the next campaign with it.',
+        /* No line where the button already says it (Nour, 11 Nov: "those two
+           are overlapping redundant"): Make it the opener is the conclusion. */
+        c: open ? '' : 'Open the next campaign with it.',
         worth: worth(nums[bi]), act: open ? 'opener' : null, made: on, pid: p.id,
         done: 'Every call opens with it', give: owner });
     } else {
@@ -21482,7 +21484,7 @@
            the conclusion with its button in the box. */
         l: 'Books <b>' + plural(per100(rep[1]), 'meeting') + '</b> in every 100 calls.',
         habit: { who: firstOf(actor(rep[0])), does: cap1(hb.does) + '.' },
-        c: 'Have every caller do the same.', worth: worth(rep[1]),
+        c: '', worth: worth(rep[1]),
         act: 'caller', who: rep[0], brief: hb.brief, made: habitIn('camp:' + k.id, rep[0]),
         done: 'In every call brief', give: owner });
     } else {
@@ -21523,7 +21525,8 @@
     const verb = !q.act ? ''
       : ceo ? (q.give ? 'Give to ' + firstOf(q.give) : '')
       : q.act === 'opener' ? 'Make it the opener'
-      : q.act === 'icp' ? 'Update the ICP'
+      /* The line names what to change; the button says where it is done. */
+      : q.act === 'icp' ? 'Open the ICP'
       : q.act === 'offer' ? 'Send to ' + (lineOwnerOf((k.sells || [])[0]) ? firstOf(actor(lineOwnerOf((k.sells || [])[0]))) : 'the product team')
       : q.act === 'caller' ? 'Add it to every call brief'
       : q.act === 'edit' ? 'Add a pitch' : '';
@@ -21547,7 +21550,7 @@
       '<div class="b-an-l"><p>' + q.l + '</p>' +
         (q.habit ? '<figure class="b-an-hb"><figcaption>What ' + esc(q.habit.who) + ' does differently</figcaption>' +
           '<blockquote>“' + esc(q.habit.does) + '”</blockquote></figure>' : '') + '</div>' +
-      (q.c ? '<div class="b-an-do"><p class="b-an-c">' + q.c + '</p>' +
+      (q.c || worth || btn ? '<div class="b-an-do' + (q.c ? '' : ' is-bare') + '">' + (q.c ? '<p class="b-an-c">' + q.c + '</p>' : '') +
         (worth || btn ? '<div class="b-an-row">' + worth + btn + '</div>' : '') + '</div>' : '<div></div>') +
     '</section>';
   }
@@ -21580,7 +21583,12 @@
     const st = anD(k.id);
     if (isWhole()) {
       st[key] = 1; saveNow(); paint();
-      toast('Given to ' + q.give.name + ': ' + lowFirst(q.c.replace(/<[^>]+>/g, '')), () => { delete st[key]; saveNow(); paint(); });
+      /* The pitch and the caller have no line of their own now, so the toast
+         says what was given in its own words. */
+      const what = q.c ? q.c.replace(/<[^>]+>/g, '')
+        : q.k === 'pitch' ? 'Open every call with ' + q.v.replace(/<[^>]+>/g, '') + '.'
+        : q.k === 'caller' ? 'Put ' + firstOf(actor(q.who)) + '’s habit in every call brief.' : '';
+      toast('Given to ' + q.give.name + ': ' + lowFirst(what), () => { delete st[key]; saveNow(); paint(); });
       return;
     }
     if (q.act === 'opener') {
