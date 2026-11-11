@@ -21375,66 +21375,53 @@
   let AN_BUSY = null;
   function anToggle(id) {
     if (AN_BUSY) return;
+    if (!UI.anOpen && !UI.anSeen) { anReading(id); return; }
     UI.anOpen = !UI.anOpen;
-    const first = UI.anOpen && !UI.anSeen;
     saveUI();
-    const box = byId('an-' + id);
     document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-pressed', String(UI.anOpen)));
-    if (box && first) { anReading(id, box); return; }
-    if (box) {
-      box.classList.toggle('is-open', UI.anOpen); box.toggleAttribute('inert', !UI.anOpen);
-      /* The columns rise in on this opening only, not on every repaint. */
-      box.classList.toggle('is-opening', UI.anOpen);
-      if (UI.anOpen) setTimeout(() => box.classList.remove('is-opening'), 900);
-    }
+    anShow(id);
     if (!UI.anOpen) { const b = document.querySelector('.b-an-btn'); if (b) b.focus(); }
   }
-  /* ══ THE FIRST TIME, IT READS (11 Nov) ══════════════════════════════════
+  function anShow(id) {
+    const box = byId('an-' + id);
+    if (!box) return;
+    box.classList.toggle('is-open', UI.anOpen); box.toggleAttribute('inert', !UI.anOpen);
+    /* The columns rise in on this opening only, not on every repaint. */
+    box.classList.toggle('is-opening', UI.anOpen);
+    if (UI.anOpen) setTimeout(() => box.classList.remove('is-opening'), 900);
+  }
+  /* ══ THE FIRST TIME, THE BUTTON READS (11 Nov) ═══════════════════════════
      An answer that is simply there the instant you press reads as a lookup,
-     the argument the chat's own wait makes. So the first time anybody opens
-     Analyse, the card opens on the chat's thinking mark (the logo scattering
-     into an orbit and gathering back) and a line naming what it reads, for
-     two seconds, then the answers rise in. Every time after that is instant:
-     the wait has said what it had to, and repeating it would only be slow.
-     The answers are laid out under the mark the whole time, hidden, so the
-     card is its full height from the start and nothing jumps when they land. */
+     the argument the chat's own wait makes. So the first time anybody presses
+     Analyse, the button itself works for two seconds: its logo becomes the
+     chat's thinking mark (scattering into an orbit and gathering back) and
+     it says "Analysing…". Only then does the card open, and the answers rise
+     in. Nour put the wait in the button, not the card: the card appears when
+     there is something to read. Every press after the first is instant. */
   const AN_WAIT = 2000;
-  function anReading(id, box) {
-    const k = DB.byCamp[id];
-    const card = box.querySelector('.b-an-card');
-    if (!k || !card) return;
-    const a = anRead(k);
-    const steps = ['Reading ' + plural(a.calls, 'call') + '…',
-      a.checks ? 'Reading ' + plural(a.checks, 'checkpoint') + '…' : '',
-      a.held ? 'Reading ' + plural(a.held, 'meeting') + '…' : '',
-      'Weighing what to change…'].filter(Boolean);
-    AN_BUSY = id;
+  function anReading(id) {
     const btn = document.querySelector('.b-an-btn');
-    if (btn) btn.setAttribute('aria-busy', 'true');
-    card.classList.add('is-reading');
-    card.insertAdjacentHTML('beforeend', '<div class="b-an-load" role="status">' +
-      '<canvas class="think-mark" width="56" height="56" aria-hidden="true"></canvas>' +
-      '<span class="b-an-load-t">' + esc(steps[0]) + '</span></div>');
-    box.classList.add('is-open'); box.removeAttribute('inert');
-    startThinking(card.querySelector('.b-an-load .think-mark'));
-    const per = AN_WAIT / steps.length;
-    steps.slice(1).forEach((s, i) => setTimeout(() => {
-      const t = card.querySelector('.b-an-load-t');
-      if (!t) return;
-      t.classList.add('is-swap');
-      setTimeout(() => { t.textContent = s; t.classList.remove('is-swap'); }, 150);
-    }, per * (i + 1)));
+    if (!btn) return;
+    AN_BUSY = id;
+    btn.setAttribute('aria-busy', 'true');
+    const mark = btn.querySelector('svg');
+    const cv = document.createElement('canvas');
+    cv.className = 'think-mark'; cv.width = 18; cv.height = 18; cv.setAttribute('aria-hidden', 'true');
+    if (mark) mark.replaceWith(cv);
+    const lb = btn.querySelector('.b-an-lb');
+    if (lb) lb.textContent = 'Analysing…';
+    startThinking(cv);
     setTimeout(() => {
       stopThinking();
       AN_BUSY = null;
       UI.anSeen = true;
+      UI.anOpen = true;
       saveUI();
-      if (btn) btn.removeAttribute('aria-busy');
-      const l = card.querySelector('.b-an-load');
-      if (l) l.remove();
-      card.classList.remove('is-reading');
-      box.classList.add('is-opening');
-      setTimeout(() => box.classList.remove('is-opening'), 900);
+      if (cv.isConnected && mark) cv.replaceWith(mark);
+      if (lb) lb.textContent = 'Analyse';
+      btn.removeAttribute('aria-busy');
+      document.querySelectorAll('.b-an-btn').forEach((b) => b.setAttribute('aria-pressed', 'true'));
+      anShow(id);
     }, AN_WAIT);
   }
 
@@ -22157,7 +22144,7 @@
         (anSees(k)
           ? '<button class="b-an-btn" type="button" data-anopen="' + esc(k.id) + '" aria-controls="an-' + esc(k.id) +
             '" aria-pressed="' + !!UI.anOpen + '"><svg width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
-            '<use href="#aimy-logo-small"/></svg>Analyse</button>'
+            '<use href="#aimy-logo-small"/></svg><span class="b-an-lb">Analyse</span></button>'
           : '') +
         (campMine(k)
           ? '<button class="b-ghost b-rec-edit" type="button" data-cedit="' + esc(k.id) +
