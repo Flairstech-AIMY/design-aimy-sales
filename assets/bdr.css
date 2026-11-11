@@ -5691,6 +5691,16 @@ textarea::placeholder,
 .chat-msg.aimy .b-cuts { min-width: 0; flex-wrap: wrap; }
 .chat-msg.aimy .b-cuts .s-insight-lnk { white-space: normal; max-width: 100%; text-align: left; }
 
+/* ══ AiMY'S BUBBLE IS SEE-THROUGH, AS ON THE KNOWLEDGE GATE ══════════════
+   Nour, 11 Nov: only the ground changes; everything else stays Sales'. AiMY
+   sits on the gate's 4% white wash with a 7% edge (aimy-ds.css 1737-1738)
+   instead of the raised card ground, so the canvas glass shows through.
+   Light is unchanged: aimy-ds's #edf2f8, whose :root[data-theme] rule
+   outranks this one. The thinking turn keeps §92's bare frame. */
+.chat-msg.aimy:not(.is-thinking) .msg-bubble {
+  background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.07);
+}
+
 /* ══ 93. THE PHONE RINGING ═══════════════════════════════════════════
    The one surface in this build that the user did not ask for and cannot
    defer. Everything else here appears because somebody pressed something;
