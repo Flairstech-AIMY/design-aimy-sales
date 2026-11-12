@@ -12640,8 +12640,11 @@
         '<div class="b-ro-who"><button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(REP[id].name) + '</button>' +
           '<span class="b-ro-sub">' + scoreTag(weekScores(id).now, { id }) +
             (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</span></div></div>' +
-      planRows(R) +
-      aimyBlock({ text: say }, true) +
+      /* On a campaign this person never calls on (AIMY-3062), four zeros
+         "as usual" would read as a normal day; it says they do not work it. */
+      (S.cf && !R.calls.cum && !FORM[id].calls
+        ? '<p class="b-vfoot b-ro-none">' + esc(firstName(id)) + ' made no calls' + esc(cfSay()) + ' ' + esc(P.when) + ', and does not usually call on it.</p>'
+        : planRows(R) + aimyBlock({ text: say }, true)) +
       '<div class="tc-gov b-qcard-foot"><span></span><button class="s-insight-lnk" type="button" data-go="' + go + '">Open the profile</button></div>' +
     '</article>';
   }
