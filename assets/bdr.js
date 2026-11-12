@@ -12949,7 +12949,9 @@
           commas(on) + '</span> on a call</span></span>') +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(r.t.name) + '</button>' +
-      (isWhole() ? '<p class="b-tc-mgr">Managed by ' + esc(REP[r.t.mgr].name) + '</p>' : '') +
+      /* Who runs it, as a person (Nour, 12 Nov: "this could be better"):
+         their face, then "Managed by" and the name in the title's ink. */
+      (isWhole() ? '<p class="b-tc-mgr">' + faceOf(r.t.mgr, 22) + '<span>Managed by <b>' + esc(REP[r.t.mgr].name) + '</b></span></p>' : '') +
       planRows(R) +
       aimyBlock({ text: say, from: 'compared with a normal ' + P.unit.replace(/^the /, '') }) +
       '<div class="tc-gov b-qcard-foot">' +

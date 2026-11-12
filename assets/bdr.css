@@ -9252,4 +9252,6 @@ a.b-an-go, a.b-an-go:hover, a.b-an-go:focus-visible { text-decoration: none; }
 .b-tstate, .b-tstate-load { margin-top: 8px; }
 .b-tstate-load .s-skel { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 12px; }
 /* Who manages a team, on the CEO's team cards (AIMY-3062). */
-.b-tc-mgr { margin: -2px 18px 4px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-tc-mgr { display: flex; align-items: center; gap: 8px; margin: 2px 18px 6px; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--d100); }
+.b-tc-mgr b { font-weight: var(--fw-semibold); color: var(--d50); }
+.b-tc-mgr .b-face { flex: none; }
