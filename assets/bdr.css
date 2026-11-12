@@ -9245,3 +9245,9 @@ a.b-an-go, a.b-an-go:hover, a.b-an-go:focus-visible { text-decoration: none; }
 .b-ta-camp { padding: 0; font: inherit; font-weight: var(--fw-semibold); text-align: left; color: var(--accent-text); background: none; border: 0; cursor: pointer; }
 .b-ta-camp:hover { text-decoration: underline; text-underline-offset: 3px; }
 .b-ta-camp:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+/* ══ THE TEAMS PAGES WITH NOTHING TO READ (AIMY-3062) ═══════════════════════
+   Loading draws the board's four tiles as skeletons; the other states use
+   the news section's empty state (halo, heading, sentence, one action).
+   Both sit under the page head and its two pickers. */
+.b-tstate, .b-tstate-load { margin-top: 8px; }
+.b-tstate-load .s-skel { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 12px; }

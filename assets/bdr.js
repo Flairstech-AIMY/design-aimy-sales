@@ -4537,8 +4537,8 @@
       : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
-      : S.on === 'teams' && isMgr() ? withCamp(teamsPage)
-      : S.on === 'person' && isMgr() && S.ag ? withCamp(personPage)
+      : S.on === 'teams' && isMgr() ? withCamp(teamGate(teamsPage))
+      : S.on === 'person' && isMgr() && S.ag ? withCamp(teamGate(personPage))
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -10699,6 +10699,88 @@
     workDaysBefore(TODAY_ISO, 10).forEach((iso) => dayCalls(id, iso).forEach((t) => { all++; if ((t.camp || 'none') === cf) on++; }));
     return (campShare[key] = all ? on / all : 0);
   }
+  /* ══ WHEN THERE IS NOTHING TO READ (AIMY-3062, 12 Nov 2026) ══════════════
+     The teams pages have four states besides the figures: the calls still
+     loading, no calls yet, the call records out of reach, and an error. The
+     prototype has no backend, so the panel's "Team activity" switch forces
+     them (`TEAM_FORCE`, this session only); a period with no working day in
+     it ("off") is the one that happens on its own. Each page keeps its head
+     and both pickers, so the way out is where it was, and says in words
+     what is wrong and what to do; nothing is drawn as a zero. The chat says
+     the same (`teamDown`). */
+  let TEAM_FORCE = '';
+  let TEAM_RETRY = 0;
+  const TEAM_LAST = '12:40';
+  function teamGate(fn) {
+    return () => {
+      const P = planSpan();
+      let work = false;
+      for (let iso = P.from; iso <= P.end && !work; iso = isoAdd(iso, 1)) work = isWorkDay(iso) && iso <= TODAY_ISO;
+      const st = TEAM_FORCE || (work ? '' : 'off');
+      return st ? teamStatePage(st, P) : fn();
+    };
+  }
+  function teamStatePage(st, P) {
+    const t = S.team && teamsOf().filter((x) => x.id === S.team)[0];
+    const one = S.on === 'person' && t && S.ag;
+    const ids = one ? [S.ag] : t ? t.members : peopleOf(teamsOf());
+    const title = one ? REP[S.ag].name : t ? t.name : 'Your teams';
+    const back = one ? backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to the ' + t.name, true)
+      : t ? backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to Your teams', true)
+      : backBtn('data-back', 'Back to Today');
+    const day = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
+    const retry = '<button class="b-news-act is-solid" type="button" data-teamretry>' + chIcon('refresh-cw') + '<span>Try again</span></button>';
+    const S0 = {
+      loading: null,
+      empty: { ico: 'clock', role: 'status', h: 'No calls logged yet ' + P.when,
+        p: 'Calls start at 9:00 and the figures fill in as each one is logged. Nothing here is a zero; there is just nothing to count yet.',
+        act: '<button class="b-news-act" type="button" data-go="' + esc(JSON.stringify({ from: lastWorkDay(day), to: lastWorkDay(day) })) + '">See ' +
+          esc(DAY_FULL[new Date(lastWorkDay(day) + 'T00:00:00').getDay()]) + '</button>' },
+      off: { ico: 'calendar-x', role: 'status', h: 'No working day ' + P.when,
+        p: 'Egypt works Sunday to Thursday, and public holidays are days off, so no calls are counted ' + P.when + '.',
+        act: '<button class="b-news-act" type="button" data-go="' + esc(JSON.stringify({ from: '', to: '' })) + '">See ' +
+          (day === TODAY_ISO ? 'today' : esc(DAY_FULL[new Date(day + 'T00:00:00').getDay()])) + '</button>' },
+      down: { ico: 'cloud-off', role: 'alert', h: 'The call records can’t be reached right now',
+        p: 'So there are no figures to show, rather than old ones that look current. The last good read was at ' + TEAM_LAST + ' today. ' +
+          'Calls are still being logged and will show once the records are back.', act: retry },
+      error: { ico: 'triangle-alert', role: 'alert', h: 'Something went wrong reading the calls',
+        p: 'Nothing was lost: the calls are logged, AiMY just could not read them this time.', act: retry },
+    }[st];
+    const body = st === 'loading'
+      ? '<div class="b-tstate-load" role="status" aria-busy="true"><span class="b-sr">Reading the calls</span>' +
+          '<div class="s-skel">' + [0, 1, 2, 3].map(() => '<div class="s-skel-card" aria-hidden="true">' + SKEL_BAR(13, 40) + SKEL_BAR(30, 55, ';margin-top:6px') +
+            SKEL_BAR(13, 70) + SKEL_BAR(13, 50) + '</div>').join('') + '</div></div>'
+      : '<div class="b-news-empty b-tstate is-' + st + '" role="' + S0.role + '">' +
+          '<span class="b-news-halo" aria-hidden="true">' + chIcon(S0.ico) + '</span>' +
+          '<div class="b-news-empty-main"><p class="b-news-empty-h">' + esc(S0.h) + '</p>' +
+            '<p class="b-news-empty-p">' + esc(S0.p) + '</p>' +
+            '<div class="b-news-empty-foot">' + S0.act + '</div></div></div>';
+    return '<div class="s-home b-tmp">' +
+      '<div class="b-topbar s-block-wide b-diary-back">' + back + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="' + esc(title) + '">' +
+        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">' + esc(title) + '</h2>' +
+          '<span class="b-pickers">' + campPicker(ids, P, 'tsCamp') +
+            datePicker({ id: 'tsDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
+        body +
+      '</section>' +
+    '</div>';
+  }
+  /* "Try again": a short read, then the figures (or the same state, if the
+     panel still forces it). */
+  function teamRetry() {
+    const keep = TEAM_FORCE;
+    TEAM_FORCE = 'loading';
+    paint();
+    clearTimeout(TEAM_RETRY);
+    TEAM_RETRY = setTimeout(() => { TEAM_FORCE = keep === 'down' || keep === 'error' ? '' : keep; paintProto(); paint(); }, 1400);
+  }
+  /* What the chat says in the same states, in place of an answer. */
+  function teamDown() {
+    if (TEAM_FORCE === 'down') return 'I can’t read the call records right now, so I won’t guess at figures. The last good read was at ' + TEAM_LAST + ' today; ask again in a few minutes.';
+    if (TEAM_FORCE === 'error') return 'Something went wrong reading the calls, so I have no figures for this. Nothing was lost; ask again and I will read them afresh.';
+    if (TEAM_FORCE === 'empty') return 'No calls have been logged yet today, so there is nothing to read. Calls start at 9:00.';
+    return null;
+  }
   function withCamp(fn) {
     if (!S.cf) return fn();
     const keep = Object.create(null);
@@ -11497,6 +11579,8 @@
     if (!teams.length) return null;
     const ppl = peopleOf(teams);
     const who = teamWho(q, teams, ppl);
+    const down = teamDown();
+    if (down) return down;
     const said = (/\bcampaigns?\b/.test(q) && /\b(by|per|each|which|every|across)\b/.test(q)) ? campAnswer(q, who) : teamAnswerAll(q);
     return said ? said + teamFoot(q, who) : null;
   }
@@ -29055,6 +29139,13 @@
           '<button class="proto-link" type="button" data-newsset="' + x[0] + '" aria-pressed="' +
             (NEWS_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
       '</div>' +
+      (isMgr() ? '<div class="proto-sec">' +
+        '<div class="proto-h">Team activity, on the teams pages and in the chat</div>' +
+        [['', 'As the calls have it'], ['loading', 'Still loading'], ['empty', 'No calls yet'],
+          ['down', 'Call records unavailable'], ['error', 'Something went wrong']].map((x) =>
+          '<button class="proto-link" type="button" data-teamset="' + x[0] + '" aria-pressed="' +
+            (TEAM_FORCE === x[0]) + '">' + esc(x[1]) + '</button>').join('') +
+      '</div>' : '') +
       '<div class="proto-sec">' +
         '<div class="proto-h">Coaching, in a run</div>' +
         [['', 'As it happens'], ['greet', 'Skips the hello'], ['talk', 'Talks too much'],
@@ -29348,6 +29439,9 @@
     'signal-low': '<path d="M2 20h.01"/> <path d="M7 20v-4"/>',
     'link-2-off': '<path d="M9 17H7A5 5 0 0 1 7 7"/> <path d="M15 7h2a5 5 0 0 1 4 8"/> <line x1="8" x2="12" y1="12" y2="12"/> <line x1="2" x2="22" y1="2" y2="22"/>',
     'newspaper': '<path d="M15 18h-5"/> <path d="M18 14h-8"/> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/> <rect width="8" height="4" x="10" y="6" rx="1"/>',
+    'cloud-off': '<path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/>',
+    'calendar-x': '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m14 14-4 4"/><path d="m10 14 4 4"/>',
+    'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
     'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/> <path d="M21 3v5h-5"/> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/> <path d="M8 16H3v5"/>',
     'arrow-up-right': '<path d="M7 7h10v10"/> <path d="M7 17 17 7"/>',
     'badge-check': '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/> <path d="m9 12 2 2 4-4"/>',
@@ -41941,6 +42035,16 @@
       paintProto();
       return;
     }
+
+    const tset = t.closest('[data-teamset]');
+    if (tset) {
+      clearTimeout(TEAM_RETRY);
+      TEAM_FORCE = tset.getAttribute('data-teamset');
+      paintProto();
+      paint();
+      return;
+    }
+    if (t.closest('[data-teamretry]')) { teamRetry(); return; }
 
     const pset = t.closest('[data-profset]');
     if (pset) {
