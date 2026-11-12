@@ -454,7 +454,7 @@
      the outcome is the same and `dir` is the field that tells them apart.
      Printing the outcome's own label over it says the opposite of what
      happened: their phone did not go unanswered, ours did. */
-  const kindLabel = (t) => (wasMissed(t) ? 'Missed'
+  const kindLabel = (t) => (t.unrec ? 'Outcome not recorded' : wasMissed(t) ? 'Missed'
     : OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? stepLabel(t.moved[1]) : t.outcome));
@@ -7925,6 +7925,7 @@
      does: a missed one in the error ground, a call that left something open
      in amber, one where somebody spoke in green, the rest plain. */
   const callChip = (t) => {
+    if (t.unrec) return 'is-meet';
     if (wasMissed(t)) return 'is-missed';
     const o = OUTCOME[t.outcome];
     if (!o) return '';
@@ -10672,13 +10673,23 @@
   function repDay(id, iso) {
     const f = FORM[id];
     const part = f ? dayPart(iso) : 0;
-    if (!part) return { calls: 0, reached: 0, talks: 0, meets: 0, secs: 0, part: 0 };
+    if (!part) return { calls: 0, reached: 0, talks: 0, meets: 0, unrec: 0, secs: 0, part: 0 };
     const wk = iso >= weekStart(TODAY_ISO) ? f.wk : 1;
     const calls = Math.round(f.calls * jit(id + iso + ':c') * wk * part);
     const reached = Math.round(calls * f.reach * jit(id + iso + ':r') * wk);
     const talks = Math.round(calls * f.talk * jit(id + iso + ':t') * wk);
     const meets = Math.round(talks * f.meet * jit(id + iso + ':m') * wk);
-    return { calls, reached, talks, meets, secs: Math.round(f.secs * jit(id + iso + ':s')), part };
+    /* ══ CALLS WITH NO OUTCOME RECORDED (AIMY-3062, 12 Nov 2026) ═════════
+       A call can end with nothing logged: the caller moved on before
+       confirming AiMY's read-back. The ticket's rule is that such a call is
+       a gap in the data, never a zero and never an invented outcome. On
+       about half of a person's days a few calls (1 to 5 in 100) are like
+       that. They are taken out of the calls that reached nobody, so the
+       decision makers, conversations and meetings counted are exactly what
+       was recorded, and the gap is said beside them ("may be higher"). */
+    const ur = hx(id + iso, 'unrec', 100);
+    const unrec = ur < 45 ? 0 : Math.min(Math.max(0, calls - reached), Math.round(calls * ((ur % 5) + 1) / 100));
+    return { calls, reached, talks, meets, unrec, secs: Math.round(f.secs * jit(id + iso + ':s')), part };
   }
   /* The week starts on Sunday, the first working day in Egypt. */
   function weekStart(iso) {
@@ -11719,7 +11730,23 @@
       out[k] = { k, s, unit: P.unit.replace(/^the /, ''), days, N, el, day, target, cum, pts, byNow, ratio: byNow ? cum / byNow : 1, vel,
         need: daysLeft ? Math.max(0, target - cum) / daysLeft : 0, daysLeft, leftDays, proj: Math.round(cum + vel * daysLeft), by };
     });
+    /* Calls with no outcome recorded over the period (repDay's `unrec`). */
+    out.unrec = per.reduce((a, p) => a + (p ? p.reduce((b, d) => b + (d.unrec || 0), 0) : 0), 0);
     return out;
+  }
+  /* The calls with no outcome recorded, under a board's steps (AIMY-3062):
+     a gap in the record, said as a gap, never folded into "reached nobody",
+     with the change to the runs that closes it. Not drawn when every call
+     has its outcome. A desk that only reads (the CEO) gets the line and no
+     button. */
+  function unrecLine(ctx, R) {
+    const n = R.unrec || 0;
+    if (!n) return '';
+    const tid = ctx.teams && ctx.teams[0] ? ctx.teams[0].id : '';
+    const who = ctx.one ? ctx.ids[0] : 'all';
+    return '<div class="b-cmp-do b-pl-cmp"><p class="b-cmp-gap is-behind is-unrec"><span><b>' + esc(commas(n)) + '</b> of these ' +
+        esc(commas(R.calls.cum)) + ' calls ' + (n === 1 ? 'has' : 'have') + ' no outcome recorded, so decision makers, conversations and meetings may be higher than shown.</span></p>' +
+      (tid && works() ? fixBtn(tid, who, 'log', 'row') : '') + '</div>';
   }
   /* The pace in words and colour: ahead, on pace, behind (the warning ink),
      well behind (the error ink), at 85% of the plan by now. */
@@ -11825,6 +11852,10 @@
       say: (who) => 'AiMY now suggests an answer in runs for ' + who + ' when an objection comes up' },
     meets: { label: 'Coach the close', done: 'Coaching the close',
       say: (who) => 'AiMY now coaches the close in runs for ' + who + ': one tip after a conversation that ends without a meeting' },
+    /* Calls left with no outcome (AIMY-3062): the run waits for the outcome
+       before it places the next call, so none is left unrecorded. */
+    log: { label: 'Ask for the outcome before the next call', done: 'Outcome asked for before the next call',
+      say: (who) => 'Runs for ' + who + ' now ask for the outcome before the next call is placed, so every call gets one' },
   };
   const TFIX = Object.create(null);
   const LEVER_UP = { reached: ['calls', 'reach'], talks: ['calls', 'talk'], meets: ['talks', 'meet'] };
@@ -11860,8 +11891,10 @@
       say: (n) => 'AiMY now suggests an answer in ' + n + '’s runs when this objection comes up' },
     meets: { label: (n) => 'Coach ' + n + '’s close', done: 'Coaching the close',
       say: (n) => 'AiMY now coaches ' + n + '’s close in runs: one tip after a conversation that ends without a meeting' },
+    log: { label: (n) => 'Ask for the outcome before ' + n + '’s next call', done: 'Outcome asked for before the next call',
+      say: (n) => n + '’s runs now ask for the outcome before the next call is placed, so every call gets one' },
   };
-  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', talk2: 'opener', meets: 'close', obj: 'answers to objections' };
+  const THING = { calls: 'run settings', reached: 'lists', talks: 'opener', talk2: 'opener', meets: 'close', obj: 'answers to objections', log: 'logging' };
   const srcName = (src) => { const t = TEAMS.filter((x) => x.id === src)[0]; return t ? 'the ' + t.name : REP[src] ? firstName(src) : src; };
   const poss = (n) => n + '’s';
   /* The lever as a button, or what it did once pressed. `who` is 'all' for
@@ -12153,7 +12186,7 @@
           '<span class="b-pl-tval">' + esc(commas(x.cum)) + '<small>usually ' + esc(commas(Math.round(x.byNow))) + (live ? ' by now' : '') + '</small></span>' +
           '<span class="b-pace is-' + pc.tone + '">' + esc(pc.say) + '</span>' + (C ? cmpLine(C(s.k), s.k) : '') + '</button>';
       }).join('') + secsTile(ctx, P) + '</div>' +
-      (C ? cmpGap(C(k), k) : '') +
+      (C ? cmpGap(C(k), k) : '') + unrecLine(ctx, R) +
       '<div class="b-pl-read' + (st.facts ? '' : ' is-solo') + '">' + st.line + st.facts + '</div>' +
       /* The questions the read leaves open, each a turn in the chat (they
          were the Today section's, Nour 10 Nov). */
@@ -12943,7 +12976,11 @@
     /* Dealt across the day rather than in blocks: each call's kind is placed
        by a hash of its own index. */
     const kinds = [];
-    for (let i = 0; i < d.calls; i++) kinds.push(i < meets ? 'meet' : i < meets + talks ? 'talk' : i < meets + talks + short ? 'short' : 'none');
+    const unrec = Math.min(d.unrec || 0, d.calls - meets - talks - short);
+    for (let i = 0; i < d.calls; i++) {
+      kinds.push(i < meets ? 'meet' : i < meets + talks ? 'talk' : i < meets + talks + short ? 'short'
+        : i < meets + talks + short + unrec ? 'unrec' : 'none');
+    }
     kinds.splice(0, kinds.length, ...kinds.map((kd, i) => ({ kd, h: hx(id + iso + i, 'ord', 99991) }))
       .sort((a, b) => a.h - b.h).map((x) => x.kd));
     const start = new Date(iso + 'T09:00:00').getTime();
@@ -12954,6 +12991,15 @@
       const con = pool[hx(tid, 'con', pool.length)];
       const at = new Date(start + span * (i + 0.5) / kinds.length).toISOString();
       const r = hx(tid, 'r', 100);
+      /* No outcome was recorded: the call stays in the list as a gap, with
+         no outcome, no step moved and no transcript to offer. */
+      if (kd === 'unrec') {
+        const u = { id: tid, con: con, camp: campFor(DB.byCon[con]), by: id, at: at, dir: 'out', outcome: null, unrec: true,
+          called: null, secs: 20 + r, proposals: [], objections: [], openings: [], note: '', lines: [], next: null, moved: null };
+        indexTouch(u);
+        out.push(u);
+        return;
+      }
       const t = {
         id: tid, con: con, camp: campFor(DB.byCon[con]), by: id, at: at, dir: 'out',
         outcome: kd === 'meet' ? 'reached' : kd === 'talk' ? (r % 3 ? 'reached' : 'callback') : kd === 'short' ? 'not-interested'
@@ -13361,6 +13407,7 @@
     const calls = profileCalls(id, CP.from, cpTo);
     const pg = paged(calls);
     const got = calls.filter(gotThrough).length;
+    const unrecN = calls.filter((x) => x.unrec).length;
     const agenda = personAgenda(t, id, note, agendaPats, moved);
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
@@ -13429,7 +13476,9 @@
              so the two are never the same count (and never claim to be). */
           aimyBlock({ text: '<b>' + esc(plural(calls.length, 'call')) + '</b> logged on a contact ' +
               esc(CP.when) +
-              ', and <b>' + esc(commas(got)) + '</b> got through.' }, true) +
+              ', and <b>' + esc(commas(got)) + '</b> got through.' +
+              /* The gap, said where the calls are (AIMY-3062). */
+              (unrecN ? ' <b class="b-door-warn">' + esc(commas(unrecN)) + '</b> ' + (unrecN === 1 ? 'has' : 'have') + ' no outcome recorded.' : '') }, true) +
             '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call') +
             '</div></div></div>') +
       '</section>' +

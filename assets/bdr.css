@@ -9017,6 +9017,9 @@ button.aimy-float-icon:focus-visible { outline: 2px solid var(--brand); outline-
 .b-cmp-gap.is-behind, .b-wd-who.is-behind { color: var(--warn-text); background: color-mix(in srgb, var(--warn-text) 13%, transparent); }
 .b-cmp-gap.is-ahead, .b-wd-who.is-ahead { color: var(--ok-text); background: color-mix(in srgb, var(--ok-text) 13%, transparent); }
 .b-cmp-do { min-width: 0; }
+/* Calls with no outcome recorded (AIMY-3062): the gap strip's amber, with
+   Lucide circle-help instead of a trend, since it is a gap in the record. */
+.b-cmp-gap.is-behind.is-unrec { --mv-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E"); }
 /* Who is on a call, behind the live indicator (10 Nov): a row per person,
    lit by the five-second timer; the words say the state, the dot repeats it. */
 .b-oc { cursor: help; border-radius: var(--r-pill); }
