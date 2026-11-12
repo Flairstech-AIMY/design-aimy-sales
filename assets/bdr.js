@@ -10785,9 +10785,12 @@
           '<div class="b-news-empty-main"><p class="b-news-empty-h">' + esc(S0.h) + '</p>' +
             '<p class="b-news-empty-p">' + esc(S0.p) + '</p>' +
             '<div class="b-news-empty-foot">' + S0.act + '</div></div></div>';
+    /* A team's or a person's back link sits in the section, where their
+       own pages put it, so it shows on a first visit too (the top bar only
+       draws a back link when there is somewhere to go back to). */
     return '<div class="s-home b-tmp">' +
-      '<div class="b-topbar s-block-wide b-diary-back">' + back + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="' + esc(title) + '">' +
+      (t ? '' : '<div class="b-topbar s-block-wide b-diary-back">' + back + '</div>') +
+      '<section class="s-block s-block-wide" aria-label="' + esc(title) + '">' + (t ? back : '') +
         '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">' + esc(title) + '</h2>' +
           '<span class="b-pickers">' + campPicker(ids, P, 'tsCamp') +
             datePicker({ id: 'tsDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
