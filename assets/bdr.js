@@ -11486,7 +11486,106 @@
      and the page never disagree: who is short on calls, how one team is
      doing, how one person is doing, how the teams compare, and each pill's
      own question (DAY_METRIC). Each answer ends in the next question. */
+  /* ══ THE TEAMS' ANSWERS, GROUNDED AND SIGNED (AIMY-3062, 12 Nov 2026) ═══
+     Every answer about the teams now says what it read: the period, in Cairo
+     time, how fresh the calls are, any calls with no outcome recorded in it,
+     and a way to the records behind it (the person's calls, the team's page,
+     or Your teams). "By campaign" questions are answered here first, off the
+     same calls the pages count. */
   function teamAnswer(q) {
+    const teams = teamsOf();
+    if (!teams.length) return null;
+    const ppl = peopleOf(teams);
+    const who = teamWho(q, teams, ppl);
+    const said = (/\bcampaigns?\b/.test(q) && /\b(by|per|each|which|every|across)\b/.test(q)) ? campAnswer(q, who) : teamAnswerAll(q);
+    return said ? said + teamFoot(q, who) : null;
+  }
+  /* Who a question is about: a person named, else a team named, else all
+     of the desk's teams. */
+  function teamWho(q, teams, ppl) {
+    const one = ppl.filter((id) => new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
+    const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
+    const team = one ? teams.filter((t) => t.members.indexOf(one) > -1)[0] : tm;
+    return { one, team, ids: one ? [one] : tm ? tm.members : ppl,
+      name: one ? firstName(one) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team' };
+  }
+  /* The period a question reads, as the answers read it: today (or the last
+     working day before 9:00 or on a day off), this week, this month, the
+     spans, or the days named. */
+  function teamWhen(q) {
+    const d0 = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
+    const M = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const iso = (d, m) => {
+      const s = TODAY_ISO.slice(0, 4) + '-' + String(M[m] + 1).padStart(2, '0') + '-' + String(+d).padStart(2, '0');
+      return s > TODAY_ISO ? (+s.slice(0, 4) - 1) + s.slice(4) : s;
+    };
+    const per = q.match(/\bfrom (\d{1,2}) ([a-z]{3}) to (\d{1,2}) ([a-z]{3})\b|\bon (\d{1,2}) ([a-z]{3})\b/i);
+    if (per && M[(per[2] || per[6] || '').toLowerCase()] != null) {
+      const from = per[1] ? iso(per[1], per[2].toLowerCase()) : iso(per[5], per[6].toLowerCase());
+      const to = per[3] ? iso(per[3], per[4].toLowerCase()) : from;
+      return { from, to, say: from === to ? dateSay(from) : 'From ' + dateSay(from) + ' to ' + dateSay(to) };
+    }
+    if (/\bweek by week\b|\bevery week\b|\ball (the )?weeks\b/.test(q)) return { from: quarterStart(TODAY_ISO), to: TODAY_ISO, say: 'Every week of this quarter so far' };
+    if (/\bmonth by month\b|\bevery month\b|\ball (the )?months\b/.test(q)) return { from: TODAY_ISO.slice(0, 5) + '01-01', to: TODAY_ISO, say: 'Every month of this year so far' };
+    if (/\bweek\b/.test(q) && /\bmonth\b/.test(q) && /\bquarter\b/.test(q)) return { from: quarterStart(TODAY_ISO), to: TODAY_ISO, say: 'This week, this month and this quarter so far' };
+    if (/\bthis month\b/.test(q)) return { from: TODAY_ISO.slice(0, 8) + '01', to: TODAY_ISO, say: 'This month so far' };
+    if (/\bweek\b/.test(q)) return { from: weekStart(TODAY_ISO), to: TODAY_ISO, say: 'This week so far' };
+    const now = new Date();
+    return { from: d0, to: d0, say: d0 === TODAY_ISO
+      ? 'Today, 9:00 to ' + (dayPart(TODAY_ISO) >= 1 ? '17:00' : now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0'))
+      : DAY_FULL[new Date(d0 + 'T00:00:00').getDay()] + ' ' + dateSay(d0) + ', the last working day' };
+  }
+  /* The foot under an answer: the period and the clock it is read on, how
+     fresh the calls are, the calls with no outcome, and the records. */
+  function teamFoot(q, who) {
+    const w = teamWhen(q);
+    const now = new Date();
+    const hm = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+    let unrec = 0;
+    for (let iso = w.from; iso <= w.to && iso <= TODAY_ISO; iso = isoAdd(iso, 1)) who.ids.forEach((id) => { unrec += repDayAll(id, iso).unrec || 0; });
+    const go = who.one && who.team ? { on: 'person', team: who.team.id, ag: who.one } : who.team ? { on: 'teams', team: who.team.id } : { on: 'teams' };
+    const lab = who.one ? 'Open ' + poss(firstName(who.one)) + ' calls' : who.team ? 'Open the ' + who.team.name : 'Open Your teams';
+    return '<p class="b-ta-foot">' + esc(w.say) + ', Cairo time. Read at ' + esc(hm) + ' from calls logged up to ' + esc(hm) + '.' +
+        (unrec ? ' <b class="b-door-warn">' + esc(plural(unrec, 'call')) + '</b> in it ' + (unrec === 1 ? 'has' : 'have') +
+          ' no outcome recorded, so what came of the calls may be higher.' : '') + '</p>' +
+      '<div class="b-cuts"><button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(Object.assign(cleared(), go))) + '">' + esc(lab) + '</button></div>';
+  }
+  /* "Show calling by campaign this week": a row per campaign, most calls
+     first, each a door to the page read on that campaign. */
+  function campAnswer(q, who) {
+    const w = teamWhen(q);
+    const by = Object.create(null);
+    let all = 0;
+    for (let iso = w.from; iso <= w.to && iso <= TODAY_ISO; iso = isoAdd(iso, 1)) {
+      who.ids.forEach((id) => dayCalls(id, iso).forEach((t) => {
+        const k = t.camp || 'none';
+        const b = by[k] || (by[k] = { calls: 0, reached: 0, talks: 0, meets: 0, unrec: 0 });
+        b.calls++; all++;
+        if (t.kd === 'meet') b.meets++;
+        if (t.kd === 'meet' || t.kd === 'talk') b.talks++;
+        if (t.kd === 'meet' || t.kd === 'talk' || t.kd === 'short') b.reached++;
+        if (t.kd === 'unrec') b.unrec++;
+      }));
+    }
+    const ks = Object.keys(by).sort((a, b) => by[b].calls - by[a].calls);
+    const when = w.say.charAt(0).toLowerCase() + w.say.slice(1);
+    if (!ks.length) return esc(cap1(who.name)) + ' made no calls ' + esc(when) + '.';
+    const nm = (k) => (k === 'none' ? 'Not on a campaign' : campName(DB.byCamp[k]));
+    const base = who.one && who.team ? { on: 'person', team: who.team.id, ag: who.one } : who.team ? { on: 'teams', team: who.team.id } : { on: 'teams' };
+    const per = w.from === w.to ? {} : { from: w.from, to: w.to };
+    const top = by[ks[0]];
+    return esc(cap1(who.name)) + ' called on <b>' + esc(plural(ks.filter((k) => k !== 'none').length, 'campaign')) + '</b> ' + esc(when) +
+        '. Most calls went to <b>' + esc(nm(ks[0])) + '</b>: ' + esc(commas(top.calls)) + ' of ' + esc(commas(all)) + '.' +
+      '<div class="b-tm-rows">' + ks.map((k) => {
+        const b = by[k];
+        return '<div class="b-tm-row"><span class="b-tm-who"><button class="b-ta-camp" type="button" data-go="' +
+            esc(JSON.stringify(Object.assign(cleared(), base, per, { cf: k }))) + '">' + esc(nm(k)) + '</button></span>' +
+          '<span class="b-tm-say">' + esc(plural(b.calls, 'call')) + ', ' + esc(stepN(b.reached, DAY_STEPS[1])) + ', ' +
+            esc(stepN(b.talks, DAY_STEPS[2])) + ', ' + esc(stepN(b.meets, DAY_STEPS[3])) +
+            (b.unrec ? ', <b class="b-door-warn">' + esc(commas(b.unrec)) + ' with no outcome recorded</b>' : '') + '</span></div>';
+      }).join('') + '</div>';
+  }
+  function teamAnswerAll(q) {
     const teams = teamsOf();
     if (!teams.length) return null;
     const ppl = peopleOf(teams);
@@ -36474,8 +36573,33 @@
     return null;
   }
 
+  /* ══ WHO MAY READ WHOSE CALLS, IN THE CHAT TOO (AIMY-3062) ════════════
+     The pages already refuse a team that is not the desk's; a question
+     must not get round that. A question about how one of our callers or
+     teams is doing is answered only for a desk that oversees them: a
+     manager for their own teams, the CEO for all, a caller for themself.
+     Anyone else gets a plain no, saying whose it is. */
+  function teamRefuse(q) {
+    if (!/\b(doing|did|do|does|calls?|called|calling|activity|today|week|month|working|worked|score)\b/.test(q)) return null;
+    const callers = REPS.filter((r) => r.fn === 'bdr').map((r) => r.id);
+    const seen = isWhole() ? null : isMgr() ? peopleOf(teamsOf()) : me().fn === 'bdr' ? [me().id] : [];
+    if (!seen) return null;
+    const one = callers.filter((id) => seen.indexOf(id) < 0 && new RegExp('\\b' + firstName(id).toLowerCase() + '\\b').test(q))[0];
+    const tm = TEAMS.filter((t) => teamsOf().indexOf(t) < 0 && q.indexOf(t.name.toLowerCase().replace(/ team$/, '') + ' team') > -1)[0];
+    if (!one && !tm) return null;
+    const t = tm || TEAMS.filter((x) => x.members.indexOf(one) > -1)[0];
+    const boss = t && REP[t.mgr] ? REP[t.mgr].name : 'their manager';
+    const whose = one ? esc(REP[one].name) + (t ? ' is in ' + esc(boss) + '’s ' + esc(t.name) : '') : 'The ' + esc(t.name) + ' is ' + esc(boss) + '’s';
+    if (isMgr()) return whose + ', not one of your teams, so I can’t read ' + (one ? 'their' : 'its') + ' calls. Ask ' + esc(boss.split(' ')[0]) + ', or ask me about your own teams.';
+    if (me().fn === 'bdr') return 'I can only read your own calls. How ' + (one ? esc(firstName(one)) + ' is' : 'the ' + esc(t.name) + ' is') + ' doing is for ' + esc(boss) + ' to see.';
+    return whose + '. How our callers are doing is for their managers to read, so I can’t share ' + (one ? 'their' : 'its') + ' calls.';
+  }
   function answer(text) {
     const q = text.toLowerCase();
+    {
+      const no = teamRefuse(q);
+      if (no) return no;
+    }
     /* The CEO's four questions go first: "what moved since Monday" would
        otherwise be read as a question about account news, and "what can
        still be caught" as one about how many are left to call. */

@@ -9235,3 +9235,13 @@ a.b-an-go, a.b-an-go:hover, a.b-an-go:focus-visible { text-decoration: none; }
 .b-cfp:has(.b-cfp-menu:not([hidden]):not(.is-closing)) .b-date-chev { transform: rotate(180deg); }
 .b-cfp-menu { min-width: 18rem; }
 .b-cfp-menu .b-menu-item[aria-checked="true"] .b-menu-name { color: var(--accent-text); }
+/* ══ A TEAM ANSWER'S FOOT, AND ITS CAMPAIGN ROWS (AIMY-3062) ═══════════════
+   Under every answer about the teams: the period, Cairo time, how fresh the
+   calls are and any gap, on a hairline, then the way to the records. A
+   campaign's name in a "by campaign" answer is the door to the page read on
+   that campaign, in the accent like the chat's other links. */
+.b-ta-foot { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--card-border); font-size: var(--fs-xs); line-height: 1.45; color: var(--d100); }
+.b-ta-foot + .b-cuts { margin-top: 8px; }
+.b-ta-camp { padding: 0; font: inherit; font-weight: var(--fw-semibold); text-align: left; color: var(--accent-text); background: none; border: 0; cursor: pointer; }
+.b-ta-camp:hover { text-decoration: underline; text-underline-offset: 3px; }
+.b-ta-camp:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
