@@ -4054,7 +4054,7 @@
   /* `ag` and `ev` are the floor's two records — a person on it and one
      scored conversation. Scalars like every other record key here, so a
      drill is a link somebody can send. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team', 'ag', 'from', 'to'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period', 'by', 'eng', 'ed', 'lk', 'team', 'ag', 'from', 'to', 'cf'];
   const DEFAULTS = { q: 'all', on: 'calls', period: 'q', by: 'camp' };
   const S = Object.create(null);
 
@@ -4186,6 +4186,9 @@
         if (S.to > TODAY_ISO) S.to = TODAY_ISO;
       }
     }
+    /* `cf` is the campaign the teams pages read (AIMY-3062): a campaign's
+       id, or "none" for calls on no campaign. Only on those pages. */
+    if ((S.on !== 'person' && S.on !== 'teams') || !(S.cf === 'none' || DB.byCamp[S.cf])) S.cf = '';
     /* ══════════════ AND THE OTHER THREE ARE NOT THE BOOK'S TO TAKE ══════════════
        They were refused here for one commit, on the argument that Contacts,
        the Diary and Campaigns read a pipeline and a floor book has none.
@@ -4534,8 +4537,8 @@
       : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
-      : S.on === 'teams' && isMgr() ? teamsPage()
-      : S.on === 'person' && isMgr() && S.ag ? personPage()
+      : S.on === 'teams' && isMgr() ? withCamp(teamsPage)
+      : S.on === 'person' && isMgr() && S.ag ? withCamp(personPage)
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -7931,15 +7934,18 @@
     if (!o) return '';
     return o.tone === 'teal' ? 'is-ok' : o.tone === 'warn' ? 'is-meet' : o.tone === 'err' ? 'is-missed' : 'is-plain';
   };
-  function histCallRow(t, many, i) {
+  function histCallRow(t, many, i, onCamp) {
     const c = DB.byCon[t.con];
     if (!c) return '';
     const miss = wasMissed(t);
     const dir = miss ? 'Called in, missed' : t.dir === 'in' ? 'Called in' : 'Called out';
+    /* A person's profile names the campaign each call was for (AIMY-3062),
+       or says it was on none. */
+    const kc = onCamp ? (t.camp && DB.byCamp[t.camp] ? campName(DB.byCamp[t.camp]) : 'Not on a campaign') : '';
     return histRow({
       tone: callChip(t), ico: chIcon(t.dir === 'in' ? 'call-in' : 'phone'),
       who: many ? c.name : kindLabel(t),
-      meta: logMeta([many ? kindLabel(t) : dir, whoDid(t).name, t.secs ? fmtClock(t.secs) : '', clockIf(t.at)]),
+      meta: logMeta([many ? kindLabel(t) : dir, whoDid(t).name, kc, t.secs ? fmtClock(t.secs) : '', clockIf(t.at)]),
       note: t.note || '',
       after: recOf(t) ? vmStrip(recOf(t), t.id) : '',
       body: callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines) +
@@ -10646,6 +10652,11 @@
     rana:    { calls: 201, reach: 0.26, talk: 0.12, meet: 0.17, secs: 131, qa: 0.90, wk: 1.0 },
     tarek:   { calls: 178, reach: 0.21, talk: 0.09, meet: 0.10, secs: 96,  qa: 0.75, wk: 0.88 },
   };
+  /* FORM as written: the day model reads this, so a campaign's usual
+     swapped into FORM for one paint (`withCamp`) never feeds back into the
+     calls the campaign's own figures are counted from. */
+  const FORM_BASE = Object.create(null);
+  Object.keys(FORM).forEach((id) => { FORM_BASE[id] = Object.assign({}, FORM[id]); });
   /* How much each part counts in the score. The weights are a proposal, for
      Nour to set. (A GOAL of 200 calls a day and set rates used to sit here;
      nobody had confirmed them, so since 9 Nov the score reads each person
@@ -10670,8 +10681,84 @@
   }
   const jit = (k) => 0.9 + (Math.abs(hash(k)) % 21) / 100;
   /* One person's day: what they dialled and what came of it. */
+  /* ══ ONE CAMPAIGN AT A TIME (AIMY-3062, 12 Nov 2026) ═════════════════════
+     The teams pages can read one campaign (`cf`): every figure, score, read
+     and call on the page then counts only the calls on it, so the totals and
+     the calls listed never disagree. A day on one campaign is counted off
+     the same calls the profile lists (`dayCalls`); "usual" becomes the
+     person's usual share of their calls on that campaign over the ten
+     working days before today, applied to FORM for the length of one paint
+     (`withCamp`). Off these pages, and with no campaign picked, nothing
+     changes: `repDayAll` is the model and reads FORM_BASE, never the swap. */
+  let CF = '';
+  const campShare = Object.create(null);
+  function shareOn(id, cf) {
+    const key = id + ':' + cf;
+    if (campShare[key] != null) return campShare[key];
+    let all = 0, on = 0;
+    workDaysBefore(TODAY_ISO, 10).forEach((iso) => dayCalls(id, iso).forEach((t) => { all++; if ((t.camp || 'none') === cf) on++; }));
+    return (campShare[key] = all ? on / all : 0);
+  }
+  function withCamp(fn) {
+    if (!S.cf) return fn();
+    const keep = Object.create(null);
+    Object.keys(FORM).forEach((id) => { keep[id] = FORM[id]; FORM[id] = Object.assign({}, FORM[id], { calls: FORM_BASE[id].calls * shareOn(id, S.cf) }); });
+    CF = S.cf;
+    try { return fn(); } finally { CF = ''; Object.keys(keep).forEach((id) => { FORM[id] = keep[id]; }); }
+  }
+  /* The campaign the page reads, as a menu on a button beside the period
+     picker (Nour, 12 Nov: "not pills, a drop down menu with search just like
+     the period picker"; a team called on twelve campaigns in a day, three
+     rows of chips). The button wears the period picker's look; the menu is
+     the build's searchable campaign menu (campMenu's find box and rows):
+     All campaigns first, then every campaign called on in the period, most
+     calls first, each with its count. Counted off the calls themselves, so
+     a row's count is the figure the page shows once it is picked. Calls on
+     no campaign are a row of their own. */
+  const CF_ICO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+    'stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>';
+  function campPicker(ids, P, mid) {
+    const to = P.end < TODAY_ISO ? P.end : TODAY_ISO;
+    const by = Object.create(null);
+    let all = 0;
+    for (let iso = P.from; iso <= to; iso = isoAdd(iso, 1)) {
+      ids.forEach((id) => dayCalls(id, iso).forEach((t) => { const k = t.camp || 'none'; by[k] = (by[k] || 0) + 1; all++; }));
+    }
+    const ks = Object.keys(by).sort((a, b) => by[b] - by[a]);
+    if (S.cf && ks.indexOf(S.cf) < 0) ks.push(S.cf);
+    const name = (k) => (!k ? 'All campaigns' : k === 'none' ? 'Not on a campaign' : campName(DB.byCamp[k]));
+    const row = (k, n) => '<button class="b-menu-item" type="button" role="menuitemradio" aria-checked="' + (S.cf === k) + '"' +
+      (S.cf === k ? ' aria-current="true"' : '') + ' data-go="' + esc(JSON.stringify({ cf: k })) + '">' +
+      '<span class="b-menu-line"><span class="b-menu-name">' + esc(name(k)) + '</span>' +
+      '<span class="b-menu-sub">' + esc(plural(n, 'call')) + ' ' + esc(P.when) + '</span></span></button>';
+    return '<span class="b-menu-wrap b-date b-cfp">' +
+      '<button class="b-date-btn b-menu-open" type="button" data-pickopen="' + esc(mid) + '" aria-haspopup="menu" ' +
+        'aria-label="' + esc('Campaign: ' + name(S.cf)) + '">' + CF_ICO + '<span class="b-cfp-name">' + esc(name(S.cf)) + '</span>' + DP_DOWN + '</button>' +
+      '<div class="b-menu b-cfp-menu" id="' + esc(mid) + '" role="menu" aria-label="Campaign" hidden>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch placeholder="Find a campaign" aria-label="Find a campaign" spellcheck="false" />' +
+        row('', all) + ks.map((k) => row(k, by[k] || 0)).join('') +
+      '</div>' +
+    '</span>';
+  }
+  /* The campaign picked, in words, for a sentence: "on Nordics software". */
+  const cfSay = () => (!S.cf ? '' : S.cf === 'none' ? ' not on a campaign' : ' on ' + campName(DB.byCamp[S.cf]));
   function repDay(id, iso) {
-    const f = FORM[id];
+    if (!CF) return repDayAll(id, iso);
+    const all = repDayAll(id, iso);
+    if (!all.part) return all;
+    const day = dayCalls(id, iso);
+    const xs = day.filter((t) => (t.camp || 'none') === CF);
+    const n = (k) => xs.filter((t) => k.indexOf(t.kd) > -1).length;
+    /* The listed calls' lengths are drawn by kind, not off the model, so the
+       campaign's average call is the day's own, moved by how much longer or
+       shorter its calls ran than the rest of the day's. */
+    const avg = (ts) => (ts.length ? ts.reduce((a, t) => a + t.secs, 0) / ts.length : 0);
+    const secs = xs.length && avg(day) ? Math.round(all.secs * avg(xs) / avg(day)) : all.secs;
+    return { calls: xs.length, reached: n(['meet', 'talk', 'short']), talks: n(['meet', 'talk']), meets: n(['meet']), unrec: n(['unrec']),
+      secs, part: all.part };
+  }
+  function repDayAll(id, iso) {
+    const f = FORM_BASE[id];
     const part = f ? dayPart(iso) : 0;
     if (!part) return { calls: 0, reached: 0, talks: 0, meets: 0, unrec: 0, secs: 0, part: 0 };
     const wk = iso >= weekStart(TODAY_ISO) ? f.wk : 1;
@@ -10715,7 +10802,9 @@
       const d = repDay(id, iso);
       t.calls += d.calls; t.reached += d.reached; t.talks += d.talks; t.meets += d.meets; t.part += d.part;
     }
-    if (!t.part) return null;
+    /* No usual to read against (a campaign this person never calls on,
+       AIMY-3062): no score, rather than a score off a division by nothing. */
+    if (!t.part || !f.calls) return null;
     const cap = (x) => Math.max(0, Math.min(1, x));
     const parts = {
       calls: cap(t.calls / (f.calls * t.part)),
@@ -10869,6 +10958,10 @@
     { k: 'meets', verb: 'booked', noun: 'meetings', name: 'meetings booked' },
   ];
   const callLen = (s) => Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2, '0') + 's';
+  /* A difference in call length, said as a person would: "6s", "45s",
+     "1m 05s". Under a minute there is no minute to pad against, so no
+     leading zero ("06s shorter than usual" read as a typo, Nour, 12 Nov). */
+  const gapLen = (s) => (s < 60 ? s + 's' : callLen(s));
   /* Off a working day, or before nine, the day being read is the last one
      that had calls in it, and the block says so. */
   /* A count and its step's noun, singular for one ("1 meetings above usual"
@@ -11252,7 +11345,7 @@
         as.st, 'calls', skip);
       const ss0 = r.secs < usualSecs - 5 && r.secs < usualSecs * 0.85 ? 'short' : 'ok';
       const ws = one || noSecs ? null : wDo(pm.map((x) => ({ id: x.id, n: x.s, u: FORM[x.id].secs })),
-        (x, sh) => (sh ? callLen(x.u - x.n).replace(/^0m /, '') + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks', skip);
+        (x, sh) => (sh ? gapLen(x.u - x.n) + ' shorter than usual' : 'talks longest, ' + callLen(x.n)), ss0, 'talks', skip);
       const sd = r.secs - usualSecs;
       const ss = Math.abs(sd) < 5 ? { st: 'ok', chip: 'As usual' } : sd < 0 && r.secs < usualSecs * 0.85 ? { st: 'short', chip: SIGNED(sd) + 's' }
         : { st: sd > 0 ? 'ahead' : 'ok', chip: SIGNED(sd) + 's' };
@@ -11964,7 +12057,7 @@
         return { t, ratio: xs.reduce((a, x) => a + x.n, 0) / (xs.reduce((a, x) => a + x.plan, 0) || 1) };
       }).sort((a, b) => a.ratio - b.ratio)[0];
       out = '<button class="s-insight-lnk primary" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: tg.t.id, from: S.from, to: S.to }))) + '">Open the ' + esc(tg.t.name) + '</button>';
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: tg.t.id, from: S.from, to: S.to, cf: S.cf }))) + '">Open the ' + esc(tg.t.name) + '</button>';
     } else if (r.el && p.short) {
       const t = ctx.teams[0] || teamWith(r.by[0].id);
       /* On a profile short on calls, the fix IS the 15 minutes below, so it
@@ -12162,8 +12255,10 @@
     /* A day in progress reads "by now", against a usual day by this hour. */
     const live = P.day === TODAY_ISO && dayPart(TODAY_ISO) < 1;
     const now = new Date();
-    const sub = P.day ? (live ? 'Today, by ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') : P.name)
-      : P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N));
+    const sub = (P.day ? (live ? 'Today, by ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') : P.name)
+      : P.name + (r.daysLeft < 0.01 ? ', all ' + plural(r.N, 'working day') : ', day ' + commas(started) + ' of ' + commas(r.N))) +
+      /* With one campaign picked, the board says which (AIMY-3062). */
+      (S.cf ? ', calls' + cfSay() : '');
     const st = planStory(ctx, R, k);
     /* A day is too short to chart (Nour, 10 Nov: keep the chart, say it is
        the week): with one day picked the chart reads its week. */
@@ -12254,8 +12349,8 @@
     if (!A) return '';
     const d = A.secs - A.usual;
     const say = Math.abs(d) < 5 ? { say: 'As usual', tone: 'up' }
-      : d < 0 ? { say: callLen(-d).replace(/^0m /, '') + ' shorter than usual', tone: A.secs < A.usual * 0.85 ? 'err' : 'dn' }
-      : { say: callLen(d).replace(/^0m /, '') + ' longer than usual', tone: 'up' };
+      : d < 0 ? { say: gapLen(-d) + ' shorter than usual', tone: A.secs < A.usual * 0.85 ? 'err' : 'dn' }
+      : { say: gapLen(d) + ' longer than usual', tone: 'up' };
     const others = ctx.cmp ? teamsOf().filter((x) => x !== ctx.cmp).map((x) => ({ t: x, a: secsSpan(x.members, P) })).filter((x) => x.a) : [];
     const line = !others.length ? ''
       : others.length === 1 ? 'The ' + esc(others[0].t.name) + ' <b>' + esc(callLen(others[0].a.secs)) + '</b>'
@@ -12324,7 +12419,7 @@
       : worst ? (planWhy(R, worst.k) || cap1(worst.s.noun) + ' are a bit low: <b>' + esc(commas(worst.cum)) + '</b> so far, when ' +
           esc(commas(Math.round(worst.byNow))) + ' is normal.')
       : 'A normal ' + esc(P.unit.replace(/^the /, '')) + ' so far, on every step.';
-    const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to })));
+    const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to, cf: S.cf })));
     return '<article class="type-card s-card b-qcard b-ro-card">' +
       '<div class="b-ro-top"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 44) + '</span>' +
         '<div class="b-ro-who"><button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(REP[id].name) + '</button>' +
@@ -12432,13 +12527,14 @@
     const others = teamsOf().length > 1;
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to }))) + '"', 'Back to Your teams', true) +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to Your teams', true) +
         '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now, { team: t }) + move + '</div>' +
           '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
             onCallPop(t, '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
               '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>') + '</div></div>' +
-          datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
-        planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false, cmp: others ? t : null }) +
+          '<span class="b-pickers">' + campPicker(t.members, P, 'tmCamp') +
+            datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
+        planBoard({ ids: t.members, who: 'the ' + t.name, ask: 'the ' + t.name, teams: [t], one: false, pl: false, cmp: others && !S.cf ? t : null }) +
       '</section>' +
       /* No Today section (Nour, 10 Nov): the board reads today by default,
          its read carries the day's sentence and questions, and Worth your
@@ -12448,11 +12544,30 @@
     '</div>';
   }
 
+  /* Your teams with nothing to read: none of the teams called on the
+     campaign picked over the period. Says so, and the pickers stay, so
+     the way back is where it was. */
+  function teamsEmpty() {
+    const P = planSpan();
+    return '<div class="s-home b-tmp">' +
+      '<div class="b-topbar s-block-wide b-diary-back">' + backBtn('data-back', 'Back to Today') + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="Your teams">' +
+        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
+          '<span class="b-pickers">' + campPicker(peopleOf(teamsOf()), P, 'tmCamp') +
+            datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
+        '<p class="b-vfoot">None of your teams called on ' + esc(cfSay().replace(/^ (on|not on) /, '')) + ' ' + esc(P.when) + '. ' +
+          '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify({ cf: '' })) + '">Show all campaigns</button></p>' +
+      '</section>' +
+    '</div>';
+  }
   function teamsPage() {
     const tm = S.team && teamsOf().filter((x) => x.id === S.team)[0];
     if (tm) return teamPage(tm);
-    const reads = teamsOf().map(teamRead);
-    const ppl = peopleOf(teamsOf());
+    /* With one campaign picked, only the teams that call on it (AIMY-3062). */
+    const mine = teamsOf().filter((t) => !S.cf || t.members.some((id) => FORM[id].calls > 0));
+    if (!mine.length) return teamsEmpty();
+    const reads = mine.map(teamRead);
+    const ppl = peopleOf(mine);
     const live = onCallNow(ppl);
     const P = planSpan();
     const R0 = pagePeriod();
@@ -12473,7 +12588,8 @@
         backBtn('data-back', 'Back to Today') + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Your teams">' +
         '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
-          datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</div>' +
+          '<span class="b-pickers">' + campPicker(ppl, P, 'tmCamp') +
+            datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
         /* The day's figures first, as widgets; the plan and its charts live on
            each team's page and each person's profile (Nour). */
         teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
@@ -12486,7 +12602,7 @@
       '</section>' +
       /* Who needs the manager, across the teams, named once (10 Nov), under
          the teams (Nour: the people below the teams). */
-      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(teamsOf()) + '</section>' +
+      '<section class="s-block s-block-wide b-worth" aria-label="Worth your time">' + teamWorth(mine) + '</section>' +
     '</div>';
   }
 
@@ -12502,6 +12618,7 @@
      high from 75, medium from 50): a three-bar meter, what is scored, and
      the number. */
   function scoreTag(n, o) {
+    if (n == null || isNaN(n)) return '';
     const band = n >= 75 ? 'high' : n >= 50 ? 'medium' : 'low';
     const tag = '<span class="conf-badge conf-' + band + '" role="img" aria-label="Score ' + commas(n) +
       ' out of 100, ' + band + '"><span class="conf-meter" aria-hidden="true"><i></i><i></i><i></i></span>' +
@@ -12601,7 +12718,7 @@
   function teamCard(r, i, live, P, lead) {
     const R = planRead(r.t.members, P);
     const on = r.t.members.filter((id) => live.indexOf(id) > -1).length;
-    const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id, from: S.from, to: S.to })));
+    const go = esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: r.t.id, from: S.from, to: S.to, cf: S.cf })));
     const x = DAY_STEPS.map((s) => R[s.k]).sort((a, b) => a.ratio - b.ratio)[0];
     const top = x.by.slice().sort((a, b) => b.gap - a.gap)[0];
     const say = !x.el ? 'Nothing to show yet ' + esc(P.when) + '.'
@@ -12926,7 +13043,7 @@
         '</div></div>' +
       /* The way to everything else about them: the full profile page. */
       '<button class="b-ps-full" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to }))) + '">' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'person', team: t.id, ag: id, from: S.from, to: S.to, cf: S.cf }))) + '">' +
         '<span>Open the full profile<small>The next 1:1, the coaching, and every call with its recording</small></span>' +
         SIDE_CHEV + '</button>';
   }
@@ -12966,9 +13083,17 @@
   function dayCalls(id, iso) {
     const key = id + ':' + iso;
     if (DAYCALLS[key]) return DAYCALLS[key];
-    const d = repDay(id, iso);
+    const d = repDayAll(id, iso);
     const pool = callPool(id);
     const out = [];
+    /* Which campaign a call was for (AIMY-3062): the contact's campaign
+       that this caller is on the crew of, else the contact's first. Read
+       off the record, not off who is looking (`campFor` prefers the
+       reader's own campaigns), so every desk counts a call to the same one. */
+    const campOn = (con) => {
+      const ks = (DB.byCon[con] && DB.byCon[con].camps) || [];
+      return ks.filter((x) => DB.byCamp[x] && (DB.byCamp[x].crew || []).indexOf(id) > -1)[0] || ks[0] || null;
+    };
     if (!d.calls || !pool.length) return (DAYCALLS[key] = out);
     const meets = Math.min(d.meets, d.calls);
     const talks = Math.min(Math.max(0, d.talks - meets), d.calls - meets);
@@ -12994,14 +13119,14 @@
       /* No outcome was recorded: the call stays in the list as a gap, with
          no outcome, no step moved and no transcript to offer. */
       if (kd === 'unrec') {
-        const u = { id: tid, con: con, camp: campFor(DB.byCon[con]), by: id, at: at, dir: 'out', outcome: null, unrec: true,
+        const u = { id: tid, con: con, camp: campOn(con), kd: kd, by: id, at: at, dir: 'out', outcome: null, unrec: true,
           called: null, secs: 20 + r, proposals: [], objections: [], openings: [], note: '', lines: [], next: null, moved: null };
         indexTouch(u);
         out.push(u);
         return;
       }
       const t = {
-        id: tid, con: con, camp: campFor(DB.byCon[con]), by: id, at: at, dir: 'out',
+        id: tid, con: con, camp: campOn(con), kd: kd, by: id, at: at, dir: 'out',
         outcome: kd === 'meet' ? 'reached' : kd === 'talk' ? (r % 3 ? 'reached' : 'callback') : kd === 'short' ? 'not-interested'
           : r % 4 === 0 ? 'gatekeeper' : 'no-answer',
         called: kd === 'meet' ? 'meeting-set' : kd === 'talk' ? 'answered' : kd === 'short' ? 'answered' : 'no-answer',
@@ -13021,7 +13146,8 @@
       const day = isoDay(new Date(t.at));
       if (t.by === id && OUTCOME[t.outcome] && day >= from && day <= to) out.push(t);
     });
-    return out.sort((a, b) => (a.at > b.at ? -1 : 1));
+    /* One campaign picked (`withCamp` sets CF): only its calls. */
+    return out.filter((t) => !CF || (t.camp || 'none') === CF).sort((a, b) => (a.at > b.at ? -1 : 1));
   }
   /* What AiMY noticed, over everything recorded for them against their team:
      the objection that comes up most, how long the calls that get through
@@ -13411,7 +13537,7 @@
     const agenda = personAgenda(t, id, note, agendaPats, moved);
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-pf" aria-label="' + esc(REP[id].name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to }))) + '"', 'Back to the ' + t.name, true) +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to the ' + t.name, true) +
         '<div class="b-pf-mh"><span class="b-ps-face' + (on ? ' is-live' : '') + '">' + faceOf(id, 72) + '</span>' +
           /* The score beside the name (Nour); who they are under it, as part
              of the name; how the week moved and the call on their own row,
@@ -13424,7 +13550,8 @@
               (on ? '<span class="b-pr-oncall"><i aria-hidden="true"></i>On a call</span>' : '') + '</div>' : '') + '</div>' +
           /* The period, at the page's top right: it governs the board and the
              calls below, not one block. */
-          '<div class="b-pf-when">' + datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
+          '<div class="b-pf-when b-pickers">' + campPicker([id], CP, 'pfCamp') +
+            datePicker({ id: 'pfDate', label: 'Period', from: R ? R.from : '', to: R ? R.to : '' }) + '</div>' +
         '</div>' +
         /* The coach's note (Going well, Worth a word) is gone (Nour, 11 Nov:
            "if this block is already covered by the against usual block,
@@ -13479,7 +13606,7 @@
               ', and <b>' + esc(commas(got)) + '</b> got through.' +
               /* The gap, said where the calls are (AIMY-3062). */
               (unrecN ? ' <b class="b-door-warn">' + esc(commas(unrecN)) + '</b> ' + (unrecN === 1 ? 'has' : 'have') + ' no outcome recorded.' : '') }, true) +
-            '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i)) + '</div>' + pager(pg, 'call') +
+            '<div class="b-log">' + logDays(pg.rows, (x) => x.at, (x, i) => histCallRow(x, true, i, true)) + '</div>' + pager(pg, 'call') +
             '</div></div></div>') +
       '</section>' +
     '</div>';
