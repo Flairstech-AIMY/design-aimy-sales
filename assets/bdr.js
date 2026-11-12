@@ -1084,6 +1084,20 @@
        names `ceo`: the seed cursor does not move and no count in the corpus
        changes. */
     { id: 'rami', name: 'Rami Fahim', initials: 'RF', fn: 'ceo' },
+    /* ══ THE OTHER TWO MANAGERS' CALLERS (AIMY-3062, 12 Nov 2026) ══════════
+       Nadia's Growth Team and Hazem's Quality Team, so the CEO reads three
+       managers' teams and a manager can be told a caller is not hers.
+       `extra` keeps them out of BDRS and out of the seed's callers, so the
+       seed cursor does not move and no count in the corpus changes; their
+       days come from FORM like everyone's, on their manager's contacts. */
+    { id: 'hana',   name: 'Hana Mostafa',  initials: 'HM', fn: 'bdr', extra: true },
+    { id: 'ziad',   name: 'Ziad Farouk',   initials: 'ZF', fn: 'bdr', extra: true },
+    { id: 'laila',  name: 'Laila Adel',    initials: 'LA', fn: 'bdr', extra: true },
+    { id: 'amr',    name: 'Amr Lotfy',     initials: 'AL', fn: 'bdr', extra: true },
+    { id: 'yara',   name: 'Yara Samir',    initials: 'YS', fn: 'bdr', extra: true },
+    { id: 'adham',  name: 'Adham Nabil',   initials: 'AN', fn: 'bdr', extra: true },
+    { id: 'dina',   name: 'Dina Fawzy',    initials: 'DF', fn: 'bdr', extra: true },
+    { id: 'sameh',  name: 'Sameh Gaber',   initials: 'SG', fn: 'bdr', extra: true },
   ];
   /* ══ THE CEO READS TEAMS, NOT MANAGERS ══════════════════════════════
      Nour, 29 Sep 2026: on the CEO's desk the managers section is teams,
@@ -1095,7 +1109,7 @@
   const teamOf = (m) => (m && m.team) || ((m ? m.name.split(' ')[0] : 'The') + '\u2019s team');
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
-  const BDRS = REPS.filter((r) => r.fn === 'bdr');
+  const BDRS = REPS.filter((r) => r.fn === 'bdr' && !r.extra);
   const MANAGERS = REPS.filter((r) => r.fn === 'sales-manager');
   /* ══ THREE MANAGERS, AND THE BOOK IS NOT SPLIT IN THREE ═════════════════
      One manager was the answer to five, and the reason still holds: "five
@@ -2555,7 +2569,7 @@
       const notHers = camp.filter((k) => k.crew.indexOf(DEFAULT_ME) < 0);
       const shut = notHers.filter((k) => k.state === 'done');
       const homes = shut.length ? shut.concat(notHers) : (notHers.length ? notHers : camp);
-      const callers = REPS.filter((x) => x.fn === 'bdr');
+      const callers = REPS.filter((x) => x.fn === 'bdr' && !x.extra);
 
       /* ══ ONE PRODUCT LINE HAD TO HAVE A SECOND CAMPAIGN ════════════════
          Ten campaigns over eight things to sell leaves three of the eight
@@ -3281,7 +3295,7 @@
     {
       const CALL = { reached: 1, callback: 1, 'no-answer': 1, gatekeeper: 1, 'not-interested': 1, 'wrong-number': 1, 'do-not-call': 1 };
       const isCall = (t) => CALL[t.outcome] && t.dir !== 'in';
-      const isBdr = (id) => !!REP[id] && REP[id].fn === 'bdr';
+      const isBdr = (id) => !!REP[id] && REP[id].fn === 'bdr' && !REP[id].extra;
       const cut = dayAdd(-14);
       const TWO = { c0: 'tarek', c1: 'salma', c3: 'omar', c4: 'omar' };
       camp.filter((k) => TWO[k.id]).forEach((k) => {
@@ -4165,7 +4179,7 @@
     if (S.on === 'floor') S.on = '';
     /* The teams pages are a manager's: only a desk with teams can stand
        on them, and a link opened anywhere else lands on Today. */
-    if (S.on === 'teams' && !isMgr()) S.on = '';
+    if (S.on === 'teams' && !seesTeams()) S.on = '';
     /* `team` is one of this manager's teams, read on the teams surface, or
        nothing: a team that is not theirs is refused like any other key. */
     if (S.team && !((S.on === 'teams' || S.on === 'person') && teamsOf().some((t) => t.id === S.team))) S.team = '';
@@ -4174,7 +4188,7 @@
     /* A link to a person in the old side rail opens their profile. */
     if (S.on === 'teams' && S.team && S.ag) S.on = 'person';
     /* `on=person` is one person's full profile: it needs their team and them. */
-    if (S.on === 'person' && !(isMgr() && S.team && S.ag)) S.on = S.team ? 'teams' : '';
+    if (S.on === 'person' && !(seesTeams() && S.team && S.ag)) S.on = S.team ? 'teams' : '';
     /* `from` and `to` are the period on the teams page and a person's
        profile, days in ISO, never in the future, `to` never before `from`.
        Anywhere else they mean nothing. */
@@ -4537,8 +4551,8 @@
       : S.on === 'missed' ? missedPage()
       : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
-      : S.on === 'teams' && isMgr() ? withCamp(teamGate(teamsPage))
-      : S.on === 'person' && isMgr() && S.ag ? withCamp(teamGate(personPage))
+      : S.on === 'teams' && seesTeams() ? withCamp(teamGate(teamsPage))
+      : S.on === 'person' && seesTeams() && S.ag ? withCamp(teamGate(personPage))
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -6906,7 +6920,7 @@
     if (st.camp && DB.byCamp[st.camp]) return cap(DB.byCamp[st.camp].name);
     if (st.list && DB.byList[st.list]) return cap(DB.byList[st.list].name);
     if (st.on === 'deals') return st.q === 'won' ? 'Accounts' : 'Contacts';
-    return ({ cal: 'the diary', camps: 'Campaigns', lists: 'Lists', money: 'Financials', teams: 'your teams',
+    return ({ cal: 'the diary', camps: 'Campaigns', lists: 'Lists', money: 'Financials', teams: YT(),
       notes: 'the notes', missed: 'the call log', floor: 'the floor' })[st.on] ||
       (onBook() ? 'Today' : 'Contacts');
   }
@@ -10634,8 +10648,16 @@
   const TEAMS = [
     { id: 'ent', name: 'Enterprise Team', mgr: 'lina', members: ['engy', 'omar', 'mariam', 'youssef'] },
     { id: 'gulf', name: 'Gulf Team', mgr: 'lina', members: ['salma', 'karim', 'rana', 'tarek'] },
+    { id: 'growth', name: 'Growth Team', mgr: 'nadia', members: ['hana', 'ziad', 'laila', 'amr'] },
+    { id: 'quality', name: 'Quality Team', mgr: 'hazem', members: ['yara', 'adham', 'dina', 'sameh'] },
   ];
-  const teamsOf = () => (isMgr() ? TEAMS.filter((t) => t.mgr === me().id) : []);
+  /* A manager reads her own teams; the CEO reads every team and works none
+     of them (AIMY-3062: "the teams I am authorised to oversee"). */
+  const teamsOf = () => (isMgr() ? TEAMS.filter((t) => t.mgr === me().id) : isWhole() ? TEAMS : []);
+  const seesTeams = () => isMgr() || isWhole();
+  /* "Your teams" on a manager's desk; "Teams" on the CEO's, who manages none. */
+  const YTc = () => (isWhole() ? 'Teams' : 'Your teams');
+  const YT = () => (isWhole() ? 'the teams' : 'your teams');
   /* How each person usually works: dials a day, then what share reach the
      decision maker, become a conversation (over 60 seconds), and book a
      meeting out of the conversations. `secs` is their average call, `qa`
@@ -10651,6 +10673,14 @@
     karim:   { calls: 190, reach: 0.21, talk: 0.10, meet: 0.10, secs: 95,  qa: 0.74, wk: 0.62 },
     rana:    { calls: 201, reach: 0.26, talk: 0.12, meet: 0.17, secs: 131, qa: 0.90, wk: 1.0 },
     tarek:   { calls: 178, reach: 0.21, talk: 0.09, meet: 0.10, secs: 96,  qa: 0.75, wk: 0.88 },
+    hana:    { calls: 207, reach: 0.25, talk: 0.11, meet: 0.13, secs: 118, qa: 0.85, wk: 1.03 },
+    ziad:    { calls: 194, reach: 0.23, talk: 0.10, meet: 0.12, secs: 104, qa: 0.81, wk: 0.97 },
+    laila:   { calls: 211, reach: 0.27, talk: 0.12, meet: 0.15, secs: 126, qa: 0.89, wk: 1.06 },
+    amr:     { calls: 185, reach: 0.22, talk: 0.10, meet: 0.11, secs: 101, qa: 0.79, wk: 0.94 },
+    yara:    { calls: 199, reach: 0.24, talk: 0.11, meet: 0.12, secs: 113, qa: 0.86, wk: 1.0 },
+    adham:   { calls: 176, reach: 0.20, talk: 0.09, meet: 0.10, secs: 92,  qa: 0.72, wk: 0.81 },
+    dina:    { calls: 203, reach: 0.26, talk: 0.11, meet: 0.14, secs: 121, qa: 0.88, wk: 1.02 },
+    sameh:   { calls: 190, reach: 0.23, talk: 0.10, meet: 0.12, secs: 108, qa: 0.80, wk: 0.99 },
   };
   /* FORM as written: the day model reads this, so a campaign's usual
      swapped into FORM for one paint (`withCamp`) never feeds back into the
@@ -10724,9 +10754,9 @@
     const t = S.team && teamsOf().filter((x) => x.id === S.team)[0];
     const one = S.on === 'person' && t && S.ag;
     const ids = one ? [S.ag] : t ? t.members : peopleOf(teamsOf());
-    const title = one ? REP[S.ag].name : t ? t.name : 'Your teams';
+    const title = one ? REP[S.ag].name : t ? t.name : YTc();
     const back = one ? backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', team: t.id, from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to the ' + t.name, true)
-      : t ? backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to Your teams', true)
+      : t ? backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to ' + YTc(), true)
       : backBtn('data-back', 'Back to Today');
     const day = dayPart(TODAY_ISO) > 0 ? TODAY_ISO : lastWorkDay(TODAY_ISO);
     const retry = '<button class="b-news-act is-solid" type="button" data-teamretry>' + chIcon('refresh-cw') + '<span>Try again</span></button>';
@@ -10993,7 +11023,7 @@
     const live = dayPart(TODAY_ISO) > 0 && dayPart(TODAY_ISO) < 1;
     return '<button class="b-door' + doorHere('teams') + '" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'teams' }))) + '">' +
-        '<span class="b-door-head"><span class="b-door-cap">Your teams</span>' +
+        '<span class="b-door-head"><span class="b-door-cap">' + YTc() + '</span>' +
           (live ? liveSay(onCallNow(ppl).length) : '') + '</span>' +
         '<span class="b-door-figrow"><span class="b-door-fig">' + commas(all) +
           '<span class="b-door-of">of 100</span></span>' +
@@ -11241,7 +11271,7 @@
     const act = !t || !lev ? '' : short ? fixBtn(t.id, x.id, lev, 'row')
       : behind ? fixBtn(worstT.id, 'all', lev, 'row') : xs.length > 1 && copyTo ? fixBtn(copyTo.id, 'all', lev, 'row', x.id, false, multi) : '';
     if (behind && !short) {
-      return { who: multi ? 'A little short across your teams, most in the <b>' + esc(worstT.name) + '</b>' : 'A little short across the team',
+      return { who: multi ? 'A little short across ' + YT() + ', most in the <b>' + esc(worstT.name) + '</b>' : 'A little short across the team',
         act, tone: 'is-behind' };
     }
     const named = '<b>' + esc(firstName(x.id)) + '</b>' + (multi && t ? ' in the ' + esc(t.name) + (short ? ',' : '') : '');
@@ -11591,7 +11621,7 @@
     const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
     const team = one ? teams.filter((t) => t.members.indexOf(one) > -1)[0] : tm;
     return { one, team, ids: one ? [one] : tm ? tm.members : ppl,
-      name: one ? firstName(one) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team' };
+      name: one ? firstName(one) : tm ? 'the ' + tm.name : teams.length > 1 ? YT() : 'your team' };
   }
   /* The period a question reads, as the answers read it: today (or the last
      working day before 9:00 or on a day off), this week, this month, the
@@ -11628,7 +11658,7 @@
     let unrec = 0;
     for (let iso = w.from; iso <= w.to && iso <= TODAY_ISO; iso = isoAdd(iso, 1)) who.ids.forEach((id) => { unrec += repDayAll(id, iso).unrec || 0; });
     const go = who.one && who.team ? { on: 'person', team: who.team.id, ag: who.one } : who.team ? { on: 'teams', team: who.team.id } : { on: 'teams' };
-    const lab = who.one ? 'Open ' + poss(firstName(who.one)) + ' calls' : who.team ? 'Open the ' + who.team.name : 'Open Your teams';
+    const lab = who.one ? 'Open ' + poss(firstName(who.one)) + ' calls' : who.team ? 'Open the ' + who.team.name : 'Open ' + YTc();
     return '<p class="b-ta-foot">' + esc(w.say) + ', Cairo time. Read at ' + esc(hm) + ' from calls logged up to ' + esc(hm) + '.' +
         (unrec ? ' <b class="b-door-warn">' + esc(plural(unrec, 'call')) + '</b> in it ' + (unrec === 1 ? 'has' : 'have') +
           ' no outcome recorded, so what came of the calls may be higher.' : '') + '</p>' +
@@ -11693,7 +11723,7 @@
       const tm = teams.filter((t) => q.indexOf(t.name.toLowerCase().replace(/ team$/, '')) > -1)[0];
       return {
         who1, tm, ids: who1 ? [who1] : tm ? tm.members : ppl,
-        name: who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'your teams' : 'your team',
+        name: who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? YT() : 'your team',
         ask: who1 ? firstName(who1) : tm ? 'the ' + tm.name : teams.length > 1 ? 'my teams' : 'my team',
       };
     };
@@ -11883,7 +11913,7 @@
     if (mk === 'live') {
       if (!dayPart(TODAY_ISO) || dayPart(TODAY_ISO) >= 1) return 'Nobody is calling now. The day runs 9:00 to 17:00.';
       const on = onCallNow(scope);
-      if (!on.length) return 'Nobody on your teams is on a call right now.' + next(['Who made the most calls today?']);
+      if (!on.length) return 'Nobody on ' + YT() + ' is on a call right now.' + next(['Who made the most calls today?']);
       return '<b>' + esc(commas(on.length) + ' of ' + commas(scope.length)) + '</b> ' + (on.length === 1 ? 'is' : 'are') +
           ' on a call right now.' +
         '<div class="b-tm-rows">' + on.map((id) => nameRow(id, esc('On a call, ' +
@@ -11915,7 +11945,7 @@
       const r = dayRead(scope);
       const rows = r.by.map((x) => Object.assign(x, { gap: x.u.calls - x.d.calls }))
         .filter((x) => x.gap >= 2 && x.d.calls < x.u.calls * 0.9).sort((a, b) => b.gap - a.gap);
-      if (!rows.length) return dayWhen(r) + ' nobody on your teams is short on calls against a usual day.';
+      if (!rows.length) return dayWhen(r) + ' nobody on ' + YT() + ' is short on calls against a usual day.';
       return dayWhen(r) + ' <b>' + esc(plural(rows.length, 'person')) + '</b> ' + (rows.length === 1 ? 'is' : 'are') +
         ' short on calls against a usual day.' +
         '<div class="b-tm-rows">' + rows.map((x) => nameRow(x.id, '<b class="b-door-warn">' + esc(commas(x.d.calls) +
@@ -12177,6 +12207,7 @@
      the team or a person's id; `src` (optional) is whose practice is copied;
      `give` words it from the side that has it. */
   function fixBtn(tid, who, lev, cls, src, give, named, lab) {
+    if (!works()) return '';
     /* One person short on calls has no setting to change: the wait between
        calls is set per campaign, for everyone on it. So their fix is a
        conversation (Nour, 10 Nov: "Book 15 minutes"), the same 15 minutes
@@ -12268,6 +12299,7 @@
         : '<button class="s-insight-lnk primary" type="button" data-tact="' + esc(hb.key) + '">' + esc(TEAM_ACT.habit.label()) + '</button>') +
         out.replace(' primary"', '"');
     }
+    if (!works() && / data-t(act|fix)=/.test(out)) out = '';
     return out + '<button class="b-pl-ask" type="button" data-ask="' + esc(q) + '">' + aiMark() + '<span>Ask AiMY why</span></button>';
   }
   /* On a profile's Meetings step, when they booked the most meetings in the
@@ -12710,9 +12742,10 @@
     const others = teamsOf().length > 1;
     return '<div class="s-home b-tmp">' +
       '<section class="s-block s-block-wide b-tpg" aria-label="' + esc(t.name) + '">' +
-        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to Your teams', true) +
+        backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'teams', from: S.from, to: S.to, cf: S.cf }))) + '"', 'Back to ' + YTc(), true) +
         '<div class="b-tpg-head"><div class="b-tpg-who"><div class="b-tp-title"><h2 class="b-tp-name">' + esc(t.name) + '</h2>' + scoreTag(r.now, { team: t }) + move + '</div>' +
-          '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) + '</span>' +
+          '<div class="b-tp-meta">' + faceRow(t.members) + '<span>' + esc(plural(t.members.length, 'person')) +
+            (isWhole() ? ', managed by ' + esc(REP[t.mgr].name) : '') + '</span>' +
             onCallPop(t, '<span class="b-live' + (on ? '' : ' is-none') + '"><span class="b-live-dot" aria-hidden="true"></span>' +
               '<span data-live="' + esc(t.id) + '">' + commas(on) + '</span> on a call now</span>') + '</div></div>' +
           '<span class="b-pickers">' + campPicker(t.members, P, 'tmCamp') +
@@ -12734,11 +12767,11 @@
     const P = planSpan();
     return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' + backBtn('data-back', 'Back to Today') + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="Your teams">' +
-        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
+      '<section class="s-block s-block-wide" aria-label="' + YTc() + '">' +
+        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">' + YTc() + '</h2>' +
           '<span class="b-pickers">' + campPicker(peopleOf(teamsOf()), P, 'tmCamp') +
             datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
-        '<p class="b-vfoot">None of your teams called on ' + esc(cfSay().replace(/^ (on|not on) /, '')) + ' ' + esc(P.when) + '. ' +
+        '<p class="b-vfoot">None of ' + YT() + ' called on ' + esc(cfSay().replace(/^ (on|not on) /, '')) + ' ' + esc(P.when) + '. ' +
           '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify({ cf: '' })) + '">Show all campaigns</button></p>' +
       '</section>' +
     '</div>';
@@ -12765,17 +12798,17 @@
     const said = named
       ? 'The <b>' + esc(named.t.name) + '</b>\u2019s score ' + (named.move < 0 ? 'dropped ' + commas(-named.move) + ' points' :
           named.move > 0 ? 'rose ' + commas(named.move) + ' points' : 'held') + ' this week, to ' + commas(named.now) + '.'
-      : (many ? 'All your teams are' : 'Your team is') + ' doing fine this week.';
+      : (many ? (isWhole() ? 'All the teams are' : 'All your teams are') : 'Your team is') + ' doing fine this week.';
     return '<div class="s-home b-tmp">' +
       '<div class="b-topbar s-block-wide b-diary-back">' +
         backBtn('data-back', 'Back to Today') + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="Your teams">' +
-        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">Your teams</h2>' +
+      '<section class="s-block s-block-wide" aria-label="' + YTc() + '">' +
+        '<div class="s-camp-list-head b-tm-head"><h2 class="s-block-h">' + YTc() + '</h2>' +
           '<span class="b-pickers">' + campPicker(ppl, P, 'tmCamp') +
             datePicker({ id: 'tmDate', label: 'Period', from: S.from, to: S.to || S.from }) + '</span></div>' +
         /* The day's figures first, as widgets; the plan and its charts live on
            each team's page and each person's profile (Nour). */
-        teamDayBlock(ppl, many ? 'your ' + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
+        teamDayBlock(ppl, many ? (isWhole() ? 'the ' : 'your ') + (reads.length === 2 ? 'two' : commas(reads.length)) + ' teams' : 'your team',
           many ? 'have' : 'has', false, R0, 'month') +
       '</section>' +
       /* No second heading: the page is already "Your teams" (Nour). */
@@ -12916,6 +12949,7 @@
           commas(on) + '</span> on a call</span></span>') +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-go="' + go + '">' + esc(r.t.name) + '</button>' +
+      (isWhole() ? '<p class="b-tc-mgr">Managed by ' + esc(REP[r.t.mgr].name) + '</p>' : '') +
       planRows(R) +
       aimyBlock({ text: say, from: 'compared with a normal ' + P.unit.replace(/^the /, '') }) +
       '<div class="tc-gov b-qcard-foot">' +
@@ -12954,6 +12988,10 @@
       say: (n, team, id) => 'Every call brief in the ' + team + ' now says: “' + habitOf(id).brief + ', the way ' + n + ' does.”' },
     thanks: { label: () => 'Say well done', done: 'Well done sent',
       say: (n) => '“Well done today” sent to ' + n },
+    /* The CEO's verb on a person: the question goes to their manager, and
+       the answer comes back in his bell. */
+    askmgr: { label: (n) => 'Ask their manager about ' + n, done: 'Asked their manager',
+      say: (n, team) => { const t = TEAMS.filter((x) => x.name === team)[0]; return (t ? REP[t.mgr].name : 'Their manager') + ' is asked about ' + n + '; the answer comes back in your bell'; } },
   };
   function teamAct(key) {
     const [tid, id, k] = key.split(':');
@@ -13081,17 +13119,19 @@
     if (best) {
       picks.push({ id: best.id, t: teamWith(best.id), w: weekScores(best.id), acts: ['habit', 'thanks'],
         why: esc(firstName(best.id)) + (r.day === TODAY_ISO ? ' has booked ' : ' booked ') + '<b>' + esc(plural(best.d.meets, 'meeting')) + '</b> ' + day +
-          ', the most ' + (many ? 'across your teams' : 'in the team') + ', from ' + esc(plural(best.d.talks, 'conversation')) +
+          ', the most ' + (many ? 'across ' + YT() : 'in the team') + ', from ' + esc(plural(best.d.talks, 'conversation')) +
           '. ' + esc(firstName(best.id)) + ' <b>' + esc(habitOf(best.id).does) + '</b>.' });
     }
     if (!picks.length) return aimyBlock({ text: 'Nobody needs you ' + day + ': everyone is having a normal day.' });
-    return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> ' + (many ? 'across your teams' : 'in this team') + ' ' +
+    return aimyBlock({ text: '<b>' + esc(plural(picks.length, 'person')) + '</b> ' + (many ? 'across ' + YT() : 'in this team') + ' ' +
         (picks.length === 1 ? 'is' : 'are') + ' worth your time ' + day + '.' }, true) +
       '<div class="b-wt-rows">' + picks.map((k) => {
         const id = k.id, tid = k.t.id;
-        const done = k.acts.filter((a) => tactOn(tid + ':' + id + ':' + a))[0];
-        const btns = k.acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
-          esc(tid + ':' + id + ':' + a) + '">' + esc(TEAM_ACT[a].label(firstName(id))) + '</button>').join('');
+        const acts = works() ? k.acts : ['askmgr'];
+        const done = acts.filter((a) => tactOn(tid + ':' + id + ':' + a))[0];
+        const btns = acts.map((a, i) => '<button class="s-insight-lnk' + (i ? '' : ' primary') + '" type="button" data-tact="' +
+          esc(tid + ':' + id + ':' + a) + '">' + esc(a === 'askmgr' ? 'Ask ' + firstName(k.t.mgr) + ' about ' + firstName(id)
+            : TEAM_ACT[a].label(firstName(id))) + '</button>').join('');
         return '<div class="b-wt-row' + (done ? ' is-done' : '') + '">' + faceOf(id, 40) +
           '<div class="b-wt-main"><span class="b-wt-name">' + esc(REP[id].name) + scoreTag(k.w.now, { id }) +
             (many ? '<span class="b-wt-team">' + esc(k.t.name) + '</span>' : '') + '</span>' +
@@ -13260,6 +13300,14 @@
     if (!POOL[id]) {
       const seen = Object.create(null);
       POOL[id] = callsBy([id]).map((t) => t.con).filter((c) => DB.byCon[c] && !seen[c] && (seen[c] = 1));
+      /* Nobody seeded under this caller (the Growth and Quality Teams): the
+         contacts on their manager's campaigns, dealt by their id. */
+      if (!POOL[id].length) {
+        const t = TEAMS.filter((x) => x.members.indexOf(id) > -1)[0];
+        const ks = DB.camp.filter((k) => t && k.owner === t.mgr);
+        const pool = (ks.length ? ks : DB.camp).reduce((a, k) => a.concat(DB.membersOf[k.id] || []), []).filter((c) => DB.byCon[c] && !seen[c] && (seen[c] = 1));
+        POOL[id] = pool.filter((c, i) => hx(id + c, 'pool', 3) === 0).slice(0, 400);
+      }
     }
     return POOL[id];
   }
@@ -13419,6 +13467,8 @@
     return { kind: 'suggest', head: 'A 1:1 with ' + first + ' would help', why: said.charAt(0).toUpperCase() + said.slice(1) + '.' };
   }
   function personAgenda(t, id, note, pats, moved) {
+    /* A 1:1 is the manager's to hold; the CEO reads the record, not the agenda. */
+    if (!works()) return '';
     const first = firstName(id);
     const one = oneOnOne(t, id, note, moved, pats);
     if (!one) return '';
@@ -36703,7 +36753,7 @@
     }
     /* The manager's questions about their teams and the people on them:
        the drill-down under the day's numbers (TEAMS, AND THE PEOPLE IN THEM). */
-    if (isMgr()) {
+    if (seesTeams()) {
       const said = teamAnswer(q);
       if (said) return said;
     }
