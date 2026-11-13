@@ -1717,11 +1717,39 @@ body {
      not already declared, bridged here rather than renamed in the rules. */
   --ink-action: var(--accent-text);
   width: 240px; flex-shrink: 0;
-  display: flex; flex-direction: column; gap: 20px;
-  padding: 20px 12px;
-  overflow-y: auto;
+  display: flex; flex-direction: column;
+  /* THREE PARTS, AND ONLY THE MIDDLE ONE MOVES. The whole column used to
+     scroll, which is fine while it is only a list and wrong the moment
+     anything has to stay reachable: a foot inside a scroller is a row you
+     find by scrolling past every conversation you have ever had. Knowledge's
+     rail is built this way and this is that build. */
+  overflow: hidden;
+  padding: 20px 12px 0;
   border-right: 1px solid var(--glass-border);
 }
+.ov-chats-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 20px;
+  /* The gap the column itself used to carry, moved in with the rows it was
+     spacing. The head and the foot set their own distance. */
+  margin-bottom: 12px;
+}
+/* == THE FOOT, PINNED == Knowledge's `.gate-rail-foot` and `.gate-console`
+   under this build's tokens: a hairline, a quiet row, the same 2x2 mark. */
+.ov-chats-foot {
+  flex-shrink: 0; margin: 0 -12px; padding: 8px;
+  border-top: 1px solid var(--glass-border);
+}
+.ov-chats-console {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  color: var(--d300); text-decoration: none;
+  font-size: var(--ty-meta); font-weight: var(--fw-medium);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.ov-chats-console:hover { background: var(--card-bg-raised); color: var(--d50); }
+.ov-chats-console:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ov-chats-console svg { flex-shrink: 0; opacity: 0.7; }
 .overlay-main {
   flex: 1; min-width: 0; position: relative;
   display: flex; flex-direction: column;
@@ -1778,10 +1806,62 @@ body {
    Hierarchy is unchanged and still carried the way the scale says -- step AND
    weight AND ink -- because every rung moved together. */
 
-/* Starting one, then finding one. The column's only filled control, because
-   starting is the verb and everything under it is the qualifier. */
-.ov-chat-new { width: 100%; justify-content: center; margin-bottom: 0.5rem; }
-.ov-chat-new svg { width: 0.875rem; height: 0.875rem; }
+/* == THE PANEL'S HEAD, WHERE THE PANEL IS A DRAWER ==
+   Docked, this column has the canvas around it and needs no title. As a drawer
+   it slides over the thread, and what stood at its top was a lone panel-left
+   icon floating in 58px of reserved padding: an action with nothing naming
+   what it acts on. AiMY Knowledge's gate settled this first - a label and the
+   control that closes the panel, because two words make the strip a header and
+   the icon an action - so this is that header in this file's tokens.
+
+   It replaces the 58px the column used to reserve, which is why the pair
+   outside stands down the moment the drawer opens: the way out is IN the panel
+   now, where every other panel in this build puts it. */
+.ov-chats-head { display: none; }
+.ov-chats-title {
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--d400); white-space: nowrap;
+}
+.ov-chats-shut {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.ov-chats-shut svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.ov-chats-shut:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.ov-chats-shut:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .ov-chats-shut { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .ov-chats-shut:hover { background: rgba(16,24,40,0.07); }
+
+/* == STARTING ONE, QUIETED ==
+   This was `btn btn-brand btn-sm` with `justify-content: center`: a filled
+   primary pill the full width of the column, and the single loudest thing on
+   the canvas. AiMY Knowledge's gate took the same control the other way and
+   said why - not one of Claude, Gemini, Mistral, Grok or Perplexity fills it,
+   because it is the most obvious action on the panel and obvious actions do
+   not need shouting. That rule was scoped to the gate, so three panels in one
+   family disagreed about one button. They do not now.
+
+   The classes stay on the element and are overridden here, which is how
+   Knowledge does it: the markup says what the control IS, the stylesheet says
+   how loud. */
+.ov-chat-new {
+  width: 100%; justify-content: flex-start; gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4375rem 0.625rem;
+  border: 0; border-radius: var(--r-sm);
+  background: transparent; box-shadow: none;
+  color: var(--d300);
+  font-size: var(--ty-meta); font-weight: var(--fw-medium);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.ov-chat-new:hover { background: var(--card-bg-raised); color: var(--d50); box-shadow: none; }
+.ov-chat-new svg { width: 0.875rem; height: 0.875rem; opacity: 0.7; }
 /* Find a conversation. Second in the column, because a list you scroll to
    search is a list you have already failed to search. */
 .ov-chat-find { display: block; margin-bottom: 1.25rem; }
@@ -2004,6 +2084,21 @@ body {
    start above the surface it belongs to. Against its own overlay it cannot. */
 @media (max-width: 899.98px) { /* 900 layout px */
   .ov-chats-tools { display: flex; }
+  .ov-chats-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; flex-shrink: 0;
+    /* 20, which is the gap this column puts between every other pair of rows
+       and what the same head clears in AiMY Knowledge. The column's own gap
+       moved into `.ov-chats-scroll` when the foot was pinned, so the head has
+       to state it. */
+    margin-bottom: 20px;
+  }
+
+  /* AND BOTH OF THEM GO WHILE THE DRAWER IS OPEN. The door was kept because
+     it was the only way to shut the panel; the panel has its own now, in its
+     head, so leaving these two over it would be a second copy of each control
+     floating above the first. */
+  .aimy-overlay:has(.overlay-chats.is-open) .ov-chats-tools { display: none; }
 
   /* AND THE WAY OUT JOINS THE ROW IT IS OPPOSITE.
      The library draws this at 36px, inset 20, radius 10; everything else on
@@ -2023,14 +2118,16 @@ body {
     /* --vp-w, not 100dvw: inside `zoom: k` a viewport unit is k viewports
        wide. The 56px it leaves is the strip of thread behind that says the
        drawer is over something. */
-    width: min(280px, calc(var(--vp-w) - 56px));
-    /* THE DOOR STAYS ON TOP OF WHAT IT OPENED, so the drawer starts below it.
-       The toggle is 34px at 16 from the top and sits at z-index 40 against the
-       drawer's 30 — correct, because while the drawer is open that button is
-       how you shut it — but the column's own 20px padding put New conversation
-       straight underneath it. 58 = 16 + 34 + 8, which reads as the drawer's
-       head with its control in it rather than as a gap. */
-    padding-top: 58px;
+    /* 240, which is this column's own docked width and what the same drawer
+       measures in AiMY Knowledge. It was 280: the one panel in the family
+       that got wider when it became a drawer, for no reason the file gives. */
+    width: min(240px, calc(var(--vp-w) - 56px));
+    /* THE HEAD IS REAL NOW, so there is nothing to reserve room for. This was
+       `padding-top: 58px` = 16 of inset + 34 of button + 8, holding the first
+       row clear of the toggle floating above it at z-index 40. A gap shaped
+       like a header is not a header: `.ov-chats-head` is one, it is the first
+       child of this column, and the button that was floating over the gap is
+       in it. The pair outside goes while the drawer is open, below. */
     background: var(--panel-bg);
     box-shadow: var(--shadow-xl);
     backdrop-filter: blur(18px);

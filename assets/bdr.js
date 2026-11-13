@@ -33151,7 +33151,38 @@
       (CHAT_MENU === r.id ? rowMenu(r) : CHAT_MENU === '!' + r.id ? rowConfirm(r) : '') +
       '</div>';
 
+    /* == THE PANEL'S OWN HEAD, AND IT ONLY EXISTS AS A DRAWER ==
+       Below 900 this column slides over the thread, and the only thing naming
+       it was a lone icon floating in 58px of padding above the first row: a
+       control with nothing to say what it controls. AiMY Knowledge's gate
+       answers that with a header, in its own words - two words make the strip
+       a header and the icon an action. This is that header, so the three
+       conversation panels in the family read alike.
+
+       The button needs no handler of its own: every button inside this column
+       already closes the drawer (see the router below), which is exactly what
+       this one is for. Painted only where the drawer exists; sales.css decides
+       that, not this function. */
     host.innerHTML =
+      '<div class="ov-chats-head">' +
+        '<span class="ov-chats-title">Conversations</span>' +
+        '<button class="ov-chats-shut" type="button" ' +
+          'aria-label="Hide conversations" title="Conversations">' +
+          '<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/></svg>' +
+        '</button>' +
+      '</div>' +
+      /* == AND EVERYTHING BETWEEN THE HEAD AND THE FOOT SCROLLS ==
+         The column scrolled as one piece, so the foot below would have gone
+         with it - a Console link you reach by scrolling past every
+         conversation you have ever had. Head and foot are pinned and this
+         scrolls between them, which is the shape AiMY Knowledge's rail
+         already has.
+
+         New conversation and the search are INSIDE it, as they are there, and
+         for a second reason here: notetaker.js puts a live meeting's row
+         `afterend` of `.ov-chat-find`, so a search box outside this box would
+         drop that row outside it too. */
+      '<div class="ov-chats-scroll">' +
       '<button class="btn btn-brand btn-sm ov-chat-new" type="button" data-newchat>' +
         chIcon('plus') + 'New conversation</button>' +
       '<label class="ov-chat-find">' +
@@ -33178,7 +33209,25 @@
            over a search box with nothing under either. */
         : !q && !CHATS.some(mineChat)
           ? '<p class="ov-chat-none">Nothing yet. Ask AiMY something and it lands here.</p>'
-          : '');
+          : '') +
+      '</div>' +
+      /* == THE CONSOLE, PINNED == Where AiMY itself is set up - what it reads,
+         what it is allowed to do, who it answers for. AiMY Knowledge pins it
+         at the foot of this same panel, under a rule it states there: the
+         top-right button is the one that gets found, this is the one that gets
+         used, because it sits where the hand already is once somebody knows
+         the page. It is one console for the family, so it is the same row in
+         the same place here, pointing at the shell that hosts it. */
+      '<div class="ov-chats-foot">' +
+        '<a class="ov-chats-console" ' +
+          'href="https://design-aimy-knolwedge.aimy.flairstech.com/console.html">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+            'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="15" height="15">' +
+            '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/>' +
+            '<rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>' +
+          '<span>Console</span>' +
+        '</a>' +
+      '</div>';
     /* A meeting AiMY is taking notes in is the first row while it runs
        (notetaker.js, the same file as Knowledge's). It is not a thread, so
        it is not in CHATS. */
