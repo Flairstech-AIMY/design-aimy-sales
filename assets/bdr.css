@@ -3760,19 +3760,19 @@ textarea::placeholder,
    own rule sits further down the file, and a transition written here would
    be thrown away by the one there, so its press is declared at that rule. */
 .b-menu-item, .b-peek-x,
-.rail-toggle, .ov-chats-toggle, .proto-toggle, .ver-link {
+.rail-toggle, .ov-chats-toggle, .ov-chats-new, .proto-toggle, .ver-link {
   transition: transform var(--t-press) var(--ease-out),
               background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
 .b-menu-item:active, .b-peek-x:active,
-.rail-toggle:active, .ov-chats-toggle:active, .proto-toggle:active,
-.ver-link:active { transform: scale(0.97); }
+.rail-toggle:active, .ov-chats-toggle:active, .ov-chats-new:active,
+.proto-toggle:active, .ver-link:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
   .b-menu-item, .b-peek-x,
-  .rail-toggle, .ov-chats-toggle, .proto-toggle, .ver-link { transition: none; }
+  .rail-toggle, .ov-chats-toggle, .ov-chats-new, .proto-toggle, .ver-link { transition: none; }
   .b-menu-item:active, .b-peek-x:active,
-  .rail-toggle:active, .ov-chats-toggle:active, .proto-toggle:active,
-  .ver-link:active { transform: none; }
+  .rail-toggle:active, .ov-chats-toggle:active, .ov-chats-new:active,
+  .proto-toggle:active, .ver-link:active { transform: none; }
 }
 
 /* ══ 63. ONE SHADOW FOR WHAT FLOATS ════════════════════════════════════════

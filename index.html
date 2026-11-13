@@ -46,7 +46,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=1286" />
+  <link rel="stylesheet" href="assets/sales.css?v=1288" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -58,8 +58,8 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=1489" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=1289" />
+  <link rel="stylesheet" href="assets/bdr.css?v=1490" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=1290" />
   <link rel="stylesheet" href="assets/voice.css?v=1331" />
   <link rel="stylesheet" href="assets/notetaker.css?v=1331" />
   <link rel="stylesheet" href="assets/aimy-scroll.css?v=2" />
@@ -180,6 +180,12 @@
       <button class="prod-chev" id="prodChev" type="button"
               data-pickopen="prodMenu" aria-haspopup="menu" aria-controls="prodMenu"
               aria-label="Switch product" title="Products">
+        <!-- THE MARK IS THE BUTTON BELOW 720. The wordmark is 140px of a
+             375px masthead naming the product you are already in, beside a
+             chevron that is the only thing on that flank doing anything. The
+             glyph says the same in 18px and opens the list of the others, so
+             the wordmark goes and this carries the name. -->
+        <svg class="prod-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="b-menu" id="prodMenu" role="menu" hidden></div>
@@ -509,13 +515,31 @@
            drawer mechanism in this shell and not two. Both elements exist at
            every width and are painted at none of them until the drawer does;
            sales.css decides that, not this markup. -->
-      <button class="ov-chats-toggle" id="ovChatsToggle" type="button"
-              aria-expanded="false" aria-controls="overlayChats"
-              aria-label="Open conversations" title="Conversations">
-        <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>
-        </svg>
-      </button>
+      <div class="ov-chats-tools">
+        <button class="ov-chats-toggle" id="ovChatsToggle" type="button"
+                aria-expanded="false" aria-controls="overlayChats"
+                aria-label="Open conversations" title="Conversations">
+          <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>
+          </svg>
+        </button>
+
+        <!-- ══ AND A CONVERSATION STARTS WITHOUT OPENING THE DRAWER ════
+             New conversation is the first row of the column, and below 900
+             the column is a drawer — so starting one cost a press, a slide
+             and a scrim, on the screens where it is asked for most. It comes
+             out and stands beside the door.
+
+             `data-newchat` is the drawer button's own hook, so this is a
+             second way to press one control rather than a second control. -->
+        <button class="ov-chats-new" type="button" data-newchat
+                aria-label="New conversation" title="New conversation">
+          <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+          </svg>
+        </button>
+      </div>
       <div class="ov-chats-scrim" id="ovChatsScrim"></div>
 
       <div class="overlay-main">

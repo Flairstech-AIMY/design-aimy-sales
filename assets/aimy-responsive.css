@@ -204,7 +204,7 @@
 
 /* The canvas's chats door and drawer are placed against the canvas's own
    edge, so its padding does not move them; they step out of the notch here. */
-:root .ov-chats-toggle { left: calc(16px + var(--safe-left)); }
+:root .ov-chats-tools { left: calc(16px + var(--safe-left)); }
 @media (max-width: 899.98px) {
   :root .overlay-chats { border-left: var(--safe-left) solid transparent; }
 }

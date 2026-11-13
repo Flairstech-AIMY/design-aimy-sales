@@ -1438,6 +1438,29 @@ body {
      by one of them. */
   .topnav-spacer + .topnav-spacer { display: none; }
   .topnav-logo { padding-right: 0; margin-right: 0; }
+
+  /* -- AND THE WORDMARK GOES, BECAUSE THE GLYPH IS ALREADY SAYING IT --
+     140px of a 375px masthead naming the product you are in. Beside it the
+     chevron was a bare 24px arrow hanging off that wordmark: the only thing on
+     the flank that did anything, and the smallest thing on it. Swapped - the
+     glyph moves inside the chevron's button, the wordmark goes, and the flank
+     is the rail's door and one mark that opens the other products.
+
+     The button takes the 34px of the door beside it rather than the chevron's
+     own 24, so the two controls on this flank are one row. */
+  .topnav-logo-mark { display: none; }
+  .prod-chev {
+    width: auto; height: 34px; gap: 4px;
+    padding: 0 6px; border-radius: var(--r-md);
+  }
+  .prod-chev .prod-mark { width: 18px; height: 20px; }
+
+  /* THE CHEVRON TURNS, NOT THE MARK. The open state rotates `.prod-chev`
+     itself, which was right while the button WAS the chevron and turns the
+     AiMY glyph upside down now that the glyph is inside it. */
+  .prod-anchor:has(.b-menu:not([hidden])) .prod-chev { transform: none; }
+  .prod-chev > svg:last-child { transition: transform var(--t-fast); }
+  .prod-anchor:has(.b-menu:not([hidden])) .prod-chev > svg:last-child { transform: rotate(180deg); }
 }
 
 
@@ -1893,9 +1916,24 @@ body {
    `display: none` at every width, painted only in the block above: where the
    column is already standing in the row, a button offering to reveal it is a
    button that does nothing. */
-.ov-chats-toggle {
+/* THE PAIR IS POSITIONED, NOT EACH BUTTON.
+   The door was absolute at 16/16 on its own. A second button beside it would
+   have to be absolute at 58 - the first number in this file that has to be
+   recomputed by hand whenever either button changes size, and `.overlay-chats`
+   already carries a 58 of its own derived that way. One positioned box with a
+   gap instead, and the two buttons are ordinary flex items in it.
+
+   The GROUP is what is hidden above the drawer's breakpoint, so neither button
+   carries a `display` rule and there is one decision about whether this row
+   exists at all. */
+.ov-chats-tools {
   display: none;
   position: absolute; top: 16px; left: 16px; z-index: 40;
+  align-items: center; gap: 8px;
+}
+.ov-chats-toggle,
+.ov-chats-new {
+  display: inline-flex;
   width: 34px; height: 34px; border-radius: var(--r-md);
   align-items: center; justify-content: center;
   background: rgba(255,255,255,0.04);
@@ -1903,11 +1941,23 @@ body {
   color: var(--d400); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
-.ov-chats-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
-.ov-chats-toggle:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
-.ov-chats-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-:root[data-theme="light"] .ov-chats-toggle { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
-:root[data-theme="light"] .ov-chats-toggle:hover { background: rgba(16,24,40,0.07); }
+.ov-chats-toggle svg,
+.ov-chats-new svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.ov-chats-toggle:hover,
+.ov-chats-new:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.ov-chats-toggle:focus-visible,
+.ov-chats-new:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .ov-chats-toggle,
+:root[data-theme="light"] .ov-chats-new { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .ov-chats-toggle:hover,
+:root[data-theme="light"] .ov-chats-new:hover { background: rgba(16,24,40,0.07); }
+
+/* AND IT STANDS DOWN WHILE THE DRAWER IS OPEN. The drawer's own first row is
+   New conversation, 58px below this and 8px to the right of it - two copies of
+   one control, stacked, both visible. The door stays, because while the drawer
+   is open the door is how you shut it; the second of the two goes, and because
+   it is the second nothing moves when it does. */
+.aimy-overlay:has(.overlay-chats.is-open) .ov-chats-new { display: none; }
 /* ══ AND THE WAY OUT IS ABOVE WHAT IT CLOSES ═══════════════════════
    `.overlay-close` is absolute with no z-index, so it paints in the positioned
    layer at 0 and every bubble in the thread that reaches its corner paints
@@ -1953,7 +2003,19 @@ body {
    and any minimised call — so a drawer positioned against the viewport would
    start above the surface it belongs to. Against its own overlay it cannot. */
 @media (max-width: 899.98px) { /* 900 layout px */
-  .ov-chats-toggle { display: inline-flex; }
+  .ov-chats-tools { display: flex; }
+
+  /* AND THE WAY OUT JOINS THE ROW IT IS OPPOSITE.
+     The library draws this at 36px, inset 20, radius 10; everything else on
+     the canvas's top row - and every icon button in this shell - is 34px,
+     inset 16, --r-md. With one button on the left that read as a corner; with
+     two it reads as a row, and measured the x sat 5px below the pair it faces
+     and 2px taller than them. Brought onto their line here, where the row
+     exists, rather than in aimy-ds.css, which is shared with Knowledge. */
+  .overlay-close {
+    top: 16px; right: 16px;
+    width: 34px; height: 34px; border-radius: var(--r-md);
+  }
 
   .overlay-chats {
     position: absolute; z-index: 30;
